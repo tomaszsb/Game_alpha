@@ -7,6 +7,7 @@ import { Player } from '../../types/StateTypes';
 import { ColorOption, AVAILABLE_COLORS } from './usePlayerValidation';
 import { getServerURL, getNetworkInfo } from '../../utils/networkDetection';
 import { PlayerAvatar } from '../common/PlayerAvatar';
+import { IconCheck, IconWarning, IconPeople } from '../icons/SetupIcons';
 
 interface PlayerListProps {
   players: Player[];
@@ -362,7 +363,7 @@ export function PlayerList({
                 alignItems: 'center',
                 gap: '0.25rem'
               }}>
-                {compact ? '✅' : '✅ Mobile'}
+                <IconCheck size="0.9em" />{!compact && ' Mobile'}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -407,9 +408,13 @@ export function PlayerList({
                     color: qrRequired ? colors.danger.text : colors.secondary.main,
                     fontWeight: qrRequired ? 700 : 400,
                     marginTop: '0.25rem',
-                    fontStyle: qrRequired ? 'normal' : 'italic'
+                    fontStyle: qrRequired ? 'normal' : 'italic',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.25em',
                   }}>
-                    {qrRequired ? '⚠ Required: scan to join' : 'Optional: scan for personal screen'}
+                    {qrRequired ? <><IconWarning size="0.9em" /> Required: scan to join</> : 'Optional: scan for personal screen'}
                   </div>
                 )}
               </div>
@@ -431,7 +436,9 @@ export function PlayerList({
         color: colors.secondary.main,
         fontStyle: 'italic'
       }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
+        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+          <IconPeople size="3rem" />
+        </div>
         <p style={{ margin: 0, fontSize: '1.1rem' }}>
           No players added yet. Click "Add Player" to get started!
         </p>

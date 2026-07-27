@@ -5,6 +5,7 @@ import { colors } from '../../styles/theme';
 import { getBackendURL } from '../../utils/networkDetection';
 import { isPhoneScreen } from '../../utils/deviceDetection';
 import { styles } from './PlayerSetup.styles';
+import { IconController, IconEye } from '../icons/SetupIcons';
 
 interface JoinPickerPlayer {
   id: string;
@@ -183,8 +184,8 @@ export function JoinByCodePanel({ selectedMode }: JoinByCodePanelProps): JSX.Ele
 
   return (
     <div style={styles.settingsBlock}>
-      <h3 style={styles.sectionTitleSmall}>
-        🎮 Game Setup
+      <h3 style={{ ...styles.sectionTitleSmall, display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+        <IconController size="1em" /> Game Setup
       </h3>
 
       {/* Join an existing game by code. Navigates with a full reload
@@ -279,7 +280,9 @@ export function JoinByCodePanel({ selectedMode }: JoinByCodePanelProps): JSX.Ele
                 }}
                 title="Watch the game without controlling a player."
               >
-                👁️ Just watching
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
+                  <IconEye size="1em" /> Just watching
+                </span>
               </button>
               <button
                 type="button"

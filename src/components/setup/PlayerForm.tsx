@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { colors } from '../../styles/theme';
 import { usePlayerValidation, ValidationResult } from './usePlayerValidation';
+import { IconWarning } from '../icons/SetupIcons';
 
 interface PlayerFormProps {
   onAddPlayer: () => void;
@@ -122,7 +123,7 @@ export function PlayerForm({
           </>
         ) : (
           <>
-            <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+            <IconWarning size="1.2rem" />
             Cannot Add Player
           </>
         )}

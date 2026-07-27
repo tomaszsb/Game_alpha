@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { colors } from '../../styles/theme';
+import { IconDesktop, IconTV, IconGlobe } from '../icons/SetupIcons';
 
 interface ModeToggleProps {
   selectedMode: 'pc' | 'tv';
@@ -69,7 +70,9 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
           }}
           title="All players share one screen, taking turns."
         >
-          🖥️ PC
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
+            <IconDesktop size="1em" /> PC
+          </span>
           <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
             Shared screen
           </div>
@@ -93,7 +96,9 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
           }}
           title="Board on the TV; each player on their own phone or tablet."
         >
-          📺 TV
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
+            <IconTV size="1em" /> TV
+          </span>
           <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
             Phones + TV
           </div>
@@ -122,7 +127,9 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
           }}
           title="Play with everyone in a different location — no shared screen needed. Coming soon."
         >
-          🌐 Remote
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
+            <IconGlobe size="1em" /> Remote
+          </span>
           <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
             {remoteModeTapped ? 'Coming soon!' : 'Different places'}
           </div>

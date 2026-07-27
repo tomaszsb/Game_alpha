@@ -13,6 +13,7 @@
 import React, { useEffect, useState } from 'react';
 import { getInstanceId } from '../../utils/dataInstance';
 import { getBackendURL } from '../../utils/networkDetection';
+import { IconSchool } from '../icons/SetupIcons';
 
 interface ClassroomBadgeProps {
   style?: React.CSSProperties;
@@ -41,7 +42,7 @@ export function ClassroomBadge({ style }: ClassroomBadgeProps): JSX.Element | nu
   if (!instanceId) return null;
   return (
     <span style={{ ...badgeStyle, ...style }} title={`Classroom: ${name || instanceId}`}>
-      🏫 {name || instanceId}
+      <IconSchool size="1em" /> {name || instanceId}
     </span>
   );
 }

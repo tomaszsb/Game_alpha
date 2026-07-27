@@ -16,6 +16,7 @@
 import React from 'react';
 import { colors } from '../../styles/theme';
 import { isPhoneScreen } from '../../utils/deviceDetection';
+import { IconPhone } from '../icons/SetupIcons';
 
 export function PhoneScreenWarning(): JSX.Element | null {
   if (typeof window === 'undefined' || !isPhoneScreen()) return null;
@@ -38,7 +39,7 @@ export function PhoneScreenWarning(): JSX.Element | null {
         textAlign: 'left',
       }}
     >
-      <span style={{ fontSize: '1.1rem', flexShrink: 0 }} aria-hidden="true">📱</span>
+      <span style={{ flexShrink: 0, display: 'inline-flex' }} aria-hidden="true"><IconPhone size="1.1rem" /></span>
       <span>
         This game works best on a bigger screen — a tablet at minimum, ideally a TV.
         You can keep going, but things may feel cramped on a phone this small.

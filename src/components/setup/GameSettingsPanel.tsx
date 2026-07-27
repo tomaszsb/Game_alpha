@@ -4,6 +4,7 @@ import React from 'react';
 import { colors } from '../../styles/theme';
 import { GameSettings } from './usePlayerValidation';
 import { styles } from './PlayerSetup.styles';
+import { IconGear } from '../icons/SetupIcons';
 
 interface GameSettingsPanelProps {
   gameSettings: GameSettings;
@@ -23,8 +24,8 @@ export function GameSettingsPanel({
 }: GameSettingsPanelProps): JSX.Element {
   return (
     <div style={styles.settingsBlock}>
-      <h3 style={styles.sectionTitleSmall}>
-        ⚙️ Game Settings
+      <h3 style={{ ...styles.sectionTitleSmall, display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+        <IconGear size="1em" /> Game Settings
       </h3>
 
       <div style={{

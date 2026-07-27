@@ -8,6 +8,8 @@ import { getCurrentGameId } from '../../utils/networkDetection';
 import { GitHubSyncStatus } from './useGitHubSyncStatus';
 import { styles } from './PlayerSetup.styles';
 import { ShareIcon, useShareGameLink } from './ShareGameButton';
+import { IconCheck, IconWarning, IconBug } from '../icons/SetupIcons';
+import { LogoTransform } from '../icons/LogoTransform';
 
 interface PlayerMobileViewProps {
   /** The player this device is controlling, or undefined if not found yet. */
@@ -76,7 +78,7 @@ export function PlayerMobileView({
         <div style={styles.headerLeft}>
           <div className="us-hero-logo-wrap">
             <div className="us-hero-glow" aria-hidden="true" />
-            <img src="/images/logo.png" alt="Unravel Codes" className="us-hero-logo-img" style={styles.logo} />
+            <LogoTransform className="us-hero-logo-img" style={styles.logo} />
           </div>
           <div>
             <h1 style={styles.title}>Unravel Codes: The Game</h1>
@@ -95,10 +97,14 @@ export function PlayerMobileView({
             >
               <span>v{appSemver}</span>
               {appCommit && <span style={styles.versionCommit}> · {appCommit}</span>}
-              {syncStatus.status === 'in-sync' && <span style={styles.versionInSync}> ✓</span>}
+              {syncStatus.status === 'in-sync' && (
+                <span style={{ ...styles.versionInSync, display: 'inline-flex', alignItems: 'center', gap: '0.2em' }}>
+                  {' '}<IconCheck size="0.85em" />
+                </span>
+              )}
               {syncStatus.status === 'out-of-sync' && (
-                <span style={styles.versionBehind}>
-                  {' '}⚠ {syncStatus.commitsBehind ? `${syncStatus.commitsBehind} ` : ''}behind
+                <span style={{ ...styles.versionBehind, display: 'inline-flex', alignItems: 'center', gap: '0.25em' }}>
+                  {' '}<IconWarning size="0.85em" /> {syncStatus.commitsBehind ? `${syncStatus.commitsBehind} ` : ''}behind
                 </span>
               )}
             </div>
@@ -241,7 +247,7 @@ export function PlayerMobileView({
       </main>
 
       <footer style={styles.footer}>
-        <strong>Beta Version</strong> · Bug? Use the 🐞 button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+        <strong>Beta Version</strong> · Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
       </footer>
     </div>
   );

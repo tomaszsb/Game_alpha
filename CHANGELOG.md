@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.55] - 2026-07-26
+
+### Build: custom icon set + animated logo replace raw emoji on the setup screen (maintainer request)
+Emoji render as different glyphs (or a blank box) across Windows/iOS/Android/smart-TV browsers — a real problem specifically for this app, since the setup screen also runs on classroom TVs. Replaced all 15 non-admin-gated emoji on the setup flow with hand-drawn inline SVG icons instead: new `src/components/icons/SetupIcons.tsx` exports `IconCheck`/`IconWarning`/`IconGear`/`IconPeople`/`IconPhone`/`IconPlay`/`IconClose`/`IconBug`/`IconDesktop`/`IconTV`/`IconGlobe`/`IconController`/`IconEye`/`IconSchool`/`IconHourglass`, all using `currentColor` so each one automatically matches whatever text color it's dropped into (no per-usage color prop needed). Wired into `PlayerSetup.tsx`, `PlayerMobileView.tsx`, `PlayerList.tsx`, `PlayerForm.tsx`, `ModeToggle.tsx`, `JoinByCodePanel.tsx`, `GameSettingsPanel.tsx`, `PhoneScreenWarning.tsx`, and `ClassroomBadge.tsx`. The admin-only panels (`AdminToolsPanel.tsx`, `AdminGameManager.tsx`) and the per-player avatar picker (`usePlayerValidation.ts`'s `AVAILABLE_AVATARS`, which is stored as raw emoji in `player.avatar` and rendered in many more places across the whole game, not just setup) were deliberately left alone — bigger, separate scope.
+
+**New animated logo:** `src/components/icons/LogoTransform.tsx` — the existing `logo.png`'s own in-code description ("a yarn ball unraveling into the 'NYC Codes' book") replayed as a real looping SVG animation instead of a static image: a thread winds itself into a spiral (yarn ball) via an animated `stroke-dashoffset` reveal, then fades and restarts. Sampled the actual brand colors from `logo.png` (dark forest green ring/thread, cream badge background) rather than guessing. Replaces the static `<img src="/images/logo.png">` in both `PlayerSetup.tsx`'s header and `PlayerMobileView.tsx`'s header, reusing the existing glow/wobble CSS treatment both already had.
+
+Verified: typecheck clean, production build clean, all 30 existing tests across the touched setup components still pass (`PlayerList`, `PlayerMobileView`, `PlayerSetup`, `JoinByCodePanel`, `PhoneScreenWarning`, `ShareGameButton`). Live-verified in a real dev-server session: added players, opened the settings drawer, confirmed no console errors and every swapped icon renders at the right size with correct color inheritance (checked via computed styles — this session's browser tool couldn't produce a visual screenshot, so a live HTML preview of the full icon set + logo animation was published separately for visual review).
+
 ## [3.1.54] - 2026-07-26
 
 ### Fix: three more zero-effect/unbuilt card descriptions, resolved via maintainer interview

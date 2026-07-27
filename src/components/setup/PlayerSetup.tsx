@@ -25,6 +25,8 @@ import { ModeToggle } from './ModeToggle';
 import { JoinByCodePanel } from './JoinByCodePanel';
 import { GameSettingsPanel } from './GameSettingsPanel';
 import { AdminToolsPanel } from './AdminToolsPanel';
+import { IconCheck, IconWarning, IconGear, IconPeople, IconPhone, IconPlay, IconClose, IconBug, IconHourglass } from '../icons/SetupIcons';
+import { LogoTransform } from '../icons/LogoTransform';
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
@@ -371,9 +373,7 @@ export function PlayerSetup({
         <div style={styles.headerLeft}>
           <div className="us-hero-logo-wrap">
             <div className="us-hero-glow" aria-hidden="true" />
-            <img
-              src="/images/logo.png"
-              alt="Unravel Codes"
+            <LogoTransform
               className="us-hero-logo-img"
               style={{
                 ...styles.logo,
@@ -403,10 +403,14 @@ export function PlayerSetup({
             >
               <span>v{appSemver}</span>
               {appCommit && <span style={styles.versionCommit}> · {appCommit}</span>}
-              {syncStatus.status === 'in-sync' && <span style={styles.versionInSync}> ✓</span>}
+              {syncStatus.status === 'in-sync' && (
+                <span style={{ ...styles.versionInSync, display: 'inline-flex', alignItems: 'center', gap: '0.2em' }}>
+                  {' '}<IconCheck size="0.85em" />
+                </span>
+              )}
               {syncStatus.status === 'out-of-sync' && (
-                <span style={styles.versionBehind}>
-                  {' '}⚠ {syncStatus.commitsBehind ? `${syncStatus.commitsBehind} ` : ''}behind
+                <span style={{ ...styles.versionBehind, display: 'inline-flex', alignItems: 'center', gap: '0.25em' }}>
+                  {' '}<IconWarning size="0.85em" /> {syncStatus.commitsBehind ? `${syncStatus.commitsBehind} ` : ''}behind
                 </span>
               )}
             </div>
@@ -443,7 +447,7 @@ export function PlayerSetup({
               transition: 'background 0.15s ease',
             }}
           >
-            ⚙️
+            <IconGear size="1.1em" />
           </button>
         </div>
       </header>
@@ -481,13 +485,16 @@ export function PlayerSetup({
               fontSize: '0.95rem',
               fontWeight: 700,
               margin: '0 0 0.35rem 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4em',
             }}>
-              👥 Players — {validation.getPlayerCountSummary()}
+              <IconPeople size="1em" /> Players — {validation.getPlayerCountSummary()}
             </p>
           ) : (
             <>
-              <h3 style={styles.sectionTitle}>
-                👥 Players
+              <h3 style={{ ...styles.sectionTitle, display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+                <IconPeople size="1em" /> Players
               </h3>
               <p style={styles.playerCount}>
                 {validation.getPlayerCountSummary()}
@@ -542,9 +549,12 @@ export function PlayerSetup({
                 fontSize: '1.05rem',
                 fontWeight: 'bold',
                 color: colors.warning.text,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4em',
               }}
             >
-              📱 Waiting for {validation.waitingOnPhoneNames.join(', ')} to scan their QR code — the game starts once every phone is in.
+              <IconPhone size="1em" /> Waiting for {validation.waitingOnPhoneNames.join(', ')} to scan their QR code — the game starts once every phone is in.
             </div>
           )}
 
@@ -598,11 +608,13 @@ export function PlayerSetup({
                 ? validation.validateGameStart().errorMessage || 'Add at least one player to start.'
                 : undefined}
             >
-              {isStarting
-                ? '⏳ Starting…'
-                : (selectedMode === 'tv' && validation.waitingOnPhoneNames.length > 0)
-                  ? '📱 Waiting for phones…'
-                  : '🚀 Start Game'}
+              {isStarting ? (
+                <><IconHourglass size="1em" /> Starting…</>
+              ) : (selectedMode === 'tv' && validation.waitingOnPhoneNames.length > 0) ? (
+                <><IconPhone size="1em" /> Waiting for phones…</>
+              ) : (
+                <><IconPlay size="1em" /> Start Game</>
+              )}
             </button>
           </div>
         </div>
@@ -641,7 +653,7 @@ export function PlayerSetup({
               zIndex: 1,
             }}
           >
-            ✕
+            <IconClose size="0.9em" />
           </button>
           <JoinByCodePanel selectedMode={selectedMode} />
 
@@ -668,7 +680,7 @@ export function PlayerSetup({
       {/* Footer */}
       <footer style={styles.footer}>
         <strong>Beta Version</strong> - We're improving daily.
-        {' '}Bug? Use the 🐞 button (bottom-right), or email <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+        {' '}Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right), or email <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
       </footer>
 
       {/* Data Editor Modal */}
