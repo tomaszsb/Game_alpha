@@ -11,12 +11,16 @@ Any session that ran `npm run server` for browser verification leaves an Express
 Run this first, so the suite below isn't competing with them:
 
 ```bash
-powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -match 'server[/\\\\]server\.js|run server' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force }"
+powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -match 'server.server\.js|run server' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force }"
 ```
+
+**(2026-07-28 fix — the first version of this command did not run.)** It used a `[/\\\\]` character class, which by the time bash finished with it reached PowerShell as `server[/\]server\.js` — an unterminated `[]` set, because the `\]` escaped the closing bracket. PowerShell threw `ArgumentException` once per process examined and killed nothing, while the surrounding pipeline still printed a plausible-looking count. Use the plain `.` wildcard above: it matches either slash and carries no backslash for bash to mangle.
 
 Then confirm nothing is left listening on 3001–3005 (`curl -s --max-time 2 http://localhost:300N/health`). **Only match the game server** (`server/server.js` or `npm run server`) — the same machine runs ~15 node MCP servers that must not be touched.
 
-Measured effect: killing them cut `npm test`'s reported test time from ~149s to ~59s. It did **not** eliminate the `E2E-AllPaths` timeout flake (see TODO.md — that one is worker starvation, since those tests run in 65–1133ms in isolation against 30–90s budgets), so don't treat a green run here as proof the flake is fixed. Cleanup is still worth doing every time: it removes a real, compounding source of load and stops ports drifting upward.
+Measured effect: killing them cut `npm test`'s reported test time from ~149s to ~59s. Worth doing every time — it removes a real, compounding source of load and stops ports drifting upward.
+
+**(2026-07-28 correction, same day this step was written.)** The original text here said the leftover `E2E-AllPaths` timeout flake "is worker starvation." That was wrong, and it was written down confidently before it had been verified. The flake was root-caused and fixed later the same session (v3.1.73): `endTurnWithMovement()` could raise a `CARD_DISCARD` choice that no test ever answered, so the promise never settled — a permanent hang, not slowness, which is why raising timeouts had never helped. Server cleanup and the flake were unrelated. Keep both facts straight: this step is about machine load, not about that flake.
 
 Also worth a glance if things feel slow: `(Get-Process node).Count`. Steady state on this machine is ~17 (MCP servers). Materially above that means something leaked.
 
