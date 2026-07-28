@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.66] - 2026-07-27
+
+### Fix: `npm run lint` runs again — 392 errors → 0, and it now blocks the bug class we shipped this morning
+Second code-health item, and the direct follow-on from v3.1.65: a working lint would have caught that crash the day it was written.
+
+**The actual misconfiguration (DEF-4).** `eslint.config.js` applied `js.configs.recommended` globally, which enables the core `no-undef` rule, and the TypeScript block never turned it off. `no-undef` predates TypeScript and cannot see TS types — `JSX`, `NodeJS`, type-only imports, ambient declarations are all "undefined" to it. All **138** of its reports in `src/` were false positives. typescript-eslint ships an `eslint-recommended` override that disables it for precisely this reason; this config pulled in their *rules* object but never that override. Real undefined identifiers are caught by `npm run typecheck`, which is where the check belongs. Now `'no-undef': 'off'`.
+
+**Severity triage for the rest.** Fixing all 392 in one pass wasn't realistic, so rules with existing violations are now `'warn'` — **visible in every run, but non-blocking**. This is a burn-down list, not a suppression list, and it is recorded as such in TODO.md: `no-unused-vars` (102, now with `^_` ignore patterns matching the codebase's own convention), `no-unescaped-entities` (41), `set-state-in-effect` (34), `no-explicit-any` (28, Bucket E is documented as intentional), `no-empty` (19), `no-case-declarations` (14), `exhaustive-deps` (10), and a few singles. Nothing was deleted or silenced.
+
+**What stays a hard error is the point.** `react-hooks/rules-of-hooks` is at **zero** violations now that v3.1.65 fixed the last 28 — so it guards the future instead of nagging about the past. Verified by piping a synthetic hooks-after-early-return component through `eslint --stdin`: it errors and exits 1. The exact class of defect that crashed the Data Editor for seven weeks would now fail the lint run.
+
+Also fixed while in here, all genuinely real: two unreachable `break;` statements sitting after `return`s in `EffectEngineService` (`CARD_ACTIVATION` and `PLAY_CARD` — dead, though not bugs), and two `eslint-disable` directives that no longer suppressed anything (`DictionaryHint.tsx:41`, `DataService.ts:578`) and were themselves hard errors.
+
+Result: `npm run lint` exits **0** with 0 errors and 257 warnings, so it can now be wired into CI. **It is not yet — this repo has no `.github/workflows/` at all**, and deploys run via `deploy.sh` on Unraid rather than GitHub Actions, so adding CI is a separate decision rather than something to slip in here.
+
+Verified: typecheck clean, production build clean, `tests/services` + `tests/dictionary` 946/946 across 42 files.
+
 ## [3.1.65] - 2026-07-27
 
 ### Fix: logging into the Data Editor crashed it — a real bug hiding behind 28 lint errors

@@ -575,7 +575,6 @@ export class DataService implements IDataService {
       const mismatched = list.filter(e => populatedRolls(e) !== first);
       if (mismatched.length > 0) {
         const types = list.map(e => `${e.effect_type}:${populatedRolls(e)}`).join(', ');
-        // eslint-disable-next-line no-console
         console.warn(
           `[DICE_EFFECTS validation] Rows sharing ${key} have inconsistent roll columns — ` +
           `they all use the SAME dice roll, so missing values silently do nothing. Rows: ${types}`

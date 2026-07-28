@@ -38,7 +38,6 @@ export function DictionaryHint(): JSX.Element | null {
     if (!visible) return;
     const timer = setTimeout(() => dismiss(), AUTO_DISMISS_MS);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const dismiss = () => {

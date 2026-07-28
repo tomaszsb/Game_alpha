@@ -653,7 +653,6 @@ export class EffectEngineService implements IEffectEngineService {
             throw new Error('CardEffectHandler not set - call setCardEffectHandler() before processing effects');
           }
           return this.cardEffectHandler.handleCardActivation(effect, context);
-          break;
 
         case 'EFFECT_GROUP_TARGETED':
           if (isEffectGroupTargetedEffect(effect)) {
@@ -782,7 +781,6 @@ export class EffectEngineService implements IEffectEngineService {
             throw new Error('CardEffectHandler not set - call setCardEffectHandler() before processing effects');
           }
           return this.cardEffectHandler.handlePlayCard(effect, context);
-          break;
 
         case 'DURATION_STORED':
           if (isDurationStoredEffect(effect)) {
