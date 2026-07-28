@@ -94,6 +94,36 @@ const setupGame = async () => {
   return player.id;
 };
 
+/**
+ * Fail immediately, and legibly, if the run has already ended.
+ *
+ * A space effect can legitimately end the game mid-turn: at CHEAT-BYPASS a bad
+ * dice outcome took the player from $80,000 to -$20,000, and
+ * FinancialEffectHandler.checkBankruptcy ended the run (reproduce with
+ * E2E_SEED=20). That is correct game behaviour on the cheat path — but these
+ * tests verify ROUTING, so once the game is over they can no longer verify what
+ * they claim to.
+ *
+ * Deliberately throws rather than returning early: swallowing this would make
+ * the test pass vacuously, which is worse than failing. Before this, the run
+ * carried on pumping effects into a finished game (charging further fees,
+ * -$20,000 → -$25,000) and surfaced several steps later as the baffling
+ * "Cannot end turn outside of PLAY phase".
+ */
+const throwIfGameOver = (atSpace: string, playerId: string): void => {
+  const gs = stateService.getGameState();
+  if (gs.gamePhase === 'PLAY') return;
+  const player = stateService.getPlayer(playerId);
+  throw new Error(
+    `Game ended at ${atSpace} before this path could be verified — ` +
+    `phase=${gs.gamePhase}, money=${player ? player.money : 'unknown'}, ` +
+    `reason=${JSON.stringify(gs.gameEndReason)}. ` +
+    `A negative balance here means bankruptcy, which is legitimate game ` +
+    `behaviour, not a routing bug — this seed simply cannot exercise this path. ` +
+    `See tests/helpers/seededRandom.ts and scripts/sweep-e2e-seeds.sh.`,
+  );
+};
+
 // Helper to execute a turn with optional destination choice and dice roll
 const playTurn = async (
   playerId: string,
@@ -114,6 +144,16 @@ const playTurn = async (
   // Process manual effects
   const effects = dataService.getSpaceEffects(p.currentSpace, p.visitType);
   for (const effect of effects) {
+    // Stop the moment the game is over. A space effect can legitimately end the
+    // run mid-turn — at CHEAT-BYPASS a bad dice outcome can take the player from
+    // $80,000 to -$20,000, and FinancialEffectHandler.checkBankruptcy ends the
+    // game. Continuing to pump effects into a finished game is meaningless, and
+    // it was actively misleading: the run kept charging fees (-$20,000 →
+    // -$25,000) and the failure finally surfaced several steps later as the
+    // baffling "Cannot end turn outside of PLAY phase". Fail here instead, where
+    // the cause is still visible. (Found 2026-07-28 via E2E_SEED=20.)
+    throwIfGameOver(expectedSpace, playerId);
+
     if (effect.trigger_type === 'manual' && effect.effect_type !== 'turn') {
       const key = `${effect.effect_type}:${effect.effect_action}`;
       if (effect.effect_type === 'dice') {

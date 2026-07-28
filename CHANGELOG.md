@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.74] - 2026-07-28
+
+### Investigation: seed 20 is a test limitation, not a product bug — the engine is right, the player just goes broke
+The one seed still failing after v3.1.73. Conclusion first: **nothing in `src/` needs fixing.**
+
+Traced at CHEAT-BYPASS, the dice outcome takes the player from **$80,000 to -$20,000**, and `FinancialEffectHandler.checkBankruptcy` correctly ends the run with `gameEndReason = {type:'bankruptcy'}`. Going broke on the cheat path is legitimate game behaviour — arguably the point of a space called CHEAT-BYPASS. The two failing tests verify **routing** (`CHEAT-BYPASS roll 1 → ENG-INITIATION`), so once the game is over they can no longer verify what they claim to. That seed simply cannot exercise those paths.
+
+**A real harness flaw did turn up alongside it.** `playTurn` kept pumping effects into an already-finished game, charging further fees (-$20,000 → -$25,000), so the failure surfaced several steps downstream as the baffling `Cannot end turn outside of PLAY phase` — pointing at the turn machinery rather than at a bankruptcy that had already happened. It now calls `throwIfGameOver()` before each effect and fails at the point of death:
+
+```
+Game ended at CHEAT-BYPASS before this path could be verified — phase=END,
+money=-20000, reason={"type":"bankruptcy",...}. A negative balance here means
+bankruptcy, which is legitimate game behaviour, not a routing bug — this seed
+simply cannot exercise this path.
+```
+
+It still **fails** on seed 20, deliberately. Returning early would have made the test pass vacuously — the worse outcome, since a routing test that silently stops testing routing is a test you cannot trust. Failing legibly is the honest result.
+
+Open question for the maintainer, not urgent: should those two tests be made bankruptcy-proof (e.g. granting starting money) so CHEAT-BYPASS routing is exercised on **any** seed? Today they only work on seeds where the player survives. The default seed passes, so nothing is blocked.
+
+Verified: typecheck clean, full suite 2493 passed / 1 skipped / 0 failed, default seed 10/10 on E2E-AllPaths.
+
 ## [3.1.73] - 2026-07-28
 
 ### Fix: root cause of the E2E timeout flake found and fixed — `endTurnWithMovement()` could raise a choice nobody answered
