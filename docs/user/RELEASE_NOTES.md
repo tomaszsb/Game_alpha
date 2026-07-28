@@ -2,6 +2,14 @@
 
 ---
 
+## v3.1.62–3.1.66 — Look up a word from your phone in TV mode, plus a tidier player panel and two crashes fixed (July 27, 2026)
+
+- **You can now open the glossary from your phone when playing in TV mode.** Before this, there was no way to look up a word once a TV game started — the button only existed on the computer version. It's now the first button at the top of your own player panel on your phone, and opens the same word list you get everywhere else.
+- **Your player panel no longer sits inside a second box with a blue outline.** It was a panel drawn inside another panel, and the outer one ignored your light/dark setting — so in dark mode you got a pale grey box with a bright blue border wrapped around a dark panel. The extra frame is gone; the panel is just the panel now.
+- **Fixed: the game could quietly miss an update.** In certain moments — usually when a turn was changing at the same time as someone finished an action — the game could update behind the scenes without telling the screen, so what you were looking at could fall out of date, and other people's devices wouldn't get the change either. It now always says something changed. *(If you've seen the "what to press next" highlight vanish on you, this may be the cause — but we couldn't reproduce that exact symptom, so please do report it again if it happens after this update.)*
+- **Fixed: the Data Editor crashed when you logged into it.** If you opened the admin Data Editor and typed your password, it crashed the moment you were let in. Anyone whose session was still signed in from earlier never saw it, which is why it went unnoticed for weeks.
+- **Checked and left alone:** the yellow "waiting for phones to scan" message on the TV setup screen was reported as too big. Measuring it showed an earlier fix had already sorted it out — it now takes up about a third less room, and the player list has nearly three times the space it had. No change was needed, so none was made.
+
 ## v3.1.61 — Your player picture now shows up on the board and the shared TV screen (July 27, 2026)
 
 - **Your avatar picture now shows on the board and the TV scoreboard, not just the setup screen.** Whichever space you're standing on used to show a plain colored dot for each player there — it now shows your actual player picture, so it's easier to tell who's where at a glance. Same change on the shared "who's where" screen used in TV mode.

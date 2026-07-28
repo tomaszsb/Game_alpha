@@ -153,4 +153,6 @@ Short open question — never assume what to work on. If step 4 ran and 4e surfa
 
 If step 4 was skipped (the common case), just hand back from the briefing — point at the top-3 open items and ask what to pick up.
 
+⚠️ **The top-3 is a curated shortlist, NOT the backlog — never describe it as exhaustive** (added 2026-07-27 after this bit). The light path never reads `TODO.md`, so on most sessions you have *no basis* for any claim about what else is or isn't open. That session's briefing said the Homeowner mechanic was "the only open item that isn't build/deploy"; the maintainer pushed back, and a real read of `TODO.md` found a working-but-undeployed nightly job, four unstaged dashboard reports, and a latent crash — one of which turned out to be a live crash shipped to production. Phrase the hand-back as "top 3 from the handoff note," and if the user asks any variant of *"is that everything?"*, **go read `TODO.md`'s active sections and the live feedback API before answering** rather than re-asserting the shortlist.
+
 Do not start any code work in this turn. `/start` is purely a briefing.
