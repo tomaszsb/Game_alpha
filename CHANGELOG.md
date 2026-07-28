@@ -27,7 +27,13 @@ Chasing verification noise in this pass turned up something worth more than the 
 
 That fits the entire recorded history of this flake: it only appears under full-suite load, it moves between files and between sub-tests on every run, it is always a *timeout* and never an assertion failure, and it has quietly worsened over weeks — which is what accumulating orphans would do. Today's runs failed on `E2E-Multiplayer4P` and on three *different* `E2E-AllPaths` sub-tests, one of which (`REG-DOB-TYPE-SELECT → REG-DOB-PLAN-EXAM`) is an exact path logged on 2026-07-13. Both files pass **22/22 in isolation, twice**, and the full suite ran clean at 2493/1/0 earlier in the same session.
 
-Not yet closed, because the confirming run has not happened: killing the current session's pair still left four older orphans alive. TODO.md now carries the next step — kill all stale `server/server.js` processes, then run the full suite genuinely quiet. That is the trigger condition the item has been waiting on since 2026-07-13.
+**The confirming run happened, and it disproved that theory.** All six processes were killed (each port checked against `/health` first to be sure it was a game backend and not one of the ~15 node MCP servers on the same machine; node count 25 → 17), and the suite re-run genuinely quiet. Still one failure — `E2E-AllPaths` again, a different sub-test again. The orphans were a real and worthwhile cleanup, worth **~149s → ~59s** of reported test time, but they were not the cause.
+
+**The actual diagnosis is worker starvation, not slowness.** Run `E2E-AllPaths` in isolation with `--reporter=verbose` and its ten tests take 65ms to 1133ms — against budgets of 30s, 60s and 90s. That is a 50–900× margin. A 626ms test cannot *run slowly* into a 90s timeout; it has to stop being scheduled at all. The suite's own figures say the same thing: **307s of `environment` time against 59s of `tests` time**. Vitest timeouts are wall-clock, so a descheduled test bleeds its whole budget doing nothing, and which test loses is random — precisely the "different sub-test every run" signature logged since 2026-07-13. The escalating 30→60→90s budgets already in that file are a previous author compensating for this same symptom without naming it.
+
+So the remedy is a pool/timeout decision (raise the file's `testTimeout`, cap `poolOptions` concurrency, or run that file sequentially) — **not** a game-code fix. Recorded in TODO.md with those options and a trigger; deliberately not done here, since nothing is wrong with the code and 2493 other tests pass.
+
+`/koniec` gained a **step 0** that reaps stale game servers before the suite runs, so this stops compounding regardless.
 
 ## [3.1.69] - 2026-07-28
 

@@ -4,6 +4,22 @@ description: Wrap up the session — run the test suite, update CHANGELOG / CLAU
 
 End-of-session wrap-up for Unravel Codes. Tight loop — don't add ceremony.
 
+## 0. Reap stale dev servers — BEFORE the suite (added 2026-07-28)
+
+Any session that ran `npm run server` for browser verification leaves an Express game server running forever. The preview tool's Vite server gets stopped explicitly; the Bash-launched Express one never did. **They accumulate across sessions.** On 2026-07-28 a listing found **four** live game servers on ports 3001/3002/3003/3004, started on 2026-07-25 (×2) and 2026-07-27 (×2) — each new session found the previous port taken and grabbed the next one. The oldest had been up three days holding 12 games.
+
+Run this first, so the suite below isn't competing with them:
+
+```bash
+powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -match 'server[/\\\\]server\.js|run server' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force }"
+```
+
+Then confirm nothing is left listening on 3001–3005 (`curl -s --max-time 2 http://localhost:300N/health`). **Only match the game server** (`server/server.js` or `npm run server`) — the same machine runs ~15 node MCP servers that must not be touched.
+
+Measured effect: killing them cut `npm test`'s reported test time from ~149s to ~59s. It did **not** eliminate the `E2E-AllPaths` timeout flake (see TODO.md — that one is worker starvation, since those tests run in 65–1133ms in isolation against 30–90s budgets), so don't treat a green run here as proof the flake is fixed. Cleanup is still worth doing every time: it removes a real, compounding source of load and stops ports drifting upward.
+
+Also worth a glance if things feel slow: `(Get-Process node).Count`. Steady state on this machine is ~17 (MCP servers). Materially above that means something leaked.
+
 ## 1. Pre-flight — run the full check suite
 
 ```
