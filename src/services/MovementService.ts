@@ -542,7 +542,6 @@ export class MovementService implements IMovementService {
     if (destination && destination.includes(' or ')) {
       const choices = destination.split(' or ').map(d => d.trim()).filter(d => d);
       destination = choices[0] || null;
-    } else {
     }
 
     return destination && destination.trim() !== '' ? destination : null;

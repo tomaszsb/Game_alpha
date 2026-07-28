@@ -74,9 +74,6 @@ export default [
       'react/no-unescaped-entities': 'warn',          // 41 — apostrophes in copy, cosmetic
       'react-hooks/exhaustive-deps': 'warn',          // 10 — famously noisy, needs case-by-case judgment
       'react-hooks/set-state-in-effect': 'warn',      // 34 — new rule in react-hooks v6
-      'no-empty': 'warn',                             // 19 — husks left by stripped console.logs
-      'no-case-declarations': 'warn',                 // 14 — real footgun, but churning engine
-                                                      //      switch bodies has its own risk
 
       // Kept as hard errors: currently at zero, so they guard rather than nag.
       // (`react-hooks/rules-of-hooks` is already 'error' via the recommended
@@ -100,7 +97,21 @@ export default [
       'react-hooks/immutability': 'error',
       'react-hooks/refs': 'error',
       'no-irregular-whitespace': 'error',
-      '@typescript-eslint/no-unused-expressions': 'error'
+      '@typescript-eslint/no-unused-expressions': 'error',
+
+      // Promoted 2026-07-28 (second pass), both at zero violations.
+      //   no-case-declarations — 14 `const`s declared directly in a `case` with
+      //     no block, so they were scoped to the WHOLE switch and visible to
+      //     sibling cases. Multi-statement bodies got braces; four cases that
+      //     only assigned a const to return it immediately got the const inlined.
+      //   no-empty — all 19 were husks left behind when console.logs were
+      //     stripped: `if (x) { }` doing nothing. Six of them were inside the
+      //     five dead `apply*CardEffect` methods, which had zero callers
+      //     anywhere in src/ or tests/ and were deleted outright (215 lines)
+      //     rather than patched. Two more were `if (ok) { } else { fail() }`,
+      //     inverted to `if (!ok) { fail() }`.
+      'no-case-declarations': 'error',
+      'no-empty': 'error'
     },
     settings: {
       react: {

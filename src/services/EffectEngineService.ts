@@ -173,13 +173,6 @@ export class EffectEngineService implements IEffectEngineService {
     // Ensure core setter-injected dependencies are ready
     this.assertCoreDependenciesReady();
 
-    
-    if (context.playerId) {
-    }
-    
-    if (context.triggerEvent) {
-    }
-
     const results: EffectResult[] = [];
     const errors: string[] = [];
     let successfulEffects = 0;
@@ -637,8 +630,7 @@ export class EffectEngineService implements IEffectEngineService {
                 success = true; // The effect is "successfully" ignored, not a failure.
               }
               
-              if (success) {
-              } else {
+              if (!success) {
                 console.error(`❌ Failed to apply turn control: ${payload.action} for player ${payload.playerId}`);
               }
             } catch (error) {
@@ -1041,7 +1033,7 @@ export class EffectEngineService implements IEffectEngineService {
     let targetPlayers: string[] = [];
     
     switch (payload.targetType) {
-      case 'OTHER_PLAYER_CHOICE':
+      case 'OTHER_PLAYER_CHOICE': {
         // Filter out the current player, then let user choose one
         const otherPlayers = allPlayers.filter(player => player.id !== currentPlayerId);
         
@@ -1084,7 +1076,8 @@ export class EffectEngineService implements IEffectEngineService {
         
         targetPlayers = [chosenTargetId];
         break;
-        
+      }
+
       case 'ALL_OTHER_PLAYERS':
         targetPlayers = allPlayers
           .filter(player => player.id !== currentPlayerId)

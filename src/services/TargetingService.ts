@@ -48,12 +48,10 @@ export class TargetingService implements ITargetingService {
         return [sourcePlayerId];
 
       case 'All Players':
-        const allPlayerIds = allPlayers.map(p => p.id);
-        return allPlayerIds;
+        return allPlayers.map(p => p.id);
 
       case 'All Players-Self':
-        const otherPlayerIds = allPlayers.filter(p => p.id !== sourcePlayerId).map(p => p.id);
-        return otherPlayerIds;
+        return allPlayers.filter(p => p.id !== sourcePlayerId).map(p => p.id);
 
       case 'Choose Opponent':
         return await this.resolveChooseOpponent(sourcePlayerId);

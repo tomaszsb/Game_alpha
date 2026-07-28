@@ -37,12 +37,10 @@ export const formatActionDescription = (entry: ActionLogEntry): string => {
     }
 
     case 'space_effect':
-      const cleanDescription = entry.description.replace(/^📍\s*Space Effect:\s*/, '');
-      return `⚡ ${cleanDescription}`;
-      
+      return `⚡ ${entry.description.replace(/^📍\s*Space Effect:\s*/, '')}`;
+
     case 'time_effect':
-      const cleanTimeDescription = entry.description.replace(/^📍\s*Space Effect:\s*/, '');
-      return `⏰ ${cleanTimeDescription}`;
+      return `⏰ ${entry.description.replace(/^📍\s*Space Effect:\s*/, '')}`;
 
     case 'manual_action':
       return `✋ ${entry.description}`;

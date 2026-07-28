@@ -1060,17 +1060,18 @@ export class TurnService implements ITurnService {
       
       // Apply the turn modifier based on action type
       switch (action) {
-        case 'SKIP_TURN':
+        case 'SKIP_TURN': {
           // Initialize player's turn modifiers if they don't exist
           const currentModifiers = player.turnModifiers || { skipTurns: 0 };
-          
+
           // Increment skip turns count
           const newModifiers = { ...currentModifiers, skipTurns: currentModifiers.skipTurns + 1 };
           this.stateService.updatePlayer({ id: playerId, turnModifiers: newModifiers });
-          
-          
+
           return true;
-          
+        }
+
+
         default:
           console.error(`❌ Unknown turn control action: ${action}`);
           return false;

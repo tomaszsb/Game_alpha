@@ -231,8 +231,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       const timer = setTimeout(async () => {
         const permission = await pushNotifications.requestPermission();
         setNotificationPermission(permission);
-        if (permission === 'granted') {
-        }
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -297,10 +295,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       return viewPlayerId;
     }
     const urlParams = new URLSearchParams(window.location.search);
-    const playerIdParam = urlParams.get('playerId');
-    if (playerIdParam) {
-    }
-    return playerIdParam;
+    return urlParams.get('playerId');
   });
 
   // fb:6e1e8ac4 — one-time tap gate when a player joins via QR on their

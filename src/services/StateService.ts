@@ -278,10 +278,6 @@ export class StateService implements IStateService {
 
     const currentPlayer = this.currentState.players[playerIndex];
 
-    // Debug: Log spaceVisitLog updates
-    if (playerData.spaceVisitLog) {
-    }
-
     const updatedPlayer: Player = {
       ...currentPlayer,
       ...playerData,
@@ -290,10 +286,6 @@ export class StateService implements IStateService {
       visitedSpaces: playerData.visitedSpaces ? [...playerData.visitedSpaces] : currentPlayer.visitedSpaces,
       spaceVisitLog: playerData.spaceVisitLog ? [...playerData.spaceVisitLog] : currentPlayer.spaceVisitLog
     };
-
-    // Debug: Verify spaceVisitLog was set
-    if (playerData.spaceVisitLog) {
-    }
 
     let newPlayers = [...this.currentState.players];
     newPlayers[playerIndex] = updatedPlayer;
@@ -605,10 +597,6 @@ export class StateService implements IStateService {
 
     // Initialize action counts for the first player
     this.updateActionCounts();
-
-    if (isQuickStart) {
-    } else if (startingMode === 'EDUCATIONAL' && preSelectedHand) {
-    }
 
     return { ...this.currentState };
   }

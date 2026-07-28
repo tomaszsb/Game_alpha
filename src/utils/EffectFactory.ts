@@ -455,7 +455,7 @@ export class EffectFactory {
     const effects: Effect[] = [];
     
     switch (spaceEffect.effect_type) {
-      case 'money':
+      case 'money': {
         // Special handling for owner seed money calculator
         if (spaceEffect.effect_action === 'owner_seed_money') {
           effects.push({
@@ -483,8 +483,9 @@ export class EffectFactory {
           });
         }
         break;
+      }
 
-      case 'time':
+      case 'time': {
         const timeAmount = this.parseEffectValue(spaceEffect.effect_value, spaceEffect.effect_action);
         if (timeAmount !== 0) {
           effects.push({
@@ -499,8 +500,9 @@ export class EffectFactory {
           });
         }
         break;
+      }
 
-      case 'cards':
+      case 'cards': {
         // Check if this is a dice-conditional card effect (uses condition column like 'dice_roll_3')
         // These effects should NOT be processed here - they're handled by dice roll logic in TurnService
         if (ConditionEvaluator.isDiceConditionStatic(spaceEffect.condition)) {
@@ -535,8 +537,9 @@ export class EffectFactory {
           }
         }
         break;
+      }
 
-      case 'fee':
+      case 'fee': {
         // Fee effects are percentage-based loan fees that require player state to calculate
         // Determine fee type from description
         // Use structured fee_type from CSV when available, fall back to runtime detection
@@ -553,6 +556,7 @@ export class EffectFactory {
           }
         });
         break;
+      }
 
       default:
         debugWarn(`Unknown space effect type: ${spaceEffect.effect_type}`);
@@ -756,7 +760,7 @@ export class EffectFactory {
         break;
       }
 
-      case 'time':
+      case 'time': {
         const timeAmount = this.parseTimeEffect(rollEffect);
         if (timeAmount !== 0) {
           effects.push({
@@ -771,6 +775,7 @@ export class EffectFactory {
           });
         }
         break;
+      }
 
       // CON-INITIATION's Quality (HIGH/MED/LOW) and Multiplier (1-6) rows.
       // The effect_type from DICE_EFFECTS.csv comes through with mixed case

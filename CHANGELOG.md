@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.68] - 2026-07-28
+
+### Fix: `no-case-declarations` and `no-empty` cleared and promoted to `error` — 215 lines of dead code deleted along the way
+Second burn-down pass. **243 → 206 warnings**, both rules now hard errors, and `no-unused-vars` fell 97 → 93 as a side effect.
+
+**`no-case-declarations` (14) was a real scoping footgun, not style.** A `const` declared directly inside a `case` with no block belongs to the **entire switch**, not that case — so it is visible to every sibling case, and reachable in the temporal dead zone if another branch runs first. Multi-statement bodies in `EffectFactory` (5), `EffectEngineService`, and `TurnService` got braces. Four cases in `TargetingService` and `actionLogFormatting` did nothing but assign a const and return it immediately, so the const was inlined instead — shorter and clearer than adding a block.
+
+**`no-empty` (19) was entirely console.log husks** — `if (x) { }` statements left behind when the logging inside them was stripped. Two were `if (ok) { } else { fail() }`, inverted to `if (!ok) { fail() }`. Two more in `GameRulesService.checkWinCondition` and `MovementService` collapsed into a plain return.
+
+**Six of them lived inside dead code, so the code went instead of the patch.** `CardService`'s five legacy `apply*CardEffect` methods — `applyWorkCardEffect`, `applyBankLoanCardEffect`, `applyExpeditorCardEffect`, `applyLifeEventsCardEffect`, `applyInvestorLoanCardEffect` — appeared **only as their own `private` definitions**, with zero references anywhere in `src/` or `tests/`. Patching empty branches inside code that never executes would have been pure motion, so all five were deleted: **215 lines**, verified by boundary assertions rather than a fuzzy match, with typecheck confirming nothing referenced them. That also closes the largest piece of the long-standing dead-code sweep item; `canDrawCard`, `requiresPlayerTurn`, and `validateColorChoice` remain.
+
+Promotions proven with the same `eslint --stdin` probe: a file violating both reports 2 errors and exits 1.
+
+Verified: lint 0 errors / 206 warnings exit 0, typecheck clean, production build clean, **full suite 2493 passed / 1 skipped / 0 failed**.
+
+### Note: the E2E "flaky timeout" pattern traced to our own dev servers
+Worth recording because it nearly muddied the verification above. The first full-suite run failed on `E2E-Multiplayer4P` (30s timeout); a re-run failed on *both* `E2E-AllPaths` (60s, in `setupGame()`) **and** `E2E-Multiplayer4P` — different files and different sub-tests each time, which is the signature TODO.md already describes for this family.
+
+The new datapoint: a Vite dev server and an Express server were running for browser verification. Stopping both and re-running gave a clean 2493/1/0. In isolation `E2E-Multiplayer4P` passes 12/12 with **264ms** of actual test time against a 30s timeout — a >100× margin. So the documented trigger ("recurs on a quiet machine with nothing else running") still has not been met, and the cause narrows to our own verification servers rather than ambient load. Practical takeaway: stop the preview and Express servers before trusting a full-suite run.
+
 ## [3.1.67] - 2026-07-28
 
 ### Fix: first five lint rules burned down to zero and promoted back to `error`

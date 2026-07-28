@@ -400,13 +400,7 @@ export class GameRulesService implements IGameRulesService {
 
 
       // Check if the current space is marked as an ending space
-      const hasWon = spaceConfig.is_ending_space === true;
-
-      if (hasWon) {
-      } else {
-      }
-
-      return hasWon;
+      return spaceConfig.is_ending_space === true;
     } catch (error) {
       console.error(`❌ [WIN CHECK] Error checking win condition for player ${playerId}:`, error);
       return false;
