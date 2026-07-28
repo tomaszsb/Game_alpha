@@ -214,7 +214,14 @@ describe('E2E: 4-Player Multiplayer Game', () => {
         }
       }
 
-      await turnService.endTurnWithMovement(true);
+      // endTurnWithMovement can raise a CARD_DISCARD choice (e.g. "Choose 1
+      // Expeditor to remove" when the player holds 2+). Nothing answered it
+      // before, so the turn never completed and the test hung to its budget.
+      await settleManualEffect(
+        turnService.endTurnWithMovement(true),
+        stateService,
+        choiceService,
+      );
       console.log(`✅ ${playerName}'s turn completed`);
     };
 
@@ -282,7 +289,14 @@ describe('E2E: 4-Player Multiplayer Game', () => {
         stateService.setPlayerMoveIntent(playerId, desiredNext);
       }
 
-      await turnService.endTurnWithMovement(true);
+      // endTurnWithMovement can raise a CARD_DISCARD choice (e.g. "Choose 1
+      // Expeditor to remove" when the player holds 2+). Nothing answered it
+      // before, so the turn never completed and the test hung to its budget.
+      await settleManualEffect(
+        turnService.endTurnWithMovement(true),
+        stateService,
+        choiceService,
+      );
     };
 
     // Round 2: All at OWNER-FUND-INITIATION
@@ -453,7 +467,14 @@ describe('E2E: 3-Player Multiplayer Game', () => {
         }
       }
 
-      await turnService.endTurnWithMovement(true);
+      // endTurnWithMovement can raise a CARD_DISCARD choice (e.g. "Choose 1
+      // Expeditor to remove" when the player holds 2+). Nothing answered it
+      // before, so the turn never completed and the test hung to its budget.
+      await settleManualEffect(
+        turnService.endTurnWithMovement(true),
+        stateService,
+        choiceService,
+      );
     };
 
     // Full rotation

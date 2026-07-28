@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.73] - 2026-07-28
+
+### Fix: root cause of the E2E timeout flake found and fixed — `endTurnWithMovement()` could raise a choice nobody answered
+The flake TODO.md has tracked since 2026-07-13 is resolved. Seeding (v3.1.72) is what made it findable: it turned an unreproducible ghost into a failure that repeats on demand.
+
+**Finding it.** `scripts/sweep-e2e-seeds.sh 1 20` flagged seeds **6, 10 and 20**. Seed 6 failed **7 of 10 tests**, every run, identically — a world away from the 1-in-3 moving target of that morning. Tracing seed 6 pinned the exact await: `endTurnWithMovement()` was entered at ARCH-SCOPE-CHECK and never returned, while game state held:
+
+```
+awaitingChoice = { type: 'CARD_DISCARD',
+                   prompt: 'Choose 1 Expeditor to remove:',
+                   options: [E058, E042] }
+```
+
+*(Aside worth keeping: an earlier probe using `console.error` printed nothing at all, because `tests/vitest.setup.ts` replaces every `console.*` method with `vi.fn()` unless `VITEST_VERBOSE` is set. `process.stdout.write` bypasses it.)*
+
+**The bug.** `endTurnWithMovement()` can raise a choice, and **none of the three E2E files ever answered one** — they only answered choices raised by `triggerManualEffect`. When the prompt appeared, the promise never settled and the test burned its entire budget. It is seed-dependent because that prompt only appears when the player happens to be holding 2+ Expeditor cards, which is decided by the deck shuffle. That single condition explains every symptom the item ever recorded: random victim, always a timeout and never an assertion, fine in isolation, and immune to raising timeouts.
+
+**The fix** is one line at each of seven call sites: wrap `endTurnWithMovement()` in the same `settleManualEffect` helper the other paths already use.
+
+Sweep of seeds 1–20 went from **3 failing seeds to 1**, and the sweep itself now finishes in minutes rather than exceeding a 10-minute cap, because nothing hangs for 30–90s any more. Full suite: **2493 passed / 1 skipped / 0 failed**.
+
+### Still open (different bug): seed 20 fails fast with `Cannot end turn outside of PLAY phase`
+Not the same class and deliberately not fixed here. It fails in ~145ms rather than timing out, on both CHEAT-BYPASS paths, meaning the game has already left PLAY before the test ends the turn — most likely the player reaches an ending space on that shuffle and the test's expectations don't allow for it. Reproduce with `E2E_SEED=20`. Being fast and deterministic, it is cheap to investigate; the open question is whether it is a test assumption or a real end-of-game bug.
+
 ## [3.1.72] - 2026-07-28
 
 ### Fix: E2E decks are now seeded — the timeout flake is finally reproducible

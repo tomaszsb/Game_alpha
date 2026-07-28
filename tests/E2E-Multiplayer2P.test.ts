@@ -195,7 +195,14 @@ describe('E2E: 2-Player Multiplayer Game', () => {
     }
 
     // End Alice's turn
-    await turnService.endTurnWithMovement(true);
+    // endTurnWithMovement can raise a CARD_DISCARD choice (e.g. "Choose 1
+    // Expeditor to remove" when the player holds 2+). Nothing answered it
+    // before, so the turn never completed and the test hung to its budget.
+    await settleManualEffect(
+      turnService.endTurnWithMovement(true),
+      stateService,
+      choiceService,
+    );
 
     // Verify turn switched to Bob
     expect(stateService.getGameState().currentPlayerId).toBe(bobId);
@@ -243,7 +250,14 @@ describe('E2E: 2-Player Multiplayer Game', () => {
     }
 
     // End Bob's turn
-    await turnService.endTurnWithMovement(true);
+    // endTurnWithMovement can raise a CARD_DISCARD choice (e.g. "Choose 1
+    // Expeditor to remove" when the player holds 2+). Nothing answered it
+    // before, so the turn never completed and the test hung to its budget.
+    await settleManualEffect(
+      turnService.endTurnWithMovement(true),
+      stateService,
+      choiceService,
+    );
 
     // Verify turn switched back to Alice
     expect(stateService.getGameState().currentPlayerId).toBe(aliceId);
@@ -298,7 +312,14 @@ describe('E2E: 2-Player Multiplayer Game', () => {
         stateService.setPlayerMoveIntent(playerId, desiredNext);
       }
 
-      await turnService.endTurnWithMovement(true);
+      // endTurnWithMovement can raise a CARD_DISCARD choice (e.g. "Choose 1
+      // Expeditor to remove" when the player holds 2+). Nothing answered it
+      // before, so the turn never completed and the test hung to its budget.
+      await settleManualEffect(
+        turnService.endTurnWithMovement(true),
+        stateService,
+        choiceService,
+      );
     };
 
     // Alice's turn 2 (at OWNER-FUND-INITIATION)

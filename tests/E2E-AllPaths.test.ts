@@ -156,7 +156,14 @@ const playTurn = async (
     await (turnService.rollDice as any)(playerId);
   }
 
-  await turnService.endTurnWithMovement(true);
+  // endTurnWithMovement can raise a CARD_DISCARD choice (e.g. "Choose 1
+  // Expeditor to remove" when the player holds 2+). Nothing answered it
+  // before, so the turn never completed and the test hung to its budget.
+  await settleManualEffect(
+    turnService.endTurnWithMovement(true),
+    stateService,
+    choiceService,
+  );
   return stateService.getPlayer(playerId)!.currentSpace;
 };
 
