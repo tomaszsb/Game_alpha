@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.72] - 2026-07-28
+
+### Fix: E2E decks are now seeded — the timeout flake is finally reproducible
+The three heavy E2E files walked a different path on every run, because `StateService.startGame()` shuffles all five decks with Fisher-Yates over **unseeded `Math.random()`** ([StateService.ts:1771](src/services/StateService.ts:1771)) and the tests never seeded it. That is why the long-running timeout flake picked a different victim file and sub-test every time, and why no failure ever reproduced twice — every debugging attempt was chasing a moving target.
+
+All three files now install a deterministic **mulberry32** PRNG in a file-level `beforeEach` ([tests/helpers/seededRandom.ts](tests/helpers/seededRandom.ts)), seeded `20260728` by default and overridable with `E2E_SEED=<n>`. It goes in `beforeEach` rather than `setupGame()` because `E2E-Multiplayer2P/4P` build their services once in `beforeAll` and call `startGame()` inside individual tests — a per-test hook is the only place that covers every shuffle.
+
+At the default seed the three-file set ran **5/5 clean**, against 4/5 sequential and 2/8 concurrent before. **Be precise about what that means:** `npm test` is now *consistent*, not *proven correct*. The default seed is simply a path that happens to work. The value here is reproducibility, not a green light.
+
+**`scripts/sweep-e2e-seeds.sh`** makes finding a bad seed a one-liner (`bash scripts/sweep-e2e-seeds.sh 1 25`, or add `all` to sweep all three files). Once a failing seed is known it reproduces on demand, so a debugger can finally be attached to the hang — the four remaining suspect awaits are `endTurnWithMovement()`, `startTurn()`, `handleAutomaticFunding()` and `rollDice()`, since `settleManualEffect`'s explanatory error has still never fired.
+
 ## [3.1.71] - 2026-07-28
 
 ### Partial fix: E2E flake cut from ~4-in-5 runs to ~1-in-3 — vitest projects split + a real unresolved-choice race removed

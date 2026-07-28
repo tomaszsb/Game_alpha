@@ -9,7 +9,7 @@
  * - Game handles max player count (4)
  */
 
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, vi, beforeEach } from 'vitest';
 import { StateService } from '../src/services/StateService';
 import { DataService } from '../src/services/DataService';
 import { CardService } from '../src/services/CardService';
@@ -30,6 +30,7 @@ import { CardEffectHandler } from '../src/services/CardEffectHandler';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { settleManualEffect } from './helpers/settleManualEffect';
+import { seedMathRandom } from './helpers/seededRandom';
 
 class NodeDataService extends DataService {
   async loadData(): Promise<void> {
@@ -46,6 +47,14 @@ class NodeDataService extends DataService {
     (this as any).loaded = true;
   }
 }
+
+// Deterministic decks. StateService.startGame() shuffles with Math.random();
+// unseeded, every run dealt a different hand and walked a different path,
+// which is why this file's timeout flake never reproduced twice the same
+// way. Override with E2E_SEED=<n> to sweep. See tests/helpers/seededRandom.ts.
+beforeEach(() => {
+  seedMathRandom();
+});
 
 describe('E2E: 4-Player Multiplayer Game', () => {
   let dataService: DataService;

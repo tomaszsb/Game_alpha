@@ -13,7 +13,7 @@
  * 6. REG-FDNY-FEE-REVIEW: CON-INITIATION | PM-DECISION-CHECK | REG-DOB-TYPE-SELECT | REG-FDNY-PLAN-EXAM
  */
 
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, vi, beforeEach } from 'vitest';
 import { StateService } from '../src/services/StateService';
 import { DataService } from '../src/services/DataService';
 import { CardService } from '../src/services/CardService';
@@ -34,6 +34,7 @@ import { CardEffectHandler } from '../src/services/CardEffectHandler';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { settleManualEffect } from './helpers/settleManualEffect';
+import { seedMathRandom } from './helpers/seededRandom';
 
 // Node.js compatible DataService for E2E testing
 class NodeDataService extends DataService {
@@ -158,6 +159,14 @@ const playTurn = async (
   await turnService.endTurnWithMovement(true);
   return stateService.getPlayer(playerId)!.currentSpace;
 };
+
+// Deterministic decks. StateService.startGame() shuffles with Math.random();
+// unseeded, every run dealt a different hand and walked a different path,
+// which is why this file's timeout flake never reproduced twice the same
+// way. Override with E2E_SEED=<n> to sweep. See tests/helpers/seededRandom.ts.
+beforeEach(() => {
+  seedMathRandom();
+});
 
 describe('E2E Path Coverage: All Decision Points', () => {
 
