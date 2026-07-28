@@ -15,7 +15,7 @@
 // - No game-state coupling — safe to mount anywhere that's only present
 //   during gameplay (GameLayout's PLAY-phase tree).
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'unravel.dictionaryHint.v1';
 const AUTO_DISMISS_MS = 12_000;
@@ -34,13 +34,7 @@ export function DictionaryHint(): JSX.Element | null {
     }
   }, []);
 
-  useEffect(() => {
-    if (!visible) return;
-    const timer = setTimeout(() => dismiss(), AUTO_DISMISS_MS);
-    return () => clearTimeout(timer);
-  }, [visible]);
-
-  const dismiss = () => {
+  const dismiss = useCallback(() => {
     setVisible(false);
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
@@ -49,7 +43,15 @@ export function DictionaryHint(): JSX.Element | null {
     } catch {
       // ignore
     }
-  };
+  }, []);
+
+  // Declared after dismiss so the auto-dismiss timer closes over a value that
+  // already exists at render time rather than relying on the effect running late.
+  useEffect(() => {
+    if (!visible) return;
+    const timer = setTimeout(() => dismiss(), AUTO_DISMISS_MS);
+    return () => clearTimeout(timer);
+  }, [visible, dismiss]);
 
   if (!visible) return null;
 

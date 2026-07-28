@@ -81,7 +81,10 @@ export function JoinByCodePanel({ selectedMode }: JoinByCodePanelProps): JSX.Ele
     } else {
       url.searchParams.delete('mode');
     }
-    window.location.href = url.toString();
+    // assign() rather than `location.href = …` — same navigation, same history
+    // entry, but a method call instead of an assignment to a global, which is
+    // what react-hooks/immutability (correctly) objects to.
+    window.location.assign(url.toString());
   };
 
   /**

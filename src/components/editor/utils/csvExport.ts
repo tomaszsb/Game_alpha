@@ -133,7 +133,7 @@ export function parseSpacesCSV(csvText: string): SpaceRow[] {
   const lines = splitCSVRecords(csvText.trim());
   if (lines.length < 2) return [];
 
-  const headers = parseCSVLine(lines[0]).map(h => h.replace(/^﻿/, '').trim());
+  const headers = parseCSVLine(lines[0]).map(h => h.replace(/^\uFEFF/, '').trim());
 
   const get = (cols: string[], name: string): string => {
     const idx = headers.indexOf(name);
@@ -274,13 +274,13 @@ export function parseDiceRollCSV(csvText: string): DiceRollRow[] {
   const lines = splitCSVRecords(csvText.trim());
   if (lines.length < 2) return [];
 
-  const headers = parseCSVLine(lines[0]).map(h => h.replace(/^﻿/, '').trim());
+  const headers = parseCSVLine(lines[0]).map(h => h.replace(/^\uFEFF/, '').trim());
   const idx = (name: string) => headers.indexOf(name);
 
   const rows: DiceRollRow[] = [];
   for (let i = 1; i < lines.length; i++) {
     const cols = parseCSVLine(lines[i]);
-    const space_name = (cols[idx('space_name')] ?? '').replace(/^﻿/, '');
+    const space_name = (cols[idx('space_name')] ?? '').replace(/^\uFEFF/, '');
     if (!space_name) continue;
     rows.push({
       space_name,

@@ -53,7 +53,14 @@ describe('JoinByCodePanel', () => {
   beforeEach(() => {
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
-    const mockLocation = { ...originalLocation, href: 'http://localhost/' };
+    // The component navigates via location.assign(); the spread of a real
+    // Location doesn't carry its prototype methods, so stub assign to record
+    // the destination in href — which is what the assertions below read.
+    const mockLocation = {
+      ...originalLocation,
+      href: 'http://localhost/',
+      assign(target: string) { mockLocation.href = target; },
+    };
     Object.defineProperty(window, 'location', { value: mockLocation, writable: true, configurable: true });
   });
 

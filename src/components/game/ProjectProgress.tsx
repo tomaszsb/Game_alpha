@@ -61,15 +61,11 @@ interface ProjectProgressProps {
   onToggleTVDarkMode?: () => void;
 }
 
-/**
- * ProjectProgress component displays global project progress for all players.
- * Shows current phase, overall progress, and player positions in the project lifecycle.
- */
-export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed, isRulesOpen, isGameLogOpen, isDisplaySettingsOpen, onToggleGlossary, isGlossaryOpen, tvDarkMode, onToggleTVDarkMode }: ProjectProgressProps): JSX.Element {
-  const currentPlayer = players.find(p => p.id === currentPlayerId);
-
-  // Active indicator helpers
-  const ActiveDot = ({ show }: { show?: boolean }) => show ? (
+/** Small green dot marking a toolbar button whose panel is currently open.
+ *  Declared at module scope: a component defined inside render is a fresh type
+ *  on every pass, so React remounts it and it cannot hold state. */
+function ActiveDot({ show }: { show?: boolean }): JSX.Element | null {
+  return show ? (
     <span style={{
       position: 'absolute',
       top: '-2px',
@@ -81,7 +77,16 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
       border: '1px solid white',
     }} />
   ) : null;
+}
 
+/**
+ * ProjectProgress component displays global project progress for all players.
+ * Shows current phase, overall progress, and player positions in the project lifecycle.
+ */
+export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed, isRulesOpen, isGameLogOpen, isDisplaySettingsOpen, onToggleGlossary, isGlossaryOpen, tvDarkMode, onToggleTVDarkMode }: ProjectProgressProps): JSX.Element {
+  const currentPlayer = players.find(p => p.id === currentPlayerId);
+
+  // Active indicator helpers (ActiveDot lives at module scope, just above)
   const activeGlow = (isActive?: boolean): React.CSSProperties => isActive ? {
     boxShadow: '0 0 0 2px #4caf50, 0 2px 4px rgba(0,0,0,0.1)',
   } : {};

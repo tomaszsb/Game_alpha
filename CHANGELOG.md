@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.67] - 2026-07-28
+
+### Fix: first five lint rules burned down to zero and promoted back to `error`
+v3.1.66 made `npm run lint` runnable and left 257 warnings as a deliberate burn-down list. This clears the five smallest rules — **14 violations, 257 → 243 warnings** — and promotes each back to `'error'` so it can never regress, which is the whole point of the exercise.
+
+**Three of the fourteen were real defects, not style.**
+
+`react-hooks/refs` (2) — `PullToRefresh` read `isPulling.current` *during render* to decide whether to animate its CSS transition. React does not re-render when a ref changes, so this rendered correctly only because every mutation of that ref happened to be followed by a `setState` in the same handler. Correct by luck, not by design. The ref stays (the touch handlers read it synchronously, where state would be stale within the same event) and is now mirrored into a `isPullingNow` state that the render reads, kept in step through one `setPulling` helper.
+
+`react-hooks/static-components` (5) — `ProjectProgress` declared `ActiveDot` inside its render body, so React saw a brand-new component *type* on every pass and remounted the node rather than updating it. Moved to module scope; it closed over nothing but its own `show` prop.
+
+`no-irregular-whitespace` (3) — three raw **U+FEFF** (byte-order-mark) characters sitting invisibly inside the BOM-stripping regexes in `csvExport.ts` (`/^<BOM>/`). Intentional and load-bearing, but completely unreadable in source. Now written as the explicit escape `\uFEFF` — identical behavior, visible to a human.
+
+The remaining two: `react-hooks/immutability` (3) — two `window.location.href = …` navigations became `window.location.assign(…)` (same navigation, same history entry, a method call instead of an assignment to a global), plus `DictionaryHint`'s auto-dismiss effect closing over a `dismiss` const declared below it (now declared above, wrapped in `useCallback`). And `@typescript-eslint/no-unused-expressions` (1) — a ternary used as a statement for its side effects in `PlayerNumbersV2`.
+
+**The promotions were proven, not assumed.** Following the `eslint --stdin` technique v3.1.66 used for `rules-of-hooks`: a synthetic file violating all five rules reports **5 errors and exits 1**. `JoinByCodePanel.test.tsx`'s location mock gained an `assign` that records into `href`, so its five existing navigation assertions keep testing what they always tested.
+
+Verified: lint 0 errors / 243 warnings exit 0, typecheck clean, production build clean, 264/264 across the 26 test files covering every touched file. Live in the running app: `ActiveDot` appears and disappears per toolbar button independently (Rules / Log / Glossary), zero console errors.
+
+### Investigation (no code change): the DataService "linear scans" item is not a performance problem
+`TODO.md` has carried "DataService lookups are all linear scans → build keyed Maps" since a 2026-07-11 review, framed as a hot-loop perf fix. Measured before starting it, and the framing is wrong. The largest table is `CARDS_EXPANDED` at **397 rows**; resolving a full 12-card hand by linear scan costs **11 microseconds**, and Maps take that to 0.05µs. A 226× speedup on something imperceptible, across **134 call sites** in the most safety-critical code in the game.
+
+Left undone deliberately, and the TODO entry now says so with a trigger for when it would become real (a profiler showing these in a hot path, or the card table growing an order of magnitude). It should also come *after* the dead-code sweep, which deletes several of the calling methods in `CardService`/`GameRulesService` outright — optimizing them first would be wasted work.
+
+Also filed: `tests/isolated/gameLogic.test.ts`'s two "Performance benchmarks" assert wall-clock budgets (`< 2ms`, `< 3ms`) on self-contained `Math.random()` loops that import nothing from the app. One failed the full suite at 3.77ms and then passed 12/12 across three isolated re-runs. They cannot detect an application regression — only how busy the machine is.
+
 ## [3.1.66] - 2026-07-27
 
 ### Fix: `npm run lint` runs again — 392 errors → 0, and it now blocks the bug class we shipped this morning

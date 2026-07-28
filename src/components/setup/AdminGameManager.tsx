@@ -96,7 +96,9 @@ export function AdminGameManager(): JSX.Element {
       url.searchParams.set('token', data.token);
       if (data.instanceId && data.instanceId !== 'classroom-1') url.searchParams.set('i', data.instanceId);
       else url.searchParams.delete('i');
-      window.location.href = url.toString();
+      // assign() rather than `location.href = …` — same navigation, but a method
+      // call instead of an assignment to a global (react-hooks/immutability).
+      window.location.assign(url.toString());
     } catch (err) {
       alert('Cannot connect to server.');
     }

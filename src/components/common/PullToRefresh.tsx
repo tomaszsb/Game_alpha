@@ -13,23 +13,34 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps): JSX.
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [didTriggerHaptic, setDidTriggerHaptic] = useState(false);
   const startY = useRef(0);
+  // isPulling is read synchronously inside the touch handlers, so it has to stay
+  // a ref (state would be stale within the same event). The render needs the same
+  // flag to decide whether to animate — hence the state mirror, kept in step with
+  // it. Reading the ref during render happened to work only because every mutation
+  // below is followed by a setState in the same handler; that is luck, not design.
   const isPulling = useRef(false);
+  const [isPullingNow, setIsPullingNow] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const setPulling = useCallback((pulling: boolean) => {
+    isPulling.current = pulling;
+    setIsPullingNow(pulling);
+  }, []);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (isRefreshing) return;
     const container = containerRef.current;
     if (!container || container.scrollTop > 0) return;
     startY.current = e.touches[0].clientY;
-    isPulling.current = true;
+    setPulling(true);
     setDidTriggerHaptic(false);
-  }, [isRefreshing]);
+  }, [isRefreshing, setPulling]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isPulling.current || isRefreshing) return;
     const container = containerRef.current;
     if (!container || container.scrollTop > 0) {
-      isPulling.current = false;
+      setPulling(false);
       setPullDistance(0);
       return;
     }
@@ -48,11 +59,11 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps): JSX.
       haptics.mediumTap();
       setDidTriggerHaptic(true);
     }
-  }, [isRefreshing, didTriggerHaptic]);
+  }, [isRefreshing, didTriggerHaptic, setPulling]);
 
   const handleTouchEnd = useCallback(async () => {
     if (!isPulling.current) return;
-    isPulling.current = false;
+    setPulling(false);
 
     if (pullDistance >= PULL_THRESHOLD && !isRefreshing) {
       setIsRefreshing(true);
@@ -66,7 +77,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps): JSX.
     } else {
       setPullDistance(0);
     }
-  }, [pullDistance, isRefreshing, onRefresh]);
+  }, [pullDistance, isRefreshing, onRefresh, setPulling]);
 
   const showIndicator = pullDistance > 10 || isRefreshing;
 
@@ -89,7 +100,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps): JSX.
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        transition: isPulling.current ? 'none' : 'height 0.25s ease-out',
+        transition: isPullingNow ? 'none' : 'height 0.25s ease-out',
         zIndex: 10,
         pointerEvents: 'none'
       }}>
@@ -111,7 +122,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps): JSX.
       {/* Content shifted down by pull distance */}
       <div style={{
         transform: `translateY(${pullDistance}px)`,
-        transition: isPulling.current ? 'none' : 'transform 0.25s ease-out'
+        transition: isPullingNow ? 'none' : 'transform 0.25s ease-out'
       }}>
         {children}
       </div>

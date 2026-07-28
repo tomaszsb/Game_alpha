@@ -71,23 +71,36 @@ export default [
         caughtErrorsIgnorePattern: '^_'
       }],
       '@typescript-eslint/no-explicit-any': 'warn',   // 28 — Bucket E is documented as intentional
-      '@typescript-eslint/no-unused-expressions': 'warn',
       'react/no-unescaped-entities': 'warn',          // 41 — apostrophes in copy, cosmetic
       'react-hooks/exhaustive-deps': 'warn',          // 10 — famously noisy, needs case-by-case judgment
       'react-hooks/set-state-in-effect': 'warn',      // 34 — new rule in react-hooks v6
-      'react-hooks/static-components': 'warn',
-      'react-hooks/immutability': 'warn',
-      'react-hooks/refs': 'warn',
       'no-empty': 'warn',                             // 19 — husks left by stripped console.logs
       'no-case-declarations': 'warn',                 // 14 — real footgun, but churning engine
                                                       //      switch bodies has its own risk
-      'no-irregular-whitespace': 'warn',
 
       // Kept as hard errors: currently at zero, so they guard rather than nag.
       // (`react-hooks/rules-of-hooks` is already 'error' via the recommended
       // preset above — restated here only to make the intent unmissable.)
       'react-hooks/rules-of-hooks': 'error',
-      'no-unreachable': 'error'
+      'no-unreachable': 'error',
+
+      // Promoted from 'warn' to 'error' on 2026-07-28, each at zero violations.
+      // What each one bought, so a future reader knows what regressing costs:
+      //   static-components — ProjectProgress declared ActiveDot inside render,
+      //     so React saw a new component type every pass and remounted it.
+      //   refs — PullToRefresh read isPulling.current during render to pick a CSS
+      //     transition. It rendered correctly only because every mutation happened
+      //     to be followed by a setState in the same handler.
+      //   immutability — two `window.location.href = …` navigations (now
+      //     location.assign) and a useEffect closing over a const declared below it.
+      //   no-irregular-whitespace — three raw U+FEFF (BOM) characters sitting
+      //     invisibly inside BOM-stripping regexes, now written as \uFEFF.
+      //   no-unused-expressions — a ternary used as a statement for its side effects.
+      'react-hooks/static-components': 'error',
+      'react-hooks/immutability': 'error',
+      'react-hooks/refs': 'error',
+      'no-irregular-whitespace': 'error',
+      '@typescript-eslint/no-unused-expressions': 'error'
     },
     settings: {
       react: {
