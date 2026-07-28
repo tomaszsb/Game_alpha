@@ -143,17 +143,17 @@ export function GameDisplaySettings({
                     {/* Row 2: Suggestion/warning text */}
                     {isMobile && isVisible && (
                       <span style={styles.suggestion}>
-                        💡 Can hide (they're viewing on their phone)
+                        💡 Can hide (they’re viewing on their phone)
                       </span>
                     )}
                     {isDesktop && isVisible && (
                       <span style={styles.suggestion}>
-                        💡 Can hide (they're viewing on their computer)
+                        💡 Can hide (they’re viewing on their computer)
                       </span>
                     )}
                     {!isConnected && !isVisible && (
                       <span style={styles.warning}>
-                        ⚠️ Hidden (player can't see their panel!)
+                        ⚠️ Hidden (player can’t see their panel!)
                       </span>
                     )}
 

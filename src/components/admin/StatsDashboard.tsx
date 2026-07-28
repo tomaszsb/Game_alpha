@@ -320,7 +320,7 @@ export function StatsDashboard(): JSX.Element {
           </div>
         </div>
         <div style={{ fontSize: '0.75rem', color: colors.text.tertiary, marginTop: 8 }}>
-          Screen-size histogram isn't available yet — the client doesn't currently report its screen size to the server.
+          Screen-size histogram isn’t available yet — the client doesn’t currently report its screen size to the server.
         </div>
       </Section>
 

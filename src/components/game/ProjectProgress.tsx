@@ -191,7 +191,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         </span>
         {currentPlayer && (
           <span style={{ fontSize: '0.8rem', color: colors.secondary.dark }}>
-            ▶ {currentPlayer.name}'s Turn
+            ▶ {currentPlayer.name}’s Turn
           </span>
         )}
         {currentPlayer && (() => {

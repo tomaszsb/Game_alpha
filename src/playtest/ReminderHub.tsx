@@ -269,7 +269,7 @@ export function ReminderHub({ isPhone }: { isPhone: boolean }): JSX.Element {
               ))}
             </select>
             <p style={{ margin: 0, fontSize: '0.75rem', color: '#888' }}>
-              Sent via your carrier's email-to-text gateway — some carriers block these, so it may not arrive.
+              Sent via your carrier’s email-to-text gateway — some carriers block these, so it may not arrive.
             </p>
           </>
         )}

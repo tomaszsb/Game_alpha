@@ -282,7 +282,7 @@ export function PlaytesterLandingPage(): JSX.Element {
             Play anyway
           </button>
           <span style={{ fontSize: '0.8rem', color: '#b0432f', lineHeight: 1.4 }}>
-            Not recommended on a screen this small — you'll have a hard time.
+            Not recommended on a screen this small — you’ll have a hard time.
           </span>
         </div>
       ) : (
@@ -296,8 +296,8 @@ export function PlaytesterLandingPage(): JSX.Element {
       )}
 
       <p style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: '#666', maxWidth: 420 }}>
-        Once you're playing, look for the bug icon in the corner of the screen — that's how you tell
-        us if something's wrong or confusing.
+        Once you’re playing, look for the bug icon in the corner of the screen — that’s how you tell
+        us if something’s wrong or confusing.
       </p>
     </div>
   );

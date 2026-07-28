@@ -131,7 +131,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 lineHeight: '1.5'
               }}
             >
-              The game encountered an unexpected error. Don't worry - your progress may still be saved.
+              The game encountered an unexpected error. Don’t worry - your progress may still be saved.
               Try reloading the page to continue playing.
             </p>
 

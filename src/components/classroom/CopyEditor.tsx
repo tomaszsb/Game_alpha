@@ -68,7 +68,7 @@ export function CopyEditor({
         </h3>
         <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#495057' }}>
           Your classroom plays your copy; the original card stays safe in the
-          library and updates from new versions of the game won't change your
+          library and updates from new versions of the game won’t change your
           words. Fields that differ from the original are highlighted.
         </p>
 

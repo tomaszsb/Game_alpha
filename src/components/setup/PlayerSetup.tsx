@@ -680,7 +680,7 @@ export function PlayerSetup({
 
       {/* Footer */}
       <footer style={styles.footer}>
-        <strong>Beta Version</strong> - We're improving daily.
+        <strong>Beta Version</strong> - We’re improving daily.
         {' '}Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right), or email <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
       </footer>
 

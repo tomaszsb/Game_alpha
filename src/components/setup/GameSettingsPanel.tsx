@@ -86,7 +86,7 @@ export function GameSettingsPanel({
                 />
                 <span style={{ fontWeight: '500' }}>Quick Start</span>
                 <span style={{ color: colors.text.secondary, fontSize: '0.8rem' }}>
-                  - P1's natural draws become starting hand for all
+                  - P1’s natural draws become starting hand for all
                 </span>
               </label>
             </div>

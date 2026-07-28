@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.69] - 2026-07-28
+
+### Change: game copy now uses real typographic quotes — `no-unescaped-entities` cleared and promoted to `error`
+Third burn-down pass. **206 → 165 warnings**, and this is the first pass where the fix was a *maintainer decision* rather than a mechanical one.
+
+All 41 violations were raw apostrophes and quote marks in on-screen text — `Couldn't start a new game`, `Click "Add Player" to get started!`, `you'll receive a time penalty`. The rule offers `&apos;` / `&quot;` escapes, which render pixel-for-pixel identically to today. **The maintainer chose typographic quotes (`’ “ ”`) instead**, on the grounds that the escapes would make player-facing copy genuinely painful to hand-edit — and this copy does get hand-edited. The side benefit is that the game now uses the same curved apostrophes and quotation marks that books and published games use, rather than typewriter ticks.
+
+**How the rewrite was done matters more than what it changed.** Rather than a find-and-replace over the source — which would have hit apostrophes inside code, string literals, and JSX attributes — the replacements were driven off ESLint's own reported `line:column` for each of the 41 characters, applied back-to-front so earlier positions stayed valid. Double quotes were resolved to opening (`“`) or closing (`”`) from the preceding character. A dry run was reviewed before anything was written. Provably untouched as a result: JSX expressions like `<code>{'{diceValue}'}</code>` and `{' '}` spacers, which sit inches away from flagged text in `SpaceEditor.tsx` and would have been corrupted by a naive replace.
+
+19 files, from player-facing surfaces (`App`, `RulesModal`, `PlayerList`, `GameDisplaySettings`, `PlaytesterLandingPage`) through admin ones (`SpaceEditor`, `BugReportsPanel`, `StatsDashboard`).
+
+Verified: lint 0 errors / 165 warnings exit 0, typecheck clean, production build clean, **full suite 2493 passed / 1 skipped / 0 failed** — no test asserted on the old straight apostrophes. Confirmed on screen: `Click “Add Player” to get started!` renders U+201C/U+201D correctly paired, `We’re improving daily` renders U+2019, and no escape sequence leaked into visible text. Probe confirms the rule now errors and exits 1.
+
+**Ten rules are now explicitly held at zero as hard errors** (`rules-of-hooks`, `no-unreachable`, `static-components`, `immutability`, `refs`, `no-irregular-whitespace`, `no-unused-expressions`, `no-case-declarations`, `no-empty`, `no-unescaped-entities`) — three at the start of today, ten now. Writing a straight apostrophe into new copy is a lint error from here on; use the curly one.
+
 ## [3.1.68] - 2026-07-28
 
 ### Fix: `no-case-declarations` and `no-empty` cleared and promoted to `error` — 215 lines of dead code deleted along the way

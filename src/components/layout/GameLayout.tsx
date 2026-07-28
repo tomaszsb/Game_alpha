@@ -1012,7 +1012,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           {greeting}
         </div>
         <div style={{ fontSize: '1rem', opacity: 0.9, marginBottom: '2rem', maxWidth: '320px' }}>
-          Your phone will buzz when it's your turn — tap below to enable it.
+          Your phone will buzz when it’s your turn — tap below to enable it.
         </div>
         <button
           type="button"
@@ -1032,7 +1032,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           🎮 Tap to Enter Game
         </button>
         <div style={{ fontSize: '0.85rem', opacity: 0.75, marginTop: '1.5rem' }}>
-          (You'll only see this once)
+          (You’ll only see this once)
         </div>
       </div>
     );

@@ -202,9 +202,9 @@ export function BugReportsPanel({ onClose }: BugReportsPanelProps): JSX.Element 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <span style={s.undoLabel}>Just resolved: </span>
                   <em style={s.undoText}>
-                    "{entry.whatWrong.length > 70
+                    “{entry.whatWrong.length > 70
                       ? entry.whatWrong.slice(0, 70) + '…'
-                      : entry.whatWrong}"
+                      : entry.whatWrong}”
                   </em>
                   <span style={s.undoCounter}>
                     · undo available for {entry.sessionsLeft} more

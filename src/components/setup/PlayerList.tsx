@@ -440,7 +440,7 @@ export function PlayerList({
           <IconPeople size="3rem" />
         </div>
         <p style={{ margin: 0, fontSize: '1.1rem' }}>
-          No players added yet. Click "Add Player" to get started!
+          No players added yet. Click “Add Player” to get started!
         </p>
       </div>
     );

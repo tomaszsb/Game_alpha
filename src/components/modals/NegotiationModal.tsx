@@ -710,7 +710,7 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
             border: `2px solid ${colors.warning.main}`
           }}>
             <div style={{ fontSize: '18px', fontWeight: 'bold', color: colors.warning.text, marginBottom: '8px' }}>
-              {theme.emoji.target} What's your decision?
+              {theme.emoji.target} What’s your decision?
             </div>
             <div style={{ color: colors.warning.text }}>
               This offer will be added to your resources if you accept.

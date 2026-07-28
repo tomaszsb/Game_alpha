@@ -316,7 +316,7 @@ export function SpaceEditor({
             <legend style={styles.legend}>🎲 Dice Outcome Modals</legend>
             <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
               Customize the result modal shown after each dice roll. Dice-specific rows
-              win over "Any Roll". Supports <code>{'{diceValue}'}</code> and{' '}
+              win over “Any Roll”. Supports <code>{'{diceValue}'}</code> and{' '}
               <code>{'{spaceName}'}</code>.
             </div>
             <div style={{ marginBottom: '4px' }}>
@@ -376,7 +376,7 @@ export function SpaceEditor({
         <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #6f42c1` }}>
           <legend style={styles.legend}>❓ Choice Modal</legend>
           <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
-            Overrides the generic "Make Your Choice" modal when a choice is raised at this space.
+            Overrides the generic “Make Your Choice” modal when a choice is raised at this space.
             Supports <code>{'{playerName}'}</code> and <code>{'{spaceName}'}</code>.
           </div>
           <ModalConfigExpander effectAction="choice" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
@@ -388,8 +388,8 @@ export function SpaceEditor({
           <legend style={styles.legend}>🤝 Negotiation Modal</legend>
           <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
             Overrides the player-to-player negotiation modal when opened from this space.
-            Title replaces the step header, description replaces the "Select a player…" prompt,
-            and button label replaces "Make Offer". Supports <code>{'{playerName}'}</code>,{' '}
+            Title replaces the step header, description replaces the “Select a player…” prompt,
+            and button label replaces “Make Offer”. Supports <code>{'{playerName}'}</code>,{' '}
             <code>{'{partnerName}'}</code>, and <code>{'{spaceName}'}</code>.
           </div>
           <ModalConfigExpander effectAction="negotiate" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
@@ -401,8 +401,8 @@ export function SpaceEditor({
           <legend style={styles.legend}>🏁 End Game Modal</legend>
           <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
             Overrides the victory modal when the winning player ends the game on this space.
-            Title replaces "Game Complete!", description replaces the victory subtitle,
-            summary replaces the "Well played!" banner, button label replaces "Play Again".
+            Title replaces “Game Complete!”, description replaces the victory subtitle,
+            summary replaces the “Well played!” banner, button label replaces “Play Again”.
             Only applies to FINISH/ending spaces. Supports <code>{'{winnerName}'}</code>{' '}
             and <code>{'{spaceName}'}</code>.
           </div>

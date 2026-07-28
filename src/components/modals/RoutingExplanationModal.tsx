@@ -24,7 +24,7 @@ export function RoutingExplanationModal({ message, toSpaceLabel, onClose }: Rout
     // is comprehension, so a stray tap must not dismiss it before it's read.
     <div style={styles.overlay} role="dialog" aria-modal="true" aria-label="Where you're headed next">
       <div style={styles.card}>
-        <div style={styles.header}>🧭 Where you're headed next</div>
+        <div style={styles.header}>🧭 Where you’re headed next</div>
         <div style={styles.destination}>
           Heading to <strong>{toSpaceLabel}</strong>
         </div>

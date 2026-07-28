@@ -163,7 +163,7 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps): JSX.Element | 
           </h3>
           <p>
             Some spaces allow negotiation. If you have a snapshot from entering the space,
-            you can restore your previous state. Otherwise, you'll receive a time penalty
+            you can restore your previous state. Otherwise, you’ll receive a time penalty
             but can try again.
           </p>
         </section>

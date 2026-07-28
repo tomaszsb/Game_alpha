@@ -71,7 +71,6 @@ export default [
         caughtErrorsIgnorePattern: '^_'
       }],
       '@typescript-eslint/no-explicit-any': 'warn',   // 28 — Bucket E is documented as intentional
-      'react/no-unescaped-entities': 'warn',          // 41 — apostrophes in copy, cosmetic
       'react-hooks/exhaustive-deps': 'warn',          // 10 — famously noisy, needs case-by-case judgment
       'react-hooks/set-state-in-effect': 'warn',      // 34 — new rule in react-hooks v6
 
@@ -111,7 +110,17 @@ export default [
       //     rather than patched. Two more were `if (ok) { } else { fail() }`,
       //     inverted to `if (!ok) { fail() }`.
       'no-case-declarations': 'error',
-      'no-empty': 'error'
+      'no-empty': 'error',
+
+      // Promoted 2026-07-28 (third pass), at zero violations.
+      //   no-unescaped-entities — 41 raw apostrophes and quote marks in JSX
+      //     copy. Maintainer chose typographic quotes (’ “ ”) over &apos;/&quot;
+      //     escapes: the escapes render identically but make the source painful
+      //     to edit, and this is player-facing copy the maintainer edits by hand.
+      //     Rewritten from ESLint's own reported line:column positions rather
+      //     than a text search, so JSX expressions like {'{diceValue}'} and {' '}
+      //     spacers were provably untouched.
+      'react/no-unescaped-entities': 'error'
     },
     settings: {
       react: {

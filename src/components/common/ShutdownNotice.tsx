@@ -63,7 +63,7 @@ export function ShutdownNotice(): JSX.Element | null {
       }}
     >
       <span>
-        🛠️ This game is in beta — we're pushing an update now. If you get
+        🛠️ This game is in beta — we’re pushing an update now. If you get
         disconnected, rejoin with game code <strong>{gameId}</strong>.
       </span>
       <button

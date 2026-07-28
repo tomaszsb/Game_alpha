@@ -325,7 +325,7 @@ export function App(): JSX.Element {
             borderBottom: '1px solid #fca5a5'
           }}
         >
-          Couldn't start a new game ({autoCreateError}). Try refreshing.
+          Couldn’t start a new game ({autoCreateError}). Try refreshing.
         </div>
       )}
       <ServiceProvider>

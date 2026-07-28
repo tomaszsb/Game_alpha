@@ -134,7 +134,7 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
                 color: '#991b1b',
               }}
             >
-              ⚠️ Couldn't refresh latest positions ({reloadError}). Showing cached layout.
+              ⚠️ Couldn’t refresh latest positions ({reloadError}). Showing cached layout.
             </p>
           )}
         </div>
