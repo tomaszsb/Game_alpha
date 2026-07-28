@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.71] - 2026-07-28
+
+### Partial fix: E2E flake cut from ~4-in-5 runs to ~1-in-3 — vitest projects split + a real unresolved-choice race removed
+**This is a mitigation, not a fix, and the numbers below say so.** Read the whole entry before treating a green suite as meaningful.
+
+**First, a correction.** v3.1.70 concluded this flake was "worker starvation — raise timeouts or cap workers." That was wrong, and the reasoning that produced it was seductive: in isolation the ten `E2E-AllPaths` tests run in 65ms–1133ms against 30s/60s/90s budgets, a 50–900× margin, which looks exactly like descheduling. But every failure is a **permanent hang on an unresolved `await`**, not a slow test. A hang does not care how long you wait — which is precisely why the escalating 30→60→90s budgets already in that file never helped, and why raising `testTimeout` must not be attempted as a fix.
+
+**Change 1 — `vitest.config.dev.ts` split into two projects.** The three heavy game-loop files (`E2E-AllPaths`, `E2E-Multiplayer2P`, `E2E-Multiplayer4P`) now run in an `e2e-heavy` project with `fileParallelism: false, maxWorkers: 1`, so they never overlap each other; everything else stays parallel in `main`. Measured on those three as a set:
+
+| mode | result |
+|---|---|
+| concurrent | **2 passed / 6 failed** of 8 |
+| sequential | **4 passed / 1 failed** of 5 |
+| `E2E-AllPaths` alone | **10 passed / 0 failed** of 10 |
+
+**Change 2 — `tests/helpers/settleManualEffect.ts`** replaces seven copies of a genuine race. The tests did `const p = triggerManualEffect(...); await sleep(10); if (choice) resolve(choice); await p;` — a fixed 10ms bet that the effect had already raised its choice. When it hadn't, nothing answered the choice and the promise never settled, burning the whole budget (measured: a test whose real work takes 626ms sitting at exactly 90,018ms). The helper polls instead, and the unguarded `rollDiceWithFeedback` branch — which had no choice handling at all — got the same treatment.
+
+Worth recording as a near-miss: the first version of that helper returned the moment the promise settled, dropping the old unconditional 10ms delay. That surfaced a *new* failure ("Cannot end turn outside of PLAY phase") because other async work relied on it. The helper now keeps the 10ms floor and is a strict superset of the code it replaced.
+
+**Result: full-suite flake went from roughly 4-in-5 runs to about 1-in-3.** Better, not solved.
+
+### Where the remaining hang is — a genuine narrowing
+`settleManualEffect` throws a named, explanatory error if an effect neither settles nor raises a choice. **That error has never fired.** Every surviving failure is still a bare `Test timed out`. So the hang is *not* in the manual-effect or dice-effect paths — it is in one of the other four awaits in `playTurn`/`setupGame`: `endTurnWithMovement()`, `startTurn()`, `handleAutomaticFunding()`, or `rollDice()`. That is where the next session should instrument.
+
+One more lead: the decks are shuffled with **unseeded `Math.random()`** ([StateService.ts:1771](src/services/StateService.ts:1771)) and these tests never seed it, so every `setupGame()` deals a different hand and each run walks a slightly different path — almost certainly why the victim moves every run. Seeding `Math.random` in those three files would make the failure reproducible, and is probably the highest-value next step, since every debugging attempt today was chasing a moving target.
+
+Verified: typecheck clean, full suite discovers all 168 files under the new project layout and passes 2493/1/0 on a good run.
+
 ## [3.1.70] - 2026-07-28
 
 ### Fix: the mechanical half of `no-unused-vars` — 93 → 41, plus three dead declarations deleted

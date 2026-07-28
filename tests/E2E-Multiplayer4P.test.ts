@@ -29,6 +29,7 @@ import { FinancialEffectHandler } from '../src/services/FinancialEffectHandler';
 import { CardEffectHandler } from '../src/services/CardEffectHandler';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { settleManualEffect } from './helpers/settleManualEffect';
 
 class NodeDataService extends DataService {
   async loadData(): Promise<void> {
@@ -185,16 +186,21 @@ describe('E2E: 4-Player Multiplayer Game', () => {
         if (effect.trigger_type === 'manual' && effect.effect_type !== 'turn') {
           const key = `${effect.effect_type}:${effect.effect_action}`;
           if (effect.effect_type === 'dice') {
-            await turnService.rollDiceWithFeedback(expectedPlayerId);
+            // Same unresolved-choice hazard as the manual branch below: a dice
+            // effect can draw a card that raises a choice, and decks are shuffled
+            // with unseeded Math.random(), so whether that happens varies per run.
+            await settleManualEffect(
+              turnService.rollDiceWithFeedback(expectedPlayerId),
+              stateService,
+              choiceService,
+            );
             stateService.updateGameState({ hasPlayerMovedThisTurn: false });
           } else {
-            const promise = turnService.triggerManualEffect(expectedPlayerId, key);
-            await new Promise(r => setTimeout(r, 10));
-            const choice = stateService.getGameState().awaitingChoice;
-            if (choice && choice.type !== 'MOVEMENT') {
-              choiceService.resolveChoice(choice.id, choice.options[0].id);
-            }
-            await promise;
+            await settleManualEffect(
+              turnService.triggerManualEffect(expectedPlayerId, key),
+              stateService,
+              choiceService,
+            );
           }
         }
       }
@@ -244,16 +250,21 @@ describe('E2E: 4-Player Multiplayer Game', () => {
         if (effect.trigger_type === 'manual' && effect.effect_type !== 'turn') {
           const key = `${effect.effect_type}:${effect.effect_action}`;
           if (effect.effect_type === 'dice') {
-            await turnService.rollDiceWithFeedback(playerId);
+            // Same unresolved-choice hazard as the manual branch below: a dice
+            // effect can draw a card that raises a choice, and decks are shuffled
+            // with unseeded Math.random(), so whether that happens varies per run.
+            await settleManualEffect(
+              turnService.rollDiceWithFeedback(playerId),
+              stateService,
+              choiceService,
+            );
             stateService.updateGameState({ hasPlayerMovedThisTurn: false });
           } else {
-            const promise = turnService.triggerManualEffect(playerId, key);
-            await new Promise(r => setTimeout(r, 10));
-            const choice = stateService.getGameState().awaitingChoice;
-            if (choice && choice.type !== 'MOVEMENT') {
-              choiceService.resolveChoice(choice.id, choice.options[0].id);
-            }
-            await promise;
+            await settleManualEffect(
+              turnService.triggerManualEffect(playerId, key),
+              stateService,
+              choiceService,
+            );
           }
         }
       }
@@ -414,16 +425,21 @@ describe('E2E: 3-Player Multiplayer Game', () => {
         if (effect.trigger_type === 'manual' && effect.effect_type !== 'turn') {
           const key = `${effect.effect_type}:${effect.effect_action}`;
           if (effect.effect_type === 'dice') {
-            await turnService.rollDiceWithFeedback(expectedPlayerId);
+            // Same unresolved-choice hazard as the manual branch below: a dice
+            // effect can draw a card that raises a choice, and decks are shuffled
+            // with unseeded Math.random(), so whether that happens varies per run.
+            await settleManualEffect(
+              turnService.rollDiceWithFeedback(expectedPlayerId),
+              stateService,
+              choiceService,
+            );
             stateService.updateGameState({ hasPlayerMovedThisTurn: false });
           } else {
-            const promise = turnService.triggerManualEffect(expectedPlayerId, key);
-            await new Promise(r => setTimeout(r, 10));
-            const choice = stateService.getGameState().awaitingChoice;
-            if (choice && choice.type !== 'MOVEMENT') {
-              choiceService.resolveChoice(choice.id, choice.options[0].id);
-            }
-            await promise;
+            await settleManualEffect(
+              turnService.triggerManualEffect(expectedPlayerId, key),
+              stateService,
+              choiceService,
+            );
           }
         }
       }

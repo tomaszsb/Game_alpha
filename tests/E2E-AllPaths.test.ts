@@ -33,6 +33,7 @@ import { FinancialEffectHandler } from '../src/services/FinancialEffectHandler';
 import { CardEffectHandler } from '../src/services/CardEffectHandler';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { settleManualEffect } from './helpers/settleManualEffect';
 
 // Node.js compatible DataService for E2E testing
 class NodeDataService extends DataService {
@@ -116,17 +117,22 @@ const playTurn = async (
       const key = `${effect.effect_type}:${effect.effect_action}`;
       if (effect.effect_type === 'dice') {
         // Dice effects need rollDiceWithFeedback to actually process effects (e.g., draw W cards)
-        await turnService.rollDiceWithFeedback(playerId);
+        // Same unresolved-choice hazard as the manual branch below: a dice
+        // effect can draw a card that raises a choice, and decks are shuffled
+        // with unseeded Math.random(), so whether that happens varies per run.
+        await settleManualEffect(
+          turnService.rollDiceWithFeedback(playerId),
+          stateService,
+          choiceService,
+        );
         // Reset hasPlayerMovedThisTurn so endTurnWithMovement can proceed
         stateService.updateGameState({ hasPlayerMovedThisTurn: false });
       } else {
-        const promise = turnService.triggerManualEffect(playerId, key);
-        await new Promise(r => setTimeout(r, 10));
-        const choice = stateService.getGameState().awaitingChoice;
-        if (choice && choice.type !== 'MOVEMENT') {
-          choiceService.resolveChoice(choice.id, choice.options[0].id);
-        }
-        await promise;
+        await settleManualEffect(
+          turnService.triggerManualEffect(playerId, key),
+          stateService,
+          choiceService,
+        );
       }
     }
   }

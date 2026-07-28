@@ -30,6 +30,42 @@ class GhostLastSequencer extends BaseSequencer {
   }
 }
 
+// The heavy E2E game-loop files. These must never run alongside EACH OTHER —
+// see the `e2e-heavy` project below for the measurements.
+const E2E_HEAVY = [
+  'tests/E2E-AllPaths.test.ts',
+  'tests/E2E-Multiplayer2P.test.ts',
+  'tests/E2E-Multiplayer4P.test.ts',
+];
+
+const ALIASES = {
+  '@': path.resolve(__dirname, './src'),
+  // @jalez/react-flow-smart-edge ships a CJS dist/index.js inside an
+  // ESM package, and its ESM build named-imports CJS-only `pathfinding`.
+  // Both crash Node's loader under jsdom. Real edge geometry isn't
+  // tested anywhere, so route the import to a no-op stub used only
+  // in tests. Production builds use the real package via Vite's ESM
+  // resolution (`module` field).
+  '@jalez/react-flow-smart-edge': path.resolve(
+    __dirname,
+    'tests/stubs/smartEdgeStub.ts'
+  ),
+};
+
+// Options every project shares. Split out because Vitest projects do not
+// inherit `test` options from the root config.
+const SHARED = {
+  environment: 'jsdom' as const,
+  globals: true,
+  setupFiles: ['tests/vitest.setup.ts'],
+  pool: 'threads' as const,
+  isolate: true,            // Isolated environment between tests
+  clearMocks: true,         // Still clear mocks for test reliability
+  testTimeout: 30000,       // 30 seconds
+  teardownTimeout: 3000,    // Low teardown timeout to prevent hanging
+  passWithNoTests: true,
+};
+
 // Development configuration optimized for SPEED and fast feedback loops
 export default defineConfig({
   test: {
@@ -69,27 +105,6 @@ export default defineConfig({
       'node_modules/**',
       'dist/**'
     ],
-    globals: true,
-    setupFiles: ['tests/vitest.setup.ts'],
-
-    // Parallel threads with limited workers for WSL2 stability
-    // Force-exit reporter prevents post-test hang from open handles
-    pool: 'threads',
-    fileParallelism: true,
-    maxWorkers: 4,
-    minWorkers: 2,
-
-    // Ghost simulation files run after everything else — see GhostLastSequencer above.
-    sequence: {
-      sequencer: GhostLastSequencer,
-    },
-
-    // Standard timeouts
-    testTimeout: 30000,       // 30 seconds
-
-    // Proper isolation for reliability
-    isolate: true,            // Isolated environment between tests
-    clearMocks: true,         // Still clear mocks for test reliability
 
     // Default reporter + force-exit reporter (prevents hanging after tests complete)
     reporter: ['default', 'tests/vitest.forceExit.ts'],
@@ -99,26 +114,73 @@ export default defineConfig({
       enabled: false
     },
 
-    // Faster test discovery
-    passWithNoTests: true,
+    projects: [
+      // ---------------------------------------------------------------
+      // e2e-heavy — the three full-game-loop files, run ONE AT A TIME.
+      // ---------------------------------------------------------------
+      // Measured 2026-07-28, running these three as a set:
+      //   concurrent (fileParallelism: true)   → 2 passed / 6 failed of 8
+      //   sequential (--no-file-parallelism)   → 4 passed / 1 failed of 5
+      //   E2E-AllPaths alone                   → 10 passed / 0 failed of 10
+      //
+      // Every failure is a *timeout on an unresolved await*, never an
+      // assertion, and the victim moves between files and sub-tests on every
+      // run — the exact signature TODO.md has logged since 2026-07-13. These
+      // three drive whole game loops through the full service graph and are by
+      // far the suite's heaviest: E2E-AllPaths alone accounted for 61.6% of
+      // total file wall time. Overlapping them is what tips one into never
+      // completing.
+      //
+      // ⚠️ This reduces the flake, it does NOT eliminate it (1-in-5 remained
+      // when run sequentially as a set). The residual cause is still open —
+      // see TODO.md. Do not read a single green run as proof it is fixed.
+      {
+        resolve: { alias: ALIASES },
+        test: {
+          ...SHARED,
+          name: 'e2e-heavy',
+          include: E2E_HEAVY,
+          fileParallelism: false,
+          maxWorkers: 1,
+          minWorkers: 1,
+        },
+      },
 
-    // Low teardown timeout to prevent hanging
-    teardownTimeout: 3000
+      // ---------------------------------------------------------------
+      // main — everything else, parallel as before.
+      // ---------------------------------------------------------------
+      {
+        resolve: { alias: ALIASES },
+        test: {
+          ...SHARED,
+          name: 'main',
+          include: [
+            'tests/**/*.test.ts',
+            'tests/**/*.test.tsx'
+          ],
+          exclude: [
+            'tests/**/*.lightweight.test.ts',
+            'tests/**/*.optimized.test.ts',
+            'tests/debug-*.test.ts',
+            'tests/ghost/**',
+            'node_modules/**',
+            'dist/**',
+            ...E2E_HEAVY,
+          ],
+          fileParallelism: true,
+          maxWorkers: 4,
+          minWorkers: 2,
+          // Ghost files run last — see GhostLastSequencer above. Dormant while
+          // tests/ghost/** is excluded; kept in case it is folded back in.
+          sequence: {
+            sequencer: GhostLastSequencer,
+          },
+        },
+      },
+    ],
   },
 
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      // @jalez/react-flow-smart-edge ships a CJS dist/index.js inside an
-      // ESM package, and its ESM build named-imports CJS-only `pathfinding`.
-      // Both crash Node's loader under jsdom. Real edge geometry isn't
-      // tested anywhere, so route the import to a no-op stub used only
-      // in tests. Production builds use the real package via Vite's ESM
-      // resolution (`module` field).
-      '@jalez/react-flow-smart-edge': path.resolve(
-        __dirname,
-        'tests/stubs/smartEdgeStub.ts'
-      ),
-    }
+    alias: ALIASES,
   }
 });
