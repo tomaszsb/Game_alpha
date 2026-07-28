@@ -474,60 +474,6 @@ function Field({ label, value, onChange, readOnly, type = 'text', placeholder }:
 
 const CARD_PRESETS = ['Draw 1', 'Draw 2', 'Draw 3', 'Remove 1', 'Replace 1', 'No change'];
 
-function CardField({ type, value, onChange }: { type: string; value: string; onChange: (v: string) => void }): JSX.Element {
-  const cc = CARD_COLORS[type];
-  const isPreset = !value || CARD_PRESETS.includes(value);
-  const [useCustom, setUseCustom] = useState(!isPreset && !!value);
-
-  return (
-    <div style={styles.field}>
-      <label style={{ ...styles.label, color: cc.text }}>
-        <span style={{ ...styles.cardBadge, backgroundColor: cc.bg, borderColor: cc.border, color: cc.primary }}>
-          {cc.emoji} {type}
-        </span>
-      </label>
-      {useCustom ? (
-        <div style={styles.comboRow}>
-          <input
-            type="text"
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Custom..."
-            style={{
-              ...styles.input,
-              flex: 1,
-              backgroundColor: value ? cc.bg : undefined,
-              borderColor: value ? cc.border + '60' : undefined,
-            }}
-          />
-          <button
-            onClick={() => { setUseCustom(false); if (!CARD_PRESETS.includes(value)) onChange(''); }}
-            style={styles.comboToggle}
-            title="Switch to dropdown"
-          >▼</button>
-        </div>
-      ) : (
-        <select
-          value={value || ''}
-          onChange={(e) => {
-            if (e.target.value === '__custom__') setUseCustom(true);
-            else onChange(e.target.value);
-          }}
-          style={{
-            ...styles.select,
-            backgroundColor: value ? cc.bg : undefined,
-            borderColor: value ? cc.border + '60' : undefined,
-          }}
-        >
-          <option value="">--</option>
-          {CARD_PRESETS.map(p => <option key={p} value={p}>{p}</option>)}
-          <option value="__custom__">Custom...</option>
-        </select>
-      )}
-    </div>
-  );
-}
-
 function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChange, onLabelChange, onNarrativeChange, onModalConfigChange }: {
   type: string; value: string; label: string; narrative?: string;
   modalConfig?: ModalConfigRow;

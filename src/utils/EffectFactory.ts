@@ -323,7 +323,7 @@ export class EffectFactory {
     }
 
     // THEN: Process each space effect
-    spaceEffects.forEach((spaceEffect, index) => {
+    spaceEffects.forEach((spaceEffect, _index) => {
 
       const effectsFromSpaceEffect = this.parseSpaceEffect(spaceEffect, playerId, spaceSource);
       effects.push(...effectsFromSpaceEffect);
@@ -423,7 +423,7 @@ export class EffectFactory {
 
 
     // Process each dice effect
-    diceEffects.forEach((diceEffect, index) => {
+    diceEffects.forEach((diceEffect, _index) => {
 
       const effectsFromDiceEffect = this.parseDiceEffect(diceEffect, diceResult, playerId, diceSource);
       effects.push(...effectsFromDiceEffect);

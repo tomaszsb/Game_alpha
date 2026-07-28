@@ -2,8 +2,6 @@
 
 import { IStateService, IChoiceService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
-import { Player } from '../types/StateTypes';
-import { Choice } from '../types/CommonTypes';
 
 export interface ITargetingService {
   resolveTargets(sourcePlayerId: string, targetRule: string): Promise<string[]>;

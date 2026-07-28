@@ -84,8 +84,7 @@ interface DictionaryProviderProps {
  * Wraps the application and provides dictionary functionality to all children.
  */
 export function DictionaryProvider({
-  children,
-  config
+  children
 }: DictionaryProviderProps): JSX.Element {
   const [state, dispatch] = useReducer(dictionaryReducer, initialState);
   const [terms, setTerms] = React.useState<GlossaryTerm[]>([]);

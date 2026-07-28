@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { colors } from '../../styles/theme';
-import { usePlayerValidation, ValidationResult } from './usePlayerValidation';
+import { ValidationResult } from './usePlayerValidation';
 import { IconWarning } from '../icons/SetupIcons';
 
 interface PlayerFormProps {

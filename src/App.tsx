@@ -8,7 +8,7 @@ import { useGameContext } from './context/GameContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { colors } from './styles/theme';
 import { getAppScreen, getURLParams } from './utils/getAppScreen';
-import { getGameStateAPIPath, getCurrentGameId, getBackendURL } from './utils/networkDetection';
+import { getCurrentGameId, getBackendURL } from './utils/networkDetection';
 import { detectDeviceType } from './utils/deviceDetection';
 import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dictionary';
 import { getTooltipService } from './services/TooltipService';

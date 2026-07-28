@@ -280,7 +280,7 @@ export class NegotiationService {
    * @param agreement - The agreed terms of the negotiation
    * @returns Promise resolving to the negotiation result
    */
-  public async completeNegotiation(negotiationId: string, agreement: Record<string, unknown>): Promise<NegotiationResult> {
+  public async completeNegotiation(negotiationId: string, _agreement: Record<string, unknown>): Promise<NegotiationResult> {
     
     try {
       const gameState = this.stateService.getGameState();

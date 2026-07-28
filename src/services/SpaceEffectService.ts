@@ -1,7 +1,7 @@
 import { IStateService, ICardService, IResourceService, IGameRulesService, IDiceService, IDataService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { GameState, Player } from '../types/StateTypes';
-import { DiceEffect, SpaceEffect, CardType } from '../types/DataTypes';
+import { SpaceEffect } from '../types/DataTypes';
 
 /**
  * SpaceEffectService - Handles application of space and dice effects

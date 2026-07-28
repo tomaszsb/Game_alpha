@@ -272,7 +272,7 @@ export class CardEffectHandler implements ICardEffectHandler {
    * Handle CARD_ACTIVATION effect
    * Activates a card for a specified duration
    */
-  handleCardActivation(effect: Effect, context: EffectContext): EffectResult {
+  handleCardActivation(effect: Effect, _context: EffectContext): EffectResult {
     if (!isCardActivationEffect(effect)) {
       return {
         success: false,
@@ -300,7 +300,7 @@ export class CardEffectHandler implements ICardEffectHandler {
    * Handle PLAY_CARD effect
    * Finalizes a played card (moves to active or discard based on duration)
    */
-  async handlePlayCard(effect: Effect, context: EffectContext): Promise<EffectResult> {
+  async handlePlayCard(effect: Effect, _context: EffectContext): Promise<EffectResult> {
     if (!isPlayCardEffect(effect)) {
       return {
         success: false,

@@ -5,7 +5,7 @@ import React, { useState, useMemo } from 'react';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { CardDisplay } from '../common/CardDisplay';
 import { IDataService } from '../../types/ServiceContracts';
-import { Card, CardType } from '../../types/DataTypes';
+import { CardType } from '../../types/DataTypes';
 import { colors, theme } from '../../styles/theme';
 import { getCardTypeName } from '../../utils/cardTypeNames';
 

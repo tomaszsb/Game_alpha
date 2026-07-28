@@ -4,17 +4,13 @@ import {
   GameState,
   Player,
   GamePhase,
-  GameMode,
   GameModeSettings,
   Decks,
   DiscardPiles,
   PlayerUpdateData,
-  PlayerCards,
   ActionLogEntry,
   // REAL/TEMP State Model Types
   MutablePlayerState,
-  PlayerTurnState,
-  TurnStateModel,
   TurnCostLedger,
   StateTransitionResult,
   CreateTempOptions,
@@ -22,7 +18,7 @@ import {
   GameEndReason
 } from '../types/StateTypes';
 import { colors } from '../styles/theme';
-import { ALL_IMAGE_ROLES, ALL_ETHNICITIES, ALL_GENDERS, NpcAppearance, NpcAppearances, NpcImageRole } from '../constants/characters';
+import { ALL_IMAGE_ROLES, ALL_ETHNICITIES, ALL_GENDERS, NpcAppearance, NpcAppearances } from '../constants/characters';
 import { Choice } from '../types/CommonTypes';
 import { TurnStateManager } from './TurnStateManager';
 import { ServerSyncService, StateProvider } from './ServerSyncService';
@@ -892,7 +888,7 @@ export class StateService implements IStateService {
   }
 
   // Validation methods
-  validatePlayerAction(playerId: string, action: string): boolean {
+  validatePlayerAction(playerId: string, _action: string): boolean {
     if (this.currentState.gamePhase !== 'PLAY') {
       return false;
     }

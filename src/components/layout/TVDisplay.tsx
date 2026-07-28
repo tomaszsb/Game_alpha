@@ -19,11 +19,6 @@ import { AvatarIcon } from '../icons/AvatarIcons';
 import { IconCheck } from '../icons/SetupIcons';
 import { ShutdownNotice } from '../common/ShutdownNotice';
 
-interface TVDisplayProps {
-  /** Callback when setup should start (optional - for showing setup on TV) */
-  onShowSetup?: () => void;
-}
-
 /**
  * TVDisplay - Dedicated display for TV/monitor in party game setup
  *
@@ -34,7 +29,7 @@ interface TVDisplayProps {
  * - Turn notifications and game events
  * - No interactive controls (players use their phones)
  */
-export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
+export function TVDisplay(): JSX.Element {
   const gameServices = useGameContext();
   const { stateService, dataService, gameRulesService } = gameServices;
   const [gamePhase, setGamePhase] = useState<GamePhase>('SETUP');

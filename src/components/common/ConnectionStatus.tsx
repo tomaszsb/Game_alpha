@@ -54,7 +54,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
       } else {
         setStatus('offline');
       }
-    } catch (error) {
+    } catch (_error) {
       setStatus('offline');
     }
   };

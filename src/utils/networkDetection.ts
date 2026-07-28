@@ -167,7 +167,7 @@ export async function detectBackendURL(): Promise<string> {
         debugLog(`✅ Detected backend server at ${url}`);
         return url;
       }
-    } catch (e) {
+    } catch (_e) {
       // Port didn't respond, try next one
       continue;
     }

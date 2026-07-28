@@ -22,7 +22,6 @@ import { BoardCanvas } from '../board/BoardCanvas';
 import { BoardToggle } from '../board/BoardToggle';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
-import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
 import { pickRelatedTab } from '../../utils/relatedTab';
 import { NotificationUtils } from '../../utils/NotificationUtils';
 import { GamePhase, Player, TurnEffectResult } from '../../types/StateTypes';
@@ -524,7 +523,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   }, [anyModalOpen]);
 
   useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
+    const handlePopState = (_e: PopStateEvent) => {
       // Close the topmost modal in priority order
       if (isRoutingModalOpen) {
         setIsRoutingModalOpen(false);

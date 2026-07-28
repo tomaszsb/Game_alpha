@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { SpaceEffect, DiceEffect, DiceOutcome } from '../types/DataTypes';
-import { getTooltipService, ActionTooltip } from '../services/TooltipService';
+import { getTooltipService } from '../services/TooltipService';
 import { FormatUtils } from './FormatUtils';
 import { DICE_BUTTON, DICE_FEEDBACK } from '../constants/uiStrings';
 import { colors } from '../styles/theme';

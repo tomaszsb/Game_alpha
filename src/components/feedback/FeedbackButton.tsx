@@ -1,7 +1,7 @@
 // src/components/feedback/FeedbackButton.tsx
 // Floating draggable bug report button with screenshot capture
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 // html2canvas is dynamically imported inside handleCapture so the ~400KB
 // minified payload doesn't ship in the main bundle. It only loads when a
 // player actually clicks the feedback button to take a screenshot.
@@ -287,7 +287,7 @@ export function FeedbackButton(): JSX.Element {
     setPosition({ bottom: newBottom, right: newRight });
   }, []);
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+  const handlePointerUp = useCallback((_e: React.PointerEvent) => {
     const wasDrag = dragRef.current?.moved;
     dragRef.current = null;
     setIsDragging(false);

@@ -198,7 +198,7 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
         newCardType={newCardType}
         mode={mode}
         targetPlayerName={targetPlayerName}
-        onReplace={(selectedCardIds, replacementType) => {
+        onReplace={(selectedCardIds, _replacementType) => {
           if (selectedCardIds.length > 0) {
             debugLog(`🔄 Card ${mode}: Attempting with cards: ${selectedCardIds.join(', ')}`);
             selectedCardIds.forEach((cardId, index) => {

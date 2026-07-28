@@ -1767,16 +1767,17 @@ export class CardService implements ICardService {
   }
 
 
-  // Private helper methods
-  private requiresPlayerTurn(cardType: CardType): boolean {
-    // Some card types might require it to be the player's turn
-    // For now, assume all cards can be played anytime during PLAY phase
-    return false;
-  }
-
-
-  // Discard cards with source tracking
-  discardCards(playerId: string, cardIds: string[], source?: string, reason?: string): boolean {
+  // Discard cards.
+  //
+  // ⚠️ `_source` and `_reason` are accepted and then DROPPED — the underscore
+  // records the current reality, not an intention. Four call sites pass real
+  // values ('manual_effect', 'Manual action: Replace W card…'), but the
+  // card_discarded event below emits only a generic "Discarded N cards", so
+  // that audit trail never reaches the log. The `cardSummary` built further
+  // down is computed and discarded for the same reason. Wiring them in changes
+  // player- and teacher-visible log text, so it is tracked in TODO.md rather
+  // than done as a drive-by. (Found 2026-07-28 during the lint burn-down.)
+  discardCards(playerId: string, cardIds: string[], _source?: string, _reason?: string): boolean {
     if (!cardIds || cardIds.length === 0) {
       const error = ErrorNotifications.cardDiscardFailed('unknown', 'No cards provided');
       debugWarn(error.medium);

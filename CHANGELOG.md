@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.70] - 2026-07-28
+
+### Fix: the mechanical half of `no-unused-vars` — 93 → 41, plus three dead declarations deleted
+Fourth burn-down pass, and deliberately a partial one. **165 → 113 warnings.** The rule is **not promoted to `error`** — 41 violations remain by design, and saying otherwise would be the dishonest version of this commit.
+
+**Why the split.** The 93 divided cleanly in two. 52 were unused imports, unused function parameters, and unused `catch` bindings — mechanical, and safe to fix. The other 41 are `assigned a value but never used` dead bindings, where `const x = doThing()` **cannot be deleted blindly**: if `doThing()` has side effects, removing the line changes behavior. Those need a per-site look and are left for a separate pass.
+
+The 52: unused imports deleted outright; unused params and catch clauses given the `_` prefix that `eslint.config.js` already ignores by convention. Renames were applied at ESLint's own reported `line:column` after a reviewed dry run — and deliberately *not* to destructured props, where `{ forceMobile }` → `{ _forceMobile }` would silently destructure a different property. The four destructuring cases (`PlayerPanelWrapper`'s `forceMobile`/`forceDesktop`/`...rest`, `DictionaryContext`'s `config`) were hand-edited to drop the binding instead.
+
+**Three dead declarations went rather than getting an underscore**, since marking dead code as "intentionally unused" would be the wrong signal: `CardService.requiresPlayerTurn` (zero references, already on the dead-code list), the `CardField` component in `SpaceEditor` (54 lines — `CardFieldWithLabel` is the one actually rendered), and `TVDisplay`'s `onShowSetup` prop, which its only call site (`<TVDisplay />`) never passed and the component never read.
+
+### Two smells surfaced by that pass — recorded, not fixed
+Both are the kind of thing an underscore would have quietly buried, so they are written down instead.
+
+**`CardService.discardCards` accepts `source` and `reason` and drops them.** Four call sites pass real values — `'manual_effect'`, `'Manual action: Replace W card - removing old card'` — but the `card_discarded` event emits only a generic "Discarded N cards", and the richer `cardSummary` assembled just above it is computed and thrown away. An audit trail the callers believe they are writing never reaches the log. The parameters are now prefixed with a comment stating plainly that the underscore records current reality rather than intent. Wiring the data through changes player- and teacher-visible log text, so it is a deliberate decision, not a drive-by.
+
+**`StateService.validatePlayerAction` is called only from tests** — never from production code — and ignores its `action` argument entirely; it actually answers "can this player act right now". Either wire it up, rename it, or delete it. (`GameRulesService.cardRequiresPlayerTurn` likewise ignores its `cardType` and always returns `true`, but that one is an honestly-documented placeholder and needs nothing.)
+
+Verified: lint 0 errors / 113 warnings exit 0, typecheck clean, production build clean, **full suite 2493 passed / 1 skipped / 0 failed**.
+
+### Investigation: the months-old E2E "flaky timeout" probably has a mundane cause — stale servers piling up
+Chasing verification noise in this pass turned up something worth more than the pass itself. A process listing found **25 node processes, five of them `server/server.js` game servers**, started on **2026-07-25 (×2), 2026-07-27 (×2), and today** — every session that ran `npm run server` for browser verification left it running afterwards, for days. The preview tool's Vite server gets stopped explicitly; the Bash-launched Express one never did.
+
+That fits the entire recorded history of this flake: it only appears under full-suite load, it moves between files and between sub-tests on every run, it is always a *timeout* and never an assertion failure, and it has quietly worsened over weeks — which is what accumulating orphans would do. Today's runs failed on `E2E-Multiplayer4P` and on three *different* `E2E-AllPaths` sub-tests, one of which (`REG-DOB-TYPE-SELECT → REG-DOB-PLAN-EXAM`) is an exact path logged on 2026-07-13. Both files pass **22/22 in isolation, twice**, and the full suite ran clean at 2493/1/0 earlier in the same session.
+
+Not yet closed, because the confirming run has not happened: killing the current session's pair still left four older orphans alive. TODO.md now carries the next step — kill all stale `server/server.js` processes, then run the full suite genuinely quiet. That is the trigger condition the item has been waiting on since 2026-07-13.
+
 ## [3.1.69] - 2026-07-28
 
 ### Change: game copy now uses real typographic quotes — `no-unescaped-entities` cleared and promoted to `error`

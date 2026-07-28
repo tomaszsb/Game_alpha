@@ -32,8 +32,6 @@ export interface PlayerPanelWrapperProps extends PlayerPanelProps {
 export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
   gameServices,
   playerId,
-  forceMobile,
-  forceDesktop,
   onTryAgain,
   playerNotification,
   onRollDice,
@@ -42,7 +40,6 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
   completedActions,
   tabRequest,
   onOpenGlossary,
-  ...rest
 }) => {
   const [mode, toggleMode] = usePanelMode();
 

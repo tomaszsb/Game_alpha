@@ -32,14 +32,11 @@ import {
   isLogEffect,
   isPlayerMovementEffect,
   isTurnControlEffect,
-  isCardActivationEffect,
   isEffectGroupTargetedEffect,
   isConditionalEffect,
   isChoiceOfEffectsEffect,
-  isPlayCardEffect,
   isDurationStoredEffect,
-  isPlayerAgreementRequiredEffect,
-  isFeeDeductionEffect
+  isPlayerAgreementRequiredEffect
 } from '../types/EffectTypes';
 
 /**
@@ -882,7 +879,7 @@ export class EffectEngineService implements IEffectEngineService {
    * @param context Processing context
    * @returns true if effect is valid, false otherwise
    */
-  validateEffect(effect: Effect, context: EffectContext): boolean {
+  validateEffect(effect: Effect, _context: EffectContext): boolean {
     if (!effect || !effect.effectType) {
       console.error('EFFECT_ENGINE: Invalid effect - missing effectType');
       return false;

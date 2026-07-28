@@ -279,7 +279,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     this.checkDesignFeeCap(playerId, payload);
   }
 
-  private checkDesignFeeCap(playerId: string, payload: ResourceChangePayload): void {
+  private checkDesignFeeCap(playerId: string, _payload: ResourceChangePayload): void {
     const updatedPlayer = this.stateService.getPlayer(playerId);
     if (!updatedPlayer) return;
 
@@ -448,7 +448,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     }
   }
 
-  private calculateFeeAmount(payload: FeeDeductionPayload, totalLoanAmount: number, context: EffectContext): number | null {
+  private calculateFeeAmount(payload: FeeDeductionPayload, totalLoanAmount: number, _context: EffectContext): number | null {
     let feeAmount = 0;
 
     if (payload.feeType === 'LOAN_TIERED' && totalLoanAmount > 0) {

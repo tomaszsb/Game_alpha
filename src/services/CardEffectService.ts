@@ -65,7 +65,7 @@ export class CardEffectService implements ICardEffectService {
   public async executeCardEffect(
     playerId: string,
     effect: SpaceEffect,
-    effectType: string
+    _effectType: string
   ): Promise<CardEffectResult> {
     const player = this.stateService.getPlayer(playerId);
     if (!player) {

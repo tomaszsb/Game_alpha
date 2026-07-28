@@ -2,7 +2,7 @@
 
 import { IGameRulesService, IDataService, IStateService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
-import { Card, CardType, Movement } from '../types/DataTypes';
+import { CardType, Movement } from '../types/DataTypes';
 
 /**
  * GameRulesService acts as the centralized authority for all game rule validations.
@@ -47,7 +47,7 @@ export class GameRulesService implements IGameRulesService {
       // Check if destination is in the list of valid destinations
       const validDestinations = this.extractValidDestinations(movement);
       return validDestinations.includes(destination);
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }
@@ -349,7 +349,7 @@ export class GameRulesService implements IGameRulesService {
     return validTypes.includes(cardType as CardType);
   }
 
-  private cardRequiresPlayerTurn(cardType: CardType): boolean {
+  private cardRequiresPlayerTurn(_cardType: CardType): boolean {
     // Business rule: Most cards require player's turn, but some might be playable anytime
     // For now, assume all cards require player's turn
     return true;

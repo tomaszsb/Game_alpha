@@ -1339,7 +1339,7 @@ export class MovementService implements IMovementService {
           if (!currentPlayer?.moveIntent) {
             this.stateService.setPlayerMoveIntent(playerId, selectedDestination);
           }
-        }).catch(error => {
+        }).catch(_error => {
           // Choice timed out or was cancelled - this is okay
         });
 

@@ -59,7 +59,6 @@ import {
   Player, 
   GamePhase, 
   PlayerUpdateData,
-  StateUpdateResult,
   NegotiationState,
   NegotiationResult
 } from './StateTypes';

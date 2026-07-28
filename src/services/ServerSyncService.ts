@@ -5,7 +5,7 @@
 import { GameState } from '../types/StateTypes';
 import { getBackendURL, getGameStateAPIPath, getCurrentGameId, getCurrentGameToken } from '../utils/networkDetection';
 import { debugLog, debugWarn } from '../utils/debugLog';
-import { getWebSocketService, ConnectionState, StateUpdateCallback } from './WebSocketSyncService';
+import { getWebSocketService, ConnectionState } from './WebSocketSyncService';
 
 /**
  * Callback interface for state operations
@@ -215,7 +215,7 @@ export class ServerSyncService {
         const logLength = player?.spaceVisitLog?.length || 0;
         debugLog(`✅ State synced to server (v${result.stateVersion})${gameId ? ` [${gameId}]` : ''} - spaceVisitLog: ${logLength} entries`);
       }
-    } catch (error) {
+    } catch (_error) {
       // Restore WS version — network failure
       getWebSocketService().setLastKnownVersion(previousWsVersion);
       // Fail silently - server may not be running (development mode)
@@ -287,7 +287,7 @@ export class ServerSyncService {
       }
 
       return false;
-    } catch (error) {
+    } catch (_error) {
       // Server not available - continue with local state
       debugLog('Server not available, using local state');
       return false;

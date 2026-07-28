@@ -99,7 +99,7 @@ export function AdminGameManager(): JSX.Element {
       // assign() rather than `location.href = …` — same navigation, but a method
       // call instead of an assignment to a global (react-hooks/immutability).
       window.location.assign(url.toString());
-    } catch (err) {
+    } catch (_err) {
       alert('Cannot connect to server.');
     }
   };
@@ -128,7 +128,7 @@ export function AdminGameManager(): JSX.Element {
       if (data.instanceId && data.instanceId !== 'classroom-1') url.searchParams.set('i', data.instanceId);
       else url.searchParams.delete('i');
       window.open(url.toString(), '_blank', 'noopener');
-    } catch (err) {
+    } catch (_err) {
       alert('Cannot connect to server.');
     }
   };
