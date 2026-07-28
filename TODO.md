@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** July 28, 2026 — v3.1.67–v3.1.74 shipped this session (lint burn-down 257→113 warnings with ten rules promoted to hard `error`; 215 lines of dead `CardService` code deleted; typographic quotes across player-facing copy; and the E2E timeout flake open since 2026-07-13 root-caused and fixed); see CHANGELOG.
-**Status:** Beta — live in production; **live is still v3.1.66**. v3.1.67–v3.1.74 are committed and pushed but **NOT deployed** (the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot).
-**Current Version:** 3.1.74 (⚠️ pending deploy — live is 3.1.66)
+**Status:** Beta — live in production; **v3.1.74 deployed and verified live** 2026-07-28 (confirmed by reading the version string out of the served bundle; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot).
+**Current Version:** 3.1.74 (deployed)
 
 ---
 
@@ -59,7 +59,10 @@
 *(All 17 recovered items turned out to already be fixed in v3.0.91/v3.0.97, 2026-07-01/06 — the dashboard reports were just never flipped to resolved. fb:7441e00b, the last one, was verified live 2026-07-18: OutcomeChangesV2, shipped v3.0.91, already shows named work-package gain/loss on both the dice and manual-action paths. Flip queued/pending, see .claude/fixloop/flip-queue.txt.)*
 
 ### Newly arrived (2026-07-13 to 2026-07-17, staged 2026-07-18)
-*(restart-after-crash blank-PC-view (v3.1.17), expeditor-replacement privacy leak (v3.1.18), PC color picker taken-color UX (v3.1.19), and Share button phone-width overflow + missing per-player invite button (v3.1.20) all shipped and confirmed deployed 2026-07-19 — closes fb:3a5280d8, fb:44751a06, fb:d6bbcb00, fb:2c848b47, all flipped resolved. "Can't add player" — root-caused + fixed v3.1.41: default name generator reused a still-in-use "Player N" name after removing a non-last player — closes fb:75101be7, flip pending deploy.)*
+*(restart-after-crash blank-PC-view (v3.1.17), expeditor-replacement privacy leak (v3.1.18), PC color picker taken-color UX (v3.1.19), and Share button phone-width overflow + missing per-player invite button (v3.1.20) all shipped and confirmed deployed 2026-07-19 — closes fb:3a5280d8, fb:44751a06, fb:d6bbcb00, fb:2c848b47, all flipped resolved. "Can't add player" — root-caused + fixed v3.1.41: default name generator reused a still-in-use "Player N" name after removing a non-last player — closes fb:75101be7 — verified already flipped resolved on the dashboard 2026-07-28.)*
+
+### Newly arrived (2026-07-27, staged 2026-07-28)
+- [ ] **Copy the game code to the clipboard when the restart/deploy banner shows it** — filed during a restart on v3.1.63: "when deploying new code a yellow banner shows up with game code - the code number should be added to clipboard". Small and self-contained: the banner already renders the code, so this is a `navigator.clipboard.writeText()` on show (or a tap-to-copy affordance) plus a "copied" confirmation. Note `navigator.clipboard` needs a secure context and can reject without a user gesture — a tap-to-copy button is the safer shape than an automatic write. <!-- fb:feedback-1785191198601-2948cf19 -->
 
 ### Newly arrived (2026-07-19 to 2026-07-22, staged 2026-07-27)
 *(The 3 TCL-smart-TV reports from the same 2026-07-22 window were already fixed in v3.1.22 and were flipped resolved 2026-07-27 — see the PATCH recipe ledger below.)*
