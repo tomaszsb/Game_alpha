@@ -19,6 +19,13 @@ Result: `npm run lint` exits **0** with 0 errors and 257 warnings, so it can now
 
 Verified: typecheck clean, production build clean, `tests/services` + `tests/dictionary` 946/946 across 42 files.
 
+### Investigation (no code change): "yellow banner too big" was already fixed — closed on measurement, not a patch
+Recorded here because the conclusion is the deliverable. `fb:b39ea2bd` ("That yellow banner is taking up too much space and in the wrong space", TCL Android TV, TV mode) was **not** `PhoneScreenWarning` — ruled out by commit timing, since the `isSmartTV` fix (`3f08b6e`, 15:36Z) was already in the build the 15:55Z report came from. It was the "Waiting for … to scan their QR code" block at `PlayerSetup.tsx:541`.
+
+Measured at the reporter's real 960×540, worst case (4 long player names, banner wraps to 2 lines). Simulating the pre-fix 1.3× zoom reproduces the complaint exactly — banner **82.8px = 15.3%** of a 540px viewport, player list squeezed to **66px**. With `72cdcca`'s zoom gate (shipped 16:24Z, ~30 min *after* the report): banner **64px = 11.9%**, player list **194px** — nearly 3× the room. At 1920×1080: 53.8px = 5.0%. Start Game stayed inside the clip boundary and reachable without scrolling throughout.
+
+So the fix had already shipped; the reporter simply never saw a build containing it. **No cosmetic change was manufactured to look productive** — and the banner was deliberately left otherwise untouched, since it exists because real players once stood at a TV unable to start with nothing explaining their phones hadn't scanned in (2026-07-16). Caveat on the evidence: measured in a headless browser with `window.screen.width` overridden, not on the physical TCL. Maintainer reviewed and flipped it resolved 2026-07-27.
+
 ## [3.1.65] - 2026-07-27
 
 ### Fix: logging into the Data Editor crashed it — a real bug hiding behind 28 lint errors
