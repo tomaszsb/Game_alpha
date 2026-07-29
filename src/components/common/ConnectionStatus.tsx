@@ -31,7 +31,9 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   checkInterval = 30000
 }) => {
   const [status, setStatus] = useState<'connected' | 'offline' | 'checking'>('checking');
-  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  // NOTE: a lastChecked timestamp was tracked here but never rendered, so every
+  // successful poll (default: one every 30s) re-rendered this component for a
+  // value nobody could see. Removed; `status` is the only state that displays.
 
   const checkConnection = async () => {
     // Empty string is valid (same-origin relative URL)
@@ -50,7 +52,6 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
 
       if (response.ok) {
         setStatus('connected');
-        setLastChecked(new Date());
       } else {
         setStatus('offline');
       }

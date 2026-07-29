@@ -245,7 +245,12 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const movementChoice =
     isMyTurn && gameState.awaitingChoice?.type === 'MOVEMENT' ? gameState.awaitingChoice : null;
   const selectedDestination = player.moveIntent || null;
-  const needsMovementChoice = !!movementChoice && !selectedDestination && movementChoiceUnlocked;
+  // NOTE: a needsMovementChoice flag (choice pending AND nothing picked yet AND
+  // unlocked) used to gate this section. It went dead when the rules below
+  // changed — options now render whenever a movement choice exists, regardless
+  // of pick or unlock state — so it has been removed rather than left to read
+  // like a live gate.
+  //
   // Keep the destination options on screen even AFTER one is picked, so the
   // player can check/uncheck/switch freely until End Turn or Negotiate locks the
   // turn in (fb:c2e489dc — "the other spaces disappeared, I wanted to change my

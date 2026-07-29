@@ -57,15 +57,19 @@ export class NotificationService implements INotificationService {
   }
 
   notify(content: NotificationContent, options: NotificationOptions): void {
+    // NOTE: `playerName` and `skipLog` are declared on NotificationOptions but
+    // deliberately not destructured here — nothing in notify() uses either.
+    // playerName is carried for callers/log context; skipLog is currently a
+    // no-op because this service stopped writing GameLog entries (step 3 below
+    // — EffectEngine logs instead). See CHANGELOG: whether to drop skipLog from
+    // the interface or reimplement it is an open question, not settled here.
     const {
       playerId,
-      playerName,
       actionType,
       buttonDuration = 2000,
       notificationDuration = 4000,
       skipButton = false,
-      skipNotification = false,
-      skipLog = false
+      skipNotification = false
     } = options;
 
     // 1. Button Feedback (shortest) - Updates button text temporarily

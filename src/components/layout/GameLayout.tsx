@@ -160,8 +160,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const [isRulesModalOpen, setIsRulesModalOpen] = useState<boolean>(false);
   const [isCardDetailsModalOpen, setIsCardDetailsModalOpen] = useState<boolean>(false);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
-  const [isMovementPathVisible, setIsMovementPathVisible] = useState<boolean>(false);
-  const [shouldAutoShowMovementPath, setShouldAutoShowMovementPath] = useState<boolean>(false);
   const [isSpaceExplorerVisible, setIsSpaceExplorerVisible] = useState<boolean>(false);
   const [previewSpaceId, setPreviewSpaceId] = useState<string | null>(null);
   const [isGameLogVisible, setIsGameLogVisible] = useState<boolean>(false);
@@ -216,20 +214,18 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     }
   });
 
-  // Push notification permission state
-  const [notificationPermission, setNotificationPermission] = useState<string>(() =>
-    pushNotifications.getPermission()
-  );
   const hasRequestedNotificationsRef = useRef(false);
 
-  // Request notification permission when game starts (only once)
+  // Request notification permission when game starts (only once).
+  // The granted/denied result is deliberately not stored: nothing in this
+  // component renders it, and pushNotifications keeps its own permission
+  // state (pushNotifications.getPermission()) for callers that need it.
   useEffect(() => {
     if (gamePhase === 'PLAY' && !hasRequestedNotificationsRef.current) {
       hasRequestedNotificationsRef.current = true;
       // Request permission after a short delay so it doesn't disrupt the game start experience
-      const timer = setTimeout(async () => {
-        const permission = await pushNotifications.requestPermission();
-        setNotificationPermission(permission);
+      const timer = setTimeout(() => {
+        void pushNotifications.requestPermission();
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -267,17 +263,27 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     onPreviewConsumed?.();
   }, [initialPreview, dataService, notificationService, onPreviewConsumed]);
 
-  // State tracking for processing and notifications
-  const [isProcessingTurn, setIsProcessingTurn] = useState<boolean>(false);
+  // State tracking for processing and notifications.
+  // NOTE: an isProcessingTurn flag used to be set around every async action
+  // here. Nothing ever read it (the classic panel's busy indicator is gone —
+  // PlayerPanelV2 tracks its own), so each action was paying two no-op
+  // re-renders of this component. Removed rather than renamed.
   const [turnNumber, setTurnNumber] = useState<number>(0);
-  const [justUsedTryAgain, setJustUsedTryAgain] = useState<boolean>(false);
+  // NOTE: a justUsedTryAgain flag lived here and was passed to
+  // endTurnWithMovement's skipAutoMove argument. Its only reader was the
+  // classic end-turn handler above; PlayerPanelV2 owns that flow now and does
+  // not consult this component's state, so the flag was being set and never
+  // read. Removed.
   const [gameStateCompletedActions, setGameStateCompletedActions] = useState<{
     diceRoll: string | undefined;
     manualActions: { [key: string]: string };
   }>({ diceRoll: undefined, manualActions: {} });
 
-  // Unified notification system - driven by NotificationService
-  const [buttonFeedback, setButtonFeedback] = useState<{ [actionType: string]: string }>({});
+  // Unified notification system - driven by NotificationService.
+  // The button-feedback channel is still subscribed (NotificationService pushes
+  // per-action button labels into it) but nothing in this component renders it,
+  // so only the setter is bound — the value is intentionally discarded.
+  const [, setButtonFeedback] = useState<{ [actionType: string]: string }>({});
   const [playerNotifications, setPlayerNotifications] = useState<{ [playerId: string]: string }>({});
   // Separate from playerNotifications above (v3.0.99): that slot is shared
   // with every notificationService.notify() call, including the generic
@@ -287,9 +293,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // lose that race.
   const [approvalRevokeNotice, setApprovalRevokeNotice] = useState<{ [playerId: string]: string }>({});
 
-  // Smart layout adaptation - track view mode for mobile players
-  // Use prop if provided, otherwise check URL params
-  const [viewPlayerIdFromState, setViewPlayerId] = useState<string | null>(() => {
+  // Smart layout adaptation - track view mode for mobile players.
+  // Use prop if provided, otherwise check URL params. Read once on mount and
+  // never updated — useState here is the compute-once idiom, not mutable state,
+  // so no setter is bound.
+  const [viewPlayerIdFromState] = useState<string | null>(() => {
     if (viewPlayerId) {
       return viewPlayerId;
     }
@@ -734,16 +742,15 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     };
   }, [stateService, currentPlayerId, turnNumber, notificationService]);
 
-  // NOTE: Auto-show movement path logic disabled - using board-based movement indicators instead
+  // NOTE: Auto-show movement path logic disabled - using board-based movement
+  // indicators instead. The remaining state and toggle handler for that panel
+  // were a closed dead subgraph (nothing rendered it, nothing could turn it on)
+  // and have been removed; no component references MovementPathVisualization.
 
   // Handlers for negotiation modal
-  const handleOpenNegotiationModal = () => {
-    // Close any open side panels when modal opens
-    setIsMovementPathVisible(false);
-    setIsSpaceExplorerVisible(false);
-    setIsNegotiationModalOpen(true);
-  };
-
+  // NOTE: no opener remains — nothing sets isNegotiationModalOpen to true, so
+  // NegotiationModal is currently unreachable. See CHANGELOG for the open
+  // question about whether to remove it or give it an entry point in V2.
   const handleCloseNegotiationModal = () => {
     setIsNegotiationModalOpen(false);
   };
@@ -754,7 +761,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       setIsRulesModalOpen(false);
     } else {
       // Close any open side panels when modal opens
-      setIsMovementPathVisible(false);
       setIsSpaceExplorerVisible(false);
       setIsRulesModalOpen(true);
     }
@@ -764,32 +770,13 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setIsRulesModalOpen(false);
   };
 
-  // Handlers for card details modal
-  const handleOpenCardDetailsModal = (cardId: string) => {
-    // Close any open side panels when modal opens
-    setIsMovementPathVisible(false);
-    setIsSpaceExplorerVisible(false);
-    
-    // Fetch card data before opening modal
-    const card = dataService.getCardById(cardId);
-    setSelectedCard(card || null);
-    setIsCardDetailsModalOpen(true);
-  };
-
+  // Handlers for card details modal.
+  // NOTE: the open helper here had no caller — the live entry point is the
+  // initialPreview effect above, which sets selectedCard + opens the modal
+  // directly — so it has been removed.
   const handleCloseCardDetailsModal = () => {
     setIsCardDetailsModalOpen(false);
     setSelectedCard(null);
-  };
-
-  // Handlers for movement path visualization
-  const handleToggleMovementPath = () => {
-    const newVisibility = !isMovementPathVisible;
-    setIsMovementPathVisible(newVisibility);
-    
-    // If user manually toggles, stop auto-showing behavior
-    if (shouldAutoShowMovementPath) {
-      setShouldAutoShowMovementPath(false);
-    }
   };
 
   // Handlers for space explorer panel
@@ -836,8 +823,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // Action handlers for ActionCenterPanel
   const handleRollDice = async () => {
     if (!currentPlayerId) return;
-    setJustUsedTryAgain(false); // Clear Try Again flag when player takes action
-    setIsProcessingTurn(true);
 
     // Haptic feedback for dice roll
     haptics.diceRoll();
@@ -874,47 +859,16 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           }
         );
       }
-    } finally {
-      setIsProcessingTurn(false);
     }
   };
 
-  const handleEndTurn = async () => {
-    if (!currentPlayerId) return;
-    setIsProcessingTurn(true);
-    try {
-      const result = await turnService.endTurnWithMovement(false, justUsedTryAgain);
-      setJustUsedTryAgain(false); // Reset flag after ending turn
-    } catch (error) {
-      console.error("Error ending turn:", error);
-    } finally {
-      setIsProcessingTurn(false);
-    }
-  };
-
-  const handleManualEffect = async (effectType: string) => {
-    if (!currentPlayerId) return;
-    setJustUsedTryAgain(false); // Clear Try Again flag when player takes action
-    setIsProcessingTurn(true);
-    try {
-      const result = await turnService.triggerManualEffectWithFeedback(currentPlayerId, effectType);
-
-      // Show modal if there are effects to display (queued — fb:ac29b623)
-      if (result && result.effects && result.effects.length > 0) {
-        diceResultQueue.enqueue(result);
-        // Notification already sent by TurnService
-      }
-    } catch (error) {
-      console.error("Error triggering manual effect:", error);
-    } finally {
-      setIsProcessingTurn(false);
-    }
-  };
+  // NOTE: end-turn and manual-effect handlers used to live here for the classic
+  // panel. PlayerPanelV2 owns both flows now (turnService.endTurnWithMovement /
+  // triggerManualEffectWithFeedback), so the copies here were unreachable and
+  // have been removed rather than left to read like live wiring.
 
   const handleAutomaticFunding = async () => {
     if (!currentPlayerId) return;
-    setJustUsedTryAgain(false); // Clear Try Again flag when player takes action
-    setIsProcessingTurn(true);
     try {
       const result = await turnService.handleAutomaticFunding(currentPlayerId);
 
@@ -926,61 +880,30 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       }
     } catch (error) {
       console.error("Error handling automatic funding:", error);
-    } finally {
-      setIsProcessingTurn(false);
     }
   };
 
 
   const handleTryAgain = async () => {
     if (!currentPlayerId) return;
-    setIsProcessingTurn(true);
     try {
       const result = await turnService.tryAgainOnSpace(currentPlayerId);
 
       // If Try Again indicates turn should advance, move to next player
       if (result.success && result.shouldAdvanceTurn) {
-        setJustUsedTryAgain(true); // Set flag to skip auto-movement
-        const nextResult = await turnService.endTurnWithMovement(true, true);
+        // skipAutoMove: true — Try Again already resolved this space
+        await turnService.endTurnWithMovement(true, true);
       }
     } catch (error) {
       console.error("Error trying again on space:", error);
-    } finally {
-      setIsProcessingTurn(false);
     }
   };
 
-  const handleStartGame = async () => {
-    try {
-      const gameState = stateService.getGameState();
-      if (gameState.players.length === 0) {
-        stateService.addPlayer('Test Player');
-      }
-      stateService.startGame();
-
-      // Place players on starting spaces (no effects processing)
-      try {
-        await turnService.placePlayersOnStartingSpaces();
-
-        // Start the first turn (this will create snapshots and mark as initialized)
-        const currentState = stateService.getGameState();
-        if (currentState.currentPlayerId) {
-          await turnService.startTurn(currentState.currentPlayerId);
-        }
-      } catch (error) {
-        console.error('❌ Error placing players on starting spaces:', error);
-      }
-    } catch (error) {
-      console.error('Error starting game:', error);
-    }
-  };
-
-  // Helper function to check if any modal is open
-  const isAnyModalOpen = () => {
-    return isRulesModalOpen ||
-           isNegotiationModalOpen ||
-           isCardDetailsModalOpen;
-  };
+  // NOTE: a handleStartGame helper used to live here (add a "Test Player",
+  // startGame, place on starting spaces, startTurn). It had no caller — the
+  // real game start runs through PlayerSetup — so it has been removed.
+  // An isAnyModalOpen() helper was likewise unreferenced; the live equivalent
+  // is the `anyModalOpen` const above, used by the Escape-key handler.
 
   // fb:6e1e8ac4 — one-time tap gate for phone players (TV mode). Renders
   // as a full-screen overlay until tapped; tap primes vibration so the

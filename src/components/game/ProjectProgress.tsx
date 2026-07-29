@@ -412,19 +412,6 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
     marginBottom: '1px'
   };
 
-  const playerPhaseStyle = {
-    color: colors.secondary.main,
-    fontSize: '0.6rem'
-  };
-
-  const playerProgressBarStyle = {
-    background: '#e0e0e0',
-    borderRadius: '2px',
-    height: '4px',
-    marginTop: '2px',
-    overflow: 'hidden'
-  };
-
   const getPlayerProgressBarFill = (progress: number) => ({
     background: `linear-gradient(90deg, ${colors.success.main}, ${colors.game.teal})`,
     height: '100%',

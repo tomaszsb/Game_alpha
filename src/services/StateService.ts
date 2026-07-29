@@ -343,8 +343,6 @@ export class StateService implements IStateService {
       throw new Error(`Player with ID "${playerId}" not found`);
     }
 
-    const player = this.currentState.players.find(p => p.id === playerId);
-
     const newState: GameState = {
       ...this.currentState,
       currentPlayerId: playerId
@@ -1370,8 +1368,6 @@ export class StateService implements IStateService {
     // This is critical because updateTempState also updates main player state for UI feedback
     // Without this, the player would keep cards/money/etc from the failed attempt
     if (result.success && realState) {
-      const currentHand = this.getPlayer(playerId)?.hand.length ?? 0;
-
       this.updatePlayer({
         id: playerId,
         hand: [...realState.state.hand],
@@ -1501,8 +1497,8 @@ export class StateService implements IStateService {
 
   // Private helper methods
   private createInitialState(): GameState {
-    const startingSpace = this.getStartingSpace();
-    
+    // NOTE: this used to look up getStartingSpace() and discard it. Players get
+    // their starting space individually in createPlayer(), not from game state.
     return {
       players: [],
       currentPlayerId: null,

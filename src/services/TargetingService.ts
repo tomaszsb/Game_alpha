@@ -107,7 +107,6 @@ export class TargetingService implements ITargetingService {
     );
     
     if (result) {
-      const selectedOpponent = opponents.find(p => p.id === result);
       return [result];
     } else {
       debugWarn(`   🎯 Choose Opponent selection failed or cancelled`);
@@ -144,7 +143,6 @@ export class TargetingService implements ITargetingService {
     );
     
     if (result) {
-      const selectedPlayer = allPlayers.find(p => p.id === result);
       return [result];
     } else {
       debugWarn(`   🎯 Choose Player selection failed or cancelled`);

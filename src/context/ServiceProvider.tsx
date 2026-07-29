@@ -46,7 +46,9 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   // Domain-event stage 3: always-on GameEvent bus subscribers. Pure
   // listeners — not added to IServiceContainer since nothing calls them
   // directly, they just need their constructor's subscription to fire.
-  const logWriter = new LogWriter(stateService, loggingService);
+  // Constructed for that side effect only, so the instance is deliberately
+  // not bound to a name: the bus keeps the reference alive.
+  new LogWriter(stateService, loggingService);
   const resourceService = new ResourceService(stateService);
   const choiceService = new ChoiceService(stateService);
   const gameRulesService = new GameRulesService(dataService, stateService);
@@ -61,7 +63,9 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
 
   // Create NotificationService early for TurnService dependency
   const notificationService = new NotificationService(stateService, loggingService);
-  const toastWriter = new ToastWriter(stateService, notificationService);
+  // Same stage-3 subscriber pattern as LogWriter above — constructed purely so
+  // its GameEvent subscription registers; nothing calls it directly.
+  new ToastWriter(stateService, notificationService);
 
   // Build the two effect handlers up-front so they can be passed into EffectEngineService's constructor.
   const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService, dataService, notificationService);

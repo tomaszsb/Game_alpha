@@ -88,19 +88,18 @@ export function DictionaryProvider({
 }: DictionaryProviderProps): JSX.Element {
   const [state, dispatch] = useReducer(dictionaryReducer, initialState);
   const [terms, setTerms] = React.useState<GlossaryTerm[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
 
-  // Load terms on mount
+  // Load terms on mount.
+  // NOTE: an isLoading flag was tracked around this load but never exposed on
+  // the context value, so no consumer could render a spinner from it. Removed;
+  // consumers see an empty `terms` array until the load resolves.
   useEffect(() => {
     async function load() {
-      setIsLoading(true);
       try {
         await loadTerms();
         setTerms(getTerms());
       } catch (error) {
         console.error('Failed to load dictionary terms:', error);
-      } finally {
-        setIsLoading(false);
       }
     }
     load();

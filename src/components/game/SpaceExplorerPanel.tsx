@@ -32,7 +32,7 @@ export function SpaceExplorerPanel({
   onToggle,
   initialSelectedSpace
 }: SpaceExplorerPanelProps): JSX.Element {
-  const { dataService, stateService, movementService } = useGameContext();
+  const { dataService, stateService } = useGameContext();
   const { openWithTerm } = useDictionaryPanel();
   const [allSpaces, setAllSpaces] = useState<Space[]>([]);
   const [selectedSpace, setSelectedSpace] = useState<string | null>(null);

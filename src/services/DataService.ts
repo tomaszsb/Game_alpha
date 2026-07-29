@@ -720,7 +720,6 @@ export class DataService implements IDataService {
   // CSV parsing methods
   private parseGameConfigCsv(csvText: string): GameConfig[] {
     const lines = csvText.trim().split('\n');
-    const header = lines[0].split(',');
 
     return lines.slice(1).map(line => {
       const values = this.parseCsvLine(line);
@@ -1054,7 +1053,27 @@ export class DataService implements IDataService {
     if (header.length < 22) {
       throw new Error(`CARDS_EXPANDED.csv header must have at least 22 columns. Found: ${header.length}`);
     }
-    
+
+    // Every field below is read positionally (values[2] is card_type, and so
+    // on), so a renamed or reordered column would parse silently into the wrong
+    // field rather than fail. expectedColumns was already written out but never
+    // checked against anything; this compares it position by position.
+    // Trailing columns beyond the list are allowed — the CSV has grown past it
+    // several times (is_groundwork, requires_utility_hookup, …) and those are
+    // read by name elsewhere, not here.
+    for (let i = 0; i < expectedColumns.length && i < header.length; i++) {
+      // Strip a UTF-8 BOM off the first cell: the admin Data Editor and Excel
+      // both round-trip these files, and either can prepend one. A BOM is not
+      // a schema change, so it must not trip the guard.
+      const actual = header[i].replace(/^\uFEFF/, '').trim();
+      if (actual !== expectedColumns[i]) {
+        throw new Error(
+          `CARDS_EXPANDED.csv column ${i + 1} must be '${expectedColumns[i]}' but found '${actual}'. ` +
+          `Columns are read by position, so reordering or renaming them silently corrupts card data.`
+        );
+      }
+    }
+
     return lines.slice(1).map((line, index) => {
       const values = this.parseCsvLine(line);
       

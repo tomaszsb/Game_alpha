@@ -77,10 +77,12 @@ export class CardService implements ICardService {
    * @param cardType - Type of cards to draw (W, B, E, L, I)
    * @param count - Number of cards to draw
    * @param source - Source of the draw (e.g., "card:E029", "space:PM-DECISION-CHECK")
-   * @param reason - Human-readable reason for the draw
+   * @param _reason - Human-readable reason for the draw. Accepted for the
+   *   ICardService contract but unused here: card draws are logged by
+   *   EffectEngine, which has richer context than this method does.
    * @returns Array of drawn card IDs
    */
-  drawCards(playerId: string, cardType: CardType, count: number, source?: string, reason?: string): string[] {
+  drawCards(playerId: string, cardType: CardType, count: number, source?: string, _reason?: string): string[] {
     if (!this.isValidCardType(cardType)) {
       const error = ErrorNotifications.cardDrawFailed(cardType, `Invalid card type: ${cardType}`);
       throw new Error(error.detailed);
@@ -257,9 +259,6 @@ export class CardService implements ICardService {
       });
     }
 
-    // Log the card draw with source tracking
-    const sourceInfo = source || 'unknown';
-    const reasonInfo = reason || `Drew ${count} ${cardType} cards`;
     // Card draw already logged to action history by core system
     // Card details logged in action history
     // Deck status logged internally
@@ -1820,8 +1819,9 @@ export class CardService implements ICardService {
     const gameState = this.stateService.getGameState();
     const isSameStartMode = gameState.gameMode === 'SAME_START';
 
-    // Process each card type
-    for (const [cardType, cards] of Object.entries(cardsByType)) {
+    // Process each card type (the type key itself isn't needed — removal is
+    // by card id regardless of type)
+    for (const cards of Object.values(cardsByType)) {
       // Remove from hand
       updatedHand = updatedHand.filter(cardId => !cards.includes(cardId));
 
@@ -1880,11 +1880,6 @@ export class CardService implements ICardService {
         hand: updatedHand,
         activeCards: updatedActiveCards
       });
-
-      // Log the transaction
-      const cardSummary = Object.entries(cardsByType)
-        .map(([type, cards]) => `${cards.length}x${type}`)
-        .join(', ');
 
       // Domain-event stage 4: LogWriter reacts to this.
       this.stateService.emitGameEvent({

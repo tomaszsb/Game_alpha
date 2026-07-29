@@ -571,7 +571,7 @@ export class EffectEngineService implements IEffectEngineService {
             
             
             try {
-              const updatedState = await this.movementService.movePlayer(payload.playerId, payload.destinationSpace);
+              await this.movementService.movePlayer(payload.playerId, payload.destinationSpace);
               
               // Log the movement
               return {
@@ -712,10 +712,7 @@ export class EffectEngineService implements IEffectEngineService {
         case 'CONDITIONAL_EFFECT':
           if (isConditionalEffect(effect)) {
             const { payload } = effect;
-            const source = payload.source || context.source;
-            const reason = payload.reason || 'Conditional effect processing';
-            
-            
+
             // Get dice roll from context
             const diceRoll = context.diceRoll;
             if (diceRoll === undefined) {
@@ -1235,7 +1232,6 @@ export class EffectEngineService implements IEffectEngineService {
       targetPlayerIds = [sourcePlayerId];
     } else {
       targetPlayerIds = await this.targetingService.resolveTargets(sourcePlayerId, targetRule);
-      const targetDescription = this.targetingService.getTargetDescription(targetPlayerIds);
     }
 
     if (targetPlayerIds.length === 0) {

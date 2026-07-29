@@ -14,14 +14,9 @@ import { fetchRemoteConfig, ServiceVisibility } from '../utils/remoteConfig';
 import { isAiGenerated } from '../data/terms';
 import './DictionaryPanel.css';
 
-// Import theme if available (for game integration)
-// Falls back to default colors for standalone use
-const defaultColors = {
-  primary: { main: '#007bff', dark: '#0056b3', light: '#e3f2fd' },
-  secondary: { main: '#6c757d', light: '#e9ecef', bg: '#f8f9fa', border: '#dee2e6' },
-  text: { primary: '#212529', secondary: '#6c757d' },
-  white: '#ffffff',
-};
+// NOTE: a defaultColors fallback palette used to sit here for "standalone use"
+// outside the game. Nothing ever read it — this panel styles itself from
+// DictionaryPanel.css — so it has been removed.
 
 // Dashboard URL for embedded iframe mode
 const DASHBOARD_BASE_URL = 'https://dashboard.unravelcodes.com/dictionary';

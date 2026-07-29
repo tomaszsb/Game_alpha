@@ -984,8 +984,6 @@ export class EffectFactory {
     cardSource: string, 
     cardName: string
   ): Effect | null {
-    const description = card.description || '';
-    
     // For E012: "Discard 1 Expeditor Card or the current filing takes 1 day more time."
     if (card.card_id === 'E012') {
       return {

@@ -216,8 +216,6 @@ export class TurnTransitionHandler {
    * @returns The ID of the next player
    */
   public advanceToNextPlayer(currentPlayerIndex: number, allPlayers: Player[]): string {
-    const currentPlayer = allPlayers[currentPlayerIndex];
-
     // Determine next player (wrap around to first player if at end)
     let nextPlayerIndex = (currentPlayerIndex + 1) % allPlayers.length;
     let nextPlayer = allPlayers[nextPlayerIndex];
