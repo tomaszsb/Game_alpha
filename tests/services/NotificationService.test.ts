@@ -206,18 +206,20 @@ describe('NotificationService', () => {
       // NotificationService no longer logs - EffectEngine handles logging
     });
 
-    it('should skip logging when skipLog is true', () => {
-      const options: NotificationOptions = {
-        ...sampleOptions,
-        skipLog: true
-      };
+    // Replaces a former 'should skip logging when skipLog is true' test. That
+    // test asserted mockLoggingService.info was not called with skipLog set —
+    // but notify() never logs at all, so it passed whether the flag was set,
+    // unset, or absent, and would have kept passing if skipLog stopped working
+    // entirely. skipLog itself has been removed from NotificationOptions.
+    // This pins the behaviour that is actually real: logging is EffectEngine's
+    // job, so notify() must not touch LoggingService no matter what it is given.
+    it('never writes GameLog entries — EffectEngine owns logging', () => {
+      notificationService.notify(sampleContent, sampleOptions);
 
-      notificationService.notify(sampleContent, options);
-
-      // Logging should not be called
       expect(mockLoggingService.info).not.toHaveBeenCalled();
 
-      // But button and notification should still work
+      // The two channels it DOES own still fire, so this is not passing merely
+      // because notify() did nothing at all.
       expect(mockButtonUpdate).toHaveBeenCalledWith({
         dice_roll: '✓'
       });
@@ -230,8 +232,7 @@ describe('NotificationService', () => {
       const options: NotificationOptions = {
         ...sampleOptions,
         skipButton: true,
-        skipNotification: true,
-        skipLog: true
+        skipNotification: true
       };
 
       notificationService.notify(sampleContent, options);

@@ -17,7 +17,12 @@ export interface NotificationOptions {
   notificationDuration?: number; // How long to show notification area (default: 4000ms)
   skipButton?: boolean;        // Skip button feedback
   skipNotification?: boolean;  // Skip notification area
-  skipLog?: boolean;          // Skip GameLog entry
+  // NOTE: there is deliberately no skipLog option. This service does not write
+  // GameLog entries — EffectEngine does, with richer context (see step 3 in
+  // notify()). A skipLog flag existed here for a long time after the logging
+  // moved out, doing nothing, with a test that passed whether it was set or
+  // not. If a caller ever needs to suppress a log entry, that belongs wherever
+  // the entry is actually written, not here.
 }
 
 export interface INotificationService {
@@ -57,12 +62,9 @@ export class NotificationService implements INotificationService {
   }
 
   notify(content: NotificationContent, options: NotificationOptions): void {
-    // NOTE: `playerName` and `skipLog` are declared on NotificationOptions but
-    // deliberately not destructured here — nothing in notify() uses either.
-    // playerName is carried for callers/log context; skipLog is currently a
-    // no-op because this service stopped writing GameLog entries (step 3 below
-    // — EffectEngine logs instead). See CHANGELOG: whether to drop skipLog from
-    // the interface or reimplement it is an open question, not settled here.
+    // NOTE: `playerName` is declared on NotificationOptions but deliberately
+    // not destructured — notify() never uses it; it is carried for the caller's
+    // own log/toast context.
     const {
       playerId,
       actionType,
