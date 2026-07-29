@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { colors } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
 import { ActionLogEntry } from '../../types/StateTypes';
@@ -59,8 +59,11 @@ export function GameLog(): JSX.Element {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  // Get color for entry based on type and player (using dynamic stateService lookup)
-  const getEntryColor = (entry: ActionLogEntry): string => {
+  // Get color for entry based on type and player (using dynamic stateService lookup).
+  // useCallback'd only so groupLogEntries below (which calls it) can itself be
+  // stable — see the note there. It cannot move to module scope: it reads live
+  // player colors via stateService.getPlayer().
+  const getEntryColor = useCallback((entry: ActionLogEntry): string => {
     if (entry.type === 'error_event') {
       return colors.danger.main; // Red for errors
     }
@@ -84,10 +87,15 @@ export function GameLog(): JSX.Element {
     const hash = entry.playerId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
     const colorArray = [colors.purple.main, colors.game.pink, colors.game.teal, colors.warning.main];
     return colorArray[hash % colorArray.length];
-  };
+  }, [stateService]);
 
-  // Group log entries by player turn, then group player turns by space
-  const groupLogEntries = (entries: ActionLogEntry[]): SpaceGroup[] => {
+  // Group log entries by player turn, then group player turns by space.
+  // useCallback'd so the spaceGroups useMemo below can list it as a dependency
+  // honestly — exhaustive-deps flagged it as missing, and it genuinely was:
+  // rebuilt every render, it could not be depended on without defeating the
+  // memo. It is NOT movable to module scope despite taking `entries` as its only
+  // argument, because it calls getEntryColor, which reads stateService.
+  const groupLogEntries = useCallback((entries: ActionLogEntry[]): SpaceGroup[] => {
     // Sort entries by timestamp to ensure proper chronological order
     const sortedEntries = [...entries].sort((a, b) =>
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -190,7 +198,7 @@ export function GameLog(): JSX.Element {
     }
 
     return spaces;
-  };
+  }, [getEntryColor]);
 
   // Toggle player turn expansion
   const togglePlayerTurn = (turnKey: string) => {
@@ -209,7 +217,7 @@ export function GameLog(): JSX.Element {
   };
 
   // Memoize space groups calculation for performance
-  const spaceGroups = useMemo(() => groupLogEntries(actionLog), [actionLog]);
+  const spaceGroups = useMemo(() => groupLogEntries(actionLog), [actionLog, groupLogEntries]);
 
   // Auto-scroll to bottom when new log entries are added
   useEffect(() => {

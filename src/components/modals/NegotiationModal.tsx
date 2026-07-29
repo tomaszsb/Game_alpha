@@ -238,6 +238,11 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
     if (isOpen && !negotiation && currentPlayerId) {
       handleStartNegotiation();
     }
+    // `handleStartNegotiation` is deliberately omitted: it is rebuilt on every
+    // render, so listing it would re-run this effect on every render until
+    // `negotiation` is set — firing repeated starts during that window. The
+    // three conditions above are the real trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, negotiation, currentPlayerId]);
 
   // When player is unavailable, render closed ModalBase for exit animation

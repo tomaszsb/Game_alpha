@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './ConnectionStatus.css';
 
 interface ConnectionStatusProps {
@@ -35,7 +35,11 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   // successful poll (default: one every 30s) re-rendered this component for a
   // value nobody could see. Removed; `status` is the only state that displays.
 
-  const checkConnection = async () => {
+  // useCallback so the polling effect below can depend on it honestly. Without
+  // it this function was rebuilt every render, so listing it as a dep would
+  // have torn down and recreated the interval on every render — which is why
+  // the dep was omitted and the warning suppressed itself by accident.
+  const checkConnection = useCallback(async () => {
     // Empty string is valid (same-origin relative URL)
     if (serverUrl === undefined || serverUrl === null) {
       setStatus('offline');
@@ -58,7 +62,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     } catch (_error) {
       setStatus('offline');
     }
-  };
+  }, [serverUrl]);
 
   useEffect(() => {
     // Initial check
@@ -68,7 +72,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     const interval = setInterval(checkConnection, checkInterval);
 
     return () => clearInterval(interval);
-  }, [serverUrl, checkInterval]);
+  }, [checkConnection, checkInterval]);
 
   const getStatusDisplay = () => {
     switch (status) {

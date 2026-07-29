@@ -98,8 +98,15 @@ export function TextWithTerms({
   className,
   style
 }: TextWithTermsProps): JSX.Element {
-  // Depend on context terms so we re-render when async loading completes
+  // Depend on context terms so we re-render when async loading completes.
+  // exhaustive-deps calls `terms` unnecessary because parseTextWithTerms takes
+  // only `text` — but it reads the glossary out of module state via
+  // getGlossaryWords() (TextWithTerms.tsx:31), which is empty until the async
+  // load finishes. `terms` is the signal that the load completed. Dropping it
+  // would permanently leave any text rendered before then un-underlined, since
+  // nothing else would invalidate this memo.
   const { terms } = useDictionaryContext();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const segments = useMemo(() => parseTextWithTerms(text), [text, terms]);
 
   const handleTermClick = (term: GlossaryTerm, e: React.MouseEvent) => {

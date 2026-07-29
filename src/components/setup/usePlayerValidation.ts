@@ -157,8 +157,16 @@ export function usePlayerValidation(
   /**
    * Cache StateService validation to avoid calling it on every render
    */
+  // `players.length` looks unnecessary to exhaustive-deps because the callback
+  // body never mentions it — but stateService.canStartGame() reads
+  // currentState.players.length internally (StateService.ts:911), so this is a
+  // deliberate cache-busting key, not a stray dep. Removing it (as the rule
+  // suggests) would leave `stateService` as the only dep — a reference that
+  // never changes — freezing the Start Game button in whatever state it had on
+  // first render.
   const canStartGame = useMemo(() => {
     return stateService.canStartGame();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players.length, stateService]);
 
   /**

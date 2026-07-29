@@ -470,6 +470,14 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     return () => {
       unsubscribe();
     };
+    // exhaustive-deps wants `diceResultQueue` and `notificationService` here.
+    // Deliberately omitted: this subscribes to the GameEvent bus, and
+    // useModalQueue returns a NEW object literal on every render
+    // (useModalQueue.ts:89), so listing diceResultQueue would unsubscribe and
+    // resubscribe on every render — churn, plus a window in which an event
+    // could land with no listener attached. This effect is meant to subscribe
+    // once for the component's lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stateService, dataService]);
 
   // Life-event queue flush. Open the LifeEventModal when (a) we have a queued
@@ -530,6 +538,13 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     }
   }, [anyModalOpen]);
 
+  // Pull the queue's `close` out as a standalone value: it is a stable
+  // useCallback (useModalQueue.ts:63), unlike the queue OBJECT around it, which
+  // is a fresh literal every render. Depending on the function instead of the
+  // object lets the popstate effect below list its dependencies honestly
+  // without re-attaching the listener on every render.
+  const closeDiceResultModal = diceResultQueue.close;
+
   useEffect(() => {
     const handlePopState = (_e: PopStateEvent) => {
       // Close the topmost modal in priority order
@@ -537,7 +552,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         setIsRoutingModalOpen(false);
         setPendingRouting(null);
       } else if (isDiceResultModalOpen) {
-        diceResultQueue.close();
+        closeDiceResultModal();
       } else if (isCardDetailsModalOpen) {
         setIsCardDetailsModalOpen(false);
         setSelectedCard(null);
@@ -561,7 +576,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isDiceResultModalOpen, isCardDetailsModalOpen, isNegotiationModalOpen, isRulesModalOpen, isDictionaryOpen, isSpaceExplorerVisible, isGameLogVisible, closeDictionary]);
+    // `isRoutingModalOpen` was genuinely missing here, not a false positive: the
+    // handler checks it FIRST, so while it was absent the listener could hold a
+    // stale `false` and let a Back press fall through to close some other modal
+    // (or navigate away) while the routing-explanation modal was on screen.
+  }, [isRoutingModalOpen, isDiceResultModalOpen, isCardDetailsModalOpen, isNegotiationModalOpen, isRulesModalOpen, isDictionaryOpen, isSpaceExplorerVisible, isGameLogVisible, closeDictionary, closeDiceResultModal]);
 
   // Helper function to determine if a player panel should be shown
   const shouldShowPlayerPanel = (playerId: string): boolean => {

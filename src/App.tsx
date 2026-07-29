@@ -182,6 +182,15 @@ function AppContent(): JSX.Element {
     return () => {
       stateService.disconnectWebSocket();
     };
+    // exhaustive-deps wants `gameState?.players` here because the lookup above
+    // reads it. Deliberately omitted: this effect opens a WebSocket, and
+    // `gameState.players` is a fresh array reference on essentially every state
+    // update (StateService rebuilds it in updatePlayer), so depending on it
+    // would tear down and reopen the socket continuously.
+    // Reading it stale is safe here: initializeApp() awaits
+    // loadStateFromServer() BEFORE setIsLoading(false), so by the time this
+    // effect runs the roster is already populated and the player resolves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stateService, isLoading]);
 
   // Detect and store device type when player connects via URL
@@ -206,7 +215,12 @@ function AppContent(): JSX.Element {
     if (player && !player.deviceType) {
       stateService.updatePlayer({ id: urlPlayerId, deviceType });
     }
-  }, [gameState?.players?.length, stateService]); // Only re-run when players array length changes
+    // Deliberately keyed on the players array LENGTH, not on `gameState`.
+    // exhaustive-deps wants the whole object; that would re-run this on every
+    // state change (money, position, every dice roll) to re-check a device type
+    // that only matters when a player joins. The length is the join signal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.players?.length, stateService]);
 
   if (isLoading) {
     return <LoadingScreen />;

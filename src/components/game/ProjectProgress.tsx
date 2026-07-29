@@ -121,6 +121,14 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
       scopes[player.id] = gameRulesService.calculateProjectScope(player.id);
     }
     return scopes;
+    // exhaustive-deps wants `players` and `gameRulesService`. Omitting `players`
+    // is the entire point of playersCardKey above: `players` is a new array
+    // reference on every state change (money, position, time), so depending on
+    // it would recompute every player's project scope constantly — the memo
+    // would do nothing. The key changes only when hands or active cards do,
+    // which is what the calculation actually reads. `gameRulesService` is a
+    // context service whose identity never changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playersCardKey]);
 
   // Calculate project timeline for any player
