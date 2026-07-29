@@ -63,21 +63,34 @@ export default [
       // This is a burn-down list, not a suppression list — see TODO.md. Each
       // one that reaches zero should be promoted back to 'error' so it can
       // never regress, the same way rules-of-hooks just was.
-      '@typescript-eslint/no-unused-vars': ['warn', {
+      '@typescript-eslint/no-explicit-any': 'warn',   // 28 — Bucket E is documented as intentional
+      'react-hooks/set-state-in-effect': 'warn',      // 34 — new rule in react-hooks v6.
+      // Audited site-by-site 2026-07-29 and deliberately NOT burned down: the
+      // 34 are overwhelmingly legitimate shapes (subscribe-to-store, fetch-on-
+      // mount, derive-from-props). Clearing them properly means moving stores
+      // to useSyncExternalStore and reworking derived state at render time —
+      // a React data-flow refactor, not a lint cleanup. Revisit as its own
+      // project, not as a sweep.
+
+      // Kept as hard errors: currently at zero, so they guard rather than nag.
+      // (`react-hooks/rules-of-hooks` is already 'error' via the recommended
+      // preset above — restated here only to make the intent unmissable.)
+      'react-hooks/rules-of-hooks': 'error',
+      // Promoted from 'warn' 2026-07-29 on reaching zero, per the policy above.
+      // no-unused-vars: the last 41 were mostly dead classic-panel code.
+      // exhaustive-deps: the last 10 included a real stale-closure bug (Back
+      // button vs. the routing-explanation modal), which is exactly what this
+      // now guards against reappearing. Where the rule's advice would have been
+      // wrong, the sites carry an inline eslint-disable WITH the reason —
+      // so a new warning here means a new decision to make, not noise.
+      '@typescript-eslint/no-unused-vars': ['error', {
         // `_`-prefixed params are the established convention here for
         // deliberately-unused signature args.
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
         caughtErrorsIgnorePattern: '^_'
       }],
-      '@typescript-eslint/no-explicit-any': 'warn',   // 28 — Bucket E is documented as intentional
-      'react-hooks/exhaustive-deps': 'warn',          // 10 — famously noisy, needs case-by-case judgment
-      'react-hooks/set-state-in-effect': 'warn',      // 34 — new rule in react-hooks v6
-
-      // Kept as hard errors: currently at zero, so they guard rather than nag.
-      // (`react-hooks/rules-of-hooks` is already 'error' via the recommended
-      // preset above — restated here only to make the intent unmissable.)
-      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'error',
       'no-unreachable': 'error',
 
       // Promoted from 'warn' to 'error' on 2026-07-28, each at zero violations.
