@@ -1,7 +1,8 @@
 # Next session starter — written 2026-07-29 by /koniec
 
 ## State at handoff
-- **Version:** v3.1.75 — **app code deployed and verified live** 2026-07-29 (served bundle embeds commit `a2fa541`). The version string could NOT confirm it this time (the bump landed after the deploy) — the bundle was grepped for the commit hash instead. **`deploy.sh`'s race fix is NOT live**: it's deploy tooling, absent from the app bundle, and takes effect on the next deploy.
+- **Version:** v3.1.75 — **fully deployed and verified live** 2026-07-29 (served bundle embeds both commit `a6c2b47` and `"3.1.75"`). Nothing pending.
+- **The `deploy.sh` race fix is live and demonstrably worked on its first run.** Evidence beyond "no error": the running container carries `--read-only` and `--cap-drop ALL`, flags only `deploy.sh` passes — so the script's own `docker run` created it, where the previous deploy's container had been recreated by Unraid's template mid-build. Its image ID also matches the built image, i.e. the new verification step passed.
 - **Branch:** master, clean, pushed.
 - **Last shipped:** lint 113 → 62 warnings, with `no-unused-vars` (41) and `exhaustive-deps` (10) both taken to zero and promoted to hard `error` (12 rules now). The review found four real defects that were on nobody's list.
 - **Test suite:** fast suite **2493/2494** (1 pre-existing skip) and ghost gates **33/33** (593.80s). Both green.
