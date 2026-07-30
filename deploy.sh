@@ -8,9 +8,18 @@ echo "Pulling latest changes..."
 git checkout -- deploy.sh 2>/dev/null || true
 git pull origin master
 
-echo "Stopping existing container..."
-docker stop game_alpha 2>/dev/null || true
-docker rm game_alpha 2>/dev/null || true
+# NOTE (2026-07-29): the stop/rm used to live HERE, before the build. That
+# opened a ~7-minute window (the image build) in which the container name was
+# free, and Unraid's Docker manager would recreate the container from its saved
+# template partway through. The deploy then died on "container name is already
+# in use" at the final step.
+#
+# That failure was the LUCKY direction: the recreate happened late enough to
+# pick up the new image, so the site was correct despite the error. Had it
+# fired earlier it would have recreated on the OLD image and produced an
+# identical-looking error while silently leaving the previous version running.
+# The stop/rm now sits immediately before `docker run` (window: ~1s), and the
+# image the container ends up on is verified at the end rather than assumed.
 
 # Teacher instance layer (docs/core/TEACHER_LAYER_DESIGN.md): the bind-mounted
 # server/data/game-data is intentionally left UNTOUCHED here. Do NOT back up,
@@ -33,6 +42,12 @@ docker build --build-arg GIT_COMMIT=$GIT_COMMIT -t game_alpha .
 echo "Ensuring isolated network exists..."
 docker network create game-net 2>/dev/null || true
 
+echo "Stopping existing container..."
+docker stop game_alpha 2>/dev/null || true
+# -f because the container may have been recreated (and started) by Unraid's
+# Docker manager between the stop above and this line.
+docker rm -f game_alpha 2>/dev/null || true
+
 echo "Starting container..."
 docker run -d \
   --name game_alpha \
@@ -46,6 +61,23 @@ docker run -d \
   --security-opt no-new-privileges \
   --restart unless-stopped \
   game_alpha
+
+echo ""
+echo "Verifying the running container is on the image we just built..."
+# Guards the silent-failure mode described above: a deploy that "succeeds" while
+# the previous version is still serving. Compare the container's resolved image
+# ID against the tag we just built — not the tag name, which both would share.
+BUILT_IMAGE_ID=$(docker image inspect game_alpha:latest --format '{{.Id}}')
+RUNNING_IMAGE_ID=$(docker inspect game_alpha --format '{{.Image}}' 2>/dev/null || echo 'NONE')
+if [ "$RUNNING_IMAGE_ID" != "$BUILT_IMAGE_ID" ]; then
+  echo "   DEPLOY FAILED: game_alpha is NOT running the image just built."
+  echo "   built:   $BUILT_IMAGE_ID"
+  echo "   running: $RUNNING_IMAGE_ID"
+  echo "   The old version is probably still serving. Investigate before"
+  echo "   assuming this deploy landed; do not just re-run and hope."
+  exit 1
+fi
+echo "   OK — running $GIT_COMMIT (${BUILT_IMAGE_ID:7:12})"
 
 echo ""
 echo "Cleaning up orphaned images..."
