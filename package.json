@@ -44,7 +44,7 @@
     "dev:verbose": "concurrently --names \"VITE,SERVER\" --prefix-colors \"cyan,magenta\" \"npm:dev:vite\" \"npm:server\"",
     "dev:vite": "vite",
     "preview": "vite preview",
-    "lint": "eslint src/**/*.{ts,tsx}",
+    "lint": "eslint src server scripts public/sw.js",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

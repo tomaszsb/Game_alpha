@@ -259,7 +259,7 @@ export class TurnStateManager {
       },
       tempStates: {
         ...this.turnStateModel.tempStates,
-        [playerId]: null as any // Clear TEMP state
+        [playerId]: null // Clear TEMP state
       },
       activeTurnPlayers: this.turnStateModel.activeTurnPlayers.filter(id => id !== playerId),
       tryAgainCounts: {
@@ -297,7 +297,7 @@ export class TurnStateManager {
       ...this.turnStateModel,
       tempStates: {
         ...this.turnStateModel.tempStates,
-        [playerId]: null as any
+        [playerId]: null
       }
     };
 

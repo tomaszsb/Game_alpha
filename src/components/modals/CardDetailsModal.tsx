@@ -78,11 +78,11 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
       setSelectedTargetPlayer('');
       onClose();
 
-    } catch (error: any) {
+    } catch (error) {
       notificationService.notify(
         NotificationUtils.createErrorNotification(
           'Transfer Failed',
-          error.message,
+          error instanceof Error ? error.message : 'The transfer could not be completed.',
           currentPlayer.name
         ),
         {

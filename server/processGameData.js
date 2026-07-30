@@ -75,7 +75,7 @@ function isValidSpaceName(name) {
   name = name.trim();
 
   // Must match: UPPERCASE letters, numbers, and hyphens, start with uppercase
-  if (!/^[A-Z][A-Z0-9\-]+$/.test(name)) return false;
+  if (!/^[A-Z][A-Z0-9-]+$/.test(name)) return false;
   if (name.includes('?')) return false;
   if (/^Space\s+\d+$/i.test(name)) return false;
   if (['YES', 'NO'].includes(name.toUpperCase())) return false;
@@ -122,7 +122,7 @@ function extractDestinationsFromLogicConditions(row) {
     const conditionText = (row[`space_${i}`] || '').trim();
     if (!conditionText) continue;
 
-    const potentialNames = conditionText.match(/[A-Z][A-Z0-9\-]{2,}/g) || [];
+    const potentialNames = conditionText.match(/[A-Z][A-Z0-9-]{2,}/g) || [];
     for (const name of potentialNames) {
       if (isValidSpaceName(name)) {
         destinations.add(name);

@@ -942,13 +942,22 @@ export class EffectFactory {
   // === UTILITY METHODS ===
 
   /**
-   * Validate that a card object has the minimum required properties
+   * Validate that a card object has the minimum required properties.
+   *
+   * Takes `unknown` rather than `any` because that is what a type guard is
+   * for — the whole point is to accept something unverified and prove what
+   * it is. The `any` here was also hiding a real defect: the old body was
+   * `return card && …`, which short-circuits to `card` ITSELF for falsy
+   * input, so a function declared to return a boolean actually returned
+   * `null` for `validateCard(null)` and `undefined` for `undefined`. The
+   * test had to weaken its own assertion to `toBeFalsy()` to accommodate
+   * that. `any` silenced the mismatch; `unknown` would not compile.
    */
-  static validateCard(card: any): card is Card {
-    return card && 
-           typeof card === 'object' && 
-           typeof card.card_id === 'string' &&
-           typeof card.card_name === 'string';
+  static validateCard(card: unknown): card is Card {
+    if (typeof card !== 'object' || card === null) return false;
+    const candidate = card as Record<string, unknown>;
+    return typeof candidate.card_id === 'string' &&
+           typeof candidate.card_name === 'string';
   }
 
   /**

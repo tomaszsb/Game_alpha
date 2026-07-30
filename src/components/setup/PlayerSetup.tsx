@@ -206,8 +206,8 @@ export function PlayerSetup({
       }
       const playerName = `Player ${playerNumber}`;
       stateService.addPlayer(playerName);
-    } catch (error: any) {
-      alert(`Failed to add player: ${error.message}`);
+    } catch (error) {
+      alert(`Failed to add player: ${error instanceof Error ? error.message : 'unexpected error'}`);
     }
   };
 
@@ -222,8 +222,8 @@ export function PlayerSetup({
 
     try {
       stateService.removePlayer(playerId);
-    } catch (error: any) {
-      alert(`Failed to remove player: ${error.message}`);
+    } catch (error) {
+      alert(`Failed to remove player: ${error instanceof Error ? error.message : 'unexpected error'}`);
     }
   };
 
@@ -236,8 +236,8 @@ export function PlayerSetup({
 
     try {
       stateService.updatePlayer({ id: playerId, [property]: value });
-    } catch (error: any) {
-      alert(`Failed to update player: ${error.message}`);
+    } catch (error) {
+      alert(`Failed to update player: ${error instanceof Error ? error.message : 'unexpected error'}`);
     }
   };
 

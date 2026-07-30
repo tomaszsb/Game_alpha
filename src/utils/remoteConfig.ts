@@ -77,16 +77,29 @@ export async function fetchRemoteConfig(mode: string = 'game'): Promise<ServiceV
         const response = await fetch(API_ENDPOINT);
         if (!response.ok) {
             debugWarn(`Failed to fetch remote config: ${response.status}`);
-            return (configCache as any)[mode] || null;
+            // Optional chaining, not `(configCache as any)[mode]`. The cast was
+            // silencing the declared `| null` — and `configCache` genuinely can
+            // be null (the assignment below stores whatever the endpoint
+            // returned, including a literal `null` body). Once that happened,
+            // the next failed fetch threw a TypeError from inside the fallback
+            // path — including out of the catch below, where there is nothing
+            // left to catch it — instead of degrading to the bundled default.
+            return configCache?.[mode] ?? null;
         }
 
         const data = await response.json();
-        configCache = data;
-        lastFetchTime = now;
+        // Only replace the cache with something usable; a null/garbage body
+        // must not evict the bundled DEFAULT_CONFIG we fall back to.
+        if (data && typeof data === 'object') {
+            configCache = data;
+            lastFetchTime = now;
+            return data[mode] ?? null;
+        }
 
-        return data[mode] || null;
+        debugWarn('Remote config response was not an object; keeping cached config');
+        return configCache?.[mode] ?? null;
     } catch (error) {
         debugWarn('Error fetching remote config:', error);
-        return (configCache as any)[mode] || null;
+        return configCache?.[mode] ?? null;
     }
 }

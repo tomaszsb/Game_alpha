@@ -2211,7 +2211,7 @@ app.get('/api/feedback', (req, res) => {
       try {
         const data = JSON.parse(fs.readFileSync(path.join(FEEDBACK_DIR, f), 'utf8'));
         // Return without screenshot for list view
-        const { screenshot, ...rest } = data;
+        const { screenshot: _screenshot, ...rest } = data;
         return rest;
       } catch {
         return null;
@@ -2573,7 +2573,7 @@ app.get('/api/admin/stats/summary', async (req, res) => {
 
 // ===== SPA FALLBACK & ERROR HANDLERS =====
 // For non-API routes, serve index.html (SPA client-side routing)
-app.use((req, res, next) => {
+app.use((req, res, _next) => {
   // If it's an API route, return 404 JSON
   if (req.path.startsWith('/api/') || req.path === '/health') {
     return res.status(404).json({
@@ -2615,7 +2615,12 @@ app.use((req, res, next) => {
   res.status(404).send('Not Found - Frontend not built. Run npm run build first.');
 });
 
-app.use((err, req, res, next) => {
+// Express identifies error-handling middleware by ARITY: a 4-argument
+// handler gets errors, a 3-argument one is treated as ordinary middleware.
+// `_next` is unused but must stay — deleting it would silently turn this
+// into a normal handler and every 500 would go unhandled instead of
+// returning JSON. Underscore-renamed rather than removed for that reason.
+app.use((err, req, res, _next) => {
   console.error('❌ Server error:', err);
   res.status(500).json({
     error: 'Internal Server Error'

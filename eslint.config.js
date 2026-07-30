@@ -63,7 +63,43 @@ export default [
       // This is a burn-down list, not a suppression list — see TODO.md. Each
       // one that reaches zero should be promoted back to 'error' so it can
       // never regress, the same way rules-of-hooks just was.
-      '@typescript-eslint/no-explicit-any': 'warn',   // 28 — Bucket E is documented as intentional
+      '@typescript-eslint/no-explicit-any': 'warn',   // 19 — see the breakdown below
+      // Re-audited site-by-site 2026-07-30, 28 → 19. "Bucket E, all
+      // intentional" turned out to be true of only about half of them, and
+      // three of the nine removed were hiding real defects:
+      //   • `remoteConfig` used `(configCache as any)[mode]` in BOTH fallback
+      //     returns. The cast silenced a declared `| null`, and the cache
+      //     really could go null (the success branch stored whatever the
+      //     endpoint returned, `null` body included) — after which the next
+      //     failed fetch threw a TypeError out of the catch instead of
+      //     degrading to the bundled default. Now optional-chained, with
+      //     regression cover in tests/utils/remoteConfig.test.ts.
+      //   • `EffectFactory.validateCard(card: any): card is Card` returned
+      //     `card && …`, which short-circuits to the ARGUMENT — so a declared
+      //     boolean type guard returned `null` for `validateCard(null)`. Its
+      //     test had been weakened to `toBeFalsy()` to accommodate that.
+      //     `unknown` does not compile against that body; `any` did.
+      //   • `TurnStateManager`'s two `null as any` casts were simply
+      //     unnecessary — `tempStates` is already `PlayerTurnState | null`.
+      // What REMAINS is genuinely deliberate, and splits three ways:
+      //   1. Platform casts that no type can express: `(window as any).opera`,
+      //      `(window as any).webkitAudioContext`, and `args: any[]` matching
+      //      `console`'s own lib.dom signature. Permanent — accept these.
+      //   2. Free-form bags where `any` is the honest type: log/measurement
+      //      `details?: Record<string, any>`, the `[key: string]: any` metadata
+      //      index, and `reject: (reason: any) => void` (mirrors TypeScript's
+      //      own PromiseConstructor). Could become `unknown` only by also
+      //      touching every consumer — low value, real churn.
+      //   3. Two that are worth real work, but NOT as lint work:
+      //      `ActiveEffect.effectData: any` (DataTypes.ts) is the root cause of
+      //      the `(payload as any)?.requiredPhase` cast in EffectEngineService —
+      //      nothing type-checks the producer of that field against its
+      //      consumer. And the three NegotiationState/-Result `any`s belong to
+      //      the shelved player-to-player trading feature; type them when that
+      //      feature gets built, not before. See TODO.md.
+      // So: this rule stays 'warn' indefinitely, on purpose. Buckets 1 and 2
+      // are the answer, not a backlog. A NEW warning here still deserves a
+      // look, which is why it isn't 'off'.
       'react-hooks/set-state-in-effect': 'warn',      // 34 — new rule in react-hooks v6.
       // Audited site-by-site 2026-07-29 and deliberately NOT burned down: the
       // 34 are overwhelmingly legitimate shapes (subscribe-to-store, fetch-on-
@@ -141,7 +177,68 @@ export default [
       }
     }
   },
+  // -----------------------------------------------------------------
+  // Plain-JavaScript files: the Express server, build/utility scripts,
+  // and the service worker. (Coverage added 2026-07-30.)
+  // -----------------------------------------------------------------
+  // Until now `npm run lint` ran the glob `src/**/*.{ts,tsx}` and nothing
+  // else, so the twelve hard-error rules above guarded roughly a third of
+  // the code. `server/` — auth guards, the mailer, instance storage, the
+  // WebSocket layer, all live production code — had never been linted at
+  // all, and neither had `scripts/` or the service worker.
+  //
+  // The reason it *looked* unlintable is that the block above scopes its
+  // `languageOptions` to `**/*.{ts,tsx}`, so plain-JS files inherited no
+  // globals: `console` and `process` were "undefined" to `no-undef` 156
+  // times in `server/` alone, drowning the 13 real findings. Declaring the
+  // environment per file type is all that was missing.
   {
-    ignores: ['dist/**', 'node_modules/**', '*.config.js', '*.config.ts']
+    files: ['server/**/*.js', 'scripts/**/*.{js,mjs}', 'public/sw.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.node
+      }
+    },
+    rules: {
+      // Same `_`-prefix convention the TS block uses, so the two halves of
+      // the codebase agree on how a deliberately-unused arg is spelled.
+      'no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }]
+    }
+  },
+  {
+    // `page.evaluate(() => …)` bodies are serialised and run inside the
+    // browser, so `document`/`window` in this file are correct rather than
+    // mistakes — ESLint has no way to know the callback crosses that
+    // boundary. Browser globals are additive here, not a replacement: the
+    // surrounding script is still Node.
+    files: ['scripts/capture-game-screenshot.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser
+      }
+    }
+  },
+  {
+    // A service worker has neither `window` nor `document`; its global is
+    // `self` (ServiceWorkerGlobalScope), plus `caches`/`clients`/`fetch`.
+    files: ['public/sw.js'],
+    languageOptions: {
+      globals: {
+        ...globals.serviceworker
+      }
+    }
+  },
+  {
+    // `docs/**` is prose plus archived one-off scripts (e.g. the April 2026
+    // `merge-csv-rows.js` cleanup tool). Not shipped, not maintained, and
+    // not worth holding to the same bar as running code.
+    ignores: ['dist/**', 'node_modules/**', 'docs/**', '*.config.js', '*.config.ts']
   }
 ];

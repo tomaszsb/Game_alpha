@@ -101,7 +101,9 @@ export function loadAccounts(accountsRoot) {
 /** A login-safe view of an account: never includes the password hash. */
 export function publicAccount(account) {
   if (!account) return null;
-  const { passwordHash, ...rest } = account;
+  // Destructured purely to strip it from `rest` — never read. Underscore-
+  // renamed per the convention used elsewhere in server/ (see `_writeToken`).
+  const { passwordHash: _passwordHash, ...rest } = account;
   return rest;
 }
 
