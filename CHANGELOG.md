@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.75] - 2026-07-29
+
+### Lint burn-down, continued — and the burn-down is what found the bugs
+113 → 62 warnings. Two rules taken to zero and promoted to hard `error` (12 now, up from 10). The headline isn't the count: **reviewing these sites one at a time turned up four defects that had nothing to do with lint.**
+
+**`no-unused-vars` 41 → 0.** Not 41 stray variables — mostly dead code stranded by the classic → `PlayerPanelV2` migration. `GameLayout` held 13, including six complete handlers (`handleEndTurn`, `handleManualEffect`, `handleStartGame`, and three modal/panel openers) with no callers; PlayerPanelV2 owns those flows now, and each live equivalent was confirmed before deleting. Removing them exposed further dead subgraphs, followed through rather than left half-cut: the movement-path panel (state + toggle + auto-show flag — nothing rendered it and nothing could turn it on), `isProcessingTurn` (set around every async action, read by nothing, costing two no-op re-renders of a 1400-line component per action), and `justUsedTryAgain` (same, its only reader was the deleted end-turn handler). Net −192/+110 lines across 16 files.
+
+Deliberately **not** deleted: `ServiceProvider`'s `logWriter`/`toastWriter`. These are the `const x = doThing()` side-effect case — constructed purely so their GameEvent subscriptions register. Names dropped, constructor calls kept.
+
+**One dead binding became a real guard instead.** `DataService.parseCardsCsv` listed 33 expected `CARDS_EXPANDED.csv` column names and never compared them to anything, while every field is read **by position** (`values[2]` is `card_type`) — a renamed or reordered column would have loaded wrong card data silently. Now validated position by position, after confirming all four copies of that CSV share an identical first-32 header, and BOM-tolerant since the admin editor and Excel both round-trip these files.
+
+**`exhaustive-deps` 10 → 0, including a real bug.** `GameLayout`'s popstate handler checks `isRoutingModalOpen` **first**, but that flag was missing from its dependency array — so the listener could hold a stale `false`, and pressing Back while the routing-explanation modal was on screen fell through to close some other modal or let the browser navigate away from the game. Fixed by listing it, plus pulling `diceResultQueue.close` out as a standalone value (a stable `useCallback`, unlike the queue object around it, which is a fresh literal every render).
+
+**Five of the ten were suppressions, not fixes — following the rule would have introduced bugs.** `usePlayerValidation`'s `players.length` is flagged "unnecessary" but `canStartGame()` reads it internally; removing it leaves only a never-changing `stateService` reference and freezes the Start Game button. `TextWithTerms`' `terms` is flagged the same way but is the signal that the async glossary load finished; removing it leaves text rendered before then permanently un-underlined. The `App` WebSocket effect would reopen its socket continuously. Each site carries the reason inline, so a future reader doesn't "fix" it back.
+
+**`set-state-in-effect` (34) stays `warn`, and the config now records why** rather than looking like unfinished homework. Audited all 34: ~9 subscribe to an external store, 3 load on mount, the rest derive state from props. Clearing them properly means moving stores to `useSyncExternalStore` and reworking derived state at render time — a React data-flow refactor with real regression risk (BoardCanvas's is the documented fix for two playtest bugs), not a sweep. Scope it as its own project or accept it, the way `no-explicit-any`'s Bucket E already is.
+
+### Fix: card E045 helped your rival by 4 days
+`E045 "Permit Pre-Approval"` reads *"Choose a permit type. The current permit filing of that type takes 4 days less time"* — plainly a bonus — but carried `target=Choose Opponent` with `tick_modifier=-4`. The game asked the player to pick a rival and then sped **that rival** up by 4 days: unpredictable from the card text, and something no player would knowingly play. Target is now `Self`, matching both the wording and the sign of the effect. `E009 "Favor Called In"` is genuinely opponent-targeted and was left alone. Only the tracked `public/` copy is edited; `dist/` regenerates on build and `server/data/game-data` refreshes from the image on boot.
+
+### Removed: a `skipLog` option that did nothing, and the test that couldn't fail
+`NotificationService.notify()` accepted `skipLog`, documented as "Skip GameLog entry". It stopped meaning anything when logging moved to EffectEngine — `skipLog: true` and `false` behaved identically. Its test ("should skip logging when skipLog is true") asserted a mock that is never called on any path, so it passed regardless and would have kept passing if the flag broke completely. Replaced with a test pinning the real contract — `notify()` must not touch LoggingService no matter what it is given, while its own two channels still fire — and **mutation-checked rather than assumed**: adding a `loggingService.info()` call back into `notify()` turns the new test red where the old one stayed green.
+
+### Fix: deploy could silently ship the OLD version
+Hit for real deploying this session. `deploy.sh` stopped and removed the container **before** the ~7-minute image build, leaving the name free; Unraid's Docker manager recreates containers from its saved template when it notices one missing, so it recreated `game_alpha` mid-build and the script's own `docker run` then collided with it.
+
+That was the *lucky* direction — the recreate landed late enough to pick up the new image, so the site was correct despite the error (verified by inspecting the running container: image ID matched the freshly built one, port/network/mount all correct; nothing was removed or restarted by hand). Fired earlier it would have recreated on the **old** image and printed an identical-looking error while leaving the previous version serving.
+
+Two changes: stop/rm now sits immediately before `docker run` (window ~7 min → ~1s, using `rm -f` since the container may be running again by then), and the deploy no longer assumes it worked — it compares the container's resolved image **ID** against the image just built and exits 1 with both IDs if they differ. Both branches were exercised against the live host before committing.
+
+### Also recorded, not built
+`NegotiationModal` (751 lines) + `NegotiationService` (426 lines) are a complete, tested, service-container-wired player-to-player trading feature that **nothing can open** — its only caller was one of the dead `GameLayout` handlers. Left wired and commented rather than deleted. Two things are missing, in order: no card or life event triggers it (checked all 399 cards; the only opponent-targeting is E009, and every `All Players` card moves time or expeditor counts, never a card between hands), and `NegotiationService` has **zero** turn awareness (0 occurrences of `currentPlayerId`) — so a top-bar button would permit off-turn trading. Full writeup in TODO.md's Parking lot, including why the action-list placement is the right one.
+
+Verified: typecheck clean, lint 0 errors / 62 warnings (exit 0), full suite 2493 passed / 1 skipped / 0 failed, build clean. In-browser: Back with a modal open closes the modal instead of navigating, Start Game still enables on adding a player, the connection badge still polls to "Connected", and a real turn action drew cards + fired its toast with zero console errors.
+
 ## [3.1.74] - 2026-07-28
 
 ### Investigation: seed 20 is a test limitation, not a product bug — the engine is right, the player just goes broke

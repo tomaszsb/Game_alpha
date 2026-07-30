@@ -1687,9 +1687,36 @@ The E2E "flaky timeout" tracked since 2026-07-13 was root-caused this session, a
 
 **Companion gotcha, same session:** the `/koniec` step-0 reaper command originally used a `[/\\\\]` character class, which by the time bash finished with it reached PowerShell as `server[/\]server\.js` — an unterminated `[]` set. PowerShell threw `ArgumentException` once per process examined and killed nothing, while the surrounding pipeline still printed a plausible count. **When embedding a PowerShell regex inside a bash-invoked `powershell -Command` string, avoid backslashes entirely** — a plain `.` wildcard matches either slash and survives the round trip.
 
+### A lint burn-down is a bug-finding sweep — and "just do what the rule says" is wrong about half the time (2026-07-29)
+
+Two sessions running, the lint queue has produced more real bugs than the bug queue. Reviewing `no-unused-vars` and `exhaustive-deps` **site by site** turned up: ~90 lines of dead classic-panel code, a card whose target was inverted (E045 sped up an *opponent*), a documented option that did nothing (`skipLog`), a test that passed vacuously, and a genuine stale-closure bug (Back button vs. the routing-explanation modal). None of those were on any list.
+
+**But the rules cannot be swept, and the "obvious" fix is frequently the bug.** Concrete cases from the same pass:
+
+- **An "unnecessary dependency" is often a deliberate cache-busting key.** `useMemo(() => stateService.canStartGame(), [players.length, stateService])` — the rule says `players.length` is unused because the callback never names it. It's load-bearing: `canStartGame()` reads the count *internally*. Remove it and the only dep left is a reference that never changes, freezing the Start Game button forever. Same shape in `TextWithTerms` (`terms` is the signal that the async glossary load finished). **Before deleting a dep the rule calls unnecessary, check whether the callback reads that value through a function call.**
+- **A "missing dependency" can be a reconnect storm.** `App`'s WebSocket effect reads `gameState.players`; adding it as a dep would reopen the socket on every state change, because StateService rebuilds that array constantly.
+- **Prefer depending on a stable member over an unstable object.** `useModalQueue` returns a **fresh object literal every render**, so depending on `diceResultQueue` re-subscribes constantly — but `diceResultQueue.close` is a `useCallback` and is stable. Pulling the function out as its own const lets the effect list deps honestly.
+- **"Pure function, move it to module scope" — verify with the compiler, not by eye.** `GameLog.groupLogEntries` takes `entries` as its only argument and *looks* pure; it calls `getEntryColor`, which reads `stateService`. `tsc` caught the move immediately. A keyword scan for component-scope identifiers had said it was clean.
+
+**When the rule is wrong, suppress it WITH the reason inline** (`// eslint-disable-next-line` + why), never by deleting the dep or silencing the rule globally. And note the placement gotcha: `exhaustive-deps` reports on the **dependency-array line**, not the `useMemo(`/`useEffect(` line, so a `disable-next-line` above the opening call does nothing — it belongs immediately above the closing `}, [...])`.
+
+**Promote a rule to `error` the moment it hits zero** (the eslint config states this policy explicitly). Verify the promotion actually bites instead of trusting it — `printf '<snippet>' | npx eslint --stdin --stdin-filename src/probe.ts` exercises it without touching a real file.
+
+### A deploy that "fails" at the last step may have silently shipped the OLD version (2026-07-29)
+
+`deploy.sh` used to `docker stop`/`docker rm` **before** the ~7-minute image build. Unraid's Docker manager recreates containers from its saved template when it notices one missing, so it recreated `game_alpha` mid-build and the script's own `docker run` then died on `container name "/game_alpha" is already in use`.
+
+**The error message is identical in both directions, and only one of them is safe.** If the recreate happens *late* (after the build) it picks up the new image and the site is correct despite the error. If it happens *early* it recreates on the **old** image — same error text, deploy looks merely "glitchy," and the previous version keeps serving indefinitely.
+
+Fixed by moving stop/rm to immediately before `docker run` (`rm -f`, since the container may be running again by then) and, more importantly, by making the deploy **verify rather than assume**: compare `docker inspect game_alpha --format '{{.Image}}'` against `docker image inspect game_alpha:latest --format '{{.Id}}'` and exit 1 with both IDs on mismatch. Compare resolved image **IDs**, never the tag name — both sides share the tag, which is exactly why the failure was invisible.
+
+**General rule: when a deploy errors, check what is actually running before re-running it.** `docker inspect` the container's image ID, port bindings, network and mounts against what the script intends. On this occasion everything already matched, so the correct action was to change *nothing* on a live site. Version strings can't settle it when the version wasn't bumped — grep the served bundle for the git commit instead (`curl` the page, find `/assets/index-*.js`, grep for `git rev-parse --short HEAD`).
+
 ---
 
-**Last Updated:** July 28, 2026 (Session 2026-07-28 — shipped v3.1.67–v3.1.74. A lint burn-down (257 → 113 warnings, ten rules promoted to hard `error`) that turned into root-causing and fixing the E2E timeout flake open since 2026-07-13. Added one TACTICAL entry above covering the whole arc: the slow-vs-hung distinction, the two wrong theories recorded before the right one, seeding as the tool that made an unreproducible flake reproducible, `console.*` being mocked in test setup, and the bash→PowerShell backslash trap.)
+**Last Updated:** July 29, 2026 (Session 2026-07-29 — shipped v3.1.75. Lint burn-down continued, 113 → 62 warnings, `no-unused-vars` and `exhaustive-deps` both to zero and promoted to hard `error`; the pass found a real Back-button stale-closure bug, an inverted card target (E045), and a no-op `skipLog` option with a vacuously-passing test. Also fixed a deploy race that could silently ship the old version. Added two TACTICAL entries above: lint-review-as-bug-finding plus the four ways "follow the rule" is wrong, and the deploy-error-may-mean-old-version-is-live check.)
+
+Prior 3.67: July 28, 2026 (Session 2026-07-28 — shipped v3.1.67–v3.1.74. A lint burn-down (257 → 113 warnings, ten rules promoted to hard `error`) that turned into root-causing and fixing the E2E timeout flake open since 2026-07-13. Added one TACTICAL entry above covering the whole arc: the slow-vs-hung distinction, the two wrong theories recorded before the right one, seeding as the tool that made an unreproducible flake reproducible, `console.*` being mocked in test setup, and the bash→PowerShell backslash trap.)
 
 _Prior:_ **Last Updated:** July 27, 2026 (Session 2026-07-27 evening — shipped v3.1.62–v3.1.66. Added three TACTICAL entries above: lint-error *counts* can hide real crashes (`rules-of-hooks` is never style), `PlayerMobileView` is setup-phase only and is NOT the in-game phone view, and pushed ≠ deployed ≠ working for scheduled jobs — always `docker logs -t`.)
 

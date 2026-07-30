@@ -2,6 +2,12 @@
 
 ---
 
+## v3.1.75 — A card that was helping your rival now helps you, and the Back button behaves (July 29, 2026)
+
+- **"Permit Pre-Approval" was doing the opposite of what it said.** The card reads "choose a permit type — that filing takes 4 days less time," which sounds like a bonus for you. It was actually asking you to pick an *opponent* and then taking 4 days off **their** filing. Nobody could have guessed that from reading it, and nobody would have played it on purpose. It now does what the text says: the time comes off your own filing.
+- **Fixed: pressing Back could throw you out of the game.** If the "why am I here?" explanation popped up after you were routed to a new space, pressing your browser's Back button didn't close it. It closed some other panel instead — or left the game entirely. Back now closes that popup, like it already did for every other popup.
+- **Behind the scenes:** a large cleanup pass removed a pile of leftover code from the older player panel that no longer did anything. No change you can see, but it's the reason the two fixes above were found at all — going through the leftovers one at a time is what turned them up.
+
 ## v3.1.62–3.1.66 — Look up a word from your phone in TV mode, plus a tidier player panel and two crashes fixed (July 27, 2026)
 
 - **You can now open the glossary from your phone when playing in TV mode.** Before this, there was no way to look up a word once a TV game started — the button only existed on the computer version. It's now the first button at the top of your own player panel on your phone, and opens the same word list you get everywhere else.

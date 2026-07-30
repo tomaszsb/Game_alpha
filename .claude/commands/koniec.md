@@ -41,10 +41,13 @@ npm run test:ghost       # ghost regression gates, backgrounded separately — ~
 
 The point of the full suite (both commands together) is catching cross-file ripples a session author wouldn't predict. If `test:ghost` genuinely hasn't returned by ~15 min, fall back to the targeted sweep: `tests/components/ tests/utils/ tests/services/` — that catches ~90% of the relevant non-ghost surfaces (the fast `npm test` already covers this in the common case; the fallback is only for when even that hangs).
 
+**Never pipe a backgrounded suite through `tail` (added 2026-07-29 — this bit, same session it was written).** `npm test 2>&1 | tail -6` returns a tidy summary and **throws away the only copy of which test failed** — vitest prints the failing file and assertion *above* the counts. That session's run reported `1 failed | 2492 passed` with the identity unrecoverable; an immediate re-run came back fully green, so the flake could be neither named nor diagnosed, only recorded. Let the background task capture full output and read the tail *from the saved file* (`tail -40 <output-file>`), which costs nothing and keeps the failure text. **If a run fails, read the full output BEFORE re-running** — a green re-run destroys your only evidence.
+
 **Capture for downstream:**
 - Total tests, total failures, new failures vs pre-existing.
 - For each new failure: `file:test_name` + one-line root-cause guess. **Do not fix unless trivial (30s string update).** Block-on-green at wrap-up pushes work past the user's stopping point.
 - If a failure indicates a regression already shipped to production, flag it loudly in the final summary.
+- A failure that does **not** reproduce is still a finding. Record it as unidentified-and-unreproduced (with what else was running — concurrent `test:ghost` loads the machine heavily) rather than dropping it because the re-run was green.
 
 ## 2. Update the memory graph — minimally
 
