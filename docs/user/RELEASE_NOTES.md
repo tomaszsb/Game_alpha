@@ -2,6 +2,10 @@
 
 ---
 
+## v3.1.77 — The deploy banner's game code is now tap-to-copy (July 30, 2026)
+
+- **When the yellow "we're updating the game" banner shows your rejoin code, you can now tap it to copy it** instead of re-typing it if you get disconnected. A brief "Copied!" confirms it worked.
+
 ## v3.1.75 — A card that was helping your rival now helps you, and the Back button behaves (July 29, 2026)
 
 - **"Permit Pre-Approval" was doing the opposite of what it said.** The card reads "choose a permit type — that filing takes 4 days less time," which sounds like a bonus for you. It was actually asking you to pick an *opponent* and then taking 4 days off **their** filing. Nobody could have guessed that from reading it, and nobody would have played it on purpose. It now does what the text says: the time comes off your own filing.
