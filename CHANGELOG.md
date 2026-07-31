@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.81] - 2026-07-31
+
+### Security: PixelLab.ai API key rotated
+The 2026-07-21 security audit flagged the PixelLab.ai key as exposed via git history (committed in `02d7117`'s `generate_female_sprites.sh`, deleted in `711899e` but still readable via `git show`). The maintainer declined rotation on 2026-07-26 ("just use the current one"); today they rotated it on PixelLab's own dashboard and handed the new key over. Stored in `.env` (gitignored, never committed) as `PIXELLAB_API_KEY`, with a placeholder added to `.env.example` — this key is only read by the ad-hoc local avatar/sprite-generation scripts under `scripts/`, never by the running server, so this needed no code change and no deploy. The old key is now invalid; purging it from git history (`git filter-repo`, invasive — rewrites every commit hash) is downgraded from a real exposure to optional hygiene, moved to TODO.md's Parking lot.
+
 ## [3.1.80] - 2026-07-31
 
 ### `set-state-in-effect`: 34 → 18, with real research behind the fix rather than a mechanical sweep
