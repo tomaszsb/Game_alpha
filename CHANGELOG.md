@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.82] - 2026-07-31
+
+### Verified live: `SpaceExplorerPanel` and `TVDisplay` — closing the v3.1.80 gap
+v3.1.80 shipped the `set-state-in-effect` fix for both components but couldn't live-verify either that session — `SpaceExplorerPanel` is reachable only through a narrow deep link that didn't reproduce cleanly then, and `TVDisplay`'s PLAY-phase view looked gated behind TV mode's phone-connection requirement. Both closed out this session. No code changed — this is verification only.
+
+**`SpaceExplorerPanel`.** Traced the actual entry point in code first rather than guessing again: [dictionaryBridge.ts](src/utils/dictionaryBridge.ts)'s `?action=preview_space&id=<SPACE_ID>` query param is genuinely the *only* way in — nothing in the current UI opens it (`GameLayout`'s `handleToggleSpaceExplorer` only wires the panel's own close button, no external open trigger exists). Loaded `?action=preview_space&id=OWNER-SCOPE-INITIATION`: full space details rendered correctly (story, action/outcome text, movement options, space + dice effects, technical details). Clicking through to a connected space and using the search filter both updated the panel correctly with no stale data. Zero console errors or React warnings — no infinite-loop symptoms from the render-time prop-comparison pattern the fix uses.
+
+**`TVDisplay`.** The previous session's "all phones must connect" block turned out to be specific to selecting **TV mode** at setup (`usePlayerValidation`'s `requirePhones` gate is tied to `selectedMode === 'tv'`) — it doesn't gate `?mode=tv` itself, which `App.tsx` renders independently of whichever mode was picked at setup, once `gamePhase !== 'SETUP'`. Started a 2-player game in PC mode instead (no phone-connect requirement), then loaded a second tab at `?mode=tv` against the same running game: the full PLAY-phase board, header, and player strip rendered correctly. Took an action in the player tab and watched it land on the TV tab live over the WebSocket with no reload — the real test that matters for this fix, confirming `useSyncedGameState` isn't tearing between two components independently reading the same store. Also opened the TV's Standings overlay; renders correctly. Zero console errors across both tabs throughout.
+
+**Caveat.** The browser preview pane wasn't visually displayed this session, so simulated clicks/typing weren't reaching the page; interactions were driven via dispatched DOM/React events instead (`element.dispatchEvent(new MouseEvent(...))`, React's native-value setter for inputs) — the same code paths and state updates a real click produces, not literal simulated finger-taps. A hands-on real-device pass is still worth doing whenever convenient, but both components are now confirmed correct under the actual v3.1.80 fix, not just type-checked.
+
 ## [3.1.81] - 2026-07-31
 
 ### Security: PixelLab.ai API key rotated
