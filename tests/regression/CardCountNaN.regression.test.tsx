@@ -76,6 +76,8 @@ describe('CardCountNaN Regression Tests', () => {
       getPlayerCardCount: vi.fn(),
       getCardToDiscard: vi.fn(),
       applyCardEffects: vi.fn(),
+      fileAffidavitOfCorrection: vi.fn().mockReturnValue(null),
+      processViolationDailyAccrual: vi.fn(),
       finalizePlayedCard: vi.fn(),
       discardPlayedCard: vi.fn(),
       effectEngineService: {

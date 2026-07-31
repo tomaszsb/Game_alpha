@@ -2183,4 +2183,165 @@ describe('CardService - Enhanced Coverage', () => {
       );
     });
   });
+
+  // Homeowner Violation mechanic (L050 flat / L051 daily-accrual) — see
+  // TODO.md's 2026-07-31 spec. L050/L051 are special-cased in
+  // applyCardEffects (mirroring E075's handleBackchannelFavor), bypassing
+  // the generic CSV-driven effect pipeline entirely.
+  describe('Homeowner Violation mechanic (L050/L051)', () => {
+    const L050_CARD = {
+      card_id: 'L050',
+      card_name: 'Notice of Violation',
+      card_type: 'L',
+      description: 'An inspector finds uncorrected work...',
+      cost: 0,
+    };
+    const L051_CARD = {
+      card_id: 'L051',
+      card_name: 'Immediately Hazardous Violation',
+      card_type: 'L',
+      description: 'An inspector finds a condition serious enough...',
+      cost: 0,
+    };
+    const W_DRAWN_CARD = { card_id: 'W999', card_name: 'Emergency Repair', card_type: 'W', cost: 200000 };
+
+    beforeEach(() => {
+      mockDataService.getCardById.mockImplementation((cardId: string) => {
+        if (cardId === 'L050') return L050_CARD;
+        if (cardId === 'L051') return L051_CARD;
+        if (cardId === 'W999') return W_DRAWN_CARD;
+        return undefined;
+      });
+      // Deck has exactly one W card so drawCards() deterministically returns W999.
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        decks: { ...mockGameState.decks, W: ['W999'] },
+      });
+      mockGameRulesService.calculateProjectScope.mockReturnValue(0); // small tier by default
+    });
+
+    describe('trigger (applyCardEffects)', () => {
+      it('L050 draws a corrective W card and sets flat-variant violation fields', async () => {
+        await cardService.applyCardEffects('player1', 'L050');
+
+        expect(mockStateService.updateTempState).toHaveBeenCalledWith('player1', expect.objectContaining({
+          violationStatus: 'active',
+          violationVariant: 'flat',
+          violationTier: 'small',
+          violationDeadlineDay: mockPlayer.timeSpent + 180,
+          violationPenaltyBase: 200000,
+        }));
+      });
+
+      it('L051 sets the daily variant with an accrual checkpoint at the deadline', async () => {
+        await cardService.applyCardEffects('player1', 'L051');
+
+        expect(mockStateService.updateTempState).toHaveBeenCalledWith('player1', expect.objectContaining({
+          violationStatus: 'active',
+          violationVariant: 'daily',
+          violationAccrualCheckpoint: mockPlayer.timeSpent + 180,
+        }));
+      });
+
+      it('classifies a large project (scope >= $500k) into the large tier', async () => {
+        mockGameRulesService.calculateProjectScope.mockReturnValue(500000);
+
+        await cardService.applyCardEffects('player1', 'L050');
+
+        expect(mockStateService.updateTempState).toHaveBeenCalledWith('player1', expect.objectContaining({
+          violationTier: 'large',
+        }));
+      });
+    });
+
+    describe('fileAffidavitOfCorrection', () => {
+      it('returns null when there is no active violation', () => {
+        mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, violationStatus: 'none' });
+        expect(cardService.fileAffidavitOfCorrection('player1')).toBeNull();
+      });
+
+      it('charges the half (on-time) rate and resolves the violation when filed by the deadline', () => {
+        mockStateService.getPlayer.mockReturnValue({
+          ...mockPlayer,
+          timeSpent: 100,
+          violationStatus: 'active',
+          violationTier: 'small',
+          violationDeadlineDay: 180,
+          violationPenaltyBase: 100000,
+        });
+
+        const result = cardService.fileAffidavitOfCorrection('player1');
+
+        expect(result).toEqual({ success: true, feeCharged: 4000, onTime: true });
+        expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
+          'player1', 4000, 'violation_penalty', expect.any(String), 'fees', true
+        );
+        expect(mockStateService.updateTempState).toHaveBeenCalledWith('player1', { violationStatus: 'resolved' });
+      });
+
+      it('charges the full (late) rate when filed after the deadline', () => {
+        mockStateService.getPlayer.mockReturnValue({
+          ...mockPlayer,
+          timeSpent: 200,
+          violationStatus: 'active',
+          violationTier: 'large',
+          violationDeadlineDay: 180,
+          violationPenaltyBase: 1000000,
+        });
+
+        const result = cardService.fileAffidavitOfCorrection('player1');
+
+        expect(result).toEqual({ success: true, feeCharged: 200000, onTime: false });
+      });
+    });
+
+    describe('processViolationDailyAccrual', () => {
+      it('does nothing when the variant is flat, not daily', () => {
+        mockStateService.getPlayer.mockReturnValue({
+          ...mockPlayer, timeSpent: 400, violationStatus: 'active', violationVariant: 'flat',
+          violationTier: 'small', violationDeadlineDay: 180, violationAccrualCheckpoint: 180,
+        });
+
+        cardService.processViolationDailyAccrual('player1');
+
+        expect(mockResourceService.spendMoney).not.toHaveBeenCalled();
+      });
+
+      it('does nothing before the checkpoint is reached', () => {
+        mockStateService.getPlayer.mockReturnValue({
+          ...mockPlayer, timeSpent: 150, violationStatus: 'active', violationVariant: 'daily',
+          violationTier: 'small', violationDeadlineDay: 180, violationAccrualCheckpoint: 180,
+        });
+
+        cardService.processViolationDailyAccrual('player1');
+
+        expect(mockResourceService.spendMoney).not.toHaveBeenCalled();
+      });
+
+      it('charges for overdue days since the checkpoint and advances it', () => {
+        mockStateService.getPlayer.mockReturnValue({
+          ...mockPlayer, timeSpent: 190, violationStatus: 'active', violationVariant: 'daily',
+          violationTier: 'small', violationDeadlineDay: 180, violationAccrualCheckpoint: 180,
+        });
+
+        cardService.processViolationDailyAccrual('player1');
+
+        expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
+          'player1', 5000, 'violation_daily_accrual', expect.any(String), 'fees', true
+        );
+        expect(mockStateService.updateTempState).toHaveBeenCalledWith('player1', { violationAccrualCheckpoint: 190 });
+      });
+
+      it('does not re-charge days already covered by a later checkpoint', () => {
+        mockStateService.getPlayer.mockReturnValue({
+          ...mockPlayer, timeSpent: 190, violationStatus: 'active', violationVariant: 'daily',
+          violationTier: 'small', violationDeadlineDay: 180, violationAccrualCheckpoint: 190,
+        });
+
+        cardService.processViolationDailyAccrual('player1');
+
+        expect(mockResourceService.spendMoney).not.toHaveBeenCalled();
+      });
+    });
+  });
 });

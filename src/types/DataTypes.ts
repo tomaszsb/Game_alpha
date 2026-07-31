@@ -399,6 +399,18 @@ export interface Player {
   // moves. Empty array means no approval is active.
   dobApprovedDestinations?: string[];
   fdnyApprovedDestinations?: string[];
+
+  // Homeowner Violation mechanic (L050/L051, see TODO.md 2026-07-31 spec).
+  // Set when the life-event card is drawn; cleared to 'resolved' by
+  // fileAffidavitOfCorrection(). violationAccrualCheckpoint only matters for
+  // the 'daily' variant (L051) — tracks timeSpent already charged through so
+  // the per-turn accrual never double-charges the same overdue days.
+  violationStatus?: 'none' | 'active' | 'resolved';
+  violationVariant?: 'flat' | 'daily';
+  violationTier?: 'small' | 'large';
+  violationDeadlineDay?: number;
+  violationPenaltyBase?: number;
+  violationAccrualCheckpoint?: number;
 }
 
 export type ApprovalStatus = 'none' | 'minor-objection' | 'approved' | 'denied';

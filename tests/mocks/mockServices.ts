@@ -275,6 +275,11 @@ export const createMockCardService = (): any => ({
   applyCardEffects: vi.fn(),
   buildCompetingWorktypeReveal: vi.fn().mockReturnValue([]),
   buildLeaderReveal: vi.fn().mockReturnValue([]),
+
+  // Homeowner Violation mechanic (L050/L051)
+  fileAffidavitOfCorrection: vi.fn().mockReturnValue(null),
+  processViolationDailyAccrual: vi.fn(),
+
   effectEngineService: {} as IEffectEngineService, // Will be mocked separately if needed
   
   // Circular dependency resolution methods

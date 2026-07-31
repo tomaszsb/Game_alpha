@@ -15,6 +15,7 @@ import { Effect } from '../types/EffectTypes';
 import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlySpaceName } from '../utils/logFormatting';
 import { calculateSpaceTimeAddTotal } from '../utils/costPreview';
+import { computeFilingFee } from '../utils/violationRules';
 
 export class TurnService implements ITurnService {
   private readonly dataService: IDataService;
@@ -408,6 +409,29 @@ export class TurnService implements ITurnService {
               penaltyFee: penalty.fee,
             });
           }
+        }
+
+        // Homeowner Violation mechanic (L050/L051) — an unfiled violation at
+        // game end is treated the same as filing late: full-rate civil
+        // penalty charged against the winner. Mirrors the DOB backstop above.
+        if (winnerPlayer && winnerPlayer.violationStatus === 'active') {
+          const tier = winnerPlayer.violationTier ?? 'small';
+          const penaltyBase = winnerPlayer.violationPenaltyBase ?? 0;
+          const fee = computeFilingFee(tier, false, penaltyBase);
+          this.stateService.updatePlayer({
+            id: winnerId,
+            money: (winnerPlayer.money ?? 0) - fee,
+            violationStatus: 'resolved',
+          });
+          this.stateService.updateGameState({
+            endGameViolationPenalty: { fee, playerId: winnerId },
+          });
+          this.loggingService.info(`End-game penalty applied: unresolved violation, treated as late (+$${fee.toLocaleString()} civil penalty).`, {
+            playerId: winnerId,
+            playerName: winnerPlayer.name,
+            action: 'end_game_violation_penalty',
+            penaltyFee: fee,
+          });
         }
 
         // Domain-event stage 4: the WIN ending previously had zero

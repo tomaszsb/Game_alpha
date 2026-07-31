@@ -451,4 +451,74 @@ describe('EndGameModal', () => {
       expect(screen.getByRole('button', { name: /play again/i })).toBeInTheDocument();
     });
   });
+
+  // Homeowner Violation mechanic — end-game backstop section. Mirrors the
+  // pre-existing DOB-missing section's rendering, but reads a separate
+  // gameState.endGameViolationPenalty field (the two penalties are independent
+  // and can both apply to the same winner).
+  describe('Violation penalty section', () => {
+    it('renders the violation warning box when the winner has an unresolved-violation penalty', () => {
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        isGameOver: true,
+        winner: 'player1',
+        gamePhase: 'END' as const,
+        gameEndTime: new Date('2024-12-20T10:30:00Z'),
+        endGameViolationPenalty: { fee: 200000, playerId: 'player1' },
+      });
+
+      render(<EndGameModal />);
+
+      const box = screen.getByTestId('end-game-violation-penalty');
+      expect(box).toBeInTheDocument();
+      expect(box).toHaveTextContent('$200,000');
+      expect(screen.getByText(/Violation never resolved/)).toBeInTheDocument();
+    });
+
+    it('does not render the violation box when there is no violation penalty', () => {
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        isGameOver: true,
+        winner: 'player1',
+        gamePhase: 'END' as const,
+        gameEndTime: new Date('2024-12-20T10:30:00Z'),
+      });
+
+      render(<EndGameModal />);
+
+      expect(screen.queryByTestId('end-game-violation-penalty')).not.toBeInTheDocument();
+    });
+
+    it('does not render the violation box when the penalty belongs to a different player', () => {
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        isGameOver: true,
+        winner: 'player1',
+        gamePhase: 'END' as const,
+        gameEndTime: new Date('2024-12-20T10:30:00Z'),
+        endGameViolationPenalty: { fee: 200000, playerId: 'someone-else' },
+      });
+
+      render(<EndGameModal />);
+
+      expect(screen.queryByTestId('end-game-violation-penalty')).not.toBeInTheDocument();
+    });
+
+    it('renders both the DOB and violation sections together when both apply', () => {
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        isGameOver: true,
+        winner: 'player1',
+        gamePhase: 'END' as const,
+        gameEndTime: new Date('2024-12-20T10:30:00Z'),
+        endGamePenalty: { dobMissing: true, days: 30, fee: 50000, playerId: 'player1' },
+        endGameViolationPenalty: { fee: 200000, playerId: 'player1' },
+      });
+
+      render(<EndGameModal />);
+
+      expect(screen.getByTestId('end-game-penalty')).toBeInTheDocument();
+      expect(screen.getByTestId('end-game-violation-penalty')).toBeInTheDocument();
+    });
+  });
 });

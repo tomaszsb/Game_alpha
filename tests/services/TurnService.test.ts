@@ -138,6 +138,8 @@ const mockCardService: any = {
   applyCardEffects: vi.fn(),
   finalizePlayedCard: vi.fn(),
   discardPlayedCard: vi.fn(),
+  fileAffidavitOfCorrection: vi.fn().mockReturnValue(null),
+  processViolationDailyAccrual: vi.fn(),
   effectEngineService: {
     processEffects: vi.fn(),
     processEffect: vi.fn(),
@@ -1289,6 +1291,61 @@ describe('TurnService', () => {
       expect(captured).not.toBeNull();
       expect(captured?.message).toContain('Cannot end turn: Player has not completed all required actions');
       expect(captured?.step).toBe('check_actions');
+    });
+  });
+
+  // Homeowner Violation mechanic (L050/L051) — end-game backstop. Mirrors the
+  // pre-existing (also previously untested) missing-DOB end-game penalty at
+  // the same win-check site. MovementExecutor.executeMovement is stubbed out
+  // — its own internals aren't the point of this test, only what happens
+  // once a win is detected.
+  describe('endTurnWithMovement — unresolved violation at game end', () => {
+    beforeEach(() => {
+      (turnService as any).movementExecutor.executeMovement = vi.fn().mockResolvedValue(undefined);
+      mockGameRulesService.checkWinCondition.mockResolvedValue(true);
+      mockStateService.getGameState.mockReturnValue({ ...mockGameState, currentPlayerId: 'player1' });
+    });
+
+    it('charges the late-rate civil penalty and resolves the violation when the winner never filed', async () => {
+      const winner = {
+        ...mockPlayer,
+        money: 1000,
+        violationStatus: 'active',
+        violationTier: 'large',
+        violationPenaltyBase: 1000000,
+      };
+      mockStateService.getPlayer.mockReturnValue(winner);
+
+      await turnService.endTurnWithMovement();
+
+      // large tier, late rate (never filed) = 20% of $1,000,000 = $200,000
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
+        id: 'player1',
+        money: 1000 - 200000,
+        violationStatus: 'resolved',
+      });
+    });
+
+    it('does not charge a violation penalty when the winner has none active', async () => {
+      const winner = { ...mockPlayer, money: 1000, violationStatus: 'none' };
+      mockStateService.getPlayer.mockReturnValue(winner);
+
+      await turnService.endTurnWithMovement();
+
+      expect(mockStateService.updatePlayer).not.toHaveBeenCalledWith(
+        expect.objectContaining({ violationStatus: 'resolved' })
+      );
+    });
+
+    it('does not charge a violation penalty when the violation was already resolved', async () => {
+      const winner = { ...mockPlayer, money: 1000, violationStatus: 'resolved' };
+      mockStateService.getPlayer.mockReturnValue(winner);
+
+      await turnService.endTurnWithMovement();
+
+      expect(mockStateService.updatePlayer).not.toHaveBeenCalledWith(
+        expect.objectContaining({ violationStatus: 'resolved' })
+      );
     });
   });
 });

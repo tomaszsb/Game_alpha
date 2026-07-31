@@ -93,7 +93,13 @@ export class TurnStateManager {
       dobApprovalStatus: player.dobApprovalStatus,
       fdnyApprovalStatus: player.fdnyApprovalStatus,
       dobApprovedDestinations: player.dobApprovedDestinations ? [...player.dobApprovedDestinations] : undefined,
-      fdnyApprovedDestinations: player.fdnyApprovedDestinations ? [...player.fdnyApprovedDestinations] : undefined
+      fdnyApprovedDestinations: player.fdnyApprovedDestinations ? [...player.fdnyApprovedDestinations] : undefined,
+      violationStatus: player.violationStatus,
+      violationVariant: player.violationVariant,
+      violationTier: player.violationTier,
+      violationDeadlineDay: player.violationDeadlineDay,
+      violationPenaltyBase: player.violationPenaltyBase,
+      violationAccrualCheckpoint: player.violationAccrualCheckpoint
     };
   }
 
@@ -129,7 +135,13 @@ export class TurnStateManager {
       dobApprovalStatus: state.dobApprovalStatus,
       fdnyApprovalStatus: state.fdnyApprovalStatus,
       dobApprovedDestinations: state.dobApprovedDestinations ? [...state.dobApprovedDestinations] : undefined,
-      fdnyApprovedDestinations: state.fdnyApprovedDestinations ? [...state.fdnyApprovedDestinations] : undefined
+      fdnyApprovedDestinations: state.fdnyApprovedDestinations ? [...state.fdnyApprovedDestinations] : undefined,
+      violationStatus: state.violationStatus,
+      violationVariant: state.violationVariant,
+      violationTier: state.violationTier,
+      violationDeadlineDay: state.violationDeadlineDay,
+      violationPenaltyBase: state.violationPenaltyBase,
+      violationAccrualCheckpoint: state.violationAccrualCheckpoint
     };
   }
 

@@ -18,6 +18,10 @@ interface EndGamePenaltyView {
   fee: number;
 }
 
+interface EndGameViolationPenaltyView {
+  fee: number;
+}
+
 export function EndGameModal(): JSX.Element {
   const { stateService, dataService, gameRulesService } = useGameContext();
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
@@ -26,6 +30,7 @@ export function EndGameModal(): JSX.Element {
   const [winnerVisitType, setWinnerVisitType] = useState<VisitType>('First');
   const [gameEndTime, setGameEndTime] = useState<Date | undefined>();
   const [penalty, setPenalty] = useState<EndGamePenaltyView | null>(null);
+  const [violationPenalty, setViolationPenalty] = useState<EndGameViolationPenaltyView | null>(null);
   const [winnerPlayer, setWinnerPlayer] = useState<Player | null>(null);
   // Loss ending (bankruptcy / design-fee cap): there is no winner, but the
   // modal must still open — with only the winner branch, a loss left the
@@ -60,6 +65,14 @@ export function EndGameModal(): JSX.Element {
           });
         } else {
           setPenalty(null);
+        }
+
+        // Homeowner Violation mechanic — independent of the DOB penalty above;
+        // both can apply to the same winner.
+        if (gameState.endGameViolationPenalty && gameState.endGameViolationPenalty.playerId === gameState.winner) {
+          setViolationPenalty({ fee: gameState.endGameViolationPenalty.fee });
+        } else {
+          setViolationPenalty(null);
         }
       }
 
@@ -280,6 +293,38 @@ export function EndGameModal(): JSX.Element {
             </p>
             <p style={{ margin: '0', fontSize: '12px', color: '#856404', fontStyle: 'italic' }}>
               Next game: secure DOB plan-exam approval before pushing for CO.
+            </p>
+          </div>
+        )}
+
+        {/* Homeowner Violation mechanic — unresolved violation at game end.
+            Same warning-box treatment as the DOB section above; independent
+            of it, so both can render together. */}
+        {violationPenalty && (
+          <div
+            data-testid="end-game-violation-penalty"
+            style={{
+              marginBottom: '20px',
+              padding: '16px 20px',
+              backgroundColor: '#fff3cd',
+              borderRadius: theme.borderRadius.lg,
+              border: '2px solid #ffc107',
+              textAlign: 'left',
+            }}
+          >
+            <h3 style={{
+              margin: '0 0 8px 0',
+              color: '#856404',
+              fontSize: '16px',
+              fontWeight: 'bold',
+            }}>
+              ⚠️ Violation never resolved
+            </h3>
+            <p style={{ margin: '0 0 6px 0', fontSize: '14px', color: '#856404' }}>
+              The Affidavit of Correction was never filed. Treated as filed late, adding a <strong>${violationPenalty.fee.toLocaleString()}</strong> civil penalty to your final stats.
+            </p>
+            <p style={{ margin: '0', fontSize: '12px', color: '#856404', fontStyle: 'italic' }}>
+              Next game: file the Affidavit before its deadline to pay the minimum penalty instead.
             </p>
           </div>
         )}

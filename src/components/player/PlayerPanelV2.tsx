@@ -30,6 +30,7 @@ import { computeProjectFinances } from '../../utils/projectFinances';
 import { FormatUtils } from '../../utils/FormatUtils';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { getNpcCharacterInfo, getNpcImagePath } from '../../constants/characters';
+import { ActionButton } from './ActionButton';
 
 export interface PlayerPanelV2Props extends PlayerPanelProps {
   mode: PanelMode;
@@ -48,6 +49,20 @@ function approvalView(status: string | undefined): ApprovalView | null {
       return { label: 'denied', dot: '#ef4444', mark: '✗' };
     default:
       return { label: status, dot: '#94a3b8', mark: '·' };
+  }
+}
+
+// Separate helper (not approvalView reuse) — violation status is a distinct
+// yes/no/resolved shape, not the approved/objection/denied one.
+function violationView(status: string | undefined): ApprovalView | null {
+  if (!status || status === 'none') return null;
+  switch (status) {
+    case 'active':
+      return { label: 'active', dot: '#ef4444', mark: '!' };
+    case 'resolved':
+      return { label: 'resolved', dot: '#22c55e', mark: '✓' };
+    default:
+      return null;
   }
 }
 
@@ -72,6 +87,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // never showed them, so a blocked End Turn looked like it "did nothing"
   // (fb:e0694a57). Auto-clears after 6s, same as classic.
   const [endTurnError, setEndTurnError] = useState<string | null>(null);
+  // Homeowner Violation mechanic — result banner after filing the Affidavit
+  // of Correction (fee charged, on-time vs late). Auto-clears after 6s, same
+  // as endTurnError above.
+  const [affidavitResult, setAffidavitResult] = useState<{ success: boolean; feeCharged: number; onTime: boolean } | null>(null);
   const [playingCardId, setPlayingCardId] = useState<string | null>(null);
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   // When a count chip with several cards is tapped, list them so the player can
@@ -166,6 +185,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
 
   const dob = approvalView(player.dobApprovalStatus);
   const fdny = approvalView(player.fdnyApprovalStatus);
+  // Resolved violations fade to a quiet trace (like DOB/FDNY do) rather than
+  // showing forever — only 'active' needs the player's attention.
+  const violation = player.violationStatus === 'active' ? violationView(player.violationStatus) : null;
+  const violationDaysLeft =
+    violation && player.violationDeadlineDay != null ? player.violationDeadlineDay - player.timeSpent : null;
 
   // Card counts by player-facing type, with a representative card id per type so
   // each chip can be tapped to open its details (user call 2026-06-23).
@@ -327,6 +351,12 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     } catch (err) {
       console.error(`Manual effect error (${effectKey}):`, err);
     }
+  };
+  const handleFileAffidavit = () => {
+    const result = gameServices.cardService.fileAffidavitOfCorrection(playerId);
+    if (!result) return;
+    setAffidavitResult(result);
+    window.setTimeout(() => setAffidavitResult((prev) => (prev === result ? null : prev)), 6000);
   };
   const handleMovementChoice = (destinationId: string) => {
     // Toggle: tapping the chosen destination again unchecks it; tapping a
@@ -591,7 +621,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           <span style={stat} title="Days spent">
             <span aria-hidden>🕐</span>{player.timeSpent}
           </span>
-          {(dob || fdny) && (
+          {(dob || fdny || violation) && (
             <span style={{ marginLeft: 'auto', display: 'flex', gap: 9, fontSize: 11, color: p.muted }}>
               {dob && (
                 <span title={`DOB ${dob.label}`}>
@@ -601,6 +631,20 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               {fdny && (
                 <span title={`FDNY ${fdny.label}`}>
                   FDNY <span style={{ color: fdny.dot, fontWeight: 500 }}>{fdny.mark}</span>
+                </span>
+              )}
+              {violation && (
+                <span title={
+                  violationDaysLeft != null && violationDaysLeft >= 0
+                    ? `Violation — ${violationDaysLeft} day${violationDaysLeft === 1 ? '' : 's'} left to file`
+                    : `Violation — filing deadline passed`
+                }>
+                  VIOLATION <span style={{ color: violation.dot, fontWeight: 500 }}>{violation.mark}</span>
+                  {violationDaysLeft != null && (
+                    <span style={{ marginLeft: 3 }}>
+                      ({violationDaysLeft >= 0 ? `${violationDaysLeft}d left` : `${-violationDaysLeft}d overdue`})
+                    </span>
+                  )}
                 </span>
               )}
             </span>
@@ -622,6 +666,21 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             📜 History
           </button>
         </div>
+        {player.violationStatus === 'active' && (
+          <div style={{ marginTop: 10 }}>
+            <ActionButton
+              label="File Affidavit of Correction"
+              variant="primary"
+              onClick={handleFileAffidavit}
+              ariaLabel="File the Affidavit of Correction for your open violation"
+            />
+          </div>
+        )}
+        {affidavitResult && (
+          <div style={{ marginTop: 8, fontSize: 12, color: affidavitResult.onTime ? '#22c55e' : '#ef4444' }}>
+            Affidavit filed {affidavitResult.onTime ? 'on time' : 'late'} — ${affidavitResult.feeCharged.toLocaleString()} civil penalty charged.
+          </div>
+        )}
       </div>
 
       {/* Purpose */}

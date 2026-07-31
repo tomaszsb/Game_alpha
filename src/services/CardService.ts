@@ -7,6 +7,7 @@ import { ErrorNotifications } from '../utils/ErrorNotifications';
 import { parseCardDrawFormat } from '../utils/parseUtils';
 import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlyCardList } from '../utils/logFormatting';
+import { getViolationTier, computeFilingFee, computeDailyAccrual, VIOLATION_DEADLINE_DAYS, ViolationVariant } from '../utils/violationRules';
 
 export class CardService implements ICardService {
   private readonly dataService: IDataService;
@@ -1175,6 +1176,15 @@ export class CardService implements ICardService {
       return this.stateService.getGameState();
     }
 
+    // Special handling for L050/L051 "Notice of Violation" / "Immediately
+    // Hazardous Violation" — draws a corrective Work Package and sets
+    // violation status fields, instead of a fixed numeric effect. See
+    // TODO.md's 2026-07-31 spec for the full tier/fee-rate design.
+    if (card.card_id === 'L050' || card.card_id === 'L051') {
+      await this.handleNoticeOfViolation(playerId, card, card.card_id === 'L050' ? 'flat' : 'daily');
+      return this.stateService.getGameState();
+    }
+
     // Step 1: Parse card data into standardized Effect objects
     let effects = this.parseCardIntoEffects(effectiveCard, playerId);
 
@@ -2254,5 +2264,95 @@ export class CardService implements ICardService {
       partnerName: selectedPartner.name,
       cardName: card.card_name,
     });
+  }
+
+  /**
+   * Special handling for L050 "Notice of Violation" (flat) and L051
+   * "Immediately Hazardous Violation" (daily-accrual variant). Draws one
+   * corrective Work Package card, sizes the eventual civil penalty off its
+   * cost, and starts the Affidavit-of-Correction deadline countdown. The fee
+   * itself is NOT charged here — see fileAffidavitOfCorrection(), which
+   * computes on-time vs. late once the player actually files.
+   */
+  private async handleNoticeOfViolation(playerId: string, card: Card, variant: ViolationVariant): Promise<void> {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return;
+
+    const drawnCards = this.drawCards(playerId, 'W', 1, `card:${card.card_id}`, 'Violation corrective work');
+    const drawnWCard = drawnCards[0] ? this.dataService.getCardById(drawnCards[0]) : undefined;
+    const penaltyBase = drawnWCard?.cost ?? 0;
+
+    const tier = getViolationTier(this.gameRulesService.calculateProjectScope(playerId));
+    const deadlineDay = (player.timeSpent ?? 0) + VIOLATION_DEADLINE_DAYS;
+
+    this.stateService.updateTempState(playerId, {
+      violationStatus: 'active',
+      violationVariant: variant,
+      violationTier: tier,
+      violationDeadlineDay: deadlineDay,
+      violationPenaltyBase: penaltyBase,
+      violationAccrualCheckpoint: variant === 'daily' ? deadlineDay : undefined,
+    });
+
+    this.loggingService.info(
+      `Violation triggered for ${player.name}: ${card.card_name} (${tier} tier, ${variant} variant, deadline day ${deadlineDay}, base $${penaltyBase.toLocaleString()})`,
+      { playerId, cardId: card.card_id }
+    );
+  }
+
+  /**
+   * Player-initiated: file the Affidavit of Correction for an active
+   * violation. On-time vs. late is judged against violationDeadlineDay at
+   * the moment of filing — filing after the deadline charges the full
+   * (late) rate even if the player waits well past day 180.
+   */
+  fileAffidavitOfCorrection(playerId: string): { success: boolean; feeCharged: number; onTime: boolean } | null {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player || player.violationStatus !== 'active') return null;
+
+    const tier = player.violationTier ?? 'small';
+    const penaltyBase = player.violationPenaltyBase ?? 0;
+    const onTime = (player.timeSpent ?? 0) <= (player.violationDeadlineDay ?? 0);
+    const fee = computeFilingFee(tier, onTime, penaltyBase);
+
+    this.resourceService.spendMoney(
+      playerId, fee, 'violation_penalty',
+      `Civil penalty — Affidavit of Correction filed ${onTime ? 'on time' : 'late'}`, 'fees', true
+    );
+    this.stateService.updateTempState(playerId, { violationStatus: 'resolved' });
+
+    this.loggingService.info(
+      `${player.name} filed the Affidavit of Correction ${onTime ? 'on time' : 'late'} — $${fee.toLocaleString()} civil penalty charged.`,
+      { playerId }
+    );
+
+    return { success: true, feeCharged: fee, onTime };
+  }
+
+  /**
+   * Per-turn hook (called from TurnTransitionHandler at end-of-turn) for
+   * L051's daily-accrual variant only. Charges for every overdue day since
+   * the last checkpoint — never re-charges days already accounted for.
+   */
+  processViolationDailyAccrual(playerId: string): void {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player || player.violationStatus !== 'active' || player.violationVariant !== 'daily') return;
+
+    const tier = player.violationTier ?? 'small';
+    const checkpoint = player.violationAccrualCheckpoint ?? player.violationDeadlineDay ?? 0;
+    const { fee, newCheckpoint } = computeDailyAccrual(tier, player.timeSpent ?? 0, checkpoint);
+
+    if (fee <= 0) return;
+
+    this.resourceService.spendMoney(
+      playerId, fee, 'violation_daily_accrual',
+      `Daily civil penalty — violation still uncorrected`, 'fees', true
+    );
+    this.stateService.updateTempState(playerId, { violationAccrualCheckpoint: newCheckpoint });
+
+    this.loggingService.info(
+      `${player.name} accrued $${fee.toLocaleString()} in daily violation penalties.`,
+      { playerId }
+    );
   }
 }

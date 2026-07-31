@@ -71,6 +71,12 @@ export class TurnTransitionHandler {
     // Result: Card active for turns 5, 6, 7 = 3 turns ✅
     this.cardService.endOfTurn();
 
+    // STEP 1.5: L051 "Immediately Hazardous Violation" daily-accrual check.
+    // Runs once per turn-end for the player whose turn is ending — same
+    // cadence as the active-effects step below, so it can't double-charge
+    // or skip a turn's worth of overdue days.
+    this.cardService.processViolationDailyAccrual(currentPlayerId);
+
     // STEP 2: Process active effects for the player whose turn is ending.
     // v3.0.119 — a duration effect now ticks only on the holder's own turn,
     // not every player's turn (this happens at end of current turn, before

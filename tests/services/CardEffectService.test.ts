@@ -44,6 +44,8 @@ describe('CardEffectService', () => {
       transferCard: vi.fn().mockReturnValue({} as GameState),
       getPlayerCards: vi.fn().mockReturnValue([]),
       applyCardEffects: vi.fn().mockResolvedValue({} as GameState),
+      fileAffidavitOfCorrection: vi.fn().mockReturnValue(null),
+      processViolationDailyAccrual: vi.fn(),
       finalizePlayedCard: vi.fn()
     };
 

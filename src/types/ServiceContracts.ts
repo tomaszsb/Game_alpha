@@ -454,6 +454,11 @@ export interface ICardService {
   applyCardEffects(playerId: string, cardId: string, options?: { onlyResourceEffects?: boolean; diceRoll?: number }): Promise<GameState>;
   buildCompetingWorktypeReveal(playerId: string): Array<{ kind: 'competing_reveal'; label: string }>;
   buildLeaderReveal(drawingPlayerId: string, days: number): Array<{ kind: 'leader_reveal'; label: string }>;
+
+  // Homeowner Violation mechanic (L050/L051)
+  fileAffidavitOfCorrection(playerId: string): { success: boolean; feeCharged: number; onTime: boolean } | null;
+  processViolationDailyAccrual(playerId: string): void;
+
   effectEngineService: IEffectEngineService;
   
   // Circular dependency resolution methods

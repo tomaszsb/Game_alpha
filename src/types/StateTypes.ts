@@ -108,6 +108,15 @@ export interface MutablePlayerState {
   fdnyApprovalStatus?: import('./DataTypes').ApprovalStatus;
   dobApprovedDestinations?: string[];
   fdnyApprovedDestinations?: string[];
+
+  // Homeowner Violation mechanic (L050/L051) — same rollback treatment as
+  // the approval fields above: set via updateTempState so Try Again reverts it.
+  violationStatus?: 'none' | 'active' | 'resolved';
+  violationVariant?: 'flat' | 'daily';
+  violationTier?: 'small' | 'large';
+  violationDeadlineDay?: number;
+  violationPenaltyBase?: number;
+  violationAccrualCheckpoint?: number;
 }
 
 /**
@@ -297,6 +306,14 @@ export interface GameState {
     fee: number;        // additional money deducted from winner's account
     playerId: string;   // who got the penalty (always the winner in Phase 7.4)
   };
+  // Homeowner Violation mechanic — set when the winner still had an active
+  // (unfiled) violation at game end. Separate from endGamePenalty above
+  // (DOB and violation penalties are independent and can both apply to the
+  // same winner) — EndGameModal renders its own section when this is present.
+  endGameViolationPenalty?: {
+    fee: number;
+    playerId: string;
+  };
   // Transactional logging session tracking
   currentExplorationSessionId: string | null;
   // Action tracking for turn management
@@ -450,6 +467,13 @@ export interface PlayerUpdateData {
   fdnyApprovalStatus?: import('./DataTypes').ApprovalStatus;
   dobApprovedDestinations?: string[];
   fdnyApprovedDestinations?: string[];
+  // Homeowner Violation mechanic — see DataTypes.Player for full docs.
+  violationStatus?: 'none' | 'active' | 'resolved';
+  violationVariant?: 'flat' | 'daily';
+  violationTier?: 'small' | 'large';
+  violationDeadlineDay?: number;
+  violationPenaltyBase?: number;
+  violationAccrualCheckpoint?: number;
 }
 
 export type PlayerCards = {
