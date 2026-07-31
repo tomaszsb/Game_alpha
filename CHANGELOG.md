@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.76] - 2026-07-30
+
+### Lint was only inspecting a third of the building
+The session brief was "finish the lint burn-down" — 62 warnings left, both rules documented as deliberate. The finding that mattered wasn't in the warning list. **`npm run lint` was the glob `src/**/*.{ts,tsx}` and nothing else**, so the twelve hard-error rules promoted over v3.1.66–75 guarded roughly a third of the codebase. The entire Express server — auth guards, mailer, instance storage, the WebSocket layer — had never been linted once, and neither had `scripts/` or `public/sw.js`.
+
+It looked unlintable for a reason that had nothing to do with code quality: the config scopes its `languageOptions` to `**/*.{ts,tsx}`, so plain-JS files inherited **no globals**. `console` and `process` were "undefined" to `no-undef` **156 times in `server/` alone**, drowning the real findings in noise that a reader would reasonably dismiss. Declaring the environment per file type (Node for server/scripts, `serviceworker` for `sw.js`, Node+browser for `capture-game-screenshot.js`, whose `page.evaluate()` bodies genuinely execute in a browser) is all that was missing. **Coverage 202 → 227 files.** Verified rather than assumed, per this config's own policy: a probe file planted in `server/` makes `no-empty`, `no-unreachable` and `no-undef` fire as errors and exit 1.
+
+Behind the 156 noise entries sat **6 real findings**, all fixed. Seven more `no-unused-vars` disappeared for a legitimate reason worth recording — `server/` already used the `{ writeToken: _writeToken, ... }` omit-a-key convention, but the config had never honored `^_` for JS files.
+
+**One of those six could have silently disabled all server error handling.** `app.use((err, req, res, next) => …)`'s `next` is unused, and deleting it is the obvious "fix". Express identifies error-handling middleware **by arity** — a 4-argument handler receives errors, a 3-argument one is ordinary middleware. Removing the parameter would have left every 500 unhandled while looking tidier. Renamed to `_next` with the reason inline, and confirmed live: a malformed body still returns `{"error":"Internal Server Error"}` / HTTP 500. The two `no-useless-escape` changes (`[A-Z0-9\-]` → `[A-Z0-9-]`, in the space-name parser) were proven equivalent across 9,038 inputs before landing rather than reasoned about.
+
+### "Documented as intentional" turned out to be half true — and hid three defects
+`no-explicit-any` 28 → 19. TODO.md and `eslint.config.js` both described these as Bucket E, deliberate. Re-auditing site by site found that true of about half, and **three of the nine removed were hiding real defects**:
+
+**`remoteConfig` could crash instead of falling back.** Both fallback returns used `(configCache as any)[mode]`. The cast silenced a declared `| null`, and the cache genuinely can go null — the success branch stored whatever the endpoint returned, a literal `null` body included. After that, the next failed fetch evaluated `(null as any)[mode]` and threw a `TypeError`. One of those returns sits **inside the catch**, so the throw escaped `fetchRemoteConfig` entirely rather than degrading to the bundled defaults. Now optional-chained, and the success branch refuses to evict a good cache with a non-object body. Four tests added; mutation-checked — reverting reproduces `TypeError: Cannot read properties of null (reading 'game')` as a rejected promise.
+
+**`EffectFactory.validateCard` returned the wrong kind of thing.** Declared `card is Card`, i.e. a boolean, its body was `return card && …` — which short-circuits to the **argument**, so `validateCard(null)` returned `null` and `validateCard(undefined)` returned `undefined`. Its own test documented the wart by weakening to `toBeFalsy()` with the comment `// Use toBeFalsy instead of toBe(false)`. Retyped to `unknown` (what a type guard is *for*), which does not compile against the old body — `any` did. Test now pins `toBe(false)`; mutation-checked (`expected null to be false`). Noted separately: this method has **zero production callers**.
+
+**`TurnStateManager`'s two `null as any` casts were simply unnecessary** — `tempStates` is already `PlayerTurnState | null`, so `strict` had been forcing every read site to guard all along.
+
+The four `catch (error: any)` cleanups are **prevention, not a bug fix** — every `throw` in `src/` constructs an `Error`, so no player ever saw "undefined". They now match the 30+ existing `err instanceof Error ? … : '<fallback>'` sites, and `strict`'s `useUnknownInCatchVariables` enforces it going forward.
+
+### Decision: `no-explicit-any` stays `warn` permanently
+Not a backlog item, an answer. The 19 remaining split three ways, recorded inline in `eslint.config.js`: **platform casts no type can express** (`(window as any).opera`, `webkitAudioContext`, `args: any[]` matching `console`'s own lib.dom signature); **free-form bags where `any` is honest** (log/measurement `Record<string, any>`, the metadata index signature, `reject: (reason: any) => void` mirroring TypeScript's own `PromiseConstructor`); and **two that are real work but not lint work** — `ActiveEffect.effectData: any`, the root cause of the `(payload as any)?.requiredPhase` cast in EffectEngineService (nothing type-checks that field's producer against its consumer, the same silent-drift shape as the CSV columns fixed in v3.1.75), and the three negotiation types belonging to the shelved trading feature.
+
+Also measured, to close the obvious follow-on question: a `src` file has **115 active rules**, a `server` file **61**. The 56-rule difference is **100% TypeScript (20) and React (36) rules, zero others** — inapplicability, not missing strictness. Adding rules to close it would be inventing work.
+
+Verified: typecheck clean, lint exit 0 (0 errors / 53 warnings across 227 files), build clean, fast suite 2497 passed / 1 skipped / 0 failed (169 files), ghost gates 33/33 (567.71s). Express boots and both edited middlewares exercised live, locally and on production.
+
+### Ops
+`81c259f` deployed and verified live 2026-07-30 — `deploy.sh`'s new image-ID check fired and passed (`OK — running 81c259f`), its **second** successful run since v3.1.75 closed the container-recreate race. Because the version bump lands in this entry rather than before that deploy, production briefly self-reported `3.1.75 (81c259f)` — post-3.1.75 code wearing the old label. Same ordering as last session; the commit hash is the reliable identifier, `/health`'s version field is not (see Parking lot).
+
 ## [3.1.75] - 2026-07-29
 
 ### Lint burn-down, continued — and the burn-down is what found the bugs

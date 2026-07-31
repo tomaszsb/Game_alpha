@@ -22,7 +22,15 @@ Measured effect: killing them cut `npm test`'s reported test time from ~149s to 
 
 **(2026-07-28 correction, same day this step was written.)** The original text here said the leftover `E2E-AllPaths` timeout flake "is worker starvation." That was wrong, and it was written down confidently before it had been verified. The flake was root-caused and fixed later the same session (v3.1.73): `endTurnWithMovement()` could raise a `CARD_DISCARD` choice that no test ever answered, so the promise never settled — a permanent hang, not slowness, which is why raising timeouts had never helped. Server cleanup and the flake were unrelated. Keep both facts straight: this step is about machine load, not about that flake.
 
-Also worth a glance if things feel slow: `(Get-Process node).Count`. Steady state on this machine is ~17 (MCP servers). Materially above that means something leaked.
+Also worth a glance if things feel slow: `(Get-Process node).Count`. **Don't judge by the raw number — categorize** *(corrected 2026-07-30: this line used to say "steady state ~17," but that session measured **29 MCP servers alone**, so a bare count now reads as a leak when nothing has leaked. MCP server count grows as connectors are added and will drift again — any fixed number here goes stale.)* Split them by what they are:
+
+```
+powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | ForEach-Object { $c = $_.CommandLine; if ($c -match 'vitest|tinypool') { 'vitest-worker' } elseif ($c -match 'mcp|modelcontext') { 'mcp' } elseif ($c -match 'server.server\.js|run server') { 'GAME-SERVER' } else { 'other' } } | Group-Object | Select-Object Count,Name"
+```
+
+Only a non-zero **GAME-SERVER** count *after* the reaper above is a real leak. `mcp` and `vitest-worker` counts are expected and vary.
+
+**And never reach for `taskkill /F /IM node.exe` to clean up a stray server** — it force-kills every MCP server on the machine too. The reaper above is filtered for exactly this reason; if you need to kill one server, get its PID (`netstat -ano | grep ":<port>" | grep LISTENING`) and kill that PID. Never send a destructive command's output to `/dev/null` — the output is the only audit trail of what it hit. (Added 2026-07-30 after a broad sweep was run with its output silenced.)
 
 ## 1. Pre-flight — run the full check suite
 
