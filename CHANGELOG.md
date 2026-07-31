@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.79] - 2026-07-30
+
+### Removed: two more dead-code-sweep remnants
+TODO.md's Parking lot had three items left over from the 2026-07-11 review, "re-verified dead 2026-07-27." Checked each again before touching anything — one was already stale (`CardService.requiresPlayerTurn` was deleted in a later sweep and TODO.md's text just never caught up; that line is now removed) — and deleted the two that were genuinely still there:
+
+- **`GameRulesService.canDrawCard`** — zero production callers (only its own interface declaration in `ServiceContracts.ts`), and the real card-draw path (`CardService.drawCards`) already does its own independent player-exists/card-type validation, so this wasn't a dropped safety check, just genuinely redundant — confirmed before deleting, not assumed. It also carried a known bug noted in TODO.md (mishandles `SAME_START` mode's shared decks), so this removes dead code with a latent defect, not just dead code. Removed the method, its interface declaration, its dedicated 6-test `describe` block, and the now-orphaned mock stub in the 4 other test files that referenced it as part of a full service mock.
+- **`usePlayerValidation.validateColorChoice`** — defined but never called from anywhere outside its own file; confirmed zero references anywhere in `src/` or `tests/`.
+
+Typecheck clean, lint exit 0 (0 errors / 53 warnings, unchanged), full suite 2496 passed / 1 skipped (2502 minus the 6 deleted `canDrawCard` tests — exact match), build clean.
+
 ## [3.1.78] - 2026-07-30
 
 ### Added: CSP, HSTS, and Permissions-Policy headers — the survey TODO.md asked for, done properly

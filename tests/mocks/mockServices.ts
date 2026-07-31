@@ -210,7 +210,6 @@ export const createMockGameRulesService = (): any => ({
 
   // Card validation methods
   canPlayCard: vi.fn(),
-  canDrawCard: vi.fn(),
 
   // Player resource validation methods
   canPlayerAfford: vi.fn(),

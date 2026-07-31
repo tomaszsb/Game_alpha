@@ -557,8 +557,7 @@ export interface IGameRulesService {
   
   // Card validation methods
   canPlayCard(playerId: string, cardId: string): boolean;
-  canDrawCard(playerId: string, cardType: CardType): boolean;
-  
+
   // Player resource validation methods
   canPlayerAfford(playerId: string, cost: number): boolean;
   

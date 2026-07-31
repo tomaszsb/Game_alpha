@@ -104,24 +104,6 @@ export function usePlayerValidation(
   }, [players.length]);
 
   /**
-   * Validate if a color can be used by a specific player
-   */
-  const validateColorChoice = (playerId: string, color: string): ValidationResult => {
-    const isUsedByOtherPlayer = players.some(p => p.id !== playerId && p.color === color);
-    
-    if (isUsedByOtherPlayer) {
-      const colorOption = AVAILABLE_COLORS.find(c => c.color === color);
-      const colorName = colorOption ? colorOption.name : color;
-      return {
-        isValid: false,
-        errorMessage: `The ${colorName} color is already taken by another player. Please choose a different color.`
-      };
-    }
-
-    return { isValid: true };
-  };
-
-  /**
    * Validate if an avatar can be used by a specific player
    */
   const validateAvatarChoice = (playerId: string, avatar: string): ValidationResult => {
@@ -270,7 +252,6 @@ export function usePlayerValidation(
 
   return {
     // Validation functions
-    validateColorChoice,
     validateAvatarChoice,
     validateAddPlayer,
     validateGameStart,

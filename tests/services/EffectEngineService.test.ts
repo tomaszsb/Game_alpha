@@ -144,7 +144,6 @@ describe('EffectEngineService', () => {
     mockGameRulesService = {
       isMoveValid: vi.fn(),
       canPlayCard: vi.fn(),
-      canDrawCard: vi.fn(),
       canPlayerAfford: vi.fn(),
       isPlayerTurn: vi.fn(),
       isGameInProgress: vi.fn(),

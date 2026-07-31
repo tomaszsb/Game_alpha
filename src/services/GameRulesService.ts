@@ -143,38 +143,6 @@ export class GameRulesService implements IGameRulesService {
   }
 
   /**
-   * Validates if a player can draw a card of a specific type
-   * @param playerId - The ID of the player
-   * @param cardType - The type of card to draw
-   * @returns true if the player can draw the card
-   */
-  canDrawCard(playerId: string, cardType: CardType): boolean {
-    // Game must be in progress
-    if (!this.isGameInProgress()) {
-      return false;
-    }
-
-    // Player must exist
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      return false;
-    }
-
-    // Validate card type
-    if (!this.isValidCardType(cardType)) {
-      return false;
-    }
-
-    // Check if deck has cards available (stateful deck system)
-    const gameState = this.stateService.getGameState();
-    if (!gameState.decks || !gameState.decks[cardType] || gameState.decks[cardType].length === 0) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
    * Validates if a player can afford a specific cost
    * @param playerId - The ID of the player
    * @param cost - The cost amount

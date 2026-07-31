@@ -56,7 +56,6 @@ describe('CardCountNaN Regression Tests', () => {
       checkGameEndConditions: vi.fn(),
       isMoveValid: vi.fn().mockReturnValue(true),
       canPlayCard: vi.fn().mockReturnValue(true),
-      canDrawCard: vi.fn().mockReturnValue(true),
     };
 
     mockCardService = {
