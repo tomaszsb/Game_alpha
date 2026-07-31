@@ -132,11 +132,96 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 
 // Security headers
+//
+// CSP/HSTS/Permissions-Policy were deferred 2026-07-25 (TODO.md) pending a
+// full survey of every external/inline resource the client bundle loads,
+// because this app leans on inline style={{...}} everywhere (React) and
+// embeds a live cross-origin iframe (the dictionary panel, dashboard.
+// unravelcodes.com) — a too-strict policy would silently break the live
+// site in ways the test suite can't catch (jsdom doesn't enforce CSP at
+// all). Surveyed 2026-07-30 (grepped every fetch/WebSocket/iframe/image
+// origin in src/, and index.html's own markup) before writing this:
+//
+// - script-src: 'self' only. The one inline <script> index.html used to
+//   carry (module-load error handler + reload button) is now the external
+//   /error-handler.js file instead of an inline block, specifically so
+//   this can stay 'unsafe-inline'-free with no CSP hash to keep in sync by
+//   hand. static.cloudflareinsights.com is Cloudflare's own auto-injected
+//   analytics beacon (see error-handler.js's comment) — allowed so this
+//   header doesn't silently change what Cloudflare collects at the edge.
+// - style-src: needs 'unsafe-inline' — React's style={{...}} prop renders
+//   as literal style="..." attributes throughout this app, which CSP's
+//   style-src governs the same as a <style> tag. Low-risk relative to
+//   script 'unsafe-inline': CSS injection enables UI redress/exfil via
+//   crafted selectors, not code execution.
+// - img-src: 'self' + data: (html2canvas's FeedbackButton screenshot
+//   capture renders to a data: URI) + iqarius.com (glossary term images,
+//   src/dictionary/data/glossary.json's imageUrl fields).
+// - connect-src: 'self' (same-origin fetch/XHR/WebSocket — getBackendURL()
+//   in networkDetection.ts returns '' in production, so every internal
+//   API/WS call resolves same-origin) + dashboard.unravelcodes.com
+//   (remoteConfig.ts's config endpoint, terms.ts's live glossary fetch) +
+//   api.github.com (useGitHubSyncStatus.ts's version-check ping).
+// - frame-src: dashboard.unravelcodes.com only, for DictionaryPanel's
+//   embedded iframe (src/dictionary/components/DictionaryPanel.tsx).
+// - worker-src 'self': the PWA service worker (public/sw.js).
+// - frame-ancestors 'none': the CSP-native form of the X-Frame-Options:
+//   DENY already set below — kept for browsers that prefer CSP over the
+//   legacy header.
+// - object-src 'none', base-uri 'self', form-action 'self': no <object>/
+//   <embed> plugins and no native <form action> anywhere in this app
+//   (ReminderHub.tsx's one <form> is onSubmit-handled, never submits
+//   natively) — standard hardening with zero behavior change.
+//
+// Permissions-Policy explicitly restricts only features confirmed unused
+// anywhere in src/ (camera, microphone, geolocation, payment, usb,
+// motion sensors). clipboard-write and fullscreen are both left
+// unlisted/default-allowed on purpose — ShareGameButton, PlaytesterLanding
+// Page, and ShutdownNotice all call navigator.clipboard.writeText(), and
+// GameLayout/ProjectProgress both call requestFullscreen() for TV mode.
+//
+// HSTS caution: includeSubDomains means ANY unravelcodes.com subdomain
+// must be HTTPS-only or browsers that saw this header will refuse plain
+// HTTP to it for a year — every subdomain referenced from this app
+// (dashboard.unravelcodes.com) is already accessed via https:// only, so
+// this should be a no-op in practice, but it's a browser-side commitment
+// that's slow to undo (waits out max-age), unlike CSP which is scoped to
+// one response. No `preload` — that submits to the browser-shipped HSTS
+// preload list, which is close to irreversible; not doing that without an
+// explicit ask.
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Permissions-Policy', [
+    'camera=()',
+    'microphone=()',
+    'geolocation=()',
+    'payment=()',
+    'usb=()',
+    'magnetometer=()',
+    'gyroscope=()',
+    'accelerometer=()',
+    'interest-cohort=()',
+  ].join(', '));
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self' https://static.cloudflareinsights.com",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https://iqarius.com",
+    "font-src 'self'",
+    "connect-src 'self' https://dashboard.unravelcodes.com https://api.github.com",
+    "frame-src https://dashboard.unravelcodes.com",
+    "worker-src 'self'",
+    "manifest-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    'upgrade-insecure-requests',
+  ].join('; '));
   next();
 });
 

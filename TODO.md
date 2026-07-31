@@ -27,7 +27,7 @@
 - [ ] **Rotate the PixelLab.ai API key** — committed in `02d7117` (`generate_female_sprites.sh`), deleted in `711899e`. File is gone from the working tree but the key is still readable via `git show 02d7117:generate_female_sprites.sh` by anyone with repo read access. **2026-07-26: maintainer decision — keep using the current key for now, explicitly declined rotation** ("just use the current one"). Used once since (10 player-avatar portraits + 1 logo image, ~$0.074 total, see CHANGELOG) with the key passed transiently in shell commands, never written to a tracked file. Still genuinely exposed via git history — rotate whenever the maintainer decides the risk matters more than the hassle. Separately consider purging history with `git filter-repo` (more invasive — decide separately).
 
 ### LOW — polish
-- [ ] **Add `Content-Security-Policy`, `Strict-Transport-Security`, and `Permissions-Policy` headers** alongside the existing security headers at [server.js:122-128](server.js:122). Fixloop deliberately deferred this 2026-07-25 (see CHANGELOG v3.1.39): real regression risk our test suite can't catch (jsdom doesn't enforce CSP at all), and this app leans on inline `style={{...}}` everywhere plus a live cross-origin iframe (dictionary panel, `dashboard.unravelcodes.com`) — a too-strict `style-src`/`frame-src` would silently break the live site. Needs a full survey of every external/inline resource the app loads + live-browser verification, not a quick pass.
+*(CSP/HSTS/Permissions-Policy headers shipped v3.1.78, see CHANGELOG — full external-resource survey + live-browser verification, not just headers added blind.)*
 
 ## 📱 Active — playtester acquisition (PRD phases 1–2 shipped; history: CHANGELOG v3.0.95–97)
 
