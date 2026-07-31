@@ -2,6 +2,12 @@
 
 ---
 
+## v3.1.84 — A new way projects can go wrong: DOB violations (July 31, 2026)
+
+- **Watch out for a Notice of Violation.** Every so often, an inspector will find something wrong with your project and issue a violation. Fixing it means taking on the extra work it calls for, plus a civil penalty — sized to how much extra work there is. File the paperwork (an Affidavit of Correction) before the deadline and the penalty stays at its minimum; file late, or not at all, and it's the maximum.
+- **A rarer, more serious version adds a daily fine.** Once its deadline passes without being filed, the penalty keeps climbing every day it stays open — so don't let it sit.
+- **You'll always be able to see it coming.** A new indicator on your player panel shows whether you have an open violation and how many days you have left to file.
+
 ## v3.1.77 — The deploy banner's game code is now tap-to-copy (July 30, 2026)
 
 - **When the yellow "we're updating the game" banner shows your rejoin code, you can now tap it to copy it** instead of re-typing it if you get disconnected. A brief "Copied!" confirms it worked.
