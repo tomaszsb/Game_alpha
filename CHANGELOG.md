@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.85] - 2026-07-31
+
+### Docs/assets: playtester screenshot carousel finished
+TODO.md's "Finish the screenshot carousel" item (7 of 11 shots done since early July) is closed. New [scripts/capture-game-screenshot-more.js](scripts/capture-game-screenshot-more.js) captures the 4 shots the original script can't reach by clicking alone — mid-game (revealed movement paths), won game, lost game, and a card's real dollar cost — by reaching into the live `gameServices` instance via a React fiber walk (the same technique verified this session for the Homeowner Violation mechanic) and calling the app's own `StateService` methods directly, rather than the documented HTTP state-push API. No gameId/token juggling, no schema-validation surprises, and it sidesteps a client-computed-gating-fields staleness trap a raw state overwrite would hit.
+
+**Found a stale recipe along the way.** CLAUDE.md's TACTICAL entry for capturing a "money" modal named `CardModal` — that component no longer exists (deleted in the classic-panel removal); the current V2 equivalent, `PlayerCardDetailV2`, opens from local component state rather than `gameState`, so it can't be state-injected and needs a real click instead (which the new script does).
+
+**Two existing shots were also stale and got refreshed:** `01-player-setup.png` was captured against localhost, so its QR codes pointed nowhere useful — re-shot against production. `12-a-word-explained.png` predated the V2 panel entirely (still showed the deleted classic UI, `v3.0.95` badge visible) and displayed a broken "VISUAL FEED OFFLINE" / "[AI-DRAFT]" glossary popup — replaced with a clean current-UI shot of a real term definition (teleported to `ARCH-INITIATION` for a deterministic linked term, since the starting space's own narrative has none — the base script's term-click was silently failing on that account, not a game bug).
+
 ## [3.1.84] - 2026-07-31
 
 ### Added: Homeowner Violation mechanic — "Notice of Violation" (L050) and "Immediately Hazardous Violation" (L051)
