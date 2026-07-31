@@ -76,7 +76,7 @@ describe('E2E-03: Complex Space Features Test', () => {
 
     // Handle circular dependency: EffectEngine -> Turn -> Negotiation -> EffectEngine
     effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as ITurnService, gameRulesService, {} as any, loggingService); // targetingService
-    negotiationService = new NegotiationService(stateService, effectEngineService);
+    negotiationService = new NegotiationService(stateService, effectEngineService, resourceService, choiceService);
     turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService);
 
     // Complete the circular dependency wiring

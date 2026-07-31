@@ -100,7 +100,7 @@ describe('Multiplayer State Isolation', () => {
       movementService, undefined as any, undefined as any,
       targetingService, loggingService
     );
-    negotiationService = new NegotiationService(stateService, tempEffectEngine);
+    negotiationService = new NegotiationService(stateService, tempEffectEngine, resourceService, choiceService);
 
     turnService = new TurnService(
       dataService, stateService, gameRulesService, cardService,

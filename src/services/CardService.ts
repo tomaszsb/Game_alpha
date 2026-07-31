@@ -1167,6 +1167,14 @@ export class CardService implements ICardService {
       return this.stateService.getGameState();
     }
 
+    // Special handling for E075 "Backchannel Favor" - Choose a partner and
+    // open a negotiation with them (NegotiationModal), instead of resolving
+    // a fixed numeric effect.
+    if (card.card_id === 'E075') {
+      await this.handleBackchannelFavor(playerId, card);
+      return this.stateService.getGameState();
+    }
+
     // Step 1: Parse card data into standardized Effect objects
     let effects = this.parseCardIntoEffects(effectiveCard, playerId);
 
@@ -2167,6 +2175,84 @@ export class CardService implements ICardService {
       targetPlayerName: selectedOpponent.name,
       cardName: card.card_name,
       message: `${currentPlayer?.name} called in a favor: ${selectedOpponent.name} slowed down`,
+    });
+  }
+
+  /**
+   * Handle E075 "Backchannel Favor" - Choose a team to propose a trade with,
+   * then open a negotiation with them.
+   *
+   * Unlike E009 (a fixed, auto-resolved effect), this card's whole point is
+   * to hand off to NegotiationModal/NegotiationService for an interactive
+   * money+card offer the partner can accept or decline — this handler only
+   * picks who that partner is and emits the event GameLayout listens for to
+   * open the modal on the initiator's own device.
+   */
+  private async handleBackchannelFavor(playerId: string, card: Card): Promise<void> {
+
+    const gameState = this.stateService.getGameState();
+    const allPlayers = gameState.players;
+
+    // Get opponents (all players except current)
+    const opponents = allPlayers.filter(p => p.id !== playerId);
+
+    if (opponents.length === 0) {
+      // No one to trade with - nothing to open, just record that the card
+      // was played.
+      this.stateService.emitGameEvent({
+        type: 'card_effect_target_resolved',
+        playerId: playerId,
+        mechanic: 'backchannel_favor',
+        resolved: false,
+        cardName: card.card_name,
+        message: `${card.card_name} played - no other teams to trade with`,
+      });
+      return;
+    }
+
+    let selectedPartner: Player | null = null;
+
+    if (opponents.length === 1) {
+      // Only one possible partner - auto-select
+      selectedPartner = opponents[0];
+    } else {
+      // Multiple possible partners - present choice
+      if (!this.choiceService) {
+        console.error('❌ ChoiceService not available - auto-selecting first team');
+        selectedPartner = opponents[0];
+      } else {
+        const options = opponents.map(p => ({
+          id: p.id,
+          label: p.name
+        }));
+
+        const selection = await this.choiceService.createChoice(
+          playerId,
+          'TARGET_SELECTION',
+          'Choose a team to propose a trade with:',
+          options
+        );
+
+        if (selection && selection !== '') {
+          selectedPartner = opponents.find(p => p.id === selection) || null;
+        }
+      }
+    }
+
+    if (!selectedPartner) {
+      return;
+    }
+
+    // Hand off to GameLayout (via the event bus) to open NegotiationModal
+    // pre-seeded with this partner. The actual trade — building an offer,
+    // the partner's accept/decline — happens in NegotiationModal /
+    // NegotiationService from here, not in this handler.
+    this.stateService.emitGameEvent({
+      type: 'negotiation_requested',
+      playerId: playerId,
+      partnerId: selectedPartner.id,
+      partnerName: selectedPartner.name,
+      cardName: card.card_name,
     });
   }
 }

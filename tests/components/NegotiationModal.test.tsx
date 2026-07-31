@@ -130,29 +130,23 @@ describe('NegotiationModal', () => {
     });
 
     // Mock negotiation service methods
-    mockServices.negotiationService.initiateNegotiation.mockImplementation(() => {
-      // Simulate successful negotiation initiation
-      return Promise.resolve(true);
+    mockServices.negotiationService.initiateNegotiation.mockResolvedValue({
+      success: true,
+      message: 'Negotiation started successfully',
+      negotiationId: 'neg-1',
+      effects: [],
     });
-    mockServices.negotiationService.makeOffer.mockImplementation(() => {
-      return Promise.resolve(true);
-    });
-    mockServices.negotiationService.acceptOffer.mockImplementation(() => {
-      return Promise.resolve(true);
-    });
-    mockServices.negotiationService.declineOffer.mockImplementation(() => {
-      return Promise.resolve(true);
+    mockServices.negotiationService.makeOffer.mockResolvedValue({
+      success: true,
+      message: 'Negotiation completed - offer accepted',
+      negotiationId: 'neg-1',
+      data: { accepted: true },
+      effects: [],
     });
   });
 
-  it('should call notificationService.notify when making an offer', async () => {
-    // This test verifies that the notification integration exists by testing the notification logic
-    // directly rather than through the complex UI flow which has state management issues in tests
-
-    const mockProps = {
-      isOpen: true,
-      onClose: vi.fn()
-    };
+  it('skips partner-selection and goes straight to making an offer when initialPartnerId is given', () => {
+    const mockProps = { isOpen: true, onClose: vi.fn(), initialPartnerId: 'player2' };
 
     render(
       <GameContext.Provider value={mockServices}>
@@ -160,33 +154,12 @@ describe('NegotiationModal', () => {
       </GameContext.Provider>
     );
 
-    // Verify the modal renders (even if stuck in initialization)
-    expect(screen.getByTestId('negotiation-modal')).toBeInTheDocument();
-
-    // Since the component's state management is complex for testing, we'll verify that
-    // the notification service integration is properly set up by checking that the
-    // required services are available and configured correctly
-
-    expect(mockServices.notificationService.notify).toBeDefined();
-    expect(mockServices.negotiationService.makeOffer).toBeDefined();
-
-    // The notification logic in the component is:
-    // 1. Create offer summary: `Offered $${offer.money}${cardCount > 0 ? ` and ${cardCount} card(s)` : ''}`
-    // 2. Call notificationService.notify with NotificationUtils.createSuccessNotification
-    // 3. Use actionType: 'negotiation_make_offer'
-
-    // This integration exists in the component at lines 139-150 and would work correctly
-    // in the actual application. The test framework has difficulty with the complex state
-    // management, but the notification integration is properly implemented.
+    expect(screen.getByText(/Making offer to: Other Player 1/)).toBeInTheDocument();
+    expect(mockServices.negotiationService.initiateNegotiation).toHaveBeenCalledWith('player1', 'player2');
   });
 
-  it('should call notificationService.notify when accepting an offer', async () => {
-    // This test verifies the accept offer notification integration
-
-    const mockProps = {
-      isOpen: true,
-      onClose: vi.fn()
-    };
+  it('falls back to the partner-selection screen when initialPartnerId is missing or invalid', () => {
+    const mockProps = { isOpen: true, onClose: vi.fn(), initialPartnerId: 'not-a-real-player' };
 
     render(
       <GameContext.Provider value={mockServices}>
@@ -194,50 +167,71 @@ describe('NegotiationModal', () => {
       </GameContext.Provider>
     );
 
-    // Verify the modal renders and services are available
-    expect(screen.getByTestId('negotiation-modal')).toBeInTheDocument();
-    expect(mockServices.notificationService.notify).toBeDefined();
-    expect(mockServices.negotiationService.acceptOffer).toBeDefined();
-
-    // The accept offer notification logic in the component (lines 163-174) is:
-    // 1. Call negotiationService.acceptOffer(currentPlayerId)
-    // 2. Call notificationService.notify with NotificationUtils.createSuccessNotification
-    // 3. Use actionType: 'negotiation_accept'
-    // 4. Message: 'Offer Accepted', 'Negotiation completed successfully'
-    // 5. Close modal after successful accept
-
-    // This integration is properly implemented and would work correctly when the
-    // component reaches the 'reviewing_offer' state in actual usage.
+    expect(screen.getByText('Select a player to negotiate with:')).toBeInTheDocument();
+    expect(mockServices.negotiationService.initiateNegotiation).not.toHaveBeenCalled();
   });
 
-  it('should call notificationService.notify when declining an offer', async () => {
-    // This test verifies the decline offer notification integration
+  it('sends money + cards via makeOffer, awaits the result, and shows a success notification when the partner accepts', async () => {
+    const mockProps = { isOpen: true, onClose: vi.fn(), initialPartnerId: 'player2' };
 
-    const mockProps = {
-      isOpen: true,
-      onClose: vi.fn()
-    };
-
-    render(
+    const { container } = render(
       <GameContext.Provider value={mockServices}>
         <NegotiationModal {...mockProps} />
       </GameContext.Provider>
     );
 
-    // Verify the modal renders and services are available
-    expect(screen.getByTestId('negotiation-modal')).toBeInTheDocument();
-    expect(mockServices.notificationService.notify).toBeDefined();
-    expect(mockServices.negotiationService.declineOffer).toBeDefined();
+    const moneyInput = container.querySelector('input[type="number"]') as HTMLInputElement;
+    fireEvent.change(moneyInput, { target: { value: '100' } });
 
-    // The decline offer notification logic in the component (lines 189-200) is:
-    // 1. Call negotiationService.declineOffer(currentPlayerId)
-    // 2. Call notificationService.notify with custom notification object (not NotificationUtils)
-    // 3. Use actionType: 'negotiation_decline'
-    // 4. Custom notification: { short: '❌ Declined', medium: '❌ Offer declined', detailed: '${playerName} declined the negotiation offer' }
-    // 5. Reset negotiation state back to 'making_offer' (doesn't close modal)
+    const makeOfferButton = screen.getByText(/Make Offer/);
+    fireEvent.click(makeOfferButton);
 
-    // This integration is properly implemented and would work correctly when the
-    // component reaches the 'reviewing_offer' state in actual usage.
+    await waitFor(() => {
+      expect(mockServices.negotiationService.makeOffer).toHaveBeenCalledWith(
+        'player1',
+        expect.objectContaining({ money: 100, cards: [] })
+      );
+    });
+
+    await waitFor(() => {
+      expect(mockServices.notificationService.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ detailed: expect.stringContaining('Offer Accepted') }),
+        expect.objectContaining({ actionType: 'negotiation_accept' })
+      );
+    });
+
+    await waitFor(() => expect(mockProps.onClose).toHaveBeenCalled());
+  });
+
+  it('shows a decline notification and closes when the partner declines', async () => {
+    mockServices.negotiationService.makeOffer.mockResolvedValue({
+      success: true,
+      message: 'Negotiation declined - offer withdrawn',
+      negotiationId: 'neg-1',
+      data: { accepted: false },
+      effects: [],
+    });
+
+    const mockProps = { isOpen: true, onClose: vi.fn(), initialPartnerId: 'player2' };
+
+    const { container } = render(
+      <GameContext.Provider value={mockServices}>
+        <NegotiationModal {...mockProps} />
+      </GameContext.Provider>
+    );
+
+    const moneyInput = container.querySelector('input[type="number"]') as HTMLInputElement;
+    fireEvent.change(moneyInput, { target: { value: '50' } });
+    fireEvent.click(screen.getByText(/Make Offer/));
+
+    await waitFor(() => {
+      expect(mockServices.notificationService.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ detailed: expect.stringContaining('declined') }),
+        expect.objectContaining({ actionType: 'negotiation_decline' })
+      );
+    });
+
+    await waitFor(() => expect(mockProps.onClose).toHaveBeenCalled());
   });
 
   it('should render modal when open', () => {
@@ -314,32 +308,4 @@ describe('NegotiationModal', () => {
     expect(screen.getByText('Select a player to negotiate with:')).toBeInTheDocument();
   });
 
-  it('should have proper notification service integration', () => {
-    const mockProps = {
-      isOpen: true,
-      onClose: vi.fn()
-    };
-
-    render(
-      <GameContext.Provider value={mockServices}>
-        <NegotiationModal {...mockProps} />
-      </GameContext.Provider>
-    );
-
-    // Verify all required services are properly injected
-    expect(mockServices.notificationService.notify).toBeDefined();
-    expect(mockServices.negotiationService.makeOffer).toBeDefined();
-    expect(mockServices.negotiationService.acceptOffer).toBeDefined();
-    expect(mockServices.negotiationService.declineOffer).toBeDefined();
-
-    // The component properly integrates NotificationService for all three main actions:
-    // 1. Make Offer - lines 139-150 with NotificationUtils.createSuccessNotification
-    // 2. Accept Offer - lines 163-174 with NotificationUtils.createSuccessNotification
-    // 3. Decline Offer - lines 189-200 with custom notification object
-
-    // Each action has proper actionType identifiers:
-    // - 'negotiation_make_offer'
-    // - 'negotiation_accept'
-    // - 'negotiation_decline'
-  });
 });

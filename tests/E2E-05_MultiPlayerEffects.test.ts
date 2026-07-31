@@ -113,7 +113,7 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     
     // Create temporary EffectEngineService for circular dependencies
     const tempEffectEngine = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, undefined as any, undefined as any, targetingService, loggingService);
-    negotiationService = new NegotiationService(stateService, tempEffectEngine);
+    negotiationService = new NegotiationService(stateService, tempEffectEngine, resourceService, choiceService);
     
     // Create CardEffectService — needed for TurnService constructor
     const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
@@ -580,7 +580,7 @@ describe('E2E-05b: L021 "High-Profile Client" in solo play (2026-07-26 fix)', ()
     targetingService = new TargetingService(stateService, choiceService);
 
     const tempEffectEngine = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, undefined as any, undefined as any, targetingService, loggingService);
-    negotiationService = new NegotiationService(stateService, tempEffectEngine);
+    negotiationService = new NegotiationService(stateService, tempEffectEngine, resourceService, choiceService);
     const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
     turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, undefined, undefined, undefined, undefined, cardEffectService);
 

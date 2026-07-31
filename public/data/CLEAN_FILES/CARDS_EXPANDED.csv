@@ -397,3 +397,4 @@ E035,Electronic Submission,E,Reduce the current filing time by 1 day. Draw 1 Exp
 E039,Policy Change,E,Increase all players' current filing times by 1 day.,Apply Card,0,REGULATORY,Immediate,0,,Player Controlled,0,0,0,0,,0,,,Self,Single,,,,,,,,,,,,,,,
 E042,Courier Delay,E,Increase the current filing time by 2 days. Draw 1 Expeditor Card.,Apply Card,0,REGULATORY,Immediate,0,,Player Controlled,0,0,0,0,,2,1 E,,Self,Single,,,,,,,,,,,,,,,
 E043,Rejected Filing,E,Increase the current filing time by 4 days. Discard 1 Expeditor Card.,Apply Card,0,REGULATORY,Immediate,0,,Player Controlled,0,0,0,Immediate,,4,1,,Self,Single,,,,,,,,,,,,,,,
+E075,Backchannel Favor,E,"Choose another team and propose a trade — money, materials, or paperwork, negotiated on the spot.",Apply Card,0,Any,Immediate,0,,Player Controlled,0,0,0,0,,0,,,Choose Opponent,Single,,,,,,,,,,,,,,,

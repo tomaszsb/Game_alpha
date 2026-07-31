@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.83] - 2026-07-31
+
+### Added: player-to-player trading is reachable and actually works — "Backchannel Favor" (E075)
+TODO.md's Parking lot tracked `NegotiationModal`/`NegotiationService` as "fully BUILT but has no trigger" since 2026-07-29. Closer reading found that wasn't the real state of things — the receiving half never worked even when opened, not just unreachable. Fixed both.
+
+**What was actually broken, found while wiring the trigger:** `NegotiationModal`'s negotiation state was local `useState`, never synced from `stateService` — the "Incoming offer — Accept/Decline" screen was real, built UI, but no code path ever showed it to the partner, on any device. `NegotiationService.makeOffer`'s type signature didn't accept money at all — the offer-builder UI collected a dollar amount and `NegotiationModal.handleMakeOffer` silently dropped it before it ever reached the service. Accepting an offer never delivered the cards to the receiving player. Declining lost the offered cards for good — removed from the offerer at offer-time, never returned.
+
+**The fix reuses proven infrastructure instead of patching each bug individually.** `ChoiceService`/`ChoiceModal` already has a shipped, correct mechanism (v3.0.17) for asking a *specific* player — not necessarily the current-turn player — a question that shows up on the right device (per-phone: only their device; shared-screen: the one shared view; already used by `EffectEngineService`'s `PLAYER_AGREEMENT_REQUIRED` and E009's own opponent picker). The partner's accept/decline now goes through that same pipeline instead of a bespoke sync `NegotiationModal` never actually had. `NegotiationService.makeOffer` records the offer, calls `choiceService.createChoice` on the partner, awaits the real response, then resolves the trade inline: money moves via `ResourceService` (skips the transfer, but still delivers the cards, if the initiator can no longer afford it by response time), cards move to the partner on accept or return to the initiator on decline. Scoped to **accept/decline only** for this pass — no counter-offers.
+
+**New card:** E075 "Backchannel Favor" (`E` type, `phase_restriction = Any`) — picks a partner (auto-selected with one opponent, `ChoiceService`-prompted with more, mirroring E009's `handleFavorCalledIn`), then emits a new `negotiation_requested` `GameEvent` that `GameLayout` uses to open `NegotiationModal` pre-seeded with that partner (`initialPartnerId` prop, skips straight to the offer-builder screen). Deleted `NegotiationModal`'s dead `reviewing_offer` render branch in the same pass — confirmed-unreachable code found while fixing this exact file.
+
+**Verification.** Typecheck and lint clean (lint warnings actually dropped, 37→35, from tightening `NegotiationState`'s `context: any`/`offerData: any` into real types). Full suite green. Live-verified with two genuinely separate browser tabs standing in for two phones: Alice played the card, picked Bob, offered $100 → Bob's own tab showed the real offer live over WebSocket with no reload → Accept moved exactly $100 from Alice to Bob. Repeated offering a card instead and hitting Decline: the card returned to Alice, no money moved. Zero console errors from the feature itself throughout (one known, pre-existing, unrelated quirk: `AnimatePresence`-based modals — same as the already-documented `DiceResultModal` issue — sometimes don't visually dismiss in this non-compositing test browser even though the underlying state is already correct; confirmed via the live game-state API each time, not just the screen).
+
 ## [3.1.82] - 2026-07-31
 
 ### Verified live: `SpaceExplorerPanel` and `TVDisplay` — closing the v3.1.80 gap

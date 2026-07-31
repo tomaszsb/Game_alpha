@@ -193,7 +193,7 @@ describe('E2E-01: Happy Path with New UI', () => {
       cardEffectHandler
     );
 
-    globalNegotiationService = new NegotiationService(globalStateService, globalEffectEngineService);
+    globalNegotiationService = new NegotiationService(globalStateService, globalEffectEngineService, globalResourceService, globalChoiceService);
 
     // Create CardEffectService before TurnService so it can be passed via constructor
     globalCardEffectService = new CardEffectService(globalCardService, globalStateService, globalDataService, globalChoiceService);

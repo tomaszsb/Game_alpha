@@ -327,7 +327,8 @@ export const createMockNegotiationService = (): any => ({
   makeOffer: vi.fn(),
   acceptOffer: vi.fn(),
   declineOffer: vi.fn(),
-  
+  cancelNegotiation: vi.fn(),
+
   // Negotiation state methods
   getActiveNegotiation: vi.fn(),
   hasActiveNegotiation: vi.fn()

@@ -413,7 +413,7 @@ export interface ITurnService {
   rollDiceWithFeedback(playerId: string): Promise<import('./StateTypes').TurnEffectResult>;
   rerollDice(playerId: string): Promise<import('./StateTypes').TurnEffectResult>;
   triggerManualEffectWithFeedback(playerId: string, effectType: string): Promise<import('./StateTypes').TurnEffectResult>;
-  performNegotiation(playerId: string): Promise<{ success: boolean; message: string }>;
+  performNegotiation(playerId: string, partnerId: string): Promise<{ success: boolean; message: string }>;
   tryAgainOnSpace(playerId: string): Promise<{ success: boolean; message: string; shouldAdvanceTurn?: boolean }>;
   handleAutomaticFunding(playerId: string): Promise<import('./StateTypes').TurnEffectResult>;
 
@@ -648,10 +648,11 @@ export interface ITargetingService {
 
 export interface INegotiationService {
   // Core negotiation methods
-  initiateNegotiation(playerId: string, context: Record<string, unknown>): Promise<NegotiationResult>;
-  makeOffer(playerId: string, offer: { cards?: string[] }): Promise<NegotiationResult>;
+  initiateNegotiation(playerId: string, partnerId: string): Promise<NegotiationResult>;
+  makeOffer(playerId: string, offer: { money?: number; cards?: string[] }): Promise<NegotiationResult>;
   acceptOffer(playerId: string): Promise<NegotiationResult>;
   declineOffer(playerId: string): Promise<NegotiationResult>;
+  cancelNegotiation(negotiationId: string): Promise<NegotiationResult>;
 
   // Negotiation state methods
   getActiveNegotiation(): NegotiationState | null;

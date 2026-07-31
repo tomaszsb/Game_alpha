@@ -179,7 +179,7 @@ describe('E2E Full Playthrough', () => {
       globalNotificationService
     );
 
-    globalNegotiationService = new NegotiationService(globalStateService, globalEffectEngineService);
+    globalNegotiationService = new NegotiationService(globalStateService, globalEffectEngineService, globalResourceService, globalChoiceService);
     
     globalTurnService = new TurnService(
       globalDataService,

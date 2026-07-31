@@ -790,7 +790,7 @@ export class TurnService implements ITurnService {
   /**
    * Initiate negotiation for a player - delegates to NegotiationService
    */
-  async performNegotiation(playerId: string): Promise<{ success: boolean; message: string }> {
+  async performNegotiation(playerId: string, partnerId: string): Promise<{ success: boolean; message: string }> {
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
       throw new Error(`Player ${playerId} not found`);
@@ -799,11 +799,7 @@ export class TurnService implements ITurnService {
 
     try {
       // Simply delegate to NegotiationService to initiate negotiation
-      const result = await this.negotiationService.initiateNegotiation(playerId, {
-        type: 'space_negotiation',
-        space: player.currentSpace,
-        initiatedBy: playerId
-      });
+      const result = await this.negotiationService.initiateNegotiation(playerId, partnerId);
 
       return {
         success: result.success,

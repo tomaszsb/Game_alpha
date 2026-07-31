@@ -2068,4 +2068,119 @@ describe('CardService - Enhanced Coverage', () => {
       expect(mockStateService.updateTempState).not.toHaveBeenCalled();
     });
   });
+
+  // E075 "Backchannel Favor" — picks a trade partner, then hands off to
+  // GameLayout (via the negotiation_requested event) to open NegotiationModal.
+  // Mirrors E009's handleFavorCalledIn opponent-choice pattern; the only
+  // difference is what happens once a partner is chosen.
+  describe('handleBackchannelFavor (E075)', () => {
+    const backchannelCard = {
+      card_id: 'E075',
+      card_name: 'Backchannel Favor',
+      card_type: 'E',
+      description: 'Choose another team and propose a trade.',
+      phase_restriction: 'Any',
+    };
+
+    beforeEach(() => {
+      mockDataService.getCardById.mockImplementation((cardId: string) =>
+        cardId === 'E075' ? backchannelCard : undefined
+      );
+    });
+
+    it('does nothing but log when there are no other players', async () => {
+      // Default mockGameState has only player1 — no opponents to trade with.
+      await cardService.applyCardEffects('player1', 'E075');
+
+      expect(mockStateService.emitGameEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'card_effect_target_resolved',
+          mechanic: 'backchannel_favor',
+          resolved: false,
+        })
+      );
+      expect(mockStateService.emitGameEvent).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'negotiation_requested' })
+      );
+    });
+
+    it('auto-selects the partner when there is exactly one other player', async () => {
+      const player2 = { ...mockPlayer, id: 'player2', name: 'Bob' };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        players: [mockPlayer, player2],
+      });
+
+      await cardService.applyCardEffects('player1', 'E075');
+
+      expect(mockStateService.emitGameEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'negotiation_requested',
+          playerId: 'player1',
+          partnerId: 'player2',
+          partnerName: 'Bob',
+          cardName: 'Backchannel Favor',
+        })
+      );
+    });
+
+    it('prompts via ChoiceService to pick a partner when there are multiple opponents', async () => {
+      const player2 = { ...mockPlayer, id: 'player2', name: 'Bob' };
+      const player3 = { ...mockPlayer, id: 'player3', name: 'Carol' };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        players: [mockPlayer, player2, player3],
+      });
+
+      const mockChoiceService: any = { createChoice: vi.fn().mockResolvedValue('player3') };
+      const localCardService = new CardService(
+        mockDataService,
+        mockStateService,
+        mockResourceService,
+        mockLoggingService,
+        mockGameRulesService,
+        mockChoiceService,
+      );
+      localCardService.setEffectEngineService(mockEffectEngineService);
+
+      await localCardService.applyCardEffects('player1', 'E075');
+
+      expect(mockChoiceService.createChoice).toHaveBeenCalledWith(
+        'player1',
+        'TARGET_SELECTION',
+        expect.stringContaining('trade'),
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'player2' }),
+          expect.objectContaining({ id: 'player3' }),
+        ])
+      );
+      expect(mockStateService.emitGameEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'negotiation_requested',
+          partnerId: 'player3',
+          partnerName: 'Carol',
+        })
+      );
+    });
+
+    it('falls back to the first opponent when multiple exist but ChoiceService is unavailable', async () => {
+      const player2 = { ...mockPlayer, id: 'player2', name: 'Bob' };
+      const player3 = { ...mockPlayer, id: 'player3', name: 'Carol' };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        players: [mockPlayer, player2, player3],
+      });
+
+      // Default `cardService` from the outer beforeEach has no choiceService.
+      await cardService.applyCardEffects('player1', 'E075');
+
+      expect(mockStateService.emitGameEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'negotiation_requested',
+          partnerId: 'player2',
+          partnerName: 'Bob',
+        })
+      );
+    });
+  });
 });

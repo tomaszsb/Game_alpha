@@ -92,7 +92,7 @@ describe('E2E-02: Complex Card Test', () => {
 
     // Handle circular dependency: EffectEngine -> Turn -> Negotiation -> EffectEngine
     effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as ITurnService, gameRulesService, targetingService, loggingService);
-    negotiationService = new NegotiationService(stateService, effectEngineService);
+    negotiationService = new NegotiationService(stateService, effectEngineService, resourceService, choiceService);
     turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService);
 
     // Complete the circular dependency wiring

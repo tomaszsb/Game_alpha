@@ -65,7 +65,7 @@ describe('E2E-04: Space Try Again Logic', () => {
     
     // Handle circular dependency: EffectEngine -> Turn -> Negotiation -> EffectEngine
     const effectEngine = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as ITurnService, gameRulesService, {} as any, loggingService); // targetingService
-    const negotiationService = new NegotiationService(stateService, effectEngine);
+    const negotiationService = new NegotiationService(stateService, effectEngine, resourceService, choiceService);
     const turnServiceInstance = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService);
 
     // Complete the circular dependency wiring

@@ -6,7 +6,6 @@ import { Player, CardType, VisitType } from '../../types/DataTypes';
 import { NotificationUtils } from '../../utils/NotificationUtils';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
-import { getCardTypeName } from '../../utils/cardTypeNames';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { AvatarIcon } from '../icons/AvatarIcons';
 
@@ -20,13 +19,17 @@ interface ActiveNegotiation {
   initiatorId: string;
   partnerId: string;
   currentOffer?: NegotiationOffer;
-  status: 'selecting_partner' | 'making_offer' | 'awaiting_response' | 'reviewing_offer';
+  status: 'selecting_partner' | 'making_offer' | 'awaiting_response';
 }
 
 // Props interface for the NegotiationModal
 interface NegotiationModalProps {
   isOpen: boolean;
   onClose: () => void;
+  // Pre-selects a partner (e.g. from a card that already had the player
+  // choose one) so the modal opens straight into "making_offer" instead of
+  // the partner-selection screen.
+  initialPartnerId?: string;
 }
 
 /**
@@ -34,7 +37,7 @@ interface NegotiationModalProps {
  * Supports partner selection, offer creation, and offer response handling.
  * Uses ModalBase for consistent styling and mobile-friendly design.
  */
-export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JSX.Element | null {
+export function NegotiationModal({ isOpen, onClose, initialPartnerId }: NegotiationModalProps): JSX.Element | null {
   const { stateService, dataService, negotiationService, cardService, notificationService } = useGameContext();
   const gameState = useSyncedGameState(stateService);
   const { currentPlayerId, players } = gameState;
@@ -58,6 +61,21 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
   const handleStartNegotiation = () => {
     if (!currentPlayerId) return;
 
+    const preselectedPartner = initialPartnerId
+      ? availablePartners.find(p => p.id === initialPartnerId)
+      : undefined;
+
+    if (preselectedPartner) {
+      setSelectedPartnerId(preselectedPartner.id);
+      setNegotiation({
+        initiatorId: currentPlayerId,
+        partnerId: preselectedPartner.id,
+        status: 'making_offer'
+      });
+      negotiationService.initiateNegotiation(currentPlayerId, preselectedPartner.id);
+      return;
+    }
+
     setNegotiation({
       initiatorId: currentPlayerId,
       partnerId: '',
@@ -74,7 +92,7 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
     } : null);
 
     if (currentPlayerId) {
-      negotiationService.initiateNegotiation(currentPlayerId, { partnerId });
+      negotiationService.initiateNegotiation(currentPlayerId, partnerId);
     }
   };
 
@@ -100,7 +118,10 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
     });
   };
 
-  const handleMakeOffer = () => {
+  // Sends the offer, then waits for the partner's real accept/decline
+  // response (handled via ChoiceService/ChoiceModal on their own device —
+  // see NegotiationService.makeOffer) and resolves the trade before closing.
+  const handleMakeOffer = async () => {
     if (!negotiation || !currentPlayerId) return;
 
     setNegotiation(prev => prev ? {
@@ -109,83 +130,67 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
       status: 'awaiting_response'
     } : null);
 
-    // Service currently only consumes a flat list of card IDs; flatten our per-type map.
     const flatCardIds = Object.values(offer.cards).flat();
-    negotiationService.makeOffer(negotiation.initiatorId, { cards: flatCardIds });
-
     const currentPlayer = players.find(p => p.id === currentPlayerId);
     const currentPlayerName = currentPlayer?.name || 'Unknown Player';
 
-    const cardCount = Object.values(offer.cards).flat().length;
-    const offerSummary = `Offered $${offer.money}${cardCount > 0 ? ` and ${cardCount} card(s)` : ''}`;
+    const result = await negotiationService.makeOffer(negotiation.initiatorId, {
+      money: offer.money,
+      cards: flatCardIds
+    });
 
-    notificationService.notify(
-      NotificationUtils.createSuccessNotification(
-        'Offer Made',
-        offerSummary,
-        currentPlayerName
-      ),
-      {
-        playerId: currentPlayerId,
-        playerName: currentPlayerName,
-        actionType: 'negotiation_make_offer'
-      }
-    );
-  };
-
-  const handleAcceptOffer = () => {
-    if (!negotiation || !currentPlayerId) return;
-
-    negotiationService.acceptOffer(currentPlayerId);
-
-    const currentPlayer = players.find(p => p.id === currentPlayerId);
-    const currentPlayerName = currentPlayer?.name || 'Unknown Player';
-
-    notificationService.notify(
-      NotificationUtils.createSuccessNotification(
-        'Offer Accepted',
-        'Negotiation completed successfully',
-        currentPlayerName
-      ),
-      {
-        playerId: currentPlayerId,
-        playerName: currentPlayerName,
-        actionType: 'negotiation_accept'
-      }
-    );
+    if (result.data?.accepted) {
+      notificationService.notify(
+        NotificationUtils.createSuccessNotification(
+          'Offer Accepted',
+          'Trade completed successfully',
+          currentPlayerName
+        ),
+        {
+          playerId: currentPlayerId,
+          playerName: currentPlayerName,
+          actionType: 'negotiation_accept'
+        }
+      );
+    } else if (result.data && result.data.accepted === false) {
+      notificationService.notify(
+        {
+          short: '❌ Declined',
+          medium: '❌ Offer declined',
+          detailed: `${players.find(p => p.id === negotiation.partnerId)?.name || 'They'} declined the trade offer`
+        },
+        {
+          playerId: currentPlayerId,
+          playerName: currentPlayerName,
+          actionType: 'negotiation_decline'
+        }
+      );
+    } else if (!result.success) {
+      notificationService.notify(
+        NotificationUtils.createErrorNotification('Trade', result.message, currentPlayerName),
+        {
+          playerId: currentPlayerId,
+          playerName: currentPlayerName,
+          actionType: 'negotiation_error'
+        }
+      );
+    }
 
     handleCloseModal();
   };
 
-  const handleDeclineOffer = () => {
-    if (!negotiation || !currentPlayerId) return;
-
-    negotiationService.declineOffer(currentPlayerId);
-
-    const currentPlayer = players.find(p => p.id === currentPlayerId);
-    const currentPlayerName = currentPlayer?.name || 'Unknown Player';
-
-    notificationService.notify(
-      {
-        short: '❌ Declined',
-        medium: '❌ Offer declined',
-        detailed: `${currentPlayerName} declined the negotiation offer`
-      },
-      {
-        playerId: currentPlayerId,
-        playerName: currentPlayerName,
-        actionType: 'negotiation_decline'
-      }
-    );
-
-    setNegotiation(prev => prev ? {
-      ...prev,
-      currentOffer: undefined,
-      status: 'making_offer'
-    } : null);
-  };
-
   const handleCloseModal = () => {
+    // Closing before an offer was ever made (partner-selection or
+    // making-offer screens) leaves a real negotiation open server-side,
+    // which would permanently block starting a new one — clean it up.
+    // Closing AFTER makeOffer has resolved (status already 'awaiting_response'
+    // by then) is a no-op here: the service already cleared it.
+    if (negotiation && negotiation.status !== 'awaiting_response') {
+      const active = negotiationService.getActiveNegotiation();
+      if (active) {
+        negotiationService.cancelNegotiation(active.negotiationId);
+      }
+    }
     setNegotiation(null);
     setSelectedPartnerId('');
     setOffer({ money: 0, cards: { W: [], B: [], E: [], L: [], I: [] } });
@@ -293,8 +298,6 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
         return 'Create Offer';
       case 'awaiting_response':
         return 'Awaiting Response';
-      case 'reviewing_offer':
-        return 'Review Offer';
       default:
         return 'Negotiation';
     }
@@ -553,185 +556,6 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
           >
             Close
           </button>
-        </div>
-      )}
-
-      {/* Reviewing Incoming Offer */}
-      {negotiation.status === 'reviewing_offer' && negotiation.currentOffer && (
-        <div>
-          <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ marginTop: 0, color: colors.text.primary }}>
-              {theme.emoji.info} Incoming offer from: {players.find(p => p.id === negotiation.initiatorId)?.name}
-            </h3>
-          </div>
-
-          {/* Offer Details */}
-          <div style={{
-            padding: '20px',
-            backgroundColor: colors.primary.light,
-            borderRadius: theme.borderRadius.md,
-            marginBottom: '24px',
-            border: `2px solid ${colors.primary.main}`
-          }}>
-            <h4 style={{ marginTop: 0, color: colors.text.primary, marginBottom: '16px' }}>
-              {theme.emoji.celebration} They are offering:
-            </h4>
-
-            {/* Money Offer */}
-            {negotiation.currentOffer.money > 0 && (
-              <div style={{
-                padding: '12px',
-                backgroundColor: colors.white,
-                borderRadius: theme.borderRadius.sm,
-                marginBottom: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}>
-                <span style={{ fontSize: '24px' }}>{theme.emoji.money}</span>
-                <div>
-                  <div style={{ fontWeight: 'bold', fontSize: '18px', color: colors.text.primary }}>
-                    ${negotiation.currentOffer.money}
-                  </div>
-                  <div style={{ fontSize: '14px', color: colors.text.secondary }}>Cash payment</div>
-                </div>
-              </div>
-            )}
-
-            {/* Card Offers */}
-            {Object.entries(negotiation.currentOffer.cards).map(([cardType, cardIds]) => {
-              if (cardIds.length === 0) return null;
-              const typeColors = getCardTypeColors(cardType as CardType);
-              const typeEmoji = getCardTypeEmoji(cardType as CardType);
-              return (
-                <div
-                  key={cardType}
-                  style={{
-                    padding: '12px',
-                    backgroundColor: colors.white,
-                    borderRadius: theme.borderRadius.sm,
-                    marginBottom: '12px'
-                  }}
-                >
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    marginBottom: '8px'
-                  }}>
-                    <span style={{ fontSize: '24px' }}>{typeEmoji}</span>
-                    <div>
-                      <div style={{ fontWeight: 'bold', fontSize: '16px', color: colors.text.primary }}>
-                        {typeColors.label} Cards ({cardIds.length})
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ paddingLeft: '36px' }}>
-                    {cardIds.map(cardId => (
-                      <div
-                        key={cardId}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: typeColors.bg,
-                          borderRadius: theme.borderRadius.sm,
-                          marginBottom: '4px',
-                          fontSize: '14px',
-                          color: typeColors.text
-                        }}
-                      >
-                        {getCardName(cardId)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Total Value */}
-            <div style={{
-              marginTop: '16px',
-              padding: '12px',
-              backgroundColor: colors.background.focus,
-              borderRadius: theme.borderRadius.sm,
-              textAlign: 'center'
-            }}>
-              <div style={{ fontWeight: 'bold', fontSize: '18px', color: colors.text.primary }}>
-                Total Estimated Value: ${getTotalOfferValue()}
-              </div>
-            </div>
-          </div>
-
-          {/* Your Current Resources */}
-          <div style={{
-            padding: '16px',
-            backgroundColor: colors.secondary.bg,
-            borderRadius: theme.borderRadius.md,
-            marginBottom: '24px'
-          }}>
-            <h4 style={{ marginTop: 0, color: colors.text.primary }}>{theme.emoji.info} Your Current Resources:</h4>
-            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-              <div style={{ color: colors.text.secondary }}>
-                {theme.emoji.money} Money: ${currentPlayer.money}
-              </div>
-              <div style={{ color: colors.text.secondary }}>
-                {theme.emoji.time} Time: {currentPlayer.timeSpent} minutes
-              </div>
-              {(['W', 'B', 'E', 'L', 'I'] as CardType[]).map(cardType => {
-                const cardCount = getPlayerCardsByType(currentPlayer, cardType).length;
-                if (cardCount === 0) return null;
-                return (
-                  <div key={cardType} style={{ color: colors.text.secondary }}>
-                    {getCardTypeEmoji(cardType)} {getCardTypeName(cardType, cardCount)}: {cardCount}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Decision Prompt */}
-          <div style={{
-            padding: '20px',
-            backgroundColor: colors.warning.bg,
-            borderRadius: theme.borderRadius.md,
-            marginBottom: '24px',
-            textAlign: 'center',
-            border: `2px solid ${colors.warning.main}`
-          }}>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', color: colors.warning.text, marginBottom: '8px' }}>
-              {theme.emoji.target} What’s your decision?
-            </div>
-            <div style={{ color: colors.warning.text }}>
-              This offer will be added to your resources if you accept.
-            </div>
-          </div>
-
-          {/* Response Buttons */}
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <button
-              onClick={handleDeclineOffer}
-              style={modalButtonStyles.danger}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '0.9';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '1';
-              }}
-            >
-              {theme.emoji.close} Decline Offer
-            </button>
-            <button
-              onClick={handleAcceptOffer}
-              style={modalButtonStyles.primary}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '0.9';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '1';
-              }}
-            >
-              {theme.emoji.success} Accept Offer
-            </button>
-          </div>
         </div>
       )}
     </ModalBase>

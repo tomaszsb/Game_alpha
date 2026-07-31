@@ -119,7 +119,7 @@ export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise
     financialEffectHandler,
     cardEffectHandler
   );
-  const negotiationService = new NegotiationService(stateService, effectEngineService);
+  const negotiationService = new NegotiationService(stateService, effectEngineService, resourceService, choiceService);
   const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
   const turnService = new TurnService(
     dataService,

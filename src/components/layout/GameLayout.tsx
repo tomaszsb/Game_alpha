@@ -165,6 +165,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setHiddenEdgeIds(() => new Set());
   }, [setHiddenEdgeIds]);
   const [isNegotiationModalOpen, setIsNegotiationModalOpen] = useState<boolean>(false);
+  const [negotiationPartnerId, setNegotiationPartnerId] = useState<string | null>(null);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState<boolean>(false);
   const [isCardDetailsModalOpen, setIsCardDetailsModalOpen] = useState<boolean>(false);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -476,6 +477,15 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             effectsSummary: event.effectsSummary,
           });
         }
+        return;
+      }
+      if (event.type === 'negotiation_requested') {
+        // Opens NegotiationModal on the INITIATOR's own device, pre-seeded
+        // with the partner they chose. The partner's own accept/decline
+        // happens separately via ChoiceModal, not through this modal.
+        setNegotiationPartnerId(event.partnerId);
+        setIsNegotiationModalOpen(true);
+        return;
       }
     });
 
@@ -769,11 +779,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // and have been removed; no component references MovementPathVisualization.
 
   // Handlers for negotiation modal
-  // NOTE: no opener remains — nothing sets isNegotiationModalOpen to true, so
-  // NegotiationModal is currently unreachable. See CHANGELOG for the open
-  // question about whether to remove it or give it an entry point in V2.
   const handleCloseNegotiationModal = () => {
     setIsNegotiationModalOpen(false);
+    setNegotiationPartnerId(null);
   };
 
   // Handlers for rules modal (toggle behavior)
@@ -1310,9 +1318,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       <EndGameModal />
       
       {/* NegotiationModal - always rendered, visibility controlled by state */}
-      <NegotiationModal 
-        isOpen={isNegotiationModalOpen} 
-        onClose={handleCloseNegotiationModal} 
+      <NegotiationModal
+        isOpen={isNegotiationModalOpen}
+        onClose={handleCloseNegotiationModal}
+        initialPartnerId={negotiationPartnerId ?? undefined}
       />
       
       {/* RulesModal - always rendered, visibility controlled by state */}

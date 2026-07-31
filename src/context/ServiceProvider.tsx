@@ -75,7 +75,7 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   // (see docs/technical/ARCHITECTURE.md). NegotiationService holds the temp instance but only
   // invokes it after the real instance has been wired onto turnService/cardService below.
   const tempEffectEngine = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, undefined as any, undefined as any, targetingService, loggingService, dataService, notificationService, financialEffectHandler, cardEffectHandler);
-  const negotiationService = new NegotiationService(stateService, tempEffectEngine);
+  const negotiationService = new NegotiationService(stateService, tempEffectEngine, resourceService, choiceService);
 
   // CardEffectService is a clean dependency (no cycle back to TurnService),
   // so it goes through TurnService's constructor — not setter injection.

@@ -61,7 +61,7 @@ describe('Logic E2E: Full Game Playthrough', () => {
     const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
     const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService);
     const effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as any, gameRulesService, targetingService, loggingService, dataService, notificationService, financialEffectHandler, cardEffectHandler);
-    const negotiationService = new NegotiationService(stateService, effectEngineService);
+    const negotiationService = new NegotiationService(stateService, effectEngineService, resourceService, choiceService);
     const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
     turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, notificationService, undefined, undefined, undefined, cardEffectService);
     turnService.setEffectEngineService(effectEngineService);

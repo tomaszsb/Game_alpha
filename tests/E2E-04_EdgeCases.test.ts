@@ -99,7 +99,7 @@ async function initializeServices(): Promise<void> {
 
   // Handle circular dependency: EffectEngine -> Turn -> Negotiation -> EffectEngine
   const effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as ITurnService, gameRulesService, {} as any, loggingService); // targetingService
-  const negotiationService = new NegotiationService(stateService, effectEngineService);
+  const negotiationService = new NegotiationService(stateService, effectEngineService, resourceService, choiceService);
   const turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService);
 
   // Complete the circular dependency wiring

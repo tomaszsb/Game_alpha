@@ -119,6 +119,19 @@ export interface RoutingExplanationEvent {
   success?: boolean;
 }
 
+// Fires when a player plays a card that opens NegotiationModal for a
+// partner they chose (e.g. E075 "Backchannel Favor") — GameLayout listens
+// for this to open the modal on the INITIATOR's own device, pre-seeded with
+// the chosen partner. The partner's own accept/decline happens separately
+// via ChoiceService/ChoiceModal, not through this event.
+export interface NegotiationRequestedEvent {
+  type: 'negotiation_requested';
+  playerId: string;
+  partnerId: string;
+  partnerName: string;
+  cardName: string;
+}
+
 export interface AutoDiceRollEvent {
   type: 'auto_dice_roll';
   playerId: string;
@@ -320,7 +333,7 @@ export interface CardDiscardedEvent {
 export interface CardEffectTargetResolvedEvent {
   type: 'card_effect_target_resolved';
   playerId: string;
-  mechanic: 'return_to_sender' | 'favor_called_in';
+  mechanic: 'return_to_sender' | 'favor_called_in' | 'backchannel_favor';
   resolved: boolean;
   targetPlayerName?: string;
   cardName?: string;
@@ -352,4 +365,5 @@ export type GameEvent =
   | CardTransferredEvent
   | CardExpiredEvent
   | CardDiscardedEvent
-  | CardEffectTargetResolvedEvent;
+  | CardEffectTargetResolvedEvent
+  | NegotiationRequestedEvent;

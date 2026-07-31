@@ -230,11 +230,11 @@ export interface ActionLogEntry {
 export interface NegotiationState {
   negotiationId: string;
   initiatorId: string;
+  partnerId: string;
   status: 'pending' | 'in_progress' | 'resolved' | 'cancelled';
-  context: any;
   offers: Array<{
     playerId: string;
-    offerData: any;
+    offerData: { money: number; cards: string[] };
     timestamp: Date;
   }>;
   createdAt: Date;
