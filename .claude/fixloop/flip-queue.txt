@@ -1,5 +1,6 @@
-feedback-1784739275363-89d83c39 — no glossary entry point in TV mode — fixed v3.1.64 (added to the player's phone view) — flip after deploy confirmed live
-feedback-1785191198601-2948cf19 — deploy banner game code not copyable — fixed v3.1.77 (tap-to-copy) — flip after deploy confirmed live
+# feedback-1784739275363-89d83c39 and feedback-1785191198601-2948cf19 both
+# flipped resolved 2026-07-31 — deploy confirmed live (bundle grep: v3.1.80,
+# commit 5eba257).
 
 # Awaiting your call, not a deploy:
 # feedback-1784735731661-b39ea2bd — yellow banner too big. Measured 2026-07-27 as
