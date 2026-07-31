@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.77] - 2026-07-30
+
+### Fix: deploy banner's game code is now tap-to-copy
+Filed on the dashboard 2026-07-27 (`fb:2948cf19`): "when deploying new code a yellow banner shows up with game code - the code number should be added to clipboard." [ShutdownNotice.tsx](src/components/common/ShutdownNotice.tsx) already rendered the rejoin code inline in the deploy-restart banner; the code is now a tap target that calls `navigator.clipboard.writeText()` and swaps in "— Copied!" for 2.5s. Deliberately **not** an automatic write on show — `writeText()` needs a secure context and, in some browsers, a user gesture, so an unprompted call can silently fail or throw; the rejection path is swallowed rather than surfaced, since the code stays readable in the banner either way as a fallback. 5 new tests (`tests/components/common/ShutdownNotice.test.tsx`, previously untested) cover copy-success, the 2.5s revert, the rejection path not throwing or corrupting state, and the existing dismiss behavior. Typecheck, build, and the full `tests/components/common` suite (31/31) all pass. Not verified in a live browser — reproducing the real trigger needs an actual `server_shutdown_notice` broadcast, i.e. a deploy — covered by the mocked interaction tests instead.
+
 ## [3.1.76] - 2026-07-30
 
 ### Lint was only inspecting a third of the building

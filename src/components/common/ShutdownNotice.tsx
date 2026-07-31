@@ -29,15 +29,32 @@ import { getWebSocketService } from '../../services/WebSocketSyncService';
 export function ShutdownNotice(): JSX.Element | null {
   const [gameId, setGameId] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     return getWebSocketService().onShutdownNotice((id) => {
       setGameId(id);
       setDismissed(false);
+      setCopied(false);
     });
   }, []);
 
   if (!gameId || dismissed) return null;
+
+  // Tap-to-copy: no auto-write on show (writeText needs a secure context
+  // and, in some browsers, a user gesture — an unprompted write can fail
+  // silently or throw). The rejection is swallowed rather than surfaced:
+  // some embedded/insecure contexts reject the call, and the code is
+  // already readable in the banner text as a fallback.
+  const handleCopy = () => {
+    navigator.clipboard
+      .writeText(gameId)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      })
+      .catch(() => {});
+  };
 
   return (
     <div
@@ -64,7 +81,26 @@ export function ShutdownNotice(): JSX.Element | null {
     >
       <span>
         🛠️ This game is in beta — we’re pushing an update now. If you get
-        disconnected, rejoin with game code <strong>{gameId}</strong>.
+        disconnected, rejoin with game code{' '}
+        <button
+          type="button"
+          onClick={handleCopy}
+          title="Tap to copy"
+          aria-label={copied ? 'Game code copied to clipboard' : 'Copy game code to clipboard'}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            font: 'inherit',
+            fontWeight: 700,
+            color: 'inherit',
+            textDecoration: 'underline',
+            cursor: 'pointer',
+          }}
+        >
+          {gameId}
+        </button>
+        {copied ? ' — Copied!' : '.'}
       </span>
       <button
         type="button"

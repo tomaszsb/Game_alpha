@@ -62,7 +62,7 @@
 *(restart-after-crash blank-PC-view (v3.1.17), expeditor-replacement privacy leak (v3.1.18), PC color picker taken-color UX (v3.1.19), and Share button phone-width overflow + missing per-player invite button (v3.1.20) all shipped and confirmed deployed 2026-07-19 — closes fb:3a5280d8, fb:44751a06, fb:d6bbcb00, fb:2c848b47, all flipped resolved. "Can't add player" — root-caused + fixed v3.1.41: default name generator reused a still-in-use "Player N" name after removing a non-last player — closes fb:75101be7 — verified already flipped resolved on the dashboard 2026-07-28.)*
 
 ### Newly arrived (2026-07-27, staged 2026-07-28)
-- [ ] **Copy the game code to the clipboard when the restart/deploy banner shows it** — filed during a restart on v3.1.63: "when deploying new code a yellow banner shows up with game code - the code number should be added to clipboard". Small and self-contained: the banner already renders the code, so this is a `navigator.clipboard.writeText()` on show (or a tap-to-copy affordance) plus a "copied" confirmation. Note `navigator.clipboard` needs a secure context and can reject without a user gesture — a tap-to-copy button is the safer shape than an automatic write. <!-- fb:feedback-1785191198601-2948cf19 -->
+*(Copy-to-clipboard on the restart/deploy banner's game code shipped v3.1.77, see CHANGELOG — closes fb:feedback-1785191198601-2948cf19, flip queued.)*
 
 ### Newly arrived (2026-07-19 to 2026-07-22, staged 2026-07-27)
 *(The 3 TCL-smart-TV reports from the same 2026-07-22 window were already fixed in v3.1.22 and were flipped resolved 2026-07-27 — see the PATCH recipe ledger below.)*
