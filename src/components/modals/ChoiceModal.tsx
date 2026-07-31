@@ -1,10 +1,10 @@
 // src/components/modals/ChoiceModal.tsx
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
-import { Choice } from '../../types/CommonTypes';
+import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 import { NotificationUtils } from '../../utils/NotificationUtils';
 import { CardReplacementModal } from './CardReplacementModal';
 import { CardType } from '../../types/DataTypes';
@@ -35,35 +35,14 @@ export interface ChoiceModalProps {
 
 export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
   const { stateService, choiceService, notificationService, dataService } = useGameContext();
-  const [awaitingChoice, setAwaitingChoice] = useState<Choice | null>(null);
-  const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
-  const [currentSpace, setCurrentSpace] = useState<string>('');
-  const [currentVisitType, setCurrentVisitType] = useState<VisitType>('First');
-  useEffect(() => {
-    const syncFromState = (player: { name?: string; currentSpace?: string; visitType?: VisitType } | undefined) => {
-      setCurrentPlayerName(player?.name || 'Unknown Player');
-      setCurrentSpace(player?.currentSpace || '');
-      setCurrentVisitType(player?.visitType || 'First');
-    };
-
-    const unsubscribe = stateService.subscribe((gameState) => {
-      setAwaitingChoice(gameState.awaitingChoice);
-
-      if (gameState.awaitingChoice) {
-        const player = gameState.players.find(p => p.id === gameState.awaitingChoice?.playerId);
-        syncFromState(player);
-      }
-    });
-
-    const gameState = stateService.getGameState();
-    setAwaitingChoice(gameState.awaitingChoice);
-    if (gameState.awaitingChoice) {
-      const player = gameState.players.find(p => p.id === gameState.awaitingChoice?.playerId);
-      syncFromState(player);
-    }
-
-    return unsubscribe;
-  }, [stateService, awaitingChoice?.id]);
+  const gameState = useSyncedGameState(stateService);
+  const awaitingChoice = gameState.awaitingChoice;
+  const awaitingChoicePlayer = awaitingChoice
+    ? gameState.players.find(p => p.id === awaitingChoice.playerId)
+    : undefined;
+  const currentPlayerName = awaitingChoicePlayer?.name || 'Unknown Player';
+  const currentSpace = awaitingChoicePlayer?.currentSpace || '';
+  const currentVisitType: VisitType = awaitingChoicePlayer?.visitType || 'First';
 
   const { getPortraitForSpace } = useNpcPortrait();
 
@@ -170,11 +149,8 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
   // ?p= link). Pass-and-play players with no separate device (deviceType
   // undefined or 'desktop') have no other screen to use, so this shared
   // view must keep showing it for them or that mode becomes unplayable.
-  const awaitingPlayer = awaitingChoice
-    ? stateService.getGameState().players.find(p => p.id === awaitingChoice.playerId)
-    : undefined;
   const isCardChoiceOnSharedViewWithOwnDevice =
-    isCardChoiceType && !viewerId && awaitingPlayer?.deviceType === 'mobile';
+    isCardChoiceType && !viewerId && awaitingChoicePlayer?.deviceType === 'mobile';
 
   // Card choice types get their own modal (separate AnimatePresence lifecycle)
   if (awaitingChoice && isCardChoiceType && !isOtherPlayerChoice && !isCardChoiceOnSharedViewWithOwnDevice) {
@@ -192,7 +168,7 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
     return (
       <CardReplacementModal
         isOpen={true}
-        player={awaitingPlayer || null}
+        player={awaitingChoicePlayer || null}
         cardType={cardType}
         maxReplacements={maxReplacements}
         newCardType={newCardType}

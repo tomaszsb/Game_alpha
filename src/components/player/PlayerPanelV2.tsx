@@ -118,10 +118,17 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     }
   }, [currentSpaceForPopup]);
 
-  useEffect(() => {
+  // Collapse both toggles when the player's space changes. React's documented
+  // "adjusting state when a prop changes" pattern (react.dev/learn/you-
+  // might-not-need-an-effect) — comparing during render instead of a
+  // useEffect avoids a stray render where the old space's expanded panels
+  // are still visible for the new space.
+  const [prevSpaceForToggles, setPrevSpaceForToggles] = useState(currentSpaceForPopup);
+  if (currentSpaceForPopup !== prevSpaceForToggles) {
+    setPrevSpaceForToggles(currentSpaceForPopup);
     setShowWhy(false);
     setShowMoveOptions(false);
-  }, [currentSpaceForPopup]);
+  }
 
   const player = gameServices.stateService.getPlayer(playerId);
   if (!player) return null;

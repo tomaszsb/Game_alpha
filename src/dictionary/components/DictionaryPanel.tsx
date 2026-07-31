@@ -64,15 +64,25 @@ export function DictionaryPanel({
     }
   }, [isOpen]);
 
-  // Handle initial term selection
-  useEffect(() => {
-    if (initialTermId && terms.length > 0) {
-      const term = getTerm(initialTermId);
+  // Handle initial term selection. Fires once `initialTermId` AND the terms
+  // list are both available — waiting on `terms` matters since it loads
+  // asynchronously and may still be empty on the first render. React's
+  // documented "adjusting state when a prop changes" pattern (react.dev/
+  // learn/you-might-not-need-an-effect): comparing during render instead of
+  // a useEffect, keyed on the (id, ready) pair so it re-fires either when
+  // initialTermId changes to a new id, or when terms finish loading for the
+  // id already requested.
+  const initialTermKey = initialTermId && terms.length > 0 ? initialTermId : '';
+  const [prevInitialTermKey, setPrevInitialTermKey] = useState('');
+  if (initialTermKey !== prevInitialTermKey) {
+    setPrevInitialTermKey(initialTermKey);
+    if (initialTermKey) {
+      const term = getTerm(initialTermKey);
       if (term) {
         setSelectedTerm(term);
       }
     }
-  }, [initialTermId, terms, getTerm]);
+  }
 
   // Set iframe loading state when embedded mode opens with a term, and arm the
   // fallback timer: if the iframe hasn't loaded in EMBED_LOAD_TIMEOUT_MS, show
@@ -158,15 +168,18 @@ export function DictionaryPanel({
   };
 
   // Reset browse state when panel closes (embedFailed too — next open retries
-  // the dashboard iframe fresh).
-  useEffect(() => {
+  // the dashboard iframe fresh). Render-time comparison instead of a
+  // useEffect — same reasoning as the initial-term-selection fix above.
+  const [prevIsOpenForReset, setPrevIsOpenForReset] = useState(isOpen);
+  if (isOpen !== prevIsOpenForReset) {
+    setPrevIsOpenForReset(isOpen);
     if (!isOpen) {
       setEmbeddedTermId(null);
       setSelectedTerm(null);
       setSearchQuery('');
       setEmbedFailed(false);
     }
-  }, [isOpen]);
+  }
 
   if (!isOpen) {
     return null;

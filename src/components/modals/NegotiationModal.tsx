@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { colors, theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
-import { Player, Card, CardType, VisitType } from '../../types/DataTypes';
+import { useSyncedGameState } from '../../hooks/useSyncedGameState';
+import { Player, CardType, VisitType } from '../../types/DataTypes';
 import { NotificationUtils } from '../../utils/NotificationUtils';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
@@ -35,11 +36,12 @@ interface NegotiationModalProps {
  */
 export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JSX.Element | null {
   const { stateService, dataService, negotiationService, cardService, notificationService } = useGameContext();
-  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [availableCards, setAvailableCards] = useState<Card[]>([]);
-  const [currentSpace, setCurrentSpace] = useState<string>('');
-  const [currentVisitType, setCurrentVisitType] = useState<VisitType>('First');
+  const gameState = useSyncedGameState(stateService);
+  const { currentPlayerId, players } = gameState;
+  const currentPlayerForSpace = players.find(p => p.id === currentPlayerId);
+  const currentSpace = currentPlayerForSpace?.currentSpace || '';
+  const currentVisitType: VisitType = currentPlayerForSpace?.visitType || 'First';
+  const availableCards = useMemo(() => dataService.getCards(), [dataService]);
 
   // Negotiation state
   const [negotiation, setNegotiation] = useState<ActiveNegotiation | null>(null);
@@ -48,25 +50,6 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
     money: 0,
     cards: { W: [], B: [], E: [], L: [], I: [] }
   });
-
-  // Subscribe to state changes
-  useEffect(() => {
-    const syncFromState = (gameState: ReturnType<typeof stateService.getGameState>) => {
-      setCurrentPlayerId(gameState.currentPlayerId);
-      setPlayers(gameState.players);
-      const player = gameState.players.find(p => p.id === gameState.currentPlayerId);
-      setCurrentSpace(player?.currentSpace || '');
-      setCurrentVisitType(player?.visitType || 'First');
-    };
-
-    const unsubscribe = stateService.subscribe(syncFromState);
-    syncFromState(stateService.getGameState());
-
-    const cards = dataService.getCards();
-    setAvailableCards(cards);
-
-    return unsubscribe;
-  }, [stateService, dataService]);
 
   // Get current player and available partners
   const currentPlayer = players.find(p => p.id === currentPlayerId);

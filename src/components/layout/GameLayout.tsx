@@ -24,7 +24,7 @@ import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
 import { pickRelatedTab } from '../../utils/relatedTab';
 import { NotificationUtils } from '../../utils/NotificationUtils';
-import { GamePhase, Player, TurnEffectResult } from '../../types/StateTypes';
+import { TurnEffectResult } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
 import { GameEvent } from '../../types/GameEvents';
 import { haptics, primeAudio } from '../../utils/haptics';
@@ -33,6 +33,7 @@ import { pushNotifications } from '../../utils/pushNotifications';
 import { PullToRefresh } from '../common/PullToRefresh';
 import { useDictionaryPanel } from '../../dictionary/context/DictionaryContext';
 import { useModalQueue } from '../../hooks/useModalQueue';
+import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 import { DictionaryHint } from '../../dictionary';
 import { PlayerDebug } from '../debug/PlayerDebug';
 import { PlayerAvatar } from '../common/PlayerAvatar';
@@ -84,15 +85,22 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // Dictionary panel control
   const { isOpen: isDictionaryOpen, openPanel: openDictionary, closePanel: closeDictionary } = useDictionaryPanel();
 
-  const [gamePhase, setGamePhase] = useState<GamePhase>('SETUP');
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
-  // Shared TV theme (GameState.tvDarkMode) — tracked here so the remote-control
+  const syncedGameState = useSyncedGameState(stateService);
+  const gamePhase = syncedGameState.gamePhase;
+  const players = syncedGameState.players;
+  const currentPlayerId = syncedGameState.currentPlayerId;
+  const turnNumber = syncedGameState.globalTurnCount;
+  const gameStateCompletedActions = syncedGameState.completedActions;
+  const tvDarkMode = syncedGameState.tvDarkMode ?? false;
+
+  // gamePhase/players/currentPlayerId/turnNumber/gameStateCompletedActions/
+  // tvDarkMode all come straight from the synced game state below — see the
+  // useSyncedGameState call after gameServices.
+  // Shared TV theme (GameState.tvDarkMode) — read here so the remote-control
   // button rendered in ProjectProgress's toolbar reflects the current synced
   // value and can flip it via stateService.setTVDarkMode(). This device's own
   // dark/light preference (PlayerPanelWrapper/usePanelMode) is unrelated and
   // untouched by this.
-  const [tvDarkMode, setTvDarkMode] = useState<boolean>(false);
   // The shared TV screen is a group display, not a personal preference — same
   // reasoning as G160's board-edges toggle (2026-07-26 correction). Only an
   // admin or a logged-in teacher gets the remote-control button; a regular
@@ -195,6 +203,13 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // so opponents' panels don't jump). Skips if currentPlayerId is null
   // (defensive — shouldn't happen during a player's turn) or if the effects
   // don't map to any tab (movement-only, info-only).
+  // Deliberately stays an effect (react-hooks/set-state-in-effect 'warn',
+  // not fixed like the sibling sites in this file): `id: Date.now()` makes
+  // this an event broadcast, not a derived value — it needs a fresh id on
+  // every qualifying dice result so ActionCenterPanel re-triggers even when
+  // the same tab is picked twice in a row, which isn't expressible as a
+  // pure render-time computation (Date.now() during render would be an
+  // impure read, a different anti-pattern).
   useEffect(() => {
     if (!isDiceResultModalOpen || !diceResult || !currentPlayerId) return;
     const tab = pickRelatedTab(diceResult.effects);
@@ -268,16 +283,13 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // here. Nothing ever read it (the classic panel's busy indicator is gone —
   // PlayerPanelV2 tracks its own), so each action was paying two no-op
   // re-renders of this component. Removed rather than renamed.
-  const [turnNumber, setTurnNumber] = useState<number>(0);
+  // (turnNumber/gameStateCompletedActions now come from the synced game
+  // state declared above, not local state.)
   // NOTE: a justUsedTryAgain flag lived here and was passed to
   // endTurnWithMovement's skipAutoMove argument. Its only reader was the
   // classic end-turn handler above; PlayerPanelV2 owns that flow now and does
   // not consult this component's state, so the flag was being set and never
   // read. Removed.
-  const [gameStateCompletedActions, setGameStateCompletedActions] = useState<{
-    diceRoll: string | undefined;
-    manualActions: { [key: string]: string };
-  }>({ diceRoll: undefined, manualActions: {} });
 
   // Unified notification system - driven by NotificationService.
   // The button-feedback channel is still subscribed (NotificationService pushes
@@ -716,50 +728,40 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     }
   }, []);
 
-  // Subscribe to game state changes to track phase transitions and notifications
+  // Clear per-turn notification state on genuine player/turn transitions.
+  // gamePhase/players/currentPlayerId/turnNumber/gameStateCompletedActions/
+  // tvDarkMode used to be local state, manually re-synced from a subscribe
+  // callback AND duplicated in a "initialize with current state" block right
+  // below it (the synchronous duplication react-hooks/set-state-in-effect
+  // flagged here) — now they're read directly from useSyncedGameState above,
+  // so the only thing left to do here is detect an actual player/turn change
+  // and clear the per-turn notification state. A ref tracking the previous
+  // values takes over the job the old subscribe callback's closure was
+  // doing (comparing against React state captured before this render).
+  const prevTransitionRef = useRef<{ playerId: string | null; turnNumber: number } | null>(null);
   useEffect(() => {
-    const unsubscribe = stateService.subscribe((gameState) => {
-      const previousPlayerId = currentPlayerId;
+    const prev = prevTransitionRef.current;
+    const playerChanged = !!prev && prev.playerId !== currentPlayerId;
+    const turnChanged = !!prev && prev.turnNumber !== turnNumber;
+    if (playerChanged || turnChanged) {
+      notificationService.clearAllNotifications();
+      setButtonFeedback({});
+      setPlayerNotifications({});
+      setApprovalRevokeNotice({});
+    }
+    prevTransitionRef.current = { playerId: currentPlayerId, turnNumber };
+  }, [currentPlayerId, turnNumber, notificationService]);
 
-      setGamePhase(gameState.gamePhase);
-      setPlayers(gameState.players);
-      setCurrentPlayerId(gameState.currentPlayerId);
-      setTvDarkMode(gameState.tvDarkMode ?? false);
-
-      // Track turn changes for notification clearing
-      const previousTurn = turnNumber;
-      setTurnNumber(gameState.globalTurnCount);
-
-      // Clear completed actions when current player changes OR turn advances
-      const playerChanged = previousPlayerId && previousPlayerId !== gameState.currentPlayerId;
-      const turnChanged = previousTurn !== gameState.globalTurnCount;
-
-      if (playerChanged || turnChanged) {
-        notificationService.clearAllNotifications();
-        setButtonFeedback({});
-        setPlayerNotifications({});
-        setApprovalRevokeNotice({});
-      }
-
-      // Update completed actions from game state
-      setGameStateCompletedActions(gameState.completedActions);
-    });
-
-    // Initialize with current state
-    const currentState = stateService.getGameState();
-    setGamePhase(currentState.gamePhase);
-    setPlayers(currentState.players);
-    setCurrentPlayerId(currentState.currentPlayerId);
-    setTurnNumber(currentState.globalTurnCount);
-    setGameStateCompletedActions(currentState.completedActions);
-    setTvDarkMode(currentState.tvDarkMode ?? false);
-
+  // Clear all notifications on unmount (previously the cleanup of the
+  // subscribe effect above, which also fired on every player/turn change
+  // since those were in its dependency array — unmount is the only case
+  // that actually matters here, the transition case is handled explicitly
+  // above).
+  useEffect(() => {
     return () => {
-      unsubscribe();
-      // Clean up all notifications on unmount
       notificationService.clearAllNotifications();
     };
-  }, [stateService, currentPlayerId, turnNumber, notificationService]);
+  }, [notificationService]);
 
   // NOTE: Auto-show movement path logic disabled - using board-based movement
   // indicators instead. The remaining state and toggle handler for that panel

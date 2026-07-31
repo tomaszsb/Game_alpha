@@ -189,16 +189,19 @@ function KeepHandy({ isPhone }: { isPhone: boolean }): JSX.Element | null {
 }
 
 export function PlaytesterLandingPage(): JSX.Element {
-  const [returning, setReturning] = useState(false);
+  // One-time read, no props/state dependency — a lazy initializer avoids the
+  // mount-effect + extra render that setting this via useEffect would cost.
+  const [returning] = useState<boolean>(() => hasVisitedPlaytest());
   const isPhone = typeof navigator !== 'undefined' && isPhoneScreen();
   const { heading, body } = landingCopy(returning, isPhone);
 
+  // Analytics + persisting the "visited" flag are genuine side effects (not
+  // state derivation), so these still belong in an effect — `returning` is
+  // read from the lazy initializer above, not recomputed here.
   useEffect(() => {
-    const seenBefore = hasVisitedPlaytest();
-    setReturning(seenBefore);
-    trackPlaytestEvent(seenBefore ? 'return_visit' : 'landing_view');
+    trackPlaytestEvent(returning ? 'return_visit' : 'landing_view');
     markPlaytestVisited();
-  }, []);
+  }, [returning]);
 
   const goToGame = (): void => { window.location.href = '/'; };
   const handlePreview = (): void => { trackPlaytestEvent('preview_click'); goToGame(); };

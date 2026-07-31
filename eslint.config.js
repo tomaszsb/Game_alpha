@@ -100,13 +100,69 @@ export default [
       // So: this rule stays 'warn' indefinitely, on purpose. Buckets 1 and 2
       // are the answer, not a backlog. A NEW warning here still deserves a
       // look, which is why it isn't 'off'.
-      'react-hooks/set-state-in-effect': 'warn',      // 34 — new rule in react-hooks v6.
-      // Audited site-by-site 2026-07-29 and deliberately NOT burned down: the
-      // 34 are overwhelmingly legitimate shapes (subscribe-to-store, fetch-on-
-      // mount, derive-from-props). Clearing them properly means moving stores
-      // to useSyncExternalStore and reworking derived state at render time —
-      // a React data-flow refactor, not a lint cleanup. Revisit as its own
-      // project, not as a sweep.
+      'react-hooks/set-state-in-effect': 'warn',      // 18 — new rule in react-hooks v6.
+      // 34 → 18 (v3.1.80). The 16 fixed all had a real, low-risk mechanical
+      // fix: ~9 "subscribe to store, seed initial value synchronously" sites
+      // (GameLog/SpaceExplorerPanel/GameLayout/TVDisplay/ChoiceModal/
+      // NegotiationModal/PlayerSetup) moved to the new useSyncedGameState
+      // hook (src/hooks/useSyncedGameState.ts), which wraps StateService in
+      // useSyncExternalStore — React's own tool for exactly this case, and
+      // also avoids "tearing" a manual subscribe+setState can produce under
+      // concurrent rendering. ~7 "state that's just a copy of a prop" sites
+      // (DiceRollEditor/PlayerPanelV2/DictionaryPanel x2/SpaceExplorerPanel's
+      // remainder) moved the calculation to render time, using React's
+      // documented "adjusting state when a prop changes" render-time-
+      // comparison pattern where the state has other legitimate update paths
+      // too (not just derived), or useMemo/lazy useState initializer where
+      // it's purely one-time (DictionaryHint, PlaytesterLandingPage).
+      //
+      // The remaining 18 are genuinely NOT the same shape, audited
+      // individually (not assumed) before leaving each:
+      //   - BoardCanvas.tsx (1): the exact effect that fixed two real shipped
+      //     bugs (funding-token resolve, First/Subsequent visit-copy
+      //     staleness — see its own inline comment). `nodes` mixes
+      //     ReactFlow-owned state (drag positions) with derived display data
+      //     in one array, so "just compute it at render time" doesn't apply
+      //     — fixing it means separating structural node state from derived
+      //     display data, a real architecture change, not a pattern swap.
+      //   - GameLayout.tsx (4): one is an event broadcast with `id:
+      //     Date.now()` (needs a fresh id per qualifying dice result, not
+      //     expressible as a pure render-time value); the other three
+      //     orchestrate modal sequencing / consume a one-shot external
+      //     request — genuine "respond to a transition" effects, not
+      //     disguised derivations.
+      //   - TVDisplay.tsx (1) / useModalQueue.ts (1): a timed "flash then
+      //     auto-dismiss" indicator and a queue-flush ("open the next
+      //     payload once idle") — both need a timer or mutate a queue,
+      //     neither is a pure function of current props/state.
+      //   - NegotiationModal.tsx (1) / DictionaryPanel.tsx (1): same
+      //     shape — a one-shot "start this flow" trigger and an "arm a
+      //     fallback timer" pattern respectively.
+      //   - StatsDashboard.tsx / ClassroomAdminPanel.tsx / ClassroomSetup.tsx
+      //     / TeacherClassroomPanel.tsx / ConnectionStatus.tsx /
+      //     BugReportsPanel.tsx / useDictionary.ts / AdminGameManager.tsx
+      //     (1 each, 8 total): mount-time data loading. React's own docs
+      //     ("You Might Not Need an Effect") call this pattern fine as
+      //     written when guarded against races. Checked each function body:
+      //     4 of the 8 (StatsDashboard, ClassroomAdminPanel, ClassroomSetup,
+      //     TeacherClassroomPanel) have NO synchronous setState at all —
+      //     every state update happens after an `await`, so this rule's
+      //     static analysis is flagging the async function *call*, not an
+      //     actual synchronous violation (matches a known false-positive
+      //     shape reported upstream: facebook/react#34743). Of the other 4,
+      //     3 (ConnectionStatus, BugReportsPanel, useDictionary) DO set a
+      //     loading flag synchronously before their first `await` — but the
+      //     state's own default already equals that value (`useState(true)`
+      //     / `useState('checking')`), so React's setState bails out on an
+      //     unchanged value and no extra render actually happens; the lint
+      //     rule's static analysis can't see that runtime equality, only the
+      //     textual call. The 4th, AdminGameManager, had a real one-render
+      //     mismatch (defaulted `false`, set `true` on mount) — fixed by
+      //     changing its default to `true` (see its own inline comment);
+      //     the warning stays because the synchronous call itself is still
+      //     there and still needed for the 5s poll's re-fetches, just no
+      //     longer wasting a render on mount.
+      // Full site-by-site categorization: CHANGELOG v3.1.80.
 
       // Kept as hard errors: currently at zero, so they guard rather than nag.
       // (`react-hooks/rules-of-hooks` is already 'error' via the recommended

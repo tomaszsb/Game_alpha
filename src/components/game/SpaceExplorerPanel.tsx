@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { colors } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
+import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 import { Space, SpaceContent, SpaceEffect, DiceEffect, Player } from '../../types/DataTypes';
 import { FormatUtils } from '../../utils/FormatUtils';
 import { openInDictionary } from '../../utils/dictionaryBridge';
@@ -34,59 +35,46 @@ export function SpaceExplorerPanel({
 }: SpaceExplorerPanelProps): JSX.Element {
   const { dataService, stateService } = useGameContext();
   const { openWithTerm } = useDictionaryPanel();
-  const [allSpaces, setAllSpaces] = useState<Space[]>([]);
-  const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
-  const [spaceDetails, setSpaceDetails] = useState<SpaceDetails | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'starting' | 'ending' | 'tutorial'>('all');
-  const [players, setPlayers] = useState<Player[]>([]);
-
-  // Effect to handle external selection
-  useEffect(() => {
-    if (initialSelectedSpace) {
-      setSelectedSpace(initialSelectedSpace);
-    }
-  }, [initialSelectedSpace]);
-
-  // Subscribe to state changes
-  useEffect(() => {
-    const unsubscribe = stateService.subscribe((gameState) => {
-      setPlayers(gameState.players);
-    });
-    
-    // Initialize with current state
-    setPlayers(stateService.getGameState().players);
-    
-    return unsubscribe;
-  }, [stateService]);
-
-  // Load spaces on mount
-  useEffect(() => {
-    const spaces = dataService.getAllSpaces();
-    setAllSpaces(spaces);
-
-    // Select current player's space by default if available (only on mount)
+  // Static for the life of the panel — the CSV-backed space list doesn't
+  // change after load, so a lazy initializer reads it once with no effect.
+  const [allSpaces] = useState<Space[]>(() => dataService.getAllSpaces());
+  const { players } = useSyncedGameState(stateService);
+  // Defaults to the current player's space on mount (matching the pre-refactor
+  // effect's precedence: current-player default wins over initialSelectedSpace
+  // when both are available on first render), then can diverge from either
+  // via direct clicks (setSelectedSpace calls below) or the prop-sync below.
+  const [selectedSpace, setSelectedSpace] = useState<string | null>(() => {
     const gameState = stateService.getGameState();
     const currentPlayer = gameState.currentPlayerId
       ? gameState.players.find(p => p.id === gameState.currentPlayerId)
       : null;
-    if (currentPlayer) {
-      setSelectedSpace(currentPlayer.currentSpace);
-    }
-  }, [dataService, stateService]); // Removed selectedSpace to prevent infinite loop
+    return currentPlayer ? currentPlayer.currentSpace : (initialSelectedSpace ?? null);
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'starting' | 'ending' | 'tutorial'>('all');
 
-  // Update space details when selection or players change
-  useEffect(() => {
-    if (!selectedSpace) {
-      setSpaceDetails(null);
-      return;
+  // Jump to a new externally-requested space when initialSelectedSpace changes
+  // after mount (e.g. opened again from elsewhere in the app with a different
+  // space in mind). React's documented "adjusting state when a prop changes"
+  // pattern (react.dev/learn/you-might-not-need-an-effect) — comparing during
+  // render instead of a useEffect avoids an extra render pass with a stale
+  // selection visible first.
+  const [prevInitialSelectedSpace, setPrevInitialSelectedSpace] = useState(initialSelectedSpace);
+  if (initialSelectedSpace !== prevInitialSelectedSpace) {
+    setPrevInitialSelectedSpace(initialSelectedSpace);
+    if (initialSelectedSpace) {
+      setSelectedSpace(initialSelectedSpace);
     }
+  }
+
+  // Space details are fully derived from the current selection — no need to
+  // store them separately, just compute during render (memoized so the
+  // connections scan below only re-runs when its inputs actually change).
+  const spaceDetails = useMemo<SpaceDetails | null>(() => {
+    if (!selectedSpace) return null;
 
     const space = allSpaces.find(s => s.name === selectedSpace);
-    if (!space) {
-      setSpaceDetails(null);
-      return;
-    }
+    if (!space) return null;
 
     const content = dataService.getSpaceContent(selectedSpace, 'First');
     const effects = dataService.getSpaceEffects(selectedSpace, 'First');
@@ -116,15 +104,15 @@ export function SpaceExplorerPanel({
       debugWarn('Error loading space connections:', error);
     }
 
-    setSpaceDetails({
+    return {
       space,
       content: content || null,
       effects,
       diceEffects,
       playersOnSpace,
       connections
-    });
-  }, [selectedSpace, allSpaces, dataService, players]); // Direct dependencies, no useCallback needed
+    };
+  }, [selectedSpace, allSpaces, dataService, players]);
 
   const getFilteredSpaces = (): Space[] => {
     let filtered = allSpaces;

@@ -763,6 +763,25 @@ function BoardCanvasInner({
   // change, AND whenever hover/expand/edit state changes. The hover+click
   // callbacks have to be injected here so each node's `.data` can reach them
   // (custom node components only receive `data`, not closures from the parent).
+  //
+  // Deliberately stays a useEffect (react-hooks/set-state-in-effect 'warn',
+  // audited 2026-07-29 and again 2026-07-31 — not touched like the other
+  // sites this rule flagged elsewhere in the codebase). `nodes` isn't purely
+  // derived from players/currentPlayerId the way the fixed sites were: it
+  // also carries ReactFlow-owned state this effect must preserve — node
+  // positions from admin drag-and-drop (onNodesChange/applyNodeChanges) and
+  // anything else ReactFlow's own interaction model writes onto the array.
+  // `setNodes(prev => prev.map(...))` folds fresh display data (isCurrent,
+  // story, actionDescription, funding tokens) onto that existing array
+  // rather than replacing it — the "just compute the value during render"
+  // fix used elsewhere doesn't apply when the target isn't a pure copy of
+  // its inputs. This exact effect is also the documented fix for two real
+  // shipped bugs (funding-token resolve and First/Subsequent visit-copy
+  // staleness, both explained inline below) — restructuring it isn't a
+  // mechanical pattern swap, it's a real architecture change (splitting
+  // "structural node state" from "derived display data"), and doing that
+  // without reintroducing either bug needs its own careful pass, not a
+  // drive-by fix bundled with 30 unrelated sites.
   useEffect(() => {
     // Playtest bug (HIGH, fb Playwright report) — the board tile for
     // OWNER-FUND-INITIATION rendered the literal "{fundingAmount}" while the

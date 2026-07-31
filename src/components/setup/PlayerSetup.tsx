@@ -8,6 +8,7 @@ import { usePlayerValidation, GameSettings } from './usePlayerValidation';
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
 import { getCurrentGameId } from '../../utils/networkDetection';
+import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 import { isSmartTV } from '../../utils/deviceDetection';
 import { DataEditor } from '../editor/DataEditor';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
@@ -80,19 +81,7 @@ export function PlayerSetup({
   const { stateService, gameRulesService, dataService } = useGameContext();
 
   // Get players from StateService instead of local state
-  const [players, setPlayers] = useState<Player[]>([]);
-
-  // Subscribe to state changes
-  useEffect(() => {
-    const unsubscribe = stateService.subscribe((gameState) => {
-      setPlayers(gameState.players);
-    });
-
-    // Initialize with current state
-    setPlayers(stateService.getGameState().players);
-
-    return unsubscribe;
-  }, [stateService]);
+  const { players } = useSyncedGameState(stateService);
 
   // GitHub sync status — restored from pre-v2.69.0 GameLobby. Tells the user
   // at a glance whether the loaded client matches the latest master commit.

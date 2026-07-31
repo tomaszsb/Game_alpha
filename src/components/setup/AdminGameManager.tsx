@@ -23,7 +23,12 @@ interface GameInfo {
  */
 export function AdminGameManager(): JSX.Element {
   const [activeGames, setActiveGames] = useState<GameInfo[]>([]);
-  const [gamesLoading, setGamesLoading] = useState(false);
+  // Starts true (not false) so the "..." loading indicator shows from the
+  // very first render instead of a render later — fetchActiveGames sets it
+  // true again synchronously on mount, which is what react-hooks/set-state-
+  // in-effect flags; defaulting here removes the redundant extra render
+  // rather than just silencing the warning.
+  const [gamesLoading, setGamesLoading] = useState(true);
 
   // Foreign-game text alert kill switch (null = not loaded yet)
   const [foreignGameAlertsEnabled, setForeignGameAlertsEnabledState] = useState<boolean | null>(null);

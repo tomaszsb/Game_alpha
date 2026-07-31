@@ -11,13 +11,13 @@ import { ProjectProgress } from '../game/ProjectProgress';
 import { ScoreboardV2 } from '../player/ScoreboardV2';
 import { RulesModal } from '../modals/RulesModal';
 import { useGameContext } from '../../context/GameContext';
-import { Player, GamePhase } from '../../types/StateTypes';
 import { getServerURL, getCurrentGameId } from '../../utils/networkDetection';
 import { ClassroomBadge } from '../classroom/ClassroomBadge';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { AvatarIcon } from '../icons/AvatarIcons';
 import { IconCheck } from '../icons/SetupIcons';
 import { ShutdownNotice } from '../common/ShutdownNotice';
+import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 
 /**
  * TVDisplay - Dedicated display for TV/monitor in party game setup
@@ -32,16 +32,14 @@ import { ShutdownNotice } from '../common/ShutdownNotice';
 export function TVDisplay(): JSX.Element {
   const gameServices = useGameContext();
   const { stateService, dataService, gameRulesService } = gameServices;
-  const [gamePhase, setGamePhase] = useState<GamePhase>('SETUP');
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   // Shared TV theme (GameState.tvDarkMode) — unlike PlayerPanelV2's per-device
   // dark-mode toggle, this is ONE value for the whole shared screen, flipped
   // remotely from any connected player's own device (ProjectProgress's "TV
   // theme" button) and pushed here live via the normal state-broadcast path
   // (same pipeline as a dice roll or move). Defaults to light when absent so
   // existing saved games don't need migration.
-  const [tvDarkMode, setTvDarkMode] = useState<boolean>(false);
+  const { gamePhase, players, currentPlayerId, tvDarkMode: tvDarkModeRaw } = useSyncedGameState(stateService);
+  const tvDarkMode = tvDarkModeRaw ?? false;
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [showActionOverlay, setShowActionOverlay] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
@@ -56,25 +54,6 @@ export function TVDisplay(): JSX.Element {
   const [showTurnPill, setShowTurnPill] = useState(true);
 
   const gameId = getCurrentGameId();
-
-  // Subscribe to game state
-  useEffect(() => {
-    const unsubscribe = stateService.subscribe((gameState) => {
-      setGamePhase(gameState.gamePhase);
-      setPlayers(gameState.players);
-      setCurrentPlayerId(gameState.currentPlayerId);
-      setTvDarkMode(gameState.tvDarkMode ?? false);
-    });
-
-    // Initialize
-    const currentState = stateService.getGameState();
-    setGamePhase(currentState.gamePhase);
-    setPlayers(currentState.players);
-    setCurrentPlayerId(currentState.currentPlayerId);
-    setTvDarkMode(currentState.tvDarkMode ?? false);
-
-    return unsubscribe;
-  }, [stateService]);
 
   // Resolved PanelMode for the shared TV screen — passed to both ScoreboardV2
   // and BoardCanvas so the whole TV chrome/board reflects the same synced

@@ -21,18 +21,19 @@ const STORAGE_KEY = 'unravel.dictionaryHint.v1';
 const AUTO_DISMISS_MS = 12_000;
 
 export function DictionaryHint(): JSX.Element | null {
-  const [visible, setVisible] = useState<boolean>(false);
-
-  useEffect(() => {
-    // Read localStorage on mount. Guard against SSR / sandboxed environments.
+  // One-time read, no props/state dependency — a lazy initializer reads it
+  // once instead of a mount effect that would need an extra render to apply.
+  // Guard against SSR / sandboxed environments; localStorage blocked (Safari
+  // private mode, etc.) fails closed.
+  const [visible, setVisible] = useState<boolean>(() => {
     try {
-      if (typeof window === 'undefined' || !window.localStorage) return;
+      if (typeof window === 'undefined' || !window.localStorage) return false;
       const seen = window.localStorage.getItem(STORAGE_KEY);
-      if (!seen) setVisible(true);
+      return !seen;
     } catch {
-      // localStorage blocked (Safari private mode, etc.) — fail closed.
+      return false;
     }
-  }, []);
+  });
 
   const dismiss = useCallback(() => {
     setVisible(false);

@@ -261,12 +261,18 @@ export function DiceRollEditor({
     });
   };
 
-  // Update new roll space_name when selectedSpaceId changes
-  React.useEffect(() => {
+  // Update new roll space_name when selectedSpaceId changes. React's
+  // documented "adjusting state when a prop changes" pattern (compare
+  // during render instead of a useEffect) — react.dev/learn/you-might-not-
+  // need-an-effect — avoids an extra render pass where the form briefly
+  // shows the stale space name.
+  const [prevSelectedSpaceId, setPrevSelectedSpaceId] = useState(selectedSpaceId);
+  if (selectedSpaceId !== prevSelectedSpaceId) {
+    setPrevSelectedSpaceId(selectedSpaceId);
     if (selectedSpaceId) {
       setNewRoll(prev => ({ ...prev, space_name: selectedSpaceId }));
     }
-  }, [selectedSpaceId]);
+  }
 
   return (
     <div style={styles.container}>

@@ -5,6 +5,7 @@ import { ActionLogEntry } from '../../types/StateTypes';
 import { formatActionDescription } from '../../utils/actionLogFormatting';
 import { getDisplayableLogEntries } from '../../utils/logFiltering';
 import { debugWarn } from '../../utils/debugLog';
+import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 import { LogRowDetail } from './LogRowDetail';
 
 interface PlayerTurnGroup {
@@ -24,7 +25,14 @@ interface SpaceGroup {
 
 export function GameLog(): JSX.Element {
   const { stateService } = useGameContext();
-  const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
+  // Phase 1.2 audit (2026-06-04): canonical filter is isCommitted && visibility==='player',
+  // shared with PlayerLogSection + PostGameLogViewer. Mid-turn provisional entries are
+  // hidden until they commit at end-of-turn (or vanish entirely on Try Again).
+  const gameState = useSyncedGameState(stateService);
+  const actionLog = useMemo(
+    () => getDisplayableLogEntries(gameState.globalActionLog),
+    [gameState.globalActionLog]
+  );
   const [expandedPlayerTurns, setExpandedPlayerTurns] = useState<{ [turnKey: string]: boolean }>({});
   const [expandedSpaces, setExpandedSpaces] = useState<{ [spaceKey: string]: boolean }>({});
   // fb:91738221 v3.0.45 — per-row expand for raw detail (card IDs, raw space IDs, etc.)
@@ -33,21 +41,6 @@ export function GameLog(): JSX.Element {
     setExpandedRows(prev => ({ ...prev, [rowKey]: !prev[rowKey] }));
   };
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // Subscribe to state changes to get the global action log (filtered for player visibility)
-  // Phase 1.2 audit (2026-06-04): canonical filter is isCommitted && visibility==='player',
-  // shared with PlayerLogSection + PostGameLogViewer. Mid-turn provisional entries are
-  // hidden until they commit at end-of-turn (or vanish entirely on Try Again).
-  useEffect(() => {
-    const unsubscribe = stateService.subscribe((gameState) => {
-      setActionLog(getDisplayableLogEntries(gameState.globalActionLog));
-    });
-
-    const gameState = stateService.getGameState();
-    setActionLog(getDisplayableLogEntries(gameState.globalActionLog));
-
-    return unsubscribe;
-  }, [stateService]);
 
   // Format timestamp for display
   const formatTimestamp = (timestamp: Date): string => {
