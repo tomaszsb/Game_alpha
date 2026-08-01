@@ -13,6 +13,7 @@ yarn-error.log*
 
 # Test reports
 /coverage
+.coverage/
 
 # Vite
 .vite

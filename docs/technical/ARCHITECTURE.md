@@ -1,8 +1,8 @@
 # Architecture Guide - Unravel Codes: The Game
 
-**Last Updated:** April 30, 2026
-**Status:** Beta (v2.58.0) — live in production
-**Test Coverage:** 99 test files, run via `./tests/scripts/run-tests-batch-fixed.sh` (23 batches, all green at v2.58.0)
+**Last Updated:** August 1, 2026
+**Status:** Beta (v3.1.85) — live in production
+**Test Coverage:** 183 test files, 2,582+ tests passing (1 pre-existing skip) as of v3.1.84. Plain `npm test` now runs the full suite directly in ~100s — the 20-30 min ghost-bot gates that used to force batch workarounds were split out to `npm run test:ghost` in v3.1.14. `./tests/scripts/run-tests-batch-fixed.sh` (23 batches) still exists and still passes, but is no longer required for a clean run.
 
 ---
 
@@ -46,20 +46,20 @@ Game Alpha is built on a **service-oriented architecture** with strict dependenc
 
 ### Service Overview
 
-All services are fully typed and comply with TypeScript strict mode (`npm run typecheck` returns 0 errors as of v2.65.4). 28 service files in `src/services/` (ApprovalService added v2.65.0; PlayerActionService deleted v3.1.9 — it was the classic panel's card-play orchestrator, dead since the v3.0.128-137 panel removal; the live play path is `CardService.playCard`).
+All services are fully typed and comply with TypeScript strict mode (`npm run typecheck` returns 0 errors, verified as of v3.1.85). 33 service files in `src/services/` (ApprovalService added v2.65.0; PlayerActionService deleted v3.1.9 — it was the classic panel's card-play orchestrator, dead since the v3.0.128–137 panel removal, which also deleted `CardModal`/`CardsSection`/`ActionCenterPanel`/`CardPortfolioDashboard`; the live play path is `CardService.playCard`). **The classic panel is gone entirely** — `PlayerPanelV2` + `ScoreboardV2` + `TurnCommitControl` are now the only player UI (no toggle, no fallback). Five service files were added in July 2026 alongside the domain-event refactor and the TurnService split — `GameEventBus`, `LogWriter`, `ToastWriter`, `TurnEffectsOrchestrator`, `ManualActionProcessor` — listed below.
 
 ```typescript
 // Core Services (in IServiceContainer)
 DataService            // CSV data loading and caching; engine-data lookups (Workstream 6 flags)
 StateService           // Immutable game state management; REAL/TEMP turn lifecycle
 TurnService            // Turn progression and win conditions
-CardService            // Card operations and deck management (incl. playCard — the one manual play path)
+CardService            // Card operations and deck management (incl. playCard — the one manual play path; also the Homeowner Violation mechanic, v3.1.84 — see below)
 MovementService        // Space transitions, pathfinding, path-choice memory + cross-space rules
 GameRulesService       // Validation and win conditions; condition evaluator
 EffectEngineService    // Unified effect processing (delegates to handlers)
 ResourceService        // Money, time tracking with affordability gating
-ChoiceService          // Player choice handling
-NegotiationService     // Player-to-player interactions
+ChoiceService          // Player choice handling; also backs NegotiationService's partner-side accept/decline (v3.1.83)
+NegotiationService     // Player-to-player interactions — trading is reachable in production via card E075 "Backchannel Favor" (v3.1.83)
 NotificationService    // Unified notification system
 TargetingService       // Multi-player effect targeting
 LoggingService         // Centralized game logging with exploration sessions
@@ -72,19 +72,36 @@ CardEffectHandler      // Card effect processing for EffectEngineService
 WebSocketSyncService   // WebSocket real-time state synchronization
 SpeechService          // Text-to-speech character voice narration
 ApprovalService        // Plan-approval state machine (Workstream 7, v2.65.0) — pure-logic, no state mutation; returns PlayerUpdateData partials that callers apply via StateService
+GameEventBus           // Synchronous, ordered dispatch for typed GameEvents (domain-event stage 2, Jul 2026) — see "Game Event Bus" under State Management
+LogWriter              // Subscribes to GameEventBus; writes the permanent-log half of each event via LoggingService (domain-event stage 3, v3.1.7)
+ToastWriter            // Subscribes to GameEventBus; fires the toast half of each event via NotificationService (domain-event stage 3, v3.1.7)
 
 // Internal helper services
 DiceService            // Dice rolling and outcome lookup
 SpaceEffectService     // Space effect retrieval; data-driven design fee math
 DiceRollProcessor      // Dice roll processing with callbacks
 SpaceArrivalProcessor  // Space arrival effect processing
-TurnStateManager       // REAL/TEMP state lifecycle + per-turn cost ledger
-TurnTransitionHandler  // Extracted from TurnService.nextPlayer() (Mar 2026)
+TurnStateManager       // REAL/TEMP state lifecycle + per-player per-turn TurnCostLedger (moneySpent/cardsConsumed/lifeEventsDrawn)
+TurnTransitionHandler  // Extracted from TurnService.nextPlayer() (Mar 2026); also runs the Violation daily-accrual check each turn-end (v3.1.84)
 MovementExecutor       // Extracted from TurnService.endTurnWithMovement() (Mar 2026)
+TurnEffectsOrchestrator // Extracted from TurnService (Jul 2026) — converts a space's CSV effect rows into Effect objects and runs them through EffectEngine
+ManualActionProcessor  // Extracted from TurnService (Jul 2026) — everything that runs when a player presses a manual action button (draw/replace/give cards, money, time, funding)
 TooltipService         // Tooltip content management
 ```
 
 > **Removed services (historical):** PlayerViewStateService (deleted v2.34.0); MovementChoiceManager merged into MovementService (Mar 2026).
+
+### Homeowner Violation Mechanic (v3.1.84)
+
+Two life-event cards (L050 "Notice of Violation", L051 "Immediately Hazardous Violation") add a stateful mini-mechanic that doesn't fit the generic CSV-effect pipeline: drawing either gives the player a corrective Work Package and starts a 180-day countdown to file an Affidavit of Correction, with a civil penalty sized as a percentage of that Work Package's cost (rate depends on tier — small/large project scope, split at $500k — and on-time vs. late filing). L051 additionally accrues a daily penalty once the deadline passes unfiled.
+
+L050/L051 are special-cased directly in `CardService.applyCardEffects` (same pattern as E075 "Backchannel Favor" — see NegotiationService below) rather than expressed as generic Effect objects:
+
+- `handleNoticeOfViolation()` (private) — draws the corrective Work Package, sets six new `Player` fields (`violationStatus`/`violationVariant`/`violationTier`/`violationDeadlineDay`/`violationPenaltyBase`/`violationAccrualCheckpoint`)
+- `fileAffidavitOfCorrection()` — the player-initiated action that resolves it, charging the on-time or late rate
+- `processViolationDailyAccrual()` — called once per turn-end via `TurnTransitionHandler`, charges L051's overdue-day penalty with a checkpoint so days already charged are never double-billed
+
+Pure fee/tier math (no state access, unit-testable in isolation) lives in `src/utils/violationRules.ts`. An unresolved violation at game end is charged the late rate as a backstop and surfaced in `EndGameModal`.
 
 ### Service Dependency Pattern
 
@@ -115,7 +132,7 @@ class CardService {
 
 1. **`StateService` ↔ `GameRulesService`** — StateService needs GameRulesService to evaluate conditional-effect predicates. GameRulesService needs StateService to query current game state. Resolved via `stateService.setGameRulesService()` at `ServiceProvider.tsx`.
 
-2. **`TurnService` ↔ `EffectEngineService` ↔ `CardService`** (3-way cycle) — TurnService needs EffectEngine to process turn effects; CardService needs EffectEngine to process card effects; EffectEngine needs both TurnService (for TURN_CONTROL effects) and CardService (for card-producing effects). Resolved via `turnService.setEffectEngineService()` and `cardService.setEffectEngineService()` at `ServiceProvider.tsx`, plus two downstream forwards inside TurnService to its handlers (`spaceArrivalProcessor`, `turnTransitionHandler`) which also participate in the cycle.
+2. **`TurnService` ↔ `EffectEngineService` ↔ `CardService`** (3-way cycle) — TurnService needs EffectEngine to process turn effects; CardService needs EffectEngine to process card effects; EffectEngine needs both TurnService (for TURN_CONTROL effects) and CardService (for card-producing effects). Resolved via `turnService.setEffectEngineService()` and `cardService.setEffectEngineService()` at `ServiceProvider.tsx`, plus four downstream forwards inside TurnService to its handlers (`spaceArrivalProcessor`, `turnTransitionHandler`, `turnEffectsOrchestrator`, `manualActionProcessor` — the latter two added when TurnService was split apart in July 2026) which also participate in the cycle.
 
 These are architectural — collapsing them would require an event bus or command bus, which has its own cost (indirection, harder to trace). They are accepted as-is. Every service with a setter-injected dependency has an `assertDependenciesReady()` guard that throws at the first method call if initialization was skipped, so a silent half-initialized state is impossible.
 
@@ -155,7 +172,7 @@ async takeTurn(playerId: string): Promise<TurnResult> {
 - `StateService.setGameRulesService()` — cycle 1
 - `TurnService.setEffectEngineService()` — cycle 2 (3-way)
 - `CardService.setEffectEngineService()` — cycle 2 (3-way)
-- `SpaceArrivalProcessor.setEffectEngineService()`, `TurnTransitionHandler.setEffectEngineService()` — forwarded by TurnService as part of cycle 2
+- `SpaceArrivalProcessor.setEffectEngineService()`, `TurnTransitionHandler.setEffectEngineService()`, `TurnEffectsOrchestrator.setEffectEngineService()`, `ManualActionProcessor.setEffectEngineService()` — forwarded by TurnService as part of cycle 2
 
 **Not a pattern to copy:** Other setter methods (e.g. `EffectEngineService.setNotificationService/setDataService`, handler setters, `CardService.setChoiceService`) exist historically but are being eliminated in favor of constructor injection because the dependency they receive is not part of a real cycle. (The `setCardEffectService` method on TurnService was the last false-cycle setter; migrated to constructor injection in v2.59.0.)
 
@@ -261,7 +278,7 @@ const dataService = window.gameServices.dataService;
 const { dataService } = useGameContext();
 ```
 
-**Component Integration:**
+**Component Integration** (illustrative pattern — the current production component playing this role is `PlayerPanelV2`/`PlayerCardDetailV2`, not a standalone `CardPortfolio`; the classic panel's `CardPortfolio` was removed with the rest of the classic UI):
 ```typescript
 function CardPortfolio({ gameServices }: { gameServices: IServiceContainer }) {
   const { cardService, stateService } = gameServices;
@@ -347,13 +364,15 @@ User Action → Service Method → Effect[] → EffectEngine → State Update �
 
 | Action | Component | Service | Effect Types |
 |--------|-----------|---------|--------------|
-| **Roll Dice** | TurnControls | TurnService | MovementChoice, TurnControl |
-| **Play Card** | CardPortfolio | CardService | ResourceChange, CardDraw, etc. |
-| **End Turn** | TurnControls | TurnService | TurnControl, Logging |
+| **Roll Dice** | PlayerPanelV2 (action buttons) | TurnService | MovementChoice, TurnControl |
+| **Play Card** | PlayerPanelV2 / PlayerCardDetailV2 | CardService | ResourceChange, CardDraw, etc. |
+| **End Turn** | PlayerPanelV2 (TurnCommitControl) | TurnService | TurnControl, Logging |
 | **Choose Path** | ChoiceModal | MovementService | PlayerMovement |
 | **Transfer Card** | CardDetailsModal | CardService | CardTransfer |
-| **Make Offer** | NegotiationModal | NegotiationService | Multi-player effects |
-| **Try Again** | TurnControls | TurnService | StateRevert, Logging |
+| **Make Offer** | NegotiationModal | NegotiationService (partner accept/decline routed through ChoiceService, v3.1.83) | Multi-player effects |
+| **Try Again** | PlayerPanelV2 (TurnCommitControl) | TurnService | StateRevert, Logging |
+
+> Component names above reflect the current V2-only UI. The classic panel (`ActionCenterPanel`, `TurnControls`, `CardPortfolio`/`CardsSection`, `CardModal`) was fully removed in v3.0.128–137 and swept for remaining dead code (`PlayerActionService`) in v3.1.9. `PlayerPanelV2` + `ScoreboardV2` + `TurnCommitControl` are the only player UI now — no classic/V2 toggle exists.
 
 #### Automatic Actions (System-Triggered)
 
@@ -422,12 +441,20 @@ type Effect =
   | PlayerMovementEffect     // Moving between spaces
   | TurnControlEffect        // Turn skipping, extra turns
   | ChoiceEffect            // Player decision dialogs
+  | ChoiceOfEffectsEffect    // Player picks which of several effects applies
   | EffectGroupTargeted      // Multi-player targeting
   | ConditionalEffect       // Dice roll conditional logic
   | RecalculateScopeEffect   // Project scope recalculation
   | FeeDeductionEffect       // Loan fee deductions (percentage-based)
   | LogEffect               // Game logging
+  | PlayCardEffect           // Programmatically triggers a card play
+  | OwnerSeedMoneyEffect      // Owner's automatic starting-funding effect
+  | ContractorUpdateEffect    // Contractor-mechanic state changes
+  | DurationStoredEffect      // Registers a multi-turn active effect
+  | PlayerAgreementRequiredEffect // Blocks on a specific player's yes/no (also used by NegotiationService's ChoiceService-backed accept/decline)
 ```
+
+18 `effectType` string values exist in `src/types/EffectTypes.ts` as of v3.1.85 (up from 12); the list above is the complete current set. The Homeowner Violation mechanic (L050/L051, v3.1.84) is a deliberate exception to this pipeline — see "Homeowner Violation mechanic" under Core Services above; it's special-cased directly in `CardService.applyCardEffects` rather than expressed as Effect objects.
 
 ### Effect Processing Flow
 
@@ -611,6 +638,8 @@ interface TurnStateModel {
 3. Multiple Try Agains naturally supported
 4. Time penalties accumulate correctly on REAL state
 
+**TurnCostLedger — layered on top, not a replacement (v3.1.84 framing, mechanism predates it):** `TurnStateManager` also tracks a per-player, per-turn `TurnCostLedger` (`moneySpent`, `cardsConsumed`, `lifeEventsDrawn`), hooked at `ResourceService.spendMoney`/`recordCost` (money outflows) and `CardService.playCard`/`drawCards` (user-initiated card consumption). It rides alongside the REAL/TEMP model rather than replacing it: applied to REAL before a TEMP discard in `tryAgainOnSpace()`, cleared on `commitTempToReal()` and fresh-turn `createTempStateFromReal()`. A full "Snapshot Try Again" redesign was evaluated and explicitly declined in favor of this lighter-weight ledger — see `docs/core/BETA_PLAN_V3.md` Workstream 2.
+
 > **Reference:** See [CHANGELOG.md](../../CHANGELOG.md) — search for *"REAL/TEMP State Model"* (Dec 26, 2025 entry) for the historical implementation rationale.
 
 ### Context API Integration
@@ -624,6 +653,25 @@ const { stateService, cardService, turnService } = useGameContext();
 const player = stateService.getPlayer(playerId);
 const result = await cardService.playCard(playerId, cardId);
 ```
+
+### The `useSyncedGameState` Hook (July 2026)
+
+For components that need the **full** live game state (as opposed to a selector slice — see Selective Subscriptions below), `src/hooks/useSyncedGameState.ts` wraps `StateService` in React's `useSyncExternalStore`:
+
+```typescript
+export function useSyncedGameState(stateService: IStateService): GameState {
+  // subscribe(): forwards stateService.subscribe(), invalidating a cached
+  // snapshot whenever the store actually fires a change
+  // getSnapshot(): returns the cached GameState, only re-fetching from
+  // stateService.getGameState() after a real change — required because
+  // getGameState() deep-copies on every call and is NOT referentially
+  // stable between reads (useSyncExternalStore requires a stable reference
+  // until something actually changes, or React can loop)
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+```
+
+This replaced an ad-hoc `useState` + `useEffect(() => stateService.subscribe(...))` pattern that ESLint's `react-hooks/set-state-in-effect` rule flagged across roughly 7 components (`GameLog`, `SpaceExplorerPanel`, `GameLayout`, `TVDisplay`, `ChoiceModal`, `NegotiationModal`, `PlayerSetup`) — each synchronously seeded local state before the subscription callback took over, which can "tear" (different components seeing different snapshots mid-render) under React's concurrent rendering. `useSyncExternalStore` is React's own recommended tool for this "read from a store I don't own" case. It's the standard pattern now for any new component reading the full live game state.
 
 ### Selective Subscriptions (Performance Optimization)
 
@@ -656,7 +704,7 @@ stateService.subscribeWithSelector(
 **Benefits:**
 - Components only re-render when their relevant data changes
 - Reduces cascade re-renders during turn transitions
-- ActionCenterPanel turn controls: only respond to action-related state changes
+- PlayerPanelV2's action buttons and TurnCommitControl: only respond to action-related state changes
 - GameBoard: ignores player resources, only responds to position/movement changes
 
 **When to Use:**
@@ -695,7 +743,10 @@ interface MovementEvent {
   success: boolean;
   message: string;
 }
-// GameEvent = MovementEvent | LifeEventEvent | SeedMoneyEvent | ... (8 variants total)
+// GameEvent = MovementEvent | LifeEventEvent | SeedMoneyEvent | ... (27 variants as of v3.1.85, up from 8 at stage 2 —
+// stage 3 (v3.1.7) collapsed 9 duplicated dual-channel log+toast call sites into typed events; stage 4 (v3.1.8) moved
+// emitter ownership so the class deciding what happened also decides what to announce; newest addition is
+// NegotiationRequestedEvent (v3.1.83, powers the E075 "Backchannel Favor" trading card — see NegotiationService)
 
 // Services emit events when automatic actions occur
 stateService.emitGameEvent({
@@ -721,6 +772,8 @@ useEffect(() => {
   return () => unsubscribe();
 }, [stateService]);
 ```
+
+GameLayout's subscription above drives modal display, but it's only one of three current consumers of the same bus. `LogWriter` (`src/services/LogWriter.ts`) and `ToastWriter` (`src/services/ToastWriter.ts`) — both instantiated once in `ServiceProvider.tsx` — subscribe independently: `LogWriter` writes the permanent-log half of each event via `LoggingService.info()`, `ToastWriter` fires the toast half via `NotificationService.notify()`. Splitting the dual-channel "log this AND toast that" logic into two dedicated listeners (rather than one call site doing both) is what stage 3 of the domain-event refactor collapsed 9 duplicated call sites into.
 
 ---
 
@@ -750,16 +803,23 @@ Game data is stored in CSV files at `public/data/CLEAN_FILES/` (regenerated by `
 
 | File | Purpose |
 |------|---------|
-| **GAME_CONFIG.csv** | Per-space configuration. 19 columns at v2.58.0, including all Workstream 6 flags. |
+| **GAME_CONFIG.csv** | Per-space configuration. 25 columns as of v3.1.85 (was 19 at v2.58.0) — added `pos_x`/`pos_y` (BoardCanvas coordinates), `funding_source`, `has_final_review_gate`, `approval_role`, `npc_speaker`, `display_label_override`, `review_loop_message`, among others, alongside the original Workstream 6 flags. |
 | **MOVEMENT.csv** | Movement type + destinations per (space, visit_type). |
 | **CARDS_EXPANDED.csv** | Card definitions (W/B/E/L/I types). |
 | **SPACE_CONTENT.csv** | UI text per space (Title, Event, Action, Outcome). |
 | **SPACE_EFFECTS.csv** | Effects per (space, visit_type, action). |
 | **DICE_EFFECTS.csv** | Dice-roll effect mappings with structured metadata. |
 | **DICE_OUTCOMES.csv** | Dice-roll destination mappings for dice-movement spaces. |
-| **MODAL_CONFIG.csv** | Per-action modal copy overrides (8 columns including `dice_value`). |
+| **DICE_ROLL_INFO.csv** | Per (space, visit_type, die value 1-6) outcome descriptions read by `EffectFactory`. |
 | **LOGIC_QUESTIONS.csv** | Yes/no decision-chain rows for `path=LOGIC` spaces. |
 | **PATH_CHOICE_RULES.csv** | Cross-space exclusion rules driven by stored path choices (Workstream 6 #4). |
+| **CARD_TYPES.csv** | Card-type display labels ("Work Package", "Bank Loan", etc.) via `DataService.getCardTypeLabel()` — added so real-life-voice card-type names live in data, not hardcoded literals. |
+| **ACTION_TOOLTIPS.csv** | Button tooltip why/context copy (`action_type`, `action_value`, `button_label`, `tooltip_why`, `tooltip_context`). No `SOURCE_FILES` counterpart — this CSV is its own source of truth. |
+| **GLOSSARY.csv** | In-game dictionary term definitions, synced from the volunteer glossary/dictionary tool (see the glossary auto-sync workflow). |
+
+> **Removed:** `MODAL_CONFIG.csv` no longer exists in `CLEAN_FILES` and is not referenced anywhere in `src/` — its role was absorbed by the files above (`DICE_ROLL_INFO.csv`, `ACTION_TOOLTIPS.csv`) as those surfaces evolved. If you find a doc still citing it, that doc is stale.
+>
+> **Board rendering:** `BoardCanvas` (React Flow, coordinate-driven from `GAME_CONFIG.csv`'s `pos_x`/`pos_y`, with drag-to-save in admin mode) has been the sole board renderer since v3.0.0 (2026-05-23). The original snake/zig-zag `BoardV3` walker and its supporting `boardLayout.ts` utilities were retired the same release — net ~2,400 lines removed.
 
 ### Data Access Pattern
 
@@ -839,12 +899,12 @@ describe('CardService', () => {
 });
 ```
 
-**Component Tests:**
+**Component Tests** (illustrative — the real current suite is `tests/components/player/PlayerPanelV2.test.tsx`, `CardPortfolio` no longer exists):
 ```typescript
-describe('CardPortfolio', () => {
+describe('PlayerPanelV2', () => {
   it('should display player cards', () => {
     const { getAllByTestId } = render(
-      <CardPortfolio gameServices={mockServices} playerId="player1" />
+      <PlayerPanelV2 gameServices={mockServices} playerId="player1" />
     );
     expect(getAllByTestId('card-item')).toHaveLength(3);
   });
@@ -864,14 +924,17 @@ describe('E2E: Happy Path', () => {
 
 ### Test Execution
 
-**Recommended:** Run tests in batches to avoid module-level mock isolation issues
+**As of v3.1.14, plain `npm test` runs the full suite directly** (~100s) — the hang that used to force batch workarounds was the 20-30 min ghost-bot ("smart-bot win-rate") gates running inline; they were split out into their own `npm run test:ghost` command, so the default suite no longer includes them. `./tests/scripts/run-tests-batch-fixed.sh` (23 batches) still exists and still passes if you want isolation between directories, but it's no longer the required path.
 
 ```bash
-# Run by directory
-npm test tests/services/
-npm test tests/components/
+# Full suite (recommended, no batching needed)
+npm test
 
-# Run specific file
+# Ghost-bot regression gates (slow, run separately)
+npm run test:ghost
+
+# Run by directory, or a specific file, if you want isolation
+npm test tests/services/
 npm test tests/services/TurnService.test.tsx
 ```
 
@@ -883,12 +946,12 @@ npm test tests/services/TurnService.test.tsx
 
 ### File size
 
-- **No line-count budget.** The April 2026 audit explicitly dropped the prior "<200 lines per service / <300 max" rule. Large stable services (TurnService 2,076, StateService 1,867, CardService 1,824) are accepted as cohesive. Split only on a concrete pain signal — see [BETA_PLAN_V3.md Workstream 4](../core/BETA_PLAN_V3.md).
+- **No line-count budget.** The April 2026 audit explicitly dropped the prior "<200 lines per service / <300 max" rule. Split only on a concrete pain signal — see [BETA_PLAN_V3.md Workstream 4](../core/BETA_PLAN_V3.md). Current large-service sizes (July 2026, for orientation, not a target): CardService 2,358 lines (grew with the Homeowner Violation mechanic, v3.1.84), StateService 1,911, EffectEngineService 1,543, TurnService 1,121 (shrank from 2,076 after two rounds of extraction — SpaceArrivalProcessor/DiceRollProcessor/MovementExecutor/TurnTransitionHandler, then TurnEffectsOrchestrator/ManualActionProcessor in July 2026, both listed under Core Services above).
 
 ### TypeScript Requirements
 
 - **Strict Mode:** Enabled. `npm run typecheck` must return 0 errors on every commit.
-- **`any` is the rule, with documented carve-outs:** Tier 4 (April 2026) narrowed 50 of 109 `any` usages. The remaining ~15 sites in Bucket E are intentional (catch-block `error: any`, Promise reject, dynamic config indexing, open-bag metadata, legacy browser checks). New `any` usages need a justification.
+- **`no-explicit-any` is `warn`, permanently, by decision (v3.1.76):** not a backlog item awaiting promotion to `error`. Tier 4 (April 2026) narrowed 50 of the original 109 `any` usages; a later site-by-site re-audit (v3.1.76) found the remaining sites split three ways — platform casts no type can express (`(window as any).opera`, etc.), honest free-form bags (log/measurement records, `Promise` reject signatures mirroring TypeScript's own), and a couple of real gaps that are work, not lint work (`ActiveEffect.effectData: any`). 35 warnings / 0 errors as of v3.1.85. New `any` usages still need a justification — the permanent-`warn` decision covers the existing intentional sites, not a blanket pass.
 - **Interface Contracts:** All services implement `I*Service` interfaces in `ServiceContracts.ts`.
 
 ### Code Review Checklist
@@ -930,5 +993,5 @@ For related architecture topics, see:
 
 ---
 
-**Last Updated:** April 30, 2026
+**Last Updated:** August 1, 2026
 **Maintained By:** Claude (AI Lead Programmer)

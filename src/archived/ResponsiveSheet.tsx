@@ -1,10 +1,11 @@
-// src/components/modals/ResponsiveSheet.tsx
+// src/archived/ResponsiveSheet.tsx
+// ARCHIVED 2026-08-01: no importers anywhere in src/ — orphaned by the classic-panel removal, superseded by specific V2 modal components. Kept for potential reuse (functional swipe-to-dismiss bottom sheet), not wired into anything.
 // Updated: February 4, 2026 - Added swipe-to-dismiss with framer-motion
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence, PanInfo, useAnimation } from 'framer-motion';
-import { colors } from '../../styles/theme';
-import { haptics } from '../../utils/haptics';
+import { colors } from '../styles/theme';
+import { haptics } from '../utils/haptics';
 
 interface ResponsiveSheetProps {
   isOpen: boolean;

@@ -1,7 +1,7 @@
 # Testing Guide - Unravel Codes: The Game
 
-**Last Updated:** April 30, 2026
-**Status:** Beta (v2.58.0)
+**Last Updated:** August 1, 2026
+**Status:** Beta (v3.1.85)
 
 ---
 
@@ -11,12 +11,14 @@
 
 ```bash
 # REQUIRED before every commit (single source of truth):
-./tests/scripts/run-tests-batch-fixed.sh   # 23 batches, must all be green
+./tests/scripts/run-tests-batch-fixed.sh   # 22 batches, must all be green
 npm run typecheck                          # 0 errors required
 
 # Plus the regression bot for any change that could affect gameplay (~15-20 min):
 npm run test:ghost -- tests/ghost/ghostPlayer*.test.ts   # strict + negotiate-coverage + smart-bot + loop-detection
 ```
+
+> **2026-08-01: the batch script's stale-path gap (found and documented here earlier the same day) is fixed.** 16 of its file paths pointed at classic-panel component tests deleted during the V2 migration, which hard-failed 5 of its then-23 batches every run. Each was swapped for the real V2/service-layer test that now covers that ground (verified by reading each candidate's actual test content, not guessed from filenames — see `run-tests-batch-fixed.sh`'s inline comments for the specific swaps), one dead batch (`performance-tests`, whose only file had no real successor) was removed outright, and the script was re-run end to end: **22/22 batches green.** "Must all be green" is achievable again as written.
 
 ### If ANY test fails:
 1. ❌ **DO NOT commit**
@@ -28,7 +30,7 @@ If modifying any CSV files in `public/data/CLEAN_FILES/`:
 
 1. **Check parser expectations**
    - Read the corresponding DataService parser method
-   - Example: CARDS_EXPANDED.csv → check `DataService.parseCardsCsv()` at line 365
+   - Example: CARDS_EXPANDED.csv → check `DataService.parseCardsCsv()` (currently ~line 1031 — the file has grown since this doc was last checked; search for the method name rather than trusting the line number)
    - Verify column count matches `expectedColumns` array
 
 2. **Validate schema**
@@ -79,7 +81,7 @@ matches what `run-tests-batch-fixed.sh` already did — it has never included
 
 ## 📊 Test Count
 
-99 test files at v2.58.0 (run via batch script). Counts of individual test cases inside files have been intentionally removed from this doc — they go stale fast. Run `./tests/scripts/run-tests-batch-fixed.sh` for the current authoritative tally per batch.
+183 test files in the repo as of v3.1.85 (`find tests -name "*.test.ts" -o -name "*.test.tsx" | wc -l`). Most recent full-suite report (main + ghost combined, CHANGELOG v3.1.84, 2026-07-31): **2582 passed / 1 skipped**. Counts of individual test cases inside files have been intentionally removed from this doc — they go stale fast, and this repo-wide number will too. For a current number, either run `npm test` (main suite) + `npm run test:ghost` (ghost gates) and add their totals, or check the top few entries of CHANGELOG.md for the latest reported "full suite" count. Note `./tests/scripts/run-tests-batch-fixed.sh` runs a curated 60-file subset across its 22 batches for fast pre-commit feedback, not the full 183 — as of 2026-08-01 all 60 paths are real and all 22 batches pass.
 
 ## 🛠️ Writing Tests
 
@@ -224,6 +226,10 @@ npm test -- --reporter=verbose  # Vitest verbose reporter
 - Should no longer happen — `tests/ghost/`'s 15-20-min gates are excluded from `vitest.config.dev.ts` (2026-07-18 fix; see "npm test and the ghost regression bot are separate on purpose" above). If `npm test` still doesn't return in a couple minutes, that's a new regression, not the old known issue — use the batch script to bisect.
 - For individual files, hangs usually mean unmocked async operations or missing handler setters in test setup (see `tests/ghost/bootstrapServices.ts` for the canonical service-wiring pattern).
 
+### **The three heavy E2E files (`E2E-AllPaths`, `E2E-Multiplayer2P`, `E2E-Multiplayer4P`) time out intermittently**
+- Added 2026-07-28. These three drive whole game loops through the full service graph and are the suite's heaviest files by far — running them concurrently starves whichever one shares a machine with the other two, producing a timeout-on-unresolved-await that lands on a different file/sub-test each run. `vitest.config.dev.ts` now runs them in their own `e2e-heavy` project, one at a time (`fileParallelism: false`), which reduces but does **not** eliminate the flake — see the file's own header comment for the measured before/after numbers. Don't read one green run as proof it's fixed.
+- To reproduce a specific failure on demand: these tests now seed `Math.random()` via `tests/helpers/seededRandom.ts` (`E2E_SEED` env var, default `20260728`), so a given seed always deals the same decks and walks the same path. Use `scripts/sweep-e2e-seeds.sh [start] [end] [all]` to sweep a seed range and find one that reproduces a hang — once found, re-run that single seed (`E2E_SEED=<n> npx vitest run --config vitest.config.dev.ts tests/E2E-AllPaths.test.ts`) as often as needed with a debugger attached, instead of chasing a moving target.
+
 ### **Mock Not Working**
 ```typescript
 // ✅ Correct: Use vi.fn()
@@ -270,7 +276,7 @@ To ensure the correctness of the Dual-Layer Logging feature and prevent regressi
 - `TurnService.endTurn()` and `TurnService.endTurnWithMovement()` - Commits sessions
 - `TurnService.tryAgainOnSpace()` - Handles session abandonment and restart
 
-**Test Cases for Future Implementation:**
+**Test Cases for Future Implementation:** *(note: the core Try Again scenarios below — rollback, multiple retries, state consistency — are now largely covered by `tests/ghost/tryAgainSemantics.test.ts`, 7 tests pinning the Beta snapshot/costLedger model. The specific scenarios listed here predate that file and are kept as a reference spec; check there first before assuming a gap.)
 
 -   **Test Case 1: Standard Turn (Commit)**
     -   **Action:** Simulate a player taking a full turn and clicking "End Turn".
@@ -306,12 +312,14 @@ The following scenarios must be tested to ensure production stability:
 
 ## Ghost Player Regression Bot
 
-`tests/ghost/ghostPlayerStrict.test.ts` + siblings (`ghostPlayerNegotiateCoverage.test.ts`, `ghostPlayerSmartBot.test.ts`) are the headless-bot regression gate that plays 50 random games per CI run, split into separate files 2026-07-09 so the three batches run in parallel instead of sequentially. Two variants (of several — see CHANGELOG v3.0.99 for the full current set):
+`tests/ghost/ghostPlayerStrict.test.ts` + siblings (`ghostPlayerNegotiateCoverage.test.ts`, `ghostPlayerSmartBot.test.ts`) are the headless-bot regression gate that plays 50 random games per CI run, split into separate files 2026-07-09 so the three batches run in parallel instead of sequentially. Two variants (of several — see `vitest.config.ghost.ts`'s header comment for the current full list of gates rather than a point-in-time CHANGELOG entry, which will drift):
 
-- **Strict gate**: zero exceptions / invariant violations + ≥90% wins. Plus space coverage gate (every `GAME_CONFIG.csv` space visited at least once). The current baseline is ~96% wins (2/50 games timeout in scope/fund-review loops — a documented bot-strategy artifact, not a game bug).
-- **Try-again-happy variant**: same 50 games but with p=0.2 chance of using Try Again on negotiable spaces. Catches Try Again–related state corruption.
+- **Strict gate**: zero exceptions / invariant violations + ≥90% wins. Plus a separate `coverage.test.ts` gate, also 50 games, asserting every `GAME_CONFIG.csv` gameplay space was visited at least once. The current baseline is ~96% wins (2/50 games timeout in scope/fund-review loops — a documented bot-strategy artifact, not a game bug).
+- **Try-again-happy variant** (`ghostPlayerNegotiateCoverage.test.ts`): same 50 games but with p=0.2 chance of using Try Again on negotiable spaces. Catches Try Again–related state corruption; win-rate is deliberately not a tight assertion here (see the file's own header for why).
 
-Run both variants:
+`tests/ghost/` also holds several smaller, fast tests that aren't 50-game gates — `ghostPlayerLoopDetection.test.ts` (pure-logic loop-classifier unit tests, milliseconds), `dataIntegrity.test.ts` (static CSV validation, <1s), `authoredInsertion.test.ts`, `cardDrawRepro.test.ts`, `finalReviewStaleIntent.test.ts`, and `tryAgainSemantics.test.ts` (targeted regression pins, each using `bootstrapHeadlessServices()` rather than a full random-play batch). All of them run under `npm run test:ghost` alongside the heavy gates since they share the `tests/ghost/**` include in `vitest.config.ghost.ts`.
+
+Run everything in `tests/ghost/`:
 ```bash
 npm run test:ghost
 ```

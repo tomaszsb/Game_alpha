@@ -1,7 +1,7 @@
 # User Manual - Unravel Codes: The Game
 
-**Last Updated:** April 30, 2026
-**Version:** 2.58.0
+**Last Updated:** August 1, 2026
+**Version:** 3.1.85
 **Status:** Beta — live at https://game.unravelcodes.com
 
 Welcome to Unravel Codes: The Game! This manual will help you understand how to play the game and use the interface effectively.
@@ -37,7 +37,7 @@ Welcome to Unravel Codes: The Game! This manual will help you understand how to 
    - Or enter a Game Code to join an existing game
 3. **Add players** in the setup screen (2-4 players)
 4. **Start game** - players automatically placed at START space
-5. **Play turns** - follow the "Next Step" button guidance
+5. **Play turns** - follow the "Things you can do" list and the End Turn control at the bottom of your panel
 6. **Win** by completing your construction project first!
 
 ### Game Lobby
@@ -82,7 +82,7 @@ Navigate through construction project phases, manage resources (money and time),
 **Money:**
 - Earn from loans, investments, owner funding
 - Spend on permits, fees, card costs
-- Track via Finances section
+- Shown in your panel's status row; tap 📋 **My numbers** for the full breakdown
 
 **Time:**
 - Measured in "days" (weeks/months)
@@ -92,7 +92,7 @@ Navigate through construction project phases, manage resources (money and time),
 **Project Scope:**
 - Based on Work (W) cards collected
 - Determines funding amounts
-- Recalculated when W cards played
+- Recalculated automatically as you draw Work Package cards
 
 ---
 
@@ -100,47 +100,42 @@ Navigate through construction project phases, manage resources (money and time),
 
 ### Interface Layout
 
-The Player Panel uses a **mobile-first expandable design**:
+The Player Panel is a **single scrolling mobile-first view**, not a set of separate tabbed sections:
 
 ```
 ┌─────────────────────────────────┐
-│ 🃏 CURRENT CARD         (🔴)   │  ← Action indicator
+│ ● Player Name          Phase   │  ← Header
 ├─────────────────────────────────┤
-│ 📊 PROJECT SCOPE               │
-│ 💰 FINANCES            (🔴)    │  ← Shows money actions
-│ ⏱️  TIME                        │
-│ 🎴 CARDS                        │
+│ 💰 $Money   🕐 Days   DOB FDNY │  ← Status row (+ VIOLATION if active)
+│ [📋 My numbers] [📜 History]   │
 ├─────────────────────────────────┤
-│  🔄 Try Again  |  ▶️ End Turn   │  ← Action buttons
+│ 📍 Where you are & why         │  ← Current space + story
+├─────────────────────────────────┤
+│ Things you can do              │  ← Action buttons, incl. Move
+├─────────────────────────────────┤
+│ What's affecting you           │  ← Expeditors, effects, your cards
+├─────────────────────────────────┤
+│ [ Try Again  |  End Turn ]     │  ← Tap to compare, hold to confirm
 └─────────────────────────────────┘
 ```
 
-### Expandable Sections
+### Panel Zones
 
-**Click section headers** to expand/collapse:
+- **Status row:** Your cash on hand and days spent, plus small DOB/FDNY approval marks and a VIOLATION mark (only if you have an open violation — see [Homeowner Violations](#homeowner-violations)). Two buttons live here:
+  - **📋 My numbers** opens a read-only recall screen with your project scope, work packages, money, and time.
+  - **📜 History** opens a log of what's happened to you this game (moves and changes).
+- **Where you are & why:** The space you're on, its story, and — if there's more to know — a "What to do & why" toggle that expands into what's expected of you and why.
+- **Things you can do:** Every action currently available to you — manual effects (like accepting a loan or rolling for an outcome), and a **Move** row when you have a destination to choose. Tap **Move** to expand your route options; once expanded they stay visible so you can change your mind until you end your turn. Completed actions show with a checkmark.
+- **What's affecting you:** Collapsed by default. Expand it to see any Expeditor cards you can activate right now (each has its own **Activate** button), ongoing effects currently applied to you, and the cards in your hand grouped by type (tap a group to see the cards in it, tap a single card for its details).
 
-- **🃏 Current Card:** Active space details and effects
-- **📊 Project Scope:** Work cards and project value
-- **💰 Finances:** Money, loans, transactions
-- **⏱️ Time:** Elapsed time, time-affecting cards
-- **🎴 Cards:** Available, active, and discarded cards
+### Ending Your Turn / Try Again
 
-### Action Indicators (🔴)
+The footer merges **Try Again** and **End Turn** into one control instead of two separate buttons:
 
-**Red dots** show where actions are available:
-- **Finances 🔴:** "Get Funding" button available
-- **Time 🔴:** "Roll to Move" button available
-- **Cards 🔴:** Cards can be played
-
-### Next Step Button
-
-**Context-aware button** showing your next action:
-
-| State | Display | Action |
-|-------|---------|--------|
-| **Ready** | ✅ "End Turn" (green) | Click to end your turn |
-| **Waiting** | ⏸️ "2 actions remaining" (gray) | Complete pending actions first |
-| **Moving** | 🎲 "Roll to Move" (blue) | Roll dice for movement |
+- **Tap** either side to preview what it costs (money/time) before committing — nothing happens yet.
+- **Press and hold** the side you want to commit to; a ring sweeps around the button as you hold, and releasing after it fills locks in that choice. This is deliberate — these are the most consequential actions in your turn (spending money or burning a day), so a stray tap can't trigger one by accident.
+- The End Turn side's label changes with your situation: **"N action(s) left"** (grayed out) while you still have pending actions, a dice/movement prompt like **"Take your next step"** when it's time to roll or move, and **"End turn"** once everything is done. When it isn't your turn at all, it reads **"Waiting for [Player Name]"**.
+- Try Again only appears on spaces that actually offer it.
 
 ---
 
@@ -151,9 +146,9 @@ The Player Panel uses a **mobile-first expandable design**:
 1. **Turn starts** automatically
 2. **Space effects** process (if applicable)
 3. **Take manual actions** (optional):
-   - Get funding (if at funding space)
-   - Play cards from hand
-   - Transfer cards to other players
+   - Get funding (if at a funding space)
+   - Activate an Expeditor card (if you have one ready)
+   - Propose a trade (if you're holding a card that offers one)
 4. **Roll to move** (if on dice space)
 5. **Choose destination** (if multiple paths)
 6. **End turn** when all actions complete
@@ -161,30 +156,28 @@ The Player Panel uses a **mobile-first expandable design**:
 ### Manual Actions
 
 #### Get Funding
-- **When:** At OWNER-FUND-INITIATION space
-- **How:** Click "Get Funding" button in Finances section
-- **Effect:** Automatically draws appropriate loan card based on project scope
+- **When:** At a funding space (e.g. the bank or investor loan review)
+- **How:** A funding action shows up under "Things you can do" for that space (for example, "Accept Bank Loan") — tap it.
+- **Effect:** Draws the appropriate loan card and applies its fees.
 
-#### Play Cards
+#### Activate an Expeditor Card
 - **When:** Anytime during your turn (phase restrictions apply)
 - **How:**
-  1. Expand Cards section
-  2. Click card to view details
-  3. Click "Play Card" button
-  4. Pay cost (if applicable)
-- **Effect:** Card effects execute immediately or become active
+  1. Expand "What's affecting you"
+  2. Expeditor cards you can currently use are listed with their own **Activate** button
+  3. Tap **Activate**
+- **Effect:** The card's effect applies immediately.
 
-#### Transfer Cards
-- **When:** You have transferable cards (E or L types)
-- **How:**
-  1. Click card in Cards section
-  2. Click "Transfer" button
-  3. Select recipient player
-- **Effect:** Card moves to recipient's hand
+Expeditors are the only cards you actively play from your hand. Work Package, loan (Bank/Investor), and Life Event cards apply themselves automatically when you draw them — tapping one in "What's affecting you" just opens its details for reference, with nothing to activate.
+
+#### Propose a Trade
+- **When:** You're holding a card that offers a trade (e.g. "Backchannel Favor")
+- **How:** See [Player-to-Player Trading](#player-to-player-trading) below.
+- **Effect:** If the other player accepts, money and/or cards change hands immediately.
 
 #### Try Again
-- **When:** Available on certain spaces (button appears)
-- **How:** Click "🔄 Try Again" button
+- **When:** Available on certain spaces (appears as one side of the End Turn control)
+- **How:** Tap "Try Again" to preview its cost, then press and hold it to commit
 - **Effect:** Reverts to state before current space entry (time penalty may apply)
 
 ### Automatic Actions
@@ -194,6 +187,25 @@ These happen automatically when conditions are met:
 - **Space arrival effects:** Process when you land on a space
 - **Card expirations:** Active cards with durations expire at turn end
 - **Win condition check:** Game ends when a player finishes
+
+### Homeowner Violations
+
+Two rare Life Event cards can hit you with a violation: **"Notice of Violation"** and **"Immediately Hazardous Violation"**. Drawing either one gives you a corrective Work Package (extra scope you now have to build) and starts a **180-day countdown** to file an **Affidavit of Correction**.
+
+- **The penalty scales with the extra work**, not a flat number: 4%/8% of the corrective Work Package's cost for smaller projects, or 10%/20% for larger ones (the split is at $500,000 total project scope) — the lower rate applies if you file on time, the higher rate if you file late.
+- **"Immediately Hazardous" is the more serious of the two.** On top of the filing fee, it adds a daily penalty ($500/day for smaller projects, $2,000/day for larger ones) that starts accruing once the 180-day deadline passes without a filed affidavit.
+- **If you finish the game with a violation still open**, you're charged the late-filing rate as a backstop, and the End Game summary calls it out separately from any missing DOB approval.
+
+**What you'll see:** a red **VIOLATION** mark next to your money and days, with a running "days left to file" (or "days overdue") count. While it's open, a **"File Affidavit of Correction"** button appears in your panel — tap it whenever you're ready to resolve it. Once filed, the mark turns green and fades, the same way a resolved DOB or FDNY approval does.
+
+### Player-to-Player Trading
+
+Certain Expeditor cards (for example, **"Backchannel Favor"**) let you propose a trade with another player instead of resolving a fixed effect. Play the card, pick who you want to trade with, then build an offer of cash and/or cards from your hand.
+
+- The player you're offering the trade to gets a real **Accept / Decline** prompt on their own device (or on the shared screen, in shared-screen play), live over the network — they don't need to wait for your turn to end.
+- **Accept:** the offered cash and cards move to them immediately.
+- **Decline:** nothing moves — anything you offered stays with you.
+- This first version is **accept/decline only** — there's no counter-offer step yet.
 
 ---
 
@@ -233,7 +245,7 @@ These happen automatically when conditions are met:
 - Take loans early to fund permits and cards
 - Bank loans (<$4M projects) have lower interest
 - Investor loans (>$4M projects) for large projects
-- Track loan balances in Finances section
+- Track loan balances via 📋 **My numbers**
 
 **Time:**
 - Minimize time to win
@@ -251,12 +263,14 @@ These happen automatically when conditions are met:
 **Expeditor (E) Cards:**
 - Reduce permit processing time
 - Most valuable for time optimization
-- Can be transferred between players
+- The only card type you actively activate from your hand (see [Activate an Expeditor Card](#manual-actions))
+- Some (like "Backchannel Favor") let you offer a trade to another player instead of a fixed effect — see [Player-to-Player Trading](#player-to-player-trading)
 
 **Life Event (L) Cards:**
 - Usually negative effects
-- Can be transferred to opponents (strategic!)
+- Applied automatically when drawn
 - Some have dice-based outcomes
+- Two rare ones ("Notice of Violation" and "Immediately Hazardous Violation") trigger the [Homeowner Violations](#homeowner-violations) mechanic — worth understanding before you're stuck with a filing deadline
 
 ### Movement Strategy
 
@@ -277,18 +291,18 @@ These happen automatically when conditions are met:
 
 ### Common Issues
 
-**"Actions remaining" - can't end turn**
-- Check for red action indicators (🔴)
+**"N actions left" - can't end turn**
+- Check "Things you can do" for anything still unfinished
 - Pending choice modals must be resolved
 - Some spaces require mandatory actions
 
-**Card won't play**
-- Check phase restrictions (card may not be playable in current phase)
-- Verify you have enough money for cost
+**Expeditor won't activate**
+- Check phase restrictions (it may not be usable in the current phase — a "Not yet" hint explains why)
+- Verify you have enough money for its cost
 - Ensure it's your turn
 
 **Movement not working**
-- **CHEAT dice spaces:** Click "Roll Dice" button first
+- **CHEAT dice spaces:** Tap the dice action button under "Things you can do" first (e.g. "Roll for...")
 - **REG dice spaces:** Wait for auto-roll (happens automatically)
 - Choice spaces require selecting destination
 - Terminal spaces (FINISH) have no movement
@@ -366,4 +380,4 @@ The Space Data Editor allows game designers to edit space data directly from the
 
 **Feedback:** Use the in-app bug-report button (floating ladybug icon) — submits with screenshot directly to the host.
 
-**Last Updated:** April 30, 2026
+**Last Updated:** August 1, 2026

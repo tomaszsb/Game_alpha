@@ -1,6 +1,7 @@
-// src/utils/PerformanceMonitor.ts
+// src/archived/PerformanceMonitor.ts
+// ARCHIVED 2026-08-01: no importers anywhere in src/ or server/. Kept for potential reuse if perf instrumentation is ever needed.
 
-import { debugLog, debugWarn } from './debugLog';
+import { debugLog, debugWarn } from '../utils/debugLog';
 
 export interface PerformanceMeasurement {
   name: string;

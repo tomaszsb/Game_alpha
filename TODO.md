@@ -149,6 +149,7 @@
 - [ ] **OPTIONAL content: author `effects_on_play` prose for 74 E + 49 L cards** — only if a one-line authored effect adds teaching value.
 
 ### Reliability / plumbing (trigger noted per item)
+- [ ] **Auto-flip dashboard feedback resolved during `/koniec`** (idea surfaced 2026-08-01, from a self-review pass) — right now a fixed-and-deployed report can sit "open" on the live dashboard for weeks until someone remembers to run the PATCH manually (see the Dashboard PATCH recipe ledger below — this has happened repeatedly). If a `/koniec` run could grep the session's CHANGELOG entry for `fb:<id>` markers and offer to PATCH those resolved as part of wrap-up, it'd close the gap at the source instead of relying on `/start`'s monthly sweep to catch it after the fact. Not urgent — the monthly sweep already catches these — but worth a look if the lag keeps recurring.
 - [ ] **Purge the old (now-dead) PixelLab.ai key from git history** — rotated 2026-07-31 (see CHANGELOG), so the leaked key in commit `02d7117` (`generate_female_sprites.sh`) is invalid and no longer a real exposure — this is history hygiene, not a security fix. `git filter-repo` is invasive (rewrites all commit hashes, needs a force-push + everyone re-clones). Trigger: maintainer decides the cleanliness is worth the disruption.
 - [ ] **HTTP polling fallback while disconnected** — trigger: WS reconnect proves insufficient in real play.
 - [ ] **"Start without all phones" override for TV mode** — trigger: the hard-block gets in the way of solo demos.
