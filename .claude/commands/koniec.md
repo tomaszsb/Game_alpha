@@ -129,6 +129,18 @@ After this step the only checkboxes left should be `[ ]` (pending) and `[~]` (in
 
 If nothing new to append — skip. Don't write a "no changes" line.
 
+## 4a. Auto-flip feedback reports confirmed deployed since the last handoff (added 2026-08-01)
+
+**Why this exists:** a fixed-and-deployed report can sit "open" on the live dashboard for weeks until someone remembers the manual PATCH — this has happened repeatedly (see TODO.md's Dashboard PATCH recipe ledger for the history). `/start`'s monthly sweep eventually catches it, but "eventually" is the gap. The natural checkpoint is right here: step 5 is about to overwrite the current `NEXT_SESSION.md`, including whatever it lists under "Flip after deploy" — so check that list against reality before it's lost, instead of trusting the next session to remember.
+
+1. Read the *current* (about-to-be-overwritten) `NEXT_SESSION.md`'s "Flip after deploy" section, if present. Collect its fb ids.
+2. Also grep this session's own new CHANGELOG entries for `fb:<id>` markers (both forms — see `/start`'s "match BOTH marker forms" gotcha, same trap applies here) — a report can be fixed and confirmed deployed within a single session.
+3. For each id collected: is the version that fixed it confirmed live? Trust only hard evidence from *this* session or the current one being closed out — a bundle-verification check (`curl .../assets/index-*.js | grep '"X.Y.Z"'`), the user stating they deployed and confirming, or an equivalent direct check. Never assume "probably deployed by now."
+4. Confirmed-live ids: check `.env` for `FEEDBACK_TOKEN`. If present, list them and ask the user once — **"PATCH these N confirmed-deployed reports resolved? (yes/no)"** — then run the recipe (`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}`) on a yes. If `.env` has no token, skip silently (same rule as `/start` step 4c — optional infrastructure, don't prompt).
+5. Everything NOT confirmed live rolls forward unchanged into the new `NEXT_SESSION.md`'s "Flip after deploy" section (step 5) — this step only ever *shrinks* that list with hard evidence, never guesses one off it.
+
+No candidates and nothing to check → skip silently, no line in the wrap-up. This step should be rare to trigger in practice (most sessions don't deploy mid-session), which is fine — it exists for the sessions that do, so that evidence isn't thrown away when `NEXT_SESSION.md` gets overwritten.
+
 ## 5. Write the next-session starter prompt
 
 Resolve the main checkout's `.claude/` path: `git rev-parse --show-toplevel`. If the result contains `.claude/worktrees/`, take the segment before it. Otherwise use the root directly. Write to `<main-checkout>/.claude/NEXT_SESSION.md`, overwriting (this file is a rolling handoff, not a log).
@@ -231,7 +243,7 @@ The doc sweep + NEXT_SESSION must not drift into next session uncommitted (that'
 
 ```bash
 git add CHANGELOG.md TODO.md docs/ .claude/NEXT_SESSION.md package.json package-lock.json
-git add .claude/commands/    # ONLY if step 5a edited a skill file — else skip this line
+git add .claude/commands/    # ONLY if step 4a or 5a edited a skill file — else skip this line
 git status --short            # eyeball what's staged
 ```
 

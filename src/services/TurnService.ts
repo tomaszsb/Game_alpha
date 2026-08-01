@@ -35,6 +35,11 @@ export class TurnService implements ITurnService {
   private readonly turnTransitionHandler: TurnTransitionHandler;
   private readonly turnEffectsOrchestrator: TurnEffectsOrchestrator;
   private readonly manualActionProcessor: ManualActionProcessor;
+  // No longer forwarded to spaceArrivalProcessor/diceRollProcessor/
+  // manualActionProcessor/turnTransitionHandler (2026-08-01: none of the
+  // four ever read it — see CHANGELOG). Kept positionally for back-compat
+  // with the ~15 call sites of this constructor rather than reflowing the
+  // trailing optional params; remove outright if that sweep is ever worth it.
   private readonly notificationService?: INotificationService;
   private effectEngineService?: IEffectEngineService;
   private readonly cardEffectService?: ICardEffectService;
@@ -73,7 +78,6 @@ export class TurnService implements ITurnService {
       loggingService,
       gameRulesService,
       effectEngineService,
-      notificationService,
       this.diceService
     );
     // Create DiceRollProcessor for dice roll processing with feedback
@@ -84,7 +88,6 @@ export class TurnService implements ITurnService {
       this.diceService,
       choiceService,
       movementService,
-      notificationService,
       approvalService
     );
     // Create TurnEffectsOrchestrator — converts space/dice CSV rows into
@@ -108,7 +111,6 @@ export class TurnService implements ITurnService {
       this.spaceEffectService,
       this.diceService,
       loggingService,
-      notificationService,
       effectEngineService,
       cardEffectService
     );
@@ -132,8 +134,7 @@ export class TurnService implements ITurnService {
       stateService,
       cardService,
       loggingService,
-      effectEngineService,
-      notificationService
+      effectEngineService
     );
   }
 

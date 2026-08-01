@@ -67,7 +67,6 @@ describe('E012 Card - Choice of Effects Integration', () => {
       {} as any, // targetingService
       mockServices.loggingService,
       undefined,
-      undefined,
       financialEffectHandler,
       cardEffectHandler
     );

@@ -58,6 +58,14 @@ ENV LOG_FILE=/app/data/visitors.log
 ENV GAMES_FILE=/app/data/games.json
 ENV DIST_PATH=/app/dist
 
+# The build-step RUN above only sets VITE_GIT_COMMIT for that one command,
+# baking it into the client bundle — it was never in the running container's
+# own environment, so server.js's /health handler (which reads
+# process.env.VITE_GIT_COMMIT at request time) always fell through to its
+# 'dev' default in production. Re-declaring it as a real ENV here fixes that
+# without touching the client bundle's already-correct embedded version.
+ENV VITE_GIT_COMMIT=${GIT_COMMIT}
+
 # Note: Non-root user (USER node) deferred — requires host volume permission
 # changes in deploy.sh. Container is already hardened via --read-only,
 # --cap-drop ALL, and --no-new-privileges in deploy.sh.

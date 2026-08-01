@@ -3,7 +3,6 @@
 
 import { IDataService, IStateService, ICardService, ILoggingService, IEffectEngineService, IGameRulesService, IDiceService } from '../types/ServiceContracts';
 import { debugLog, debugWarn } from '../utils/debugLog';
-import { INotificationService } from './NotificationService';
 import { Player } from '../types/StateTypes';
 import { SpaceEffect, CardType, VisitType } from '../types/DataTypes';
 import { EffectFactory } from '../utils/EffectFactory';
@@ -32,7 +31,6 @@ export class SpaceArrivalProcessor {
     private loggingService: ILoggingService,
     private gameRulesService: IGameRulesService,
     private effectEngineService?: IEffectEngineService,
-    private notificationService?: INotificationService,
     private diceService: IDiceService = new DiceService()
   ) {}
 
@@ -41,13 +39,6 @@ export class SpaceArrivalProcessor {
    */
   public setEffectEngineService(service: IEffectEngineService): void {
     this.effectEngineService = service;
-  }
-
-  /**
-   * Set the NotificationService after construction
-   */
-  public setNotificationService(service: INotificationService): void {
-    this.notificationService = service;
   }
 
   /**

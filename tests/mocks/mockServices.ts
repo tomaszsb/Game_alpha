@@ -160,7 +160,6 @@ export const createMockStateService = (): any => ({
   restorePlayerSnapshot: vi.fn(),
   
   // Validation methods
-  validatePlayerAction: vi.fn(),
   canStartGame: vi.fn(),
   
   // Action logging methods

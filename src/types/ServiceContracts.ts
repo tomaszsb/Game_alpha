@@ -306,7 +306,6 @@ export interface IStateService {
   restorePlayerSnapshot(playerId: string): GameState;
   
   // Validation methods
-  validatePlayerAction(playerId: string, action: string): boolean;
   canStartGame(): boolean;
 
   // Initialization methods

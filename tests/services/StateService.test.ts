@@ -565,48 +565,6 @@ describe('StateService', () => {
       stateService.addPlayer('Bob');
     });
 
-    it('should validate player action successfully', () => {
-      const players = stateService.getAllPlayers();
-      const aliceId = players[0].id;
-      
-      stateService.setGamePhase('PLAY');
-      stateService.setCurrentPlayer(aliceId);
-      
-      const isValid = stateService.validatePlayerAction(aliceId, 'move');
-      
-      expect(isValid).toBe(true);
-    });
-
-    it('should reject action when not in PLAY phase', () => {
-      const players = stateService.getAllPlayers();
-      const aliceId = players[0].id;
-      
-      const isValid = stateService.validatePlayerAction(aliceId, 'move');
-      
-      expect(isValid).toBe(false);
-    });
-
-    it('should reject action from non-current player', () => {
-      const players = stateService.getAllPlayers();
-      const aliceId = players[0].id;
-      const bobId = players[1].id;
-      
-      stateService.setGamePhase('PLAY');
-      stateService.setCurrentPlayer(aliceId);
-      
-      const isValid = stateService.validatePlayerAction(bobId, 'move');
-      
-      expect(isValid).toBe(false);
-    });
-
-    it('should reject action from non-existent player', () => {
-      stateService.setGamePhase('PLAY');
-      
-      const isValid = stateService.validatePlayerAction('non-existent', 'move');
-      
-      expect(isValid).toBe(false);
-    });
-
     it('should check if game can start with sufficient players', () => {
       // Arrange: Create fresh StateService and add players
       const freshStateService = new StateService(mockDataService);

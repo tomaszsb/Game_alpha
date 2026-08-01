@@ -1,37 +1,36 @@
 # Next session starter — written 2026-08-01 by /koniec
 
 ## State at handoff
-- **Version:** v3.1.86 in the repo. **v3.1.85 confirmed live** (bundle-verified mid-session: `game.unravelcodes.com`'s served `index-*.js` embeds commit `562f9d1`, which is this session's own work — the version *label* just hadn't caught up yet at deploy time). v3.1.86 is pushed, not yet redeployed, but it changes zero runtime code (test script + docs only) — no urgency.
+- **Version:** v3.1.87 in the repo, pushed. Not yet deployed — last confirmed live is v3.1.85 (no urgency; nothing this session touched is player-visible gameplay).
 - **Branch:** master, clean, pushed.
-- **Last shipped:** an audit-then-fix session, not a feature sprint. A prior session left 5 AI-generated analysis reports uncommitted; verified each claim against real evidence rather than trusting them (about half held up). Real fix: `tests/scripts/run-tests-batch-fixed.sh` had 16 dead paths, silently hard-failing 5 of 23 batches every run — repaired, verified 22/22 green. Four docs refreshed for real content drift (3 months stale on three of them), not just date bumps — biggest find was `USER_MANUAL.md` still describing the deleted classic player panel. 2 dead source files archived, a `.gitignore` gap fixed, ~11.5MB of confirmed-safe local disk clutter cleaned.
-- **Test suite:** fast suite **2549 passed / 1 skipped / 0 failed** (172 files) and ghost gates **33/33** (10 files, 632s). Both green, both match the exact prior baseline — zero regressions from the archive move or script fix.
-- **Build/typecheck/lint:** all clean. Lint: 0 errors / 35 warnings (unchanged baseline).
+- **Last shipped:** a backlog-clearing session, not a feature sprint. Closed the prior handoff's top-3 (API_REFERENCE.md's REST gap now fully documented 55/55 routes; confirmed `.swcrc`/`@swc/core` genuinely dead and removed; UAT recruiting stays open as outreach, not code). Then worked through TODO.md's Parking lot one scoped item at a time: 2 meaningless wall-clock tests deleted, 5 dead `notificationService` constructor params removed (rippled to 24 files via `TurnService`/`EffectEngineService`), a real `/health` version-reporting bug fixed in the Dockerfile, the long-standing "`DiceResultModal` won't dismiss in the test harness" mystery definitively root-caused (not a game bug — an `AnimatePresence`/non-compositing-pane interaction), `/koniec` itself improved (new step 4a), a misleading `StateService` comment corrected, and a dead duplicate validation method deleted after confirming its job is already done elsewhere in production.
+- **Test suite:** fast suite **2543 passed / 1 skipped / 0 failed** (172 files, down from 2549 baseline — 2 meaningless benchmark tests + 4 tests-of-a-deleted-duplicate-method deleted on purpose, not regressions). Ghost gates **33/33** (10 files, ~639s) — unchanged, confirms the core service-wiring changes (dead `notificationService` param removal) didn't touch real gameplay behavior.
+- **Build/typecheck:** both clean.
 
 ## Top 3 open items
 *(Curated shortlist, not the backlog — read TODO.md before claiming anything else is or isn't open.)*
-1. **`API_REFERENCE.md`'s REST API table only documents ~13 of ~55 real routes** — accounts/login, Teacher Layer instances, admin, and playtest tracking are entirely undocumented. Real work (each route needs its handler read individually), found and scoped this session.
-2. **`.swcrc` + `@swc/core` look like dead Jest-era leftovers** — unconfirmed, touches a real `package.json` dependency so wasn't removed blindly. ~10-15 min investigation when picked up.
-3. **Recruit 3–5 external players for a structured UAT pass** — the `/challenge` funnel + QR codes have been ready since April; this is outreach, not code.
+1. **Recruit 3–5 external players for a structured UAT pass** — the `/challenge` funnel + QR codes have been ready since April; this is outreach, not code.
+2. **`CardService.discardCards` silently drops its `source`/`reason` args** — 4 call sites pass real values but the log only ever shows "Discarded N cards." Wiring them in changes player- and teacher-visible log text (and effect-driven discards would show a generic "Effect processing" filler unless special-cased), so it's a real decision, not a drive-by. Options are laid out in TODO.md.
+3. **Demo video** — script + storyboard drafted 2026-07-05; needs footage, then wire the "Watch demo" button.
 
 ## Test failures to address
 None. Both suites green.
 
 ## Decisions waiting on the user
 - **Bank/Investor/Lender character naming** — still marinating. **Don't nudge.**
-- **PixelLab.ai key history purge** — declined 2026-07-26, key was rotated instead; the old (now-dead) key stays in git history unless the maintainer decides the cleanliness is worth a `git filter-repo` disruption.
+- **`CardService.discardCards` audit-trail wiring** (see top-3 #2) — newly scoped this session; needs your call on the player/teacher-visible log text before it's built.
+- **PixelLab.ai key history purge** — still optional/low-priority (key already rotated, old one is dead either way).
 
 ## Flip after deploy
-None — no dashboard reports were closed this session (this session touched docs/tests/hygiene, not gameplay).
+None — no dashboard reports were closed this session (docs/tests/dependency/dead-code work, not gameplay), and v3.1.87 isn't deployed yet anyway.
 
 ## Suggested first move
-Tree is clean, nothing blocked, nothing urgent. Either pick up one of the top-3 items (the API_REFERENCE.md REST gap is the meatiest — probably wants its own dedicated pass, similar in shape to this session's doc-refresh agents), or start on UAT outreach, or pick something fresh from TODO.md's Parking lot with the user.
+Nothing urgent or blocked. The three top items are all either outreach (UAT), a text-content decision only you can make (discardCards logging), or need real-world footage (demo video) — none are things I can just pick up and run with alone. Want to make the discardCards call now (I can lay out the exact options), or is there something else on your mind?
 
 ## Suggested model for next session
-Sonnet 5 — nothing in the top-3 needs deep architectural judgment; the REST API doc gap is mechanical-but-tedious (read ~40 route handlers), UAT outreach is logistics.
+Sonnet 5 — nothing in the top-3 needs deep architectural judgment; it's a content decision, outreach logistics, and video production.
 
 ## Reminders
-- Deploy runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. **PowerShell has no `&&`** — one command per line, or use `Remove-Item -Force item1, item2` style multi-arg calls instead of chaining.
-- **Local `server/data/` is NOT the production copy** — `deploy.sh` mounts a separate volume from the Unraid host's own checkout. Confirmed safe to clean up local dev-server logs without any production impact; see CLAUDE.md TACTICAL (2026-08-01 entry).
-- **Before trusting any AI-generated audit/cleanup report** (this session's starting point), spot-check its specific claims against real grep/read evidence — several were right, several were confidently wrong (e.g. `vitest.config.ts` called "redundant" when it's the real default config).
-- **`useSyncedGameState`** (`src/hooks/useSyncedGameState.ts`) is the pattern for any component reading StateService. Don't hand-roll `useState`+`useEffect(subscribe)`.
+- Deploy runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. **PowerShell has no `&&`** — one command per line.
+- `/koniec` gained a new step 4a this session (auto-flip confirmed-deployed feedback before the handoff overwrites the evidence) — it ran this session and found nothing to flip (no fb-ids in the old handoff or this session's CHANGELOG). Just noting it exists in case a future session wonders why it's there.
 - **Never `taskkill /F /IM node.exe`** — it kills all MCP servers too. Kill by PID from `netstat -ano`.

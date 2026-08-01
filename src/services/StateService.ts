@@ -216,7 +216,16 @@ export class StateService implements IStateService {
 
   // State access methods
   getGameState(): GameState {
-    // Return deep copies to prevent external mutations
+    // NOT a deep copy despite the old comment/name below claiming otherwise
+    // (found 2026-08-01) — only this top-level object, the players array,
+    // and each player's `hand` array are copied. Everything else
+    // (activeCards/activeEffects/loans/moneySources/decks, and anything
+    // nested inside a player beyond `hand`) is a SHARED reference into
+    // `this.currentState`. At least one call site already depends on this:
+    // EffectEngineService.processActiveEffects deliberately avoids mutating
+    // `activeEffect` in place specifically because it's shared, not copied
+    // (see its own comment, v3.0.119). Don't "fix" this into a real deep
+    // clone without auditing every such assumption first.
     return {
       ...this.currentState,
       players: this.currentState.players.map(player => ({
@@ -226,7 +235,9 @@ export class StateService implements IStateService {
     };
   }
 
-  // Method for explicit deep cloning (same as getGameState now)
+  // Same shallow scope as getGameState() above — despite the name, this is
+  // NOT a deeper clone. Kept as a separate method name for callers that want
+  // to signal intent, not because it does more copying.
   getGameStateDeepCopy(): GameState {
     return this.getGameState();
   }
@@ -886,23 +897,6 @@ export class StateService implements IStateService {
   }
 
   // Validation methods
-  validatePlayerAction(playerId: string, _action: string): boolean {
-    if (this.currentState.gamePhase !== 'PLAY') {
-      return false;
-    }
-
-    if (this.currentState.currentPlayerId !== playerId) {
-      return false;
-    }
-
-    const player = this.getPlayer(playerId);
-    if (!player) {
-      return false;
-    }
-
-    return true;
-  }
-
   canStartGame(): boolean {
     if (this.currentState.gamePhase !== 'SETUP') {
       return false;

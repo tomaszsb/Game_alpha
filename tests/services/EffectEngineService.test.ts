@@ -106,7 +106,6 @@ describe('EffectEngineService', () => {
       clearTurnActions: vi.fn(),
       createPlayerSnapshot: vi.fn(),
       restorePlayerSnapshot: vi.fn(),
-      validatePlayerAction: vi.fn(),
       canStartGame: vi.fn(),
       logToActionHistory: vi.fn(),
       savePreSpaceEffectSnapshot: vi.fn(),
@@ -202,7 +201,6 @@ describe('EffectEngineService', () => {
       mockGameRulesService,
       mockTargetingService,
       mockLoggingService,
-      undefined,
       undefined,
       financialEffectHandler,
       cardEffectHandler
@@ -608,7 +606,6 @@ describe('EffectEngineService', () => {
         mockGameRulesService,
         mockTargetingService,
         mockLoggingService,
-        undefined,
         undefined,
         financialEffectHandler,
         cardEffectHandler
@@ -1044,7 +1041,6 @@ describe('EffectEngineService', () => {
         mockGameRulesService,
         mockTargetingService,
         mockLoggingService,
-        undefined,
         undefined,
         financialEffectHandler,
         cardEffectHandler

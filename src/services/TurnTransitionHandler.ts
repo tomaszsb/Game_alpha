@@ -2,7 +2,6 @@
 // Extracted from TurnService - handles turn-end processing and player advancement
 
 import { IStateService, ICardService, ILoggingService, IEffectEngineService } from '../types/ServiceContracts';
-import { INotificationService } from './NotificationService';
 import { Player } from '../types/StateTypes';
 
 /**
@@ -26,8 +25,7 @@ export class TurnTransitionHandler {
     private stateService: IStateService,
     private cardService: ICardService,
     private loggingService: ILoggingService,
-    private effectEngineService?: IEffectEngineService,
-    private notificationService?: INotificationService
+    private effectEngineService?: IEffectEngineService
   ) {}
 
   /**
@@ -35,13 +33,6 @@ export class TurnTransitionHandler {
    */
   public setEffectEngineService(service: IEffectEngineService): void {
     this.effectEngineService = service;
-  }
-
-  /**
-   * Set the NotificationService after construction
-   */
-  public setNotificationService(service: INotificationService): void {
-    this.notificationService = service;
   }
 
   /**

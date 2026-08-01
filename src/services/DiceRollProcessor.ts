@@ -3,7 +3,6 @@
 
 import { IDataService, IStateService, IGameRulesService, IDiceService, IChoiceService, IMovementService, IApprovalService } from '../types/ServiceContracts';
 import { debugLog, debugWarn } from '../utils/debugLog';
-import { INotificationService } from './NotificationService';
 import { DiceResultEffect, TurnEffectResult, Player, GameState } from '../types/StateTypes';
 import { ApprovalStatus } from '../types/DataTypes';
 import { formatDiceRollFeedback } from '../utils/buttonFormatting';
@@ -60,7 +59,6 @@ export class DiceRollProcessor {
     private diceService: IDiceService,
     private choiceService: IChoiceService,
     private movementService: IMovementService,
-    private notificationService?: INotificationService,
     private approvalService?: IApprovalService
   ) {}
 
@@ -70,13 +68,6 @@ export class DiceRollProcessor {
    */
   public setProcessDiceRollEffectsCallback(callback: ProcessDiceRollEffectsCallback): void {
     this.processDiceRollEffectsCallback = callback;
-  }
-
-  /**
-   * Set notification service
-   */
-  public setNotificationService(service: INotificationService): void {
-    this.notificationService = service;
   }
 
   /**

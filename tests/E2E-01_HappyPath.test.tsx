@@ -188,7 +188,6 @@ describe('E2E-01: Happy Path with New UI', () => {
       globalTargetingService,
       globalLoggingService,
       globalDataService,
-      globalNotificationService,
       financialEffectHandler,
       cardEffectHandler
     );

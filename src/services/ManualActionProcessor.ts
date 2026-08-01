@@ -7,7 +7,7 @@
 // plumbing (spaceEffectService/diceService/movementService called directly
 // instead of through TurnService's private delegate wrappers).
 
-import { IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IMovementService, ISpaceEffectService, IDiceService, ILoggingService, ICardEffectService, IEffectEngineService, INotificationService } from '../types/ServiceContracts';
+import { IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IMovementService, ISpaceEffectService, IDiceService, ILoggingService, ICardEffectService, IEffectEngineService } from '../types/ServiceContracts';
 import { GameState, DiceResultEffect, TurnEffectResult } from '../types/StateTypes';
 import { SpaceEffect } from '../types/DataTypes';
 import { formatManualEffectButton, formatActionFeedback } from '../utils/buttonFormatting';
@@ -32,7 +32,6 @@ export class ManualActionProcessor {
     private readonly spaceEffectService: ISpaceEffectService,
     private readonly diceService: IDiceService,
     private readonly loggingService: ILoggingService,
-    private readonly notificationService?: INotificationService,
     effectEngineService?: IEffectEngineService,
     private readonly cardEffectService?: ICardEffectService
   ) {

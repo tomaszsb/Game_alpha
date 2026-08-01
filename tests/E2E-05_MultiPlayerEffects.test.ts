@@ -132,7 +132,7 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     cardEffectHandler.autoPickForcedDiscards = true;
 
     // Create final EffectEngineService with complete dependencies
-    effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, turnService, gameRulesService, targetingService, loggingService, undefined, undefined, financialEffectHandler, cardEffectHandler);
+    effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, turnService, gameRulesService, targetingService, loggingService, undefined, financialEffectHandler, cardEffectHandler);
 
     // Complete circular dependencies (real cycle)
     turnService.setEffectEngineService(effectEngineService);
@@ -589,7 +589,7 @@ describe('E2E-05b: L021 "High-Profile Client" in solo play (2026-07-26 fix)', ()
     const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingServiceRef);
     cardEffectHandler.autoPickForcedDiscards = true;
 
-    effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, turnService, gameRulesService, targetingService, loggingService, undefined, undefined, financialEffectHandler, cardEffectHandler);
+    effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, turnService, gameRulesService, targetingService, loggingService, undefined, financialEffectHandler, cardEffectHandler);
     turnService.setEffectEngineService(effectEngineService);
     cardService.setEffectEngineService(effectEngineService);
 

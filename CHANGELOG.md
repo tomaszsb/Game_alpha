@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.87] - 2026-08-01
+
+### Docs: closed the API_REFERENCE.md REST endpoint gap (~13 → 55 of 55 routes)
+Picked up the top handoff item from the v3.1.86 session. Read every route handler in `server/server.js` individually (not just listed by name) and documented all 55 registered routes in [API_REFERENCE.md](docs/technical/API_REFERENCE.md), organized into 8 new sections: Health, Legacy & debug game endpoints, Teacher accounts & sessions, Teacher instance layer (13 classroom-config routes), Admin accounts & classrooms, Admin game data management, Playtest tracking, and Admin stats dashboard. Each entry captures real auth requirements, rate limits, and non-obvious behavior (dry-run previews, optimistic concurrency via `baseConfigVersion`, the foreign-game-alert throttle) verified against the actual code.
+
+### Housekeeping: removed dead `.swcrc` + `@swc/core` (Jest-era leftover)
+Confirmed genuinely dead before removing: no config file, source file, or transitive package dependency referenced it anywhere; `npm ls @swc/core` showed it as a leaf with zero consumers. Both dated to the very first commit — a template leftover, matching `TESTING_GUIDE.md`'s own note that this repo used to be Jest-based. Removed the file, the `devDependencies` entry, and its `allowScripts` entry; `npm install` cleanly dropped 4 packages.
+
+**Bonus catch while re-verifying lint after the dependency removal:** found 16 real, pre-existing lint errors unrelated to the change. The v3.1.85 session's new `scripts/capture-game-screenshot-more.js` was never added to `eslint.config.js`'s browser-globals override (its sibling script has one; the new file didn't), so its `page.evaluate()` callbacks tripped false-positive `no-undef` errors. Fixed with a one-line glob (`capture-game-screenshot.js` → `capture-game-screenshot*.js`), restoring the true baseline: 0 errors / 35 warnings.
+
+### Test cleanup: deleted 2 wall-clock "performance benchmark" tests that tested nothing
+`tests/isolated/gameLogic.test.ts`'s two benchmark bodies were self-contained `Math.random()` loops importing nothing from the app — they could only measure machine load, never an application regression, and had already caused one false failure (2026-07-28, a run that failed at 3.77ms against a `< 3` budget then passed 12/12 on isolated re-runs). Deleted outright.
+
+### Reliability: removed 5 dead `notificationService` constructor params (real, cross-file cleanup)
+`ManualActionProcessor`, `TurnTransitionHandler`, `DiceRollProcessor`, `EffectEngineService`, `SpaceArrivalProcessor` each carried an optional `notificationService` param that was only ever assigned, never read — their one real call site had migrated to `ToastWriter` back in the domain-event work (2026-07-17). Removing it rippled further than the original TODO note anticipated: `TurnService` was the thing actually constructing 4 of the 5 (updated to stop forwarding the now-removed param, its own `notificationService` field left in place per this file's existing "kept positionally for back-compat" convention rather than forcing a 21-file positional-argument reflow), and `EffectEngineService` alone had 18 direct test call sites. TypeScript's arity checking caught every affected call site precisely — the real edit touched 24 files total. Verified with the full fast suite AND the 50-game ghost-bot gate suite (both green, matching baseline) given the core service-wiring surface touched.
+
+### Fixed: `/health`'s `version` field always reported "dev" in production
+`server.js`'s `/health` handler reads `process.env.VITE_GIT_COMMIT` at request time, but the Dockerfile only set that env var for the `RUN npm run build` step — it was baked into the client bundle but never present in the running container's own environment. Added `ENV VITE_GIT_COMMIT=${GIT_COMMIT}` to the Dockerfile's runtime stage. Only verifiable live after the next deploy (no local Docker available to build-test); the client bundle's embedded version was never wrong, only this one server-side endpoint.
+
+### Investigation: root-caused the `DiceResultModal` "won't dismiss" test-harness obstacle — not a game bug
+Closed a TODO item open since v3.0.111/v3.0.122 that had forced "verified via accessibility tree instead of screenshot" caveats twice. Reproduced live: opened a real dice-result modal, clicked its close button, then read the DOM directly instead of trusting a screenshot. Both the overlay and modal container showed the correct exit-variant styles (`opacity: 0`, the matching transform) with zero console errors — `onClose` fires and React state updates correctly every time. The DOM node just never unmounts, because `AnimatePresence` waits for an exit-animation completion signal that depends on real browser compositing, which this tool's Browser pane doesn't produce unless actually displayed. Escape and backdrop-click share the identical `onClose()` path in `ModalBase`, so there was no need to test each separately once one was root-caused this precisely. Documented in [CLAUDE.md](docs/core/CLAUDE.md) TACTICAL with the two practical workarounds (keep the pane displayed, or read DOM/game state directly instead of waiting on a screenshot).
+
+### Ops: `/koniec` now auto-flips confirmed-deployed feedback reports before the handoff overwrites the evidence
+Added step 4a to `.claude/commands/koniec.md`, right before the step that overwrites `NEXT_SESSION.md`. Rather than relying on `/start`'s monthly sweep to eventually notice a fixed-and-deployed report still marked "open" on the live dashboard, `/koniec` now checks the current handoff's "Flip after deploy" list plus the session's new CHANGELOG entries against hard evidence of deployment (bundle-verification or the user confirming), and PATCHes only what's provably live — right before that evidence would otherwise be lost. Unconfirmed ids roll forward unchanged, same as before.
+
+### Fixed: `StateService.getGameState()`'s "deep copies" claim was false, and code was already quietly relying on the gap
+The comment said "Return deep copies to prevent external mutations," but only the top-level state, the players array, and each player's `hand` are actually copied — everything else (`activeCards`/`activeEffects`/`loans`/`moneySources`/decks, and anything nested in a player beyond `hand`) is a shared reference into live state. `getGameStateDeepCopy()` was literally the same function under a more misleading name. At least one call site (`EffectEngineService.processActiveEffects`) already knows this and deliberately avoids mutating through the "copy" for exactly that reason. Fixed the comments to describe the real shallow-copy scope accurately — zero behavior change, so the actual "should this become a real deep clone" question (which would require auditing every place that currently depends on the shared-reference behavior) stays open, tracked in TODO.md.
+
+### Removed: dead `StateService.validatePlayerAction` — a duplicate, not a missing safety net
+Investigated "wire it up" first, since its three checks (game in PLAY phase, current player's turn, player exists) looked like sensible validation worth connecting. Found `TurnService.canPlayerTakeTurn()` already does the identical checks and is already the real gate in production (`rollDiceAndProcessEffects`) — `validatePlayerAction` was a dead duplicate of a check that already existed and worked elsewhere. Deleted the method, its `IStateService` interface entry, 3 mock declarations, and its 4 dedicated tests (which tested only the duplicate itself).
+
+### Housekeeping
+- Removed a stale TODO.md entry for "GEMINI.md setup" — the file doesn't exist anywhere in the repo (no config references it either), so there was nothing to set up or drop.
+- TODO.md: removed 8 completed items total this session (the above, minus the deep-copy comment fix which stays open in narrowed form for its harder remaining half).
+
+**Verification:** typecheck clean throughout, build clean. Full fast suite **2543 passed / 1 skipped / 0 failed** (172 files, down from 2549 baseline — 6 tests deliberately deleted alongside the dead code/tests they were testing, not regressions). Ghost gates **33/33** (10 files, ~639s), unchanged — confirms the core service-wiring changes didn't touch real gameplay behavior.
+
 ## [3.1.86] - 2026-08-01
 
 ### Fixed: test-batch runner had 16 dead paths, 5 of 23 batches hard-failing every run

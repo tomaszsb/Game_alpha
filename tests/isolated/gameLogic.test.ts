@@ -125,48 +125,4 @@ describe('Isolated Game Logic Tests', () => {
       expect(ranked[2].rank).toBe(3);
     });
   });
-
-  describe('Performance benchmarks', () => {
-    it('should process game state calculations quickly', () => {
-      const start = performance.now();
-      
-      // Simulate complex game state calculations
-      let totalScore = 0;
-      for (let player = 0; player < 6; player++) {
-        let playerScore = 1000;
-        for (let turn = 0; turn < 20; turn++) {
-          playerScore += Math.floor(Math.random() * 100);
-          playerScore -= Math.floor(Math.random() * 50);
-        }
-        totalScore += Math.max(0, playerScore);
-      }
-      
-      const duration = performance.now() - start;
-      
-      expect(totalScore).toBeGreaterThan(0);
-      expect(duration).toBeLessThan(2); // Should complete in under 2ms
-    });
-
-    it('should handle validation loops efficiently', () => {
-      const start = performance.now();
-      
-      // Simulate validation of many game actions
-      let validActions = 0;
-      for (let i = 0; i < 1000; i++) {
-        const money = Math.random() * 2000;
-        const cost = Math.random() * 1000;
-        const time = Math.random() * 20;
-        const timeCost = Math.random() * 10;
-        
-        if (money >= cost && time >= timeCost) {
-          validActions++;
-        }
-      }
-      
-      const duration = performance.now() - start;
-      
-      expect(validActions).toBeGreaterThan(0);
-      expect(duration).toBeLessThan(3); // Should complete in under 3ms
-    });
-  });
 });

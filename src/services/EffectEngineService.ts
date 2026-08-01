@@ -12,7 +12,6 @@ import {
   ILoggingService,
   IDataService,
   LogPayload,
-  INotificationService,
   IFinancialEffectHandler,
   ICardEffectHandler
 } from '../types/ServiceContracts';
@@ -92,7 +91,6 @@ export class EffectEngineService implements IEffectEngineService {
   private targetingService: ITargetingService;
   private loggingService: ILoggingService;
   private dataService?: IDataService;
-  private notificationService?: INotificationService;
   private financialEffectHandler?: IFinancialEffectHandler;
   private cardEffectHandler?: ICardEffectHandler;
 
@@ -107,7 +105,6 @@ export class EffectEngineService implements IEffectEngineService {
     targetingService: ITargetingService,
     loggingService: ILoggingService,
     dataService?: IDataService,
-    notificationService?: INotificationService,
     financialEffectHandler?: IFinancialEffectHandler,
     cardEffectHandler?: ICardEffectHandler
   ) {
@@ -121,7 +118,6 @@ export class EffectEngineService implements IEffectEngineService {
     this.targetingService = targetingService;
     this.loggingService = loggingService;
     this.dataService = dataService;
-    this.notificationService = notificationService;
     this.financialEffectHandler = financialEffectHandler;
     this.cardEffectHandler = cardEffectHandler;
   }
@@ -144,7 +140,7 @@ export class EffectEngineService implements IEffectEngineService {
 
   /**
    * Assert that critical setter-injected dependencies are initialized.
-   * Some services (notificationService, dataService) are optional and handled with null checks.
+   * Some services (dataService) are optional and handled with null checks.
    * TurnService is required for specific effect types.
    * @throws Error if TurnService is not set (required for TURN_MODIFIER effects)
    */
@@ -156,7 +152,7 @@ export class EffectEngineService implements IEffectEngineService {
       );
     }
     // Note: negotiationService is checked inline where needed (only for negotiation effects)
-    // Note: notificationService and dataService are optional (used with null checks)
+    // Note: dataService is optional (used with null checks)
   }
 
   /**

@@ -115,7 +115,6 @@ export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise
     targetingService,
     loggingService,
     dataService,
-    notificationService,
     financialEffectHandler,
     cardEffectHandler
   );

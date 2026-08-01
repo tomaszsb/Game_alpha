@@ -175,8 +175,7 @@ describe('E2E Full Playthrough', () => {
       globalGameRulesService,
       globalTargetingService,
       globalLoggingService,
-      globalDataService,
-      globalNotificationService
+      globalDataService
     );
 
     globalNegotiationService = new NegotiationService(globalStateService, globalEffectEngineService, globalResourceService, globalChoiceService);

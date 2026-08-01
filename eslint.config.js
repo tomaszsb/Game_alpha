@@ -272,8 +272,10 @@ export default [
     // browser, so `document`/`window` in this file are correct rather than
     // mistakes — ESLint has no way to know the callback crosses that
     // boundary. Browser globals are additive here, not a replacement: the
-    // surrounding script is still Node.
-    files: ['scripts/capture-game-screenshot.js'],
+    // surrounding script is still Node. Glob covers both screenshot capture
+    // scripts (capture-game-screenshot-more.js, added 2026-07-31, missed
+    // this override entirely until caught by an unrelated lint run 2026-08-01).
+    files: ['scripts/capture-game-screenshot*.js'],
     languageOptions: {
       globals: {
         ...globals.node,
