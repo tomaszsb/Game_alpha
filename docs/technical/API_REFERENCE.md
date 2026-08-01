@@ -1,9 +1,11 @@
 # API Reference — Unravel Codes: The Game
 
-**Last Updated:** June 12, 2026 (endpoint auth hardening pass)
-**Status:** Beta (v3.0.71+)
+**Last Updated:** August 1, 2026
+**Status:** Beta (v3.1.85)
 
 > **Scope of this doc:** server REST endpoints + a one-line summary of each service in `IServiceContainer`. For full TypeScript signatures, the source under `src/types/ServiceContracts.ts` is authoritative — this doc used to duplicate those interfaces and went stale fast. For architectural context (DI, real cycles, handler pattern, REAL/TEMP) see [ARCHITECTURE.md](./ARCHITECTURE.md).
+
+> **Known gap (found 2026-08-01):** the REST API table below covers ~13 of the ~55 routes actually registered in `server/server.js`. Whole feature areas are undocumented here — accounts/login (`/api/accounts/*`), the Teacher Layer's classroom instances (`/api/instances/*`), admin (`/api/admin/*` beyond `verify`), and playtester tracking (`/api/playtest/*`). This section only got a header/CSV/service-table refresh this pass, not a full endpoint audit — that's real, separate work (each route needs its handler read to describe correctly, not just listed).
 
 ---
 
@@ -78,6 +80,7 @@ All services are constructor-injected (with two real cycles using setter injecti
 | `ChoiceService` | Player-choice modals (movement, card selection, logic questions, etc.). |
 | `NegotiationService` | Player-to-player negotiations on `Negotiate=YES` spaces. |
 | `NotificationService` | Unified notifications (toasts, banners, modals). |
+| `ApprovalService` | DOB/FDNY approval tracking + end-game missing-approval penalty. Optional in `IServiceContainer` (only `MovementService`/`DiceRollProcessor` read it directly); always populated in production. |
 | `TargetingService` | Multi-player effect targeting (e.g. "person to right takes a card"). |
 | `LoggingService` | Action log with exploration-session-aware commit/rollback for Try Again. |
 | `PlayerActionService` | High-level command surface for UI components. |
@@ -123,15 +126,21 @@ Game CSVs live under `public/data/`. `SOURCE_FILES/` is the editable layer (Data
 
 | CSV | Purpose |
 |---|---|
-| `Spaces.csv` (source) → `GAME_CONFIG.csv` (clean) | Per-space configuration. 49 columns at v2.58.0 — including all Workstream 6 flags. |
+| `Spaces.csv` (source) → `GAME_CONFIG.csv` (clean) | Per-space configuration. 25 columns as of v3.1.85. |
 | `MOVEMENT.csv` | Movement type + destinations per (space, visit_type). |
 | `SPACE_EFFECTS.csv` | Effects per (space, visit_type, action). |
+| `SPACE_CONTENT.csv` | Per-space narrative/story content. |
 | `DICE_EFFECTS.csv` | Dice-roll effect mappings. |
 | `DICE_OUTCOMES.csv` | Dice-roll destination mappings for dice-movement spaces. |
+| `DICE_ROLL_INFO.csv` | Player-facing copy for dice-roll prompts. |
 | `CARDS_EXPANDED.csv` | Card definitions (W/B/E/L/I types). |
-| `MODAL_CONFIG.csv` | Per-action modal copy overrides. |
+| `CARD_TYPES.csv` | Per-card-type metadata (labels, styling). |
+| `ACTION_TOOLTIPS.csv` | Tooltip copy for action buttons. |
+| `GLOSSARY.csv` | In-game term definitions (the dictionary panel). |
 | `LOGIC_QUESTIONS.csv` | Yes/no decision-chain rows for `path=LOGIC` spaces. |
 | `PATH_CHOICE_RULES.csv` | Cross-space exclusion rules driven by stored path choices (Workstream 6 #4). |
+
+`MODAL_CONFIG.csv` (previously listed here) no longer exists — its role was absorbed by the CSVs above (verify against `DataService.ts` if precision matters; this doc doesn't duplicate load-order detail).
 
 ---
 
