@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** August 2, 2026 — a dependency-ordered backlog-clearing session through the Architecture/code health bucket; several "do NOT do casually" items turned out already done by past sessions that never removed the TODO line, but 3 real bugs surfaced and got fixed along the way (discardCards audit-trail logging, a getGameState() perf trap, and expenditures.fees never being tracked). See CHANGELOG.
-**Status:** Beta — live in production; **v3.1.88 confirmed live** 2026-08-02 (bundle-verified via `/health` reporting commit `8afb6de`).
-**Current Version:** 3.1.88 in the repo, confirmed live.
+**Last Updated:** August 2, 2026 evening — closed the last open naming decision, then built both top-3 handoff items from the v3.1.88 session (G160 per-edge waypoint redirect, in-game engagement tracking). See CHANGELOG v3.1.89.
+**Status:** Beta — live in production; **v3.1.89 pushed, not yet deployed** (v3.1.88 is what's currently live).
+**Current Version:** 3.1.89 in the repo, pushed; live deploy still on 3.1.88.
 
 ---
 

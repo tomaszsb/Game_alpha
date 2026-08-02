@@ -2,6 +2,11 @@
 
 ---
 
+## v3.1.89 — Your funding spaces have names now (August 2, 2026)
+
+- **The Bank, The Lender, and The Investor** now show up by name on the board instead of just "Funding" — same as how the Architect, Engineer, and DOB/FDNY inspectors already stand out from their phase color alone.
+- **Behind the scenes:** most of this session was building admin/teacher tooling (a way to fine-tune confusing board-connector lines, and a way to see how far players actually get in the game) — nothing else that changes what you see as a player.
+
 ## v3.1.88 — Your game history now says why, and your spending finally adds up (August 2, 2026)
 
 - **The game log now explains why a card was discarded**, instead of just saying "Discarded 2 cards." If you replaced or returned a card manually, the log now shows what actually happened — like "Manual action: Replace 2 Work Package cards."

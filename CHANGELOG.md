@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [3.1.89] - 2026-08-02
+
+A short, high-signal follow-on session to v3.1.88: closed the last open naming decision, then built both top-3 handoff items end to end — G160 (per-edge board-connector redirect) and in-game engagement tracking. Naming and engagement tracking were both live-verified (the latter smoke-tested end-to-end against a running server); G160's drag interaction is code-complete and test-covered but couldn't be visually confirmed this session due to a tool limitation in the embedded browser pane (see its entry below) — flagged in TODO.md for a real-device check.
 
 ### Decided + built: Bank/Investor/Lender character naming
 Closed the last open "Decisions waiting on the user" item. The 6 funding-phase spaces (`BANK-FUND-REVIEW`, `LEND-SCOPE-CHECK`, `INVESTOR-FUND-REVIEW`, each with a first-visit and subsequent-visit variant) had no `CHARACTER_MAP` entry, so their board tiles fell back to the bare phase label ("Funding") instead of a distinguishing discipline badge — same problem DOB/FDNY had before their split (v3.1.x). Named from the existing narration voice already in `Spaces.csv` (Lender: personal/blunt, "pound of flesh"; Bank: institutional, "Underwriting... Standard process"; Investor: committee-driven, "we move real money"). User picked the simple pattern matching Owner/Architect/Engineer/Contractor: **The Bank**, **The Lender**, **The Investor**. Added to `CHARACTER_MAP` in [characters.ts](src/constants/characters.ts) with 3 new colors (teal `#009688`, amber `#FFC107`, indigo `#3F51B5`) chosen distinct from all 6 existing character colors and from each other, since all three share FUNDING's phase color. No portrait art exists for these roles yet — `imageRoles: []`, which falls back to the emoji everywhere a portrait would otherwise show. Live-verified on the board: tiles now read "Lender"/"Bank"/"Investor" in their respective colors instead of "Funding". Updated `tests/services/characters.test.ts`'s stale "every character has portrait art" assumption to explicitly allow the emoji-only opt-out (20/20 passing).

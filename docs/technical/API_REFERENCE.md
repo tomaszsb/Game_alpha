@@ -128,12 +128,20 @@ Funnel-tracking for the `/challenge` outreach flow (landing → preview → remi
 
 | Method | Path | Purpose |
 |---|---|---|
-| `POST` | `/api/playtest/track` | Log a funnel event — one of `landing_view`, `preview_click`, `reminder_selected`, `bookmark_click`, `play_click`, `return_visit`, `share_click`. 400s on an unrecognized event name. |
+| `POST` | `/api/playtest/track` | Log a funnel event — one of `landing_view`, `preview_click`, `reminder_selected`, `bookmark_click`, `play_click`, `return_visit`, `share_click`, plus the in-game engagement events below. 400s on an unrecognized event name. |
 | `GET` | `/api/playtest/carriers` | List supported SMS carrier gateways (for the "text me a reminder" form). |
 | `GET` | `/api/playtest/push-public-key` | VAPID public key for browser push subscriptions. 503 if push isn't configured on this deployment. |
 | `POST` | `/api/playtest/schedule-push` | Schedule a browser push reminder for a future `sendAt`. Rate-limited 5/hour/IP. 503 if push isn't configured. |
 | `POST` | `/api/playtest/remind-me` | Send (or, with a future `sendAt`, schedule) an email/SMS reminder. Validates the recipient before responding, so a bad address/carrier fails on the form rather than silently at send time. Rate-limited 5/hour/IP. |
 | `GET` | `/api/admin/playtest-stats` | Aggregated funnel counts by event and campaign source, parsed from the visitor log. **Admin only.** |
+
+### In-game engagement tracking (v3.1.89)
+
+"How far players get, what draws their attention." Reuses `POST /api/playtest/track` above with 3 additional event names — `space_reached` (`gameId`/`playerId`/`spaceId`), `game_finished` (`gameId`), `panel_opened` (`gameId`/`playerId`/`panel`) — all pseudonymous, never the player's display name. Aggregation logic lives in `server/engagementStats.js` (pure, unit-tested).
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/admin/engagement-stats` | Spaces reached (deduped by gameId+playerId+spaceId), panel opens (raw count — repeat opens are the signal), games started/finished, and games abandoned (inferred: a `GAME_STARTED` with no matching `game_finished` after 4 hours). **Admin only.** |
 
 ### Admin stats dashboard
 
