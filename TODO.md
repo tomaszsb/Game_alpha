@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 31, 2026 — Homeowner Violation mechanic shipped (v3.1.84: new L050/L051 cards, corrective Work Package + civil penalty scaled to on-time/late filing), then the playtester screenshot carousel finished (v3.1.85); see CHANGELOG.
-**Status:** Beta — live in production; **v3.1.84 confirmed live** 2026-07-31 (setup screen's version badge read `v3.1.84 · 4eb984c`). v3.1.85 is pushed, not yet deployed (screenshot-carousel assets only, no gameplay code).
-**Current Version:** 3.1.85 in the repo (3.1.84 live)
+**Last Updated:** August 2, 2026 — a backlog-clearing session through the Architecture/code health bucket (14 items closed, 6 commits): most turned out already-done or smaller than their notes claimed (typing, notification bus, TEMP/REAL unification all had real work completed by past sessions that never got the TODO line removed), but 3 genuine bugs were found and fixed along the way — `discardCards` silently dropping its audit-trail text, `getGameState()`'s shallow-copy risk, and (biggest) `expenditures.fees` never being written to, so the player's own "Regulatory & filings" ledger line was stuck at $0 regardless of real spend. See CHANGELOG.
+**Status:** Beta — live in production; **confirmed live** 2026-08-02 via `/health` reporting commit `8afb6de` (bundle-verified, not just pushed) — includes all of this session's fixes. `package.json` still reads `3.1.87` (not bumped this session; the live commit is 6 commits ahead of that tag).
+**Current Version:** 3.1.87 in `package.json`; commit `8afb6de` confirmed live (ahead of the 3.1.87 tag, unbumped)
 
 ---
 
