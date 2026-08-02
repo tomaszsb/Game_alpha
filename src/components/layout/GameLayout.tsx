@@ -164,6 +164,41 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const onClearHiddenEdges = useCallback(() => {
     setHiddenEdgeIds(() => new Set());
   }, [setHiddenEdgeIds]);
+  // Per-edge waypoint redirect (G160, 2026-08-02) — same per-device
+  // localStorage tier as hiddenEdgeIds above (a redirect is a display fix
+  // for a badly auto-routed connector, not real game data). One waypoint
+  // per edge id; dragging again overwrites it, double-clicking the handle
+  // clears it. See TODO.md's G160 scope note.
+  const [edgeWaypoints, setEdgeWaypointsState] = useState<Record<string, { x: number; y: number }>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = window.localStorage.getItem('unravel:boardEdgeWaypoints');
+      if (raw) return JSON.parse(raw) as Record<string, { x: number; y: number }>;
+    } catch { /* ignore */ }
+    return {};
+  });
+  const setEdgeWaypoints = useCallback((updater: (prev: Record<string, { x: number; y: number }>) => Record<string, { x: number; y: number }>) => {
+    setEdgeWaypointsState(prev => {
+      const next = updater(prev);
+      try {
+        window.localStorage.setItem('unravel:boardEdgeWaypoints', JSON.stringify(next));
+      } catch { /* ignored */ }
+      return next;
+    });
+  }, []);
+  const onSetEdgeWaypoint = useCallback((edgeId: string, point: { x: number; y: number }) => {
+    setEdgeWaypoints(prev => ({ ...prev, [edgeId]: point }));
+  }, [setEdgeWaypoints]);
+  const onClearEdgeWaypoint = useCallback((edgeId: string) => {
+    setEdgeWaypoints(prev => {
+      const next = { ...prev };
+      delete next[edgeId];
+      return next;
+    });
+  }, [setEdgeWaypoints]);
+  const onClearAllEdgeWaypoints = useCallback(() => {
+    setEdgeWaypoints(() => ({}));
+  }, [setEdgeWaypoints]);
   const [isNegotiationModalOpen, setIsNegotiationModalOpen] = useState<boolean>(false);
   const [negotiationPartnerId, setNegotiationPartnerId] = useState<string | null>(null);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState<boolean>(false);
@@ -1211,6 +1246,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 edgesVisible={boardEdgesVisible}
                 hiddenEdgeIds={hiddenEdgeIds}
                 onHideEdge={onHideEdge}
+                edgeWaypoints={edgeWaypoints}
+                onSetEdgeWaypoint={onSetEdgeWaypoint}
+                onClearEdgeWaypoint={onClearEdgeWaypoint}
               />
             </div>
           )}
@@ -1389,6 +1427,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         onEdgesVisibleChange={setBoardEdgesVisible}
         hiddenEdgeCount={hiddenEdgeIds.size}
         onClearHiddenEdges={onClearHiddenEdges}
+        redirectedEdgeCount={Object.keys(edgeWaypoints).length}
+        onClearRedirectedEdges={onClearAllEdgeWaypoints}
       />
 
       {/* One-time onboarding nudge for the dictionary feature.

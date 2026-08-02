@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
+import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
 
 // fb:97fa9c75 — five-step tile size hierarchy. Was a 3-step ladder where the
 // current-player tile and valid-move tiles got only border treatment, which
@@ -201,6 +201,29 @@ describe('computeVisibleEdgeIds (board/panel destination parity)', () => {
     );
     expect(allowedIds.has('PM-DECISION-CHECK__PM-DECISION-CHECK')).toBe(false);
     expect(allowedIds.has('PM-DECISION-CHECK__CON-INITIATION')).toBe(true);
+  });
+});
+
+// G160 (per-edge waypoint redirect, 2026-08-02) — an admin-redirected edge
+// bypasses A* auto-routing entirely and draws as two straight segments
+// through the stored waypoint.
+describe('buildWaypointEdgePath (G160 per-edge waypoint redirect)', () => {
+  it('builds a two-segment path through the waypoint', () => {
+    const path = buildWaypointEdgePath(0, 0, { x: 50, y: 100 }, 200, 0);
+    expect(path).toBe('M0,0 L50,100 L200,0');
+  });
+
+  it('handles negative and fractional coordinates the same way (no rounding)', () => {
+    const path = buildWaypointEdgePath(-12.5, 4, { x: -3.25, y: -7 }, 88.1, 22);
+    expect(path).toBe('M-12.5,4 L-3.25,-7 L88.1,22');
+  });
+
+  it('degenerates to a straight line when the waypoint sits exactly on source or target', () => {
+    // Not a special case in the implementation, but worth pinning: dragging
+    // the handle back onto an endpoint should render as a plain line, not
+    // throw or produce a malformed path.
+    const path = buildWaypointEdgePath(10, 10, { x: 10, y: 10 }, 90, 10);
+    expect(path).toBe('M10,10 L10,10 L90,10');
   });
 });
 

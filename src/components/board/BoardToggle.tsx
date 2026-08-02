@@ -32,6 +32,13 @@ interface BoardToggleProps {
   hiddenEdgeCount?: number;
   /** Restore all per-edge hides. */
   onClearHiddenEdges?: () => void;
+  /** Number of edges with a manual waypoint redirect (G160, admin-edit-mode
+   *  only). 0 = none redirected. Separate from hiddenEdgeCount — a redirect
+   *  reshapes an edge's path, a hide removes it entirely; independently
+   *  reversible so clearing one doesn't discard the other. */
+  redirectedEdgeCount?: number;
+  /** Restore all per-edge waypoint redirects to normal auto-routing. */
+  onClearRedirectedEdges?: () => void;
 }
 
 export function BoardToggle({
@@ -41,6 +48,8 @@ export function BoardToggle({
   onEdgesVisibleChange,
   hiddenEdgeCount = 0,
   onClearHiddenEdges,
+  redirectedEdgeCount = 0,
+  onClearRedirectedEdges,
 }: BoardToggleProps) {
   // Re-check on each render so unlocking via /admin or a teacher login shows
   // the right controls immediately, no remount needed.
@@ -115,6 +124,16 @@ export function BoardToggle({
           title={`${hiddenEdgeCount} edge${hiddenEdgeCount === 1 ? '' : 's'} hidden individually — click to restore`}
         >
           🚫 {hiddenEdgeCount} hidden · restore
+        </button>
+      )}
+      {redirectedEdgeCount > 0 && onClearRedirectedEdges && (
+        <button
+          type="button"
+          style={{ ...buttonStyle, background: '#eef2ff', borderColor: '#6366f1' }}
+          onClick={onClearRedirectedEdges}
+          title={`${redirectedEdgeCount} edge${redirectedEdgeCount === 1 ? '' : 's'} redirected — click to restore auto-routing`}
+        >
+          ↩️ {redirectedEdgeCount} redirected · restore
         </button>
       )}
     </div>

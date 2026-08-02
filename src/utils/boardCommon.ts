@@ -300,6 +300,24 @@ export function computeVisibleEdgeIds(
   return { allowedIds, nextMoveIds };
 }
 
+/**
+ * G160 (per-edge waypoint redirect, 2026-08-02) — builds the SVG path for an
+ * edge an admin has manually redirected through one point, bypassing A*
+ * auto-routing for that edge entirely. Two straight segments
+ * (source→waypoint, waypoint→target); pulled out as pure math (matching
+ * computeVisibleEdgeIds/resolveTileOverlap above) so it's unit-testable
+ * without rendering React Flow's SVG tree.
+ */
+export function buildWaypointEdgePath(
+  sourceX: number,
+  sourceY: number,
+  waypoint: { x: number; y: number },
+  targetX: number,
+  targetY: number,
+): string {
+  return `M${sourceX},${sourceY} L${waypoint.x},${waypoint.y} L${targetX},${targetY}`;
+}
+
 // fb:97fa9c75 — sizes exposed so the BoardLayoutEditor's ghost buffer stays
 // in lockstep with the runtime size hierarchy. MAX_INGRID is the largest
 // size a tile reaches WITHOUT popover-floating; the click-locked "expanded"
