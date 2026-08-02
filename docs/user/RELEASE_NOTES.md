@@ -2,6 +2,12 @@
 
 ---
 
+## v3.1.88 — Your game history now says why, and your spending finally adds up (August 2, 2026)
+
+- **The game log now explains why a card was discarded**, instead of just saying "Discarded 2 cards." If you replaced or returned a card manually, the log now shows what actually happened — like "Manual action: Replace 2 Work Package cards."
+- **Fixed: your "Regulatory & filings" spending — and your total "Spent so far" — was stuck at $0, no matter how many fees you actually paid.** Bank loan fees, DOB/FDNY review fees, and similar charges were correctly taken out of your cash the whole time, but never counted toward that line on your own numbers panel. It now tracks correctly.
+- **Behind the scenes:** most of this session was auditing old to-do notes that turned out to already be fixed, or based on a wrong assumption — but digging into *why* each one was wrong is what turned up the two real fixes above.
+
 ## v3.1.84 — A new way projects can go wrong: DOB violations (July 31, 2026)
 
 - **Watch out for a Notice of Violation.** Every so often, an inspector will find something wrong with your project and issue a violation. Fixing it means taking on the extra work it calls for, plus a civil penalty — sized to how much extra work there is. File the paperwork (an Affidavit of Correction) before the deadline and the penalty stays at its minimum; file late, or not at all, and it's the maximum.
