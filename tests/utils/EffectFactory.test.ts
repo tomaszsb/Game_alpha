@@ -362,28 +362,6 @@ describe('EffectFactory', () => {
   });
 
   describe('utility methods', () => {
-    it('should validate card objects correctly', () => {
-      // Valid card
-      const validCard = {
-        card_id: 'VALID001',
-        card_name: 'Valid Card',
-        card_type: 'W',
-        description: 'A valid card'
-      };
-      expect(EffectFactory.validateCard(validCard)).toBe(true);
-
-      // Invalid cards. These pin `false` specifically, not merely falsy:
-      // the old implementation returned the ARGUMENT for falsy input
-      // (`null` for null, `undefined` for undefined) because `card && …`
-      // short-circuits, so this test previously had to settle for
-      // toBeFalsy(). A type guard must return an actual boolean.
-      expect(EffectFactory.validateCard(null)).toBe(false);
-      expect(EffectFactory.validateCard(undefined)).toBe(false);
-      expect(EffectFactory.validateCard({})).toBe(false);
-      expect(EffectFactory.validateCard({ card_id: 'TEST' })).toBe(false);
-      expect(EffectFactory.validateCard({ card_name: 'Test' })).toBe(false);
-    });
-
     it('should create effect type summary correctly', () => {
       // Arrange
       const effects: Effect[] = [

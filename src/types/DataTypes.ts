@@ -1,3 +1,5 @@
+import type { Effect } from './EffectTypes';
+
 export interface GameConfig {
   space_name: string;
   phase: string;
@@ -525,7 +527,7 @@ export interface ActiveCard {
 export interface ActiveEffect {
   effectId: string;           // Unique identifier for tracking
   sourceCardId: string;       // The card that created this effect
-  effectData: any;           // The original effect object to be executed
+  effectData: Effect;         // The original effect object to be executed
   remainingDuration: number;  // Number of turns remaining
   startTurn: number;         // Turn when effect was applied
   effectType: string;        // Type of effect for easier categorization

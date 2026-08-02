@@ -19,12 +19,23 @@ import { getDataBasePath } from '../utils/dataInstance';
 
 export class DataService implements IDataService {
   private gameConfigs: GameConfig[] = [];
+  // 2026-08-02: keyed lookups for the hottest DataService reads
+  // (getGameConfigBySpace — called from ~20 other methods here alone —
+  // getMovement, getCardById per hand-card in scope calc/condition
+  // checks/action counting). All 3 kept in sync by rebuildLookupMaps(),
+  // called from each backing array's own load method AND from
+  // buildSpaces() (belt-and-suspenders — see that method's comment).
+  // Confirmed no duplicate space_name / (space_name,visit_type) / card_id
+  // rows in the respective CSVs, so this is a behavior-preserving swap.
+  private gameConfigsBySpace: Map<string, GameConfig> = new Map();
   private movements: Movement[] = [];
+  private movementsByKey: Map<string, Movement> = new Map();
   private diceOutcomes: DiceOutcome[] = [];
   private spaceEffects: SpaceEffect[] = [];
   private diceEffects: DiceEffect[] = [];
   private spaceContents: SpaceContent[] = [];
   private cards: Card[] = [];
+  private cardsById: Map<string, Card> = new Map();
   private spaces: Space[] = [];
   // Yes/no decision chains for path=LOGIC spaces. Keyed lookups go through
   // getLogicQuestion()/getLogicQuestionEntry(); do not read this array directly.
@@ -125,7 +136,7 @@ export class DataService implements IDataService {
   }
 
   getGameConfigBySpace(spaceName: string): GameConfig | undefined {
-    return this.gameConfigs.find(config => config.space_name === spaceName);
+    return this.gameConfigsBySpace.get(spaceName);
   }
 
   /**
@@ -358,9 +369,7 @@ export class DataService implements IDataService {
 
   // Movement methods
   getMovement(spaceName: string, visitType: VisitType): Movement | undefined {
-    return this.movements.find(
-      movement => movement.space_name === spaceName && movement.visit_type === visitType
-    );
+    return this.movementsByKey.get(`${spaceName}|${visitType}`);
   }
 
   getAllMovements(): Movement[] {
@@ -495,6 +504,21 @@ export class DataService implements IDataService {
     );
   }
 
+  // Keeps the 3 keyed lookup Maps (gameConfigsBySpace/movementsByKey/
+  // cardsById) in sync with their backing arrays. Called from each array's
+  // own load method (covers the real fetch path + reloadGameConfig()'s
+  // narrower single-table reload) AND from buildSpaces() (covers test
+  // helpers across ~16 test files that populate the arrays directly via
+  // `(this as any).gameConfigs = …` and call buildSpaces() without going
+  // through the load methods at all — found 2026-08-02 when the first cut
+  // of this change, rebuilding only inside the load methods, left those
+  // tests' Maps empty).
+  private rebuildLookupMaps(): void {
+    this.gameConfigsBySpace = new Map(this.gameConfigs.map(config => [config.space_name, config]));
+    this.movementsByKey = new Map(this.movements.map(m => [`${m.space_name}|${m.visit_type}`, m]));
+    this.cardsById = new Map(this.cards.map(card => [card.card_id, card]));
+  }
+
   // Private CSV loading methods
   private async loadGameConfig(): Promise<void> {
     const response = await fetch(getDataBasePath() + '/CLEAN_FILES/GAME_CONFIG.csv?_=' + Date.now()); // Cache busting
@@ -503,6 +527,7 @@ export class DataService implements IDataService {
     }
     const csvText = await response.text();
     this.gameConfigs = this.parseGameConfigCsv(csvText);
+    this.rebuildLookupMaps();
   }
 
   private async loadMovements(): Promise<void> {
@@ -512,6 +537,7 @@ export class DataService implements IDataService {
     }
     const csvText = await response.text();
     this.movements = this.parseMovementCsv(csvText);
+    this.rebuildLookupMaps();
   }
 
   private async loadDiceOutcomes(): Promise<void> {
@@ -599,6 +625,7 @@ export class DataService implements IDataService {
     }
     const csvText = await response.text();
     this.cards = this.parseCardsCsv(csvText);
+    this.rebuildLookupMaps();
   }
 
   /**
@@ -1163,6 +1190,13 @@ export class DataService implements IDataService {
   }
 
   private buildSpaces(): void {
+    // Safety net: some test helpers populate gameConfigs/movements/cards
+    // directly (bypassing loadGameConfig()/loadMovements()/loadCards()) and
+    // call buildSpaces() straight after — rebuild here too so the lookup
+    // Maps aren't left empty in that path. Cheap: a few hundred rows, and
+    // buildSpaces() itself is only called once per load/reload.
+    this.rebuildLookupMaps();
+
     const spaceNames = [...new Set(this.gameConfigs.map(config => config.space_name))];
     
     this.spaces = spaceNames.map(spaceName => {
@@ -1193,7 +1227,7 @@ export class DataService implements IDataService {
   }
 
   getCardById(cardId: string): Card | undefined {
-    return this.cards.find(card => card.card_id === cardId);
+    return this.cardsById.get(cardId);
   }
 
   getCardsByType(cardType: CardType): Card[] {

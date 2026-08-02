@@ -441,9 +441,10 @@ export class CardService implements ICardService {
     const drawnCards = this.drawCards(playerId, newCardType, 1);
     
     // Domain-event stage 4: LogWriter reacts to this. Note: replaceCard()'s
-    // internal discardCards() call above also logs its own generic
-    // "Discarded 1 card" entry — a pre-existing "2 log lines for 1 action"
-    // quirk, left as-is this stage (not silently merged).
+    // internal discardCards() call above also logs its own entry (now
+    // "Manual action: Replace ... card - removing old card" since the
+    // source/reason wiring landed 2026-08-02) — a pre-existing "2 log lines
+    // for 1 action" quirk, left as-is this stage (not silently merged).
     const newCardId = drawnCards.length > 0 ? drawnCards[0] : null;
     const newCard = newCardId ? this.dataService.getCardById(newCardId) : null;
 
@@ -1786,15 +1787,15 @@ export class CardService implements ICardService {
 
   // Discard cards.
   //
-  // ⚠️ `_source` and `_reason` are accepted and then DROPPED — the underscore
-  // records the current reality, not an intention. Four call sites pass real
-  // values ('manual_effect', 'Manual action: Replace W card…'), but the
-  // card_discarded event below emits only a generic "Discarded N cards", so
-  // that audit trail never reaches the log. The `cardSummary` built further
-  // down is computed and discarded for the same reason. Wiring them in changes
-  // player- and teacher-visible log text, so it is tracked in TODO.md rather
-  // than done as a drive-by. (Found 2026-07-28 during the lint burn-down.)
-  discardCards(playerId: string, cardIds: string[], _source?: string, _reason?: string): boolean {
+  // `reason` (when a caller provides one) becomes the log line, so a
+  // teacher/player reading the action log sees why the cards left the hand
+  // ("Manual action: Replace 2 Work Package cards…") instead of a generic
+  // "Discarded N cards". `source` isn't shown directly but rides along on
+  // the event for the same filtering/debugging use `card_drawn` already
+  // makes of it. Wired in 2026-08-02 — previously both were accepted and
+  // silently dropped (see CHANGELOG/TODO history for the "found during the
+  // lint burn-down" note).
+  discardCards(playerId: string, cardIds: string[], source?: string, reason?: string): boolean {
     if (!cardIds || cardIds.length === 0) {
       const error = ErrorNotifications.cardDiscardFailed('unknown', 'No cards provided');
       debugWarn(error.medium);
@@ -1904,7 +1905,8 @@ export class CardService implements ICardService {
         type: 'card_discarded',
         playerId: playerId,
         cardIds: cardIds,
-        message: `Discarded ${cardIds.length} card${cardIds.length > 1 ? 's' : ''}`,
+        source,
+        message: reason || `Discarded ${cardIds.length} card${cardIds.length > 1 ? 's' : ''}`,
       });
 
       return true;

@@ -195,6 +195,7 @@ export class LogWriter {
           playerId: event.playerId,
           action: 'card_discard',
           cardIds: event.cardIds,
+          source: event.source,
         });
         break;
 

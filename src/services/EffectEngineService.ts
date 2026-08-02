@@ -1373,7 +1373,7 @@ export class EffectEngineService implements IEffectEngineService {
         // outside the phase and resumes if/when the player re-enters).
         // Without this, L004 (CONSTRUCTION-phase tick over N turns) used
         // to fire against players still in DESIGN/REGULATORY phase.
-        const requiredPhase = (activeEffectData.payload as any)?.requiredPhase;
+        const requiredPhase = isResourceChangeEffect(activeEffectData) ? activeEffectData.payload.requiredPhase : undefined;
         if (requiredPhase) {
           const spaceConfig = this.dataService?.getGameConfigBySpace(player.currentSpace);
           if (spaceConfig?.phase !== requiredPhase) {

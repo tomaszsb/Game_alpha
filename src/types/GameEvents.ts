@@ -324,6 +324,7 @@ export interface CardDiscardedEvent {
   type: 'card_discarded';
   playerId: string;
   cardIds: string[];
+  source?: string;
   message: string;
 }
 
