@@ -286,3 +286,56 @@ describe('FinancialEffectHandler — mandatory bills can bankrupt (fb:f0bdd78a /
     expect(stateService.endGame).not.toHaveBeenCalled();
   });
 });
+
+// Real gap found 2026-08-02 scoping the notification-bus TODO item: money
+// RESOURCE_CHANGE effects got a toast but were never logged to the
+// permanent game history (confirmed via full-codebase grep — nothing
+// anywhere wrote an `action: 'resource_change'` entry). Time changes had
+// this all along via logTimeChange; money changes just never got the
+// equivalent. These pin the fix.
+describe('FinancialEffectHandler — money changes reach the permanent log (2026-08-02)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function makeMoneyServices() {
+    const player = { id: 'p1', name: 'Player 1', currentSpace: 'OWNER-FUND-INITIATION', money: 0 } as any;
+    const stateService = {
+      getPlayer: vi.fn(() => player),
+      updateTempState: vi.fn(),
+      emitGameEvent: vi.fn(),
+      endGame: vi.fn(),
+      getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
+    } as unknown as IStateService;
+    const resourceService = {
+      canAfford: vi.fn(() => true),
+      addMoney: vi.fn(() => true),
+      spendMoney: vi.fn(() => true),
+    } as unknown as IResourceService;
+    const gameRulesService = { calculateProjectScope: vi.fn(() => 0) } as unknown as IGameRulesService;
+    const loggingService = { info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as ILoggingService;
+    const handler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
+    return { handler, loggingService };
+  }
+
+  const moneyEffect = (amount: number, reason: string): Effect => ({
+    effectType: 'RESOURCE_CHANGE',
+    payload: { playerId: 'p1', resource: 'MONEY', amount, source: 'test', reason },
+  } as any);
+
+  it('logs a resource_change entry when money is received', () => {
+    const { handler, loggingService } = makeMoneyServices();
+    handler.handleResourceChange(moneyEffect(50_000, 'Owner Funding'), ctx);
+    expect(loggingService.info).toHaveBeenCalledWith(
+      expect.stringContaining('+$50,000'),
+      expect.objectContaining({ playerId: 'p1', action: 'resource_change', moneyChange: 50_000 })
+    );
+  });
+
+  it('logs a resource_change entry when money is deducted', () => {
+    const { handler, loggingService } = makeMoneyServices();
+    handler.handleResourceChange(moneyEffect(-2_000, 'Filing fee'), ctx);
+    expect(loggingService.info).toHaveBeenCalledWith(
+      expect.stringContaining('-$2,000'),
+      expect.objectContaining({ playerId: 'p1', action: 'resource_change', moneyChange: -2_000 })
+    );
+  });
+});

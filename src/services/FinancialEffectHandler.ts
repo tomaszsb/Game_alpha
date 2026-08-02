@@ -208,6 +208,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     if (amount > 0) {
       success = this.resourceService.addMoney(playerId, amount, source, reason, sourceType as 'bank' | 'investment' | 'owner' | 'other');
       if (success) {
+        this.logMoneyChange(playerId, amount, reason);
         this.notifyMoneyReceived(playerId, amount, source, sourceType, reason);
       }
     } else if (amount < 0) {
@@ -218,6 +219,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
       // dropped (fb:f0bdd78a / 0aae9865 / 40caa223).
       success = this.resourceService.spendMoney(playerId, Math.abs(amount), source, reason, undefined, true);
       if (success) {
+        this.logMoneyChange(playerId, amount, reason);
         this.notifyFeeDeducted(playerId, amount, payload);
         this.checkBankruptcy(playerId);
       }
@@ -398,6 +400,28 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
         message: `💸 BANKRUPTCY: ${updatedPlayer.name} has run out of money and cannot continue the project!`,
       });
     }
+  }
+
+  // Real gap found 2026-08-02 scoping the notification-bus TODO item: money
+  // RESOURCE_CHANGE effects (owner funding, bank loans, fees, life-event
+  // charges) got a toast via notifyMoneyReceived/notifyFeeDeducted but were
+  // never logged — confirmed via full-codebase grep that nothing anywhere
+  // wrote an `action: 'resource_change'` log entry, even though the log
+  // system already has that category (actionLogFormatting.ts renders it
+  // with 💰). Time changes had the equivalent logTimeChange all along;
+  // money changes just never got one. Mirrors that method's shape.
+  private logMoneyChange(playerId: string, amount: number, reason: string): void {
+    const formattedAmount = Math.abs(amount).toLocaleString();
+    const description = amount > 0
+      ? `+$${formattedAmount} received${reason ? ` (${reason})` : ''}`
+      : `-$${formattedAmount} paid${reason ? ` (${reason})` : ''}`;
+
+    this.loggingService.info(description, {
+      playerId,
+      action: 'resource_change',
+      moneyChange: amount,
+      visibility: 'player'
+    });
   }
 
   private logTimeChange(playerId: string, amount: number, changeType: 'added' | 'reduced'): void {
