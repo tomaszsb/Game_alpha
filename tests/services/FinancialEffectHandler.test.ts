@@ -233,6 +233,64 @@ describe('FinancialEffectHandler — SCOPE_PERCENTAGE authored fee (4b slice 4)'
   });
 });
 
+// Real gap found 2026-08-02 while scoping the player.money denormalization
+// TODO item: Expenditures.fees's own type comment documents it as "All
+// regulatory, consultant, and expeditor costs (DOB, FDNY, Bank, Investor
+// fees, E cards)" — exactly what FEE_DEDUCTION effects charge — but nothing
+// anywhere ever wrote to it, so PlayerNumbersV2's "Regulatory & filings"
+// ledger line was permanently stuck at $0 regardless of real spend.
+describe('FinancialEffectHandler — fee deductions reach the player ledger (2026-08-02)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function makeFeeLedgerServices(existingFees: number) {
+    const player = {
+      id: 'p1', name: 'Player 1', money: 500_000, loans: [{ principal: 200_000 }],
+      currentSpace: 'REG-DOB-FEE-REVIEW',
+      expenditures: { design: 0, fees: existingFees, construction: 0 },
+    } as any;
+    const stateService = {
+      getPlayer: vi.fn(() => player),
+      updateTempState: vi.fn(),
+      emitGameEvent: vi.fn(),
+      endGame: vi.fn(),
+      getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
+    } as unknown as IStateService;
+    const resourceService = {
+      canAfford: vi.fn(() => true),
+      spendMoney: vi.fn(() => true),
+      addMoney: vi.fn(() => true),
+    } as unknown as IResourceService;
+    const gameRulesService = { calculateProjectScope: vi.fn(() => 1_000_000) } as unknown as IGameRulesService;
+    const loggingService = { info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as ILoggingService;
+    const handler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
+    return { handler, stateService };
+  }
+
+  const loanFee = (): Effect => ({
+    effectType: 'FEE_DEDUCTION',
+    payload: { playerId: 'p1', feeType: 'LOAN_PERCENTAGE', feeDescription: '1% loan fee', source: 'test' },
+  } as any);
+
+  it('adds the charged amount to expenditures.fees, not just player.money', () => {
+    const { handler, stateService } = makeFeeLedgerServices(3_000);
+    handler.handleFeeDeduction(loanFee(), ctx);
+    // 1% of a 200,000 loan = 2,000. Existing 3,000 + 2,000 = 5,000.
+    expect(stateService.updateTempState).toHaveBeenCalledWith('p1', {
+      expenditures: { design: 0, fees: 5_000, construction: 0 },
+    });
+  });
+
+  it('does not clobber expenditures.design/construction when adding a fee', () => {
+    const { handler, stateService } = makeFeeLedgerServices(0);
+    handler.handleFeeDeduction(loanFee(), ctx);
+    const write = (stateService.updateTempState as any).mock.calls
+      .map((c: any[]) => c[1])
+      .find((d: any) => d?.expenditures);
+    expect(write.expenditures.design).toBe(0);
+    expect(write.expenditures.construction).toBe(0);
+  });
+});
+
 describe('FinancialEffectHandler — mandatory bills can bankrupt (fb:f0bdd78a / 0aae9865)', () => {
   beforeEach(() => vi.clearAllMocks());
 

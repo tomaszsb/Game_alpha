@@ -569,6 +569,28 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     if (deductionResult) {
       debugLog(`    ✅ Deducted fee: $${feeAmount.toLocaleString()}`);
 
+      // Real bug found 2026-08-02 while scoping the player.money
+      // denormalization TODO item: Expenditures.fees's own type comment
+      // documents its job as "All regulatory, consultant, and expeditor
+      // costs (DOB, FDNY, Bank, Investor fees, E cards)" — exactly the
+      // FEE_DEDUCTION effects this method handles — but nothing anywhere
+      // ever wrote to it. Every FEE_DEDUCTION correctly reduced player.money
+      // via spendMoney above, but PlayerNumbersV2's "Regulatory & filings"
+      // ledger line (reads player.expenditures.fees) was permanently stuck
+      // at $0 regardless of how much a player had actually paid. Mirrors
+      // trackDesignExpenditure's pattern (re-fetch post-spend, update via
+      // TEMP so the turn-commit snapshot picks it up, don't clobber a
+      // concurrent write via updatePlayer).
+      const updatedPlayer = this.stateService.getPlayer(payload.playerId);
+      if (updatedPlayer?.expenditures) {
+        this.stateService.updateTempState(payload.playerId, {
+          expenditures: {
+            ...updatedPlayer.expenditures,
+            fees: (updatedPlayer.expenditures.fees || 0) + feeAmount
+          }
+        });
+      }
+
       this.loggingService.info(`Fee paid: $${feeAmount.toLocaleString()} (${payload.feeDescription})`, {
         playerId: payload.playerId,
         action: 'fee_deducted',
