@@ -14,20 +14,33 @@ import {
 
 describe('characters constants', () => {
   describe('CHARACTER_MAP', () => {
-    it('should have entries for all 6 space prefixes', () => {
-      const expectedPrefixes = ['OWNER', 'ARCH', 'ENG', 'REG-DOB', 'REG-FDNY', 'CON'];
+    it('should have entries for all 9 space prefixes', () => {
+      const expectedPrefixes = ['OWNER', 'ARCH', 'ENG', 'REG-DOB', 'REG-FDNY', 'CON', 'BANK', 'LEND', 'INVESTOR'];
       for (const prefix of expectedPrefixes) {
         expect(CHARACTER_MAP[prefix]).toBeDefined();
       }
     });
 
-    it('each entry should have emoji, name, phase, color, and imageRoles', () => {
+    it('each entry should have emoji, name, phase, and color', () => {
       for (const [prefix, info] of Object.entries(CHARACTER_MAP)) {
         expect(info.emoji).toBeTruthy();
         expect(info.name).toBeTruthy();
         expect(info.phase).toBeTruthy();
         expect(info.color).toMatch(/^#[0-9a-fA-F]{6}$/);
-        expect(info.imageRoles.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('entries either have portrait art or explicitly opt out with an empty imageRoles array', () => {
+      // BANK/LEND/INVESTOR have no portrait art yet (2026-08-02) — falls back
+      // to the emoji everywhere a portrait would show (see useNpcPortrait).
+      const noPortraitYet = new Set(['BANK', 'LEND', 'INVESTOR']);
+      for (const [prefix, info] of Object.entries(CHARACTER_MAP)) {
+        expect(Array.isArray(info.imageRoles)).toBe(true);
+        if (noPortraitYet.has(prefix)) {
+          expect(info.imageRoles.length).toBe(0);
+        } else {
+          expect(info.imageRoles.length).toBeGreaterThan(0);
+        }
       }
     });
 

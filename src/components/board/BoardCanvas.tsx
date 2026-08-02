@@ -128,9 +128,9 @@ interface BoardNodeData {
   actionDescription?: string;
   npcName?: string;
   // Discipline label — phase color alone can't tell an Architect tile from an
-  // Engineer tile (both DESIGN), or DOB from FDNY (both REGULATORY). undefined
-  // for spaces with no character entry (Bank/Investor/Lender/PM/Cheat/Finish —
-  // the game has no NPC defined for those), which just falls back to phase.
+  // Engineer tile (both DESIGN), or Bank from Investor (both FUNDING). undefined
+  // for spaces with no character entry (PM/Cheat/Finish — the game has no NPC
+  // defined for those), which just falls back to phase.
   disciplineLabel?: string;
   disciplineColor?: string;
   // Callbacks back to the parent for hover/click state

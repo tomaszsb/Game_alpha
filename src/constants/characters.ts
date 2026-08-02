@@ -52,6 +52,16 @@ export const CHARACTER_MAP: Record<string, CharacterInfo> = {
   // discipline badge (fb:feedback-1782657383215-a9d3221a). Distinct magenta.
   'REG-FDNY': { emoji: '\u{1F692}', name: 'FDNY Inspector',   phase: 'Regulatory',   color: '#E91E63', imageRoles: ['fdny_examiner', 'fdny_clerk'] },
   CON:        { emoji: '\u{1F3D7}\uFE0F', name: 'The Contractor',   phase: 'Construction', color: '#4CAF50', imageRoles: ['contractor', 'inspector'] },
+  // Funding-phase trio named 2026-08-02 (TODO "Bank/Investor/Lender character
+  // naming"). No portrait art exists for these roles yet \u2014 imageRoles empty,
+  // which falls back to the emoji everywhere a portrait would otherwise show
+  // (see useNpcPortrait.getPortraitForSpace). Colors picked distinct from
+  // every color above AND from each other, since all three share FUNDING's
+  // phase color (#FF9800) and would otherwise blend into it or one another,
+  // same reasoning as the earlier REG-DOB/REG-FDNY split.
+  BANK:       { emoji: '\u{1F3E6}', name: 'The Bank',          phase: 'Funding',      color: '#009688', imageRoles: [] },
+  LEND:       { emoji: '\u{1F91D}', name: 'The Lender',        phase: 'Funding',      color: '#FFC107', imageRoles: [] },
+  INVESTOR:   { emoji: '\u{1F4BC}', name: 'The Investor',      phase: 'Funding',      color: '#3F51B5', imageRoles: [] },
 };
 
 /**

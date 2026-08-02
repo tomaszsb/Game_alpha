@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Decided + built: Bank/Investor/Lender character naming
+Closed the last open "Decisions waiting on the user" item. The 6 funding-phase spaces (`BANK-FUND-REVIEW`, `LEND-SCOPE-CHECK`, `INVESTOR-FUND-REVIEW`, each with a first-visit and subsequent-visit variant) had no `CHARACTER_MAP` entry, so their board tiles fell back to the bare phase label ("Funding") instead of a distinguishing discipline badge — same problem DOB/FDNY had before their split (v3.1.x). Named from the existing narration voice already in `Spaces.csv` (Lender: personal/blunt, "pound of flesh"; Bank: institutional, "Underwriting... Standard process"; Investor: committee-driven, "we move real money"). User picked the simple pattern matching Owner/Architect/Engineer/Contractor: **The Bank**, **The Lender**, **The Investor**. Added to `CHARACTER_MAP` in [characters.ts](src/constants/characters.ts) with 3 new colors (teal `#009688`, amber `#FFC107`, indigo `#3F51B5`) chosen distinct from all 6 existing character colors and from each other, since all three share FUNDING's phase color. No portrait art exists for these roles yet — `imageRoles: []`, which falls back to the emoji everywhere a portrait would otherwise show. Live-verified on the board: tiles now read "Lender"/"Bank"/"Investor" in their respective colors instead of "Funding". Updated `tests/services/characters.test.ts`'s stale "every character has portrait art" assumption to explicitly allow the emoji-only opt-out (20/20 passing).
+
 ## [3.1.88] - 2026-08-02
 
 A backlog-clearing session through TODO.md's "Architecture / code health" bucket, dependency-ordered rather than list-order. Most of the "1-2 session, do NOT do casually" items turned out already resolved by past sessions that never removed the TODO line — but three real, previously-unknown bugs surfaced during the verification passes and got fixed. Deployed and bundle-verified live mid-session at commit `8afb6de` (`/health` reporting the exact commit hash, confirming that fix itself works in production for the first time since it shipped in v3.1.87).
