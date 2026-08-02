@@ -362,6 +362,40 @@ describe('TurnService', () => {
   // The two early-validation tests (phase / current player) now go through
   // the public endTurnWithMovement(), which still throws the same messages
   // before reaching any movement logic.
+  // Real gap found 2026-08-02 auditing a dead legacy E2E scenario
+  // (E2E-04_EdgeCases.test.ts's testDoubleTurnSkip, never actually run —
+  // referenced a pre-refactor gameState.turnModifiers[playerId] shape;
+  // the real field is per-player, player.turnModifiers). The underlying
+  // scenario was real and untested: two SKIP_TURN effects from different
+  // sources targeting the same player must accumulate, not overwrite.
+  // EffectEngineService.test.ts only checks that setTurnModifier gets
+  // CALLED for a SKIP_TURN effect — never its own accumulation math.
+  describe('setTurnModifier (SKIP_TURN accumulation)', () => {
+    it('accumulates skipTurns across two separate SKIP_TURN applications instead of overwriting', () => {
+      // Simulate what a real StateService would return after the first
+      // call's updatePlayer() commits — each getPlayer() call here is a
+      // fresh object, not a shared-fixture mutation.
+      mockStateService.getPlayer
+        .mockReturnValueOnce({ ...mockPlayer, turnModifiers: { skipTurns: 0 } })
+        .mockReturnValueOnce({ ...mockPlayer, turnModifiers: { skipTurns: 1 } });
+
+      const first = turnService.setTurnModifier('player1', 'SKIP_TURN');
+      const second = turnService.setTurnModifier('player1', 'SKIP_TURN');
+
+      expect(first).toBe(true);
+      expect(second).toBe(true);
+      expect(mockStateService.updatePlayer).toHaveBeenCalledTimes(2);
+      expect(mockStateService.updatePlayer).toHaveBeenNthCalledWith(1, {
+        id: 'player1',
+        turnModifiers: { skipTurns: 1 },
+      });
+      expect(mockStateService.updatePlayer).toHaveBeenNthCalledWith(2, {
+        id: 'player1',
+        turnModifiers: { skipTurns: 2 },
+      });
+    });
+  });
+
   describe('nextPlayer (turn rotation, exercised via endTurn removal)', () => {
     it('should advance from first player to second player', async () => {
       // Arrange - player1 is current player

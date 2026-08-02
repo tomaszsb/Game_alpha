@@ -18,6 +18,7 @@ import { ClassroomBadge } from '../classroom/ClassroomBadge';
 import { BugReportsPanel } from '../editor/BugReportsPanel';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
 import { useGitHubSyncStatus } from './useGitHubSyncStatus';
+import { debugLog } from '../../utils/debugLog';
 import { ShareGameButton } from './ShareGameButton';
 import { PhoneScreenWarning } from './PhoneScreenWarning';
 import { styles } from './PlayerSetup.styles';
@@ -73,7 +74,7 @@ export function getTvModeZoom(): number {
  * This replaces the legacy EnhancedPlayerSetup with a clean, composable structure
  */
 export function PlayerSetup({
-  onStartGame = (players, settings) => console.log('Start game:', players, settings),
+  onStartGame = (players, settings) => debugLog('Start game:', players, settings),
   viewPlayerId
 }: PlayerSetupProps): JSX.Element {
 

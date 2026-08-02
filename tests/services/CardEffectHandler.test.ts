@@ -212,4 +212,33 @@ describe('CardEffectHandler.handleCardDiscard — autoPickForcedDiscards (Kid E)
     // Auto-picked the first card (slice).
     expect(mockCardService.discardCards).toHaveBeenCalledWith('player1', ['E001'], expect.anything(), expect.anything());
   });
+
+  // Real gap found 2026-08-02 auditing a dead legacy E2E scenario
+  // (E2E-04_EdgeCases.test.ts's testNoCardsToDiscard, never actually run —
+  // referenced a pre-refactor Player.availableCards shape). The underlying
+  // scenario the legacy test was trying to check was real and untested:
+  // a runtime-resolution discard effect (cardIds empty, cardType+count
+  // given) targeting a player who has zero cards of that type must skip
+  // gracefully, not throw or discard the wrong thing.
+  it('skips gracefully when the player has zero cards of the requested type', async () => {
+    mockCardService.getPlayerCards.mockReturnValue([]);
+
+    const effect: Effect = {
+      effectType: 'CARD_DISCARD',
+      payload: {
+        playerId: 'player1',
+        cardIds: [],
+        cardType: 'W' as any,
+        count: 2,
+        source: 'card:test',
+      },
+    };
+
+    const result = await handler.handleCardDiscard(effect, { source: 'card:test', playerId: 'player1' } as any);
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ cardIds: [], skipped: true });
+    expect(mockCardService.discardCards).not.toHaveBeenCalled();
+    expect(mockChoiceService.createChoice).not.toHaveBeenCalled();
+  });
 });
