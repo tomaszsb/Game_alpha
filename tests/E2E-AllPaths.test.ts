@@ -254,6 +254,17 @@ describe('E2E Path Coverage: All Decision Points', () => {
       expect(newSpace).toBe('PM-DECISION-CHECK');
     }, 30000);
 
+    // Test-only safety margin (2026-08-02, maintainer decision): CHEAT-BYPASS's
+    // worst-case dice roll is a -$100,000 penalty (DICE_EFFECTS.csv). These two
+    // tests verify ROUTING only, not the penalty itself, so top up cash right
+    // before the roll to guarantee no seed can ever bankrupt the test player
+    // before the routing check runs — see throwIfGameOver's comment above for
+    // the confusing failure this used to cause on E2E_SEED=20.
+    const bypassBankruptcyBuffer = (playerId: string): void => {
+      const player = stateService.getPlayer(playerId)!;
+      stateService.updatePlayer({ id: playerId, money: player.money + 150000 });
+    };
+
     it('Path: PM → CHEAT-BYPASS → (dice determines destination)', async () => {
       const playerId = await setupGame();
 
@@ -262,6 +273,7 @@ describe('E2E Path Coverage: All Decision Points', () => {
 
       // PM → CHEAT-BYPASS
       await playTurn(playerId, 'PM-DECISION-CHECK', { destination: 'CHEAT-BYPASS' });
+      bypassBankruptcyBuffer(playerId);
 
       // CHEAT-BYPASS with roll=1 → ENG-INITIATION
       const newSpace = await playTurn(playerId, 'CHEAT-BYPASS', { roll: 1 });
@@ -274,6 +286,7 @@ describe('E2E Path Coverage: All Decision Points', () => {
       await playTurn(playerId, 'OWNER-SCOPE-INITIATION');
       await playTurn(playerId, 'OWNER-FUND-INITIATION');
       await playTurn(playerId, 'PM-DECISION-CHECK', { destination: 'CHEAT-BYPASS' });
+      bypassBankruptcyBuffer(playerId);
 
       // Roll 4 → CON-INITIATION
       const newSpace = await playTurn(playerId, 'CHEAT-BYPASS', { roll: 4 });
