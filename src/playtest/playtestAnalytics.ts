@@ -17,7 +17,22 @@ export type PlaytestEvent =
   | 'bookmark_click'
   | 'play_click'
   | 'return_visit'
-  | 'share_click';
+  | 'share_click'
+  // In-game engagement tracking (TODO.md, decided 2026-08-02) — "how far
+  // players get, what draws their attention." Reuses this same
+  // funnel-tracking endpoint/pattern rather than a parallel one.
+  | 'space_reached'
+  | 'game_finished'
+  | 'panel_opened';
+
+/** Optional fields the in-game engagement events attach. Always pseudonymous
+ *  (gameId/playerId), never the player's display name. */
+export interface EngagementTrackingDetails {
+  gameId?: string;
+  playerId?: string;
+  spaceId?: string;
+  panel?: string;
+}
 
 function resolveCampaignSource(): string | null {
   const params = new URLSearchParams(window.location.search);
@@ -29,13 +44,13 @@ function resolveCampaignSource(): string | null {
   return getStoredCampaignSource();
 }
 
-export function trackPlaytestEvent(event: PlaytestEvent): void {
+export function trackPlaytestEvent(event: PlaytestEvent, details?: EngagementTrackingDetails): void {
   try {
     const campaignSource = resolveCampaignSource();
     fetch(`${getBackendURL()}/api/playtest/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event, campaignSource }),
+      body: JSON.stringify({ event, campaignSource, ...details }),
       keepalive: true,
     }).catch(() => { /* tracking must never break the page */ });
   } catch {

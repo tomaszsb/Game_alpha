@@ -1,6 +1,6 @@
 // src/components/modals/EndGameModal.tsx
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { colors, theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
@@ -11,6 +11,8 @@ import { buildEndGameStats, formatMoney, formatPercent, formatDays, EndGameStats
 import { buildEndGameInsights, Insight, InsightTone } from '../../utils/endGameInsights';
 import { shortName } from '../../utils/boardCommon';
 import { PostGameLogViewer } from '../game/PostGameLogViewer';
+import { getCurrentGameId } from '../../utils/networkDetection';
+import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 
 interface EndGamePenaltyView {
   dobMissing: boolean;
@@ -40,11 +42,23 @@ export function EndGameModal(): JSX.Element {
   // fb:cc345da9 + fb:3483b37b — collapsible journey list. Defaults closed so
   // the panel isn't dominated by a 20-row movement log; one click reveals it.
   const [journeyOpen, setJourneyOpen] = useState<boolean>(false);
+  // In-game engagement tracking (TODO.md, decided 2026-08-02) — fires once
+  // per mount the first time this game reaches ANY end state (win or loss —
+  // "finished" here means "played through to an end screen," distinct from
+  // an abandoned game the maintainer's stats page infers separately from a
+  // GAME_STARTED with no matching finish event; see engagementStats.js).
+  const hasTrackedFinishRef = useRef(false);
 
   // Subscribe to state changes to show/hide modal
   useEffect(() => {
     const syncFromState = (gameState: ReturnType<typeof stateService.getGameState>) => {
       setIsGameOver(gameState.isGameOver);
+
+      if (gameState.isGameOver && !hasTrackedFinishRef.current) {
+        hasTrackedFinishRef.current = true;
+        const gameId = getCurrentGameId();
+        if (gameId) trackPlaytestEvent('game_finished', { gameId });
+      }
 
       if (gameState.isGameOver && gameState.winner) {
         const winner = gameState.players.find(p => p.id === gameState.winner);

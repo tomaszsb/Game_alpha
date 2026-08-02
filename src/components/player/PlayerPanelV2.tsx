@@ -31,6 +31,8 @@ import { FormatUtils } from '../../utils/FormatUtils';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { getNpcCharacterInfo, getNpcImagePath } from '../../constants/characters';
 import { ActionButton } from './ActionButton';
+import { getCurrentGameId } from '../../utils/networkDetection';
+import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 
 export interface PlayerPanelV2Props extends PlayerPanelProps {
   mode: PanelMode;
@@ -725,7 +727,14 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           <>
             <button
               type="button"
-              onClick={() => setShowWhy((v) => !v)}
+              onClick={() => setShowWhy((v) => {
+                const next = !v;
+                if (next) {
+                  const gameId = getCurrentGameId();
+                  if (gameId) trackPlaytestEvent('panel_opened', { gameId, playerId, panel: 'what_to_do_and_why' });
+                }
+                return next;
+              })}
               aria-expanded={showWhy}
               style={{
                 display: 'flex',

@@ -40,6 +40,8 @@ import { PlayerAvatar } from '../common/PlayerAvatar';
 import { ShutdownNotice } from '../common/ShutdownNotice';
 import { isAdminAuthenticated } from '../../utils/adminAuth';
 import { isTeacherLoggedIn } from '../../utils/teacherAuth';
+import { getCurrentGameId } from '../../utils/networkDetection';
+import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 
 interface GameLayoutProps {
   viewPlayerId?: string;
@@ -281,6 +283,26 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       return () => clearTimeout(timer);
     }
   }, [gamePhase]);
+
+  // In-game engagement tracking (TODO.md, decided 2026-08-02) — "how far
+  // players get." Fires once per (player, space) this client observes;
+  // deduped again at aggregation time since multiple connected devices
+  // (e.g. a TV plus several phones in Phones+TV mode) can each
+  // independently observe the same real arrival (see engagementStats.js).
+  // Pseudonymous gameId/playerId only, never the player's display name.
+  const trackedSpaceReachedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (gamePhase !== 'PLAY') return;
+    const gameId = getCurrentGameId();
+    if (!gameId) return;
+    for (const player of players) {
+      if (!player.currentSpace) continue;
+      const key = `${player.id}|${player.currentSpace}`;
+      if (trackedSpaceReachedRef.current.has(key)) continue;
+      trackedSpaceReachedRef.current.add(key);
+      trackPlaytestEvent('space_reached', { gameId, playerId: player.id, spaceId: player.currentSpace });
+    }
+  }, [gamePhase, players]);
 
   // Handle initial preview request
   useEffect(() => {
@@ -827,6 +849,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       // Close any open side panels when modal opens
       setIsSpaceExplorerVisible(false);
       setIsRulesModalOpen(true);
+      const gameId = getCurrentGameId();
+      if (gameId) trackPlaytestEvent('panel_opened', { gameId, playerId: currentPlayerId || undefined, panel: 'rules' });
     }
   };
 
@@ -854,7 +878,16 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   };
 
   // Handler for game log toggle
-  const handleToggleGameLog = () => setIsGameLogVisible(prev => !prev);
+  const handleToggleGameLog = () => {
+    setIsGameLogVisible(prev => {
+      const next = !prev;
+      if (next) {
+        const gameId = getCurrentGameId();
+        if (gameId) trackPlaytestEvent('panel_opened', { gameId, playerId: currentPlayerId || undefined, panel: 'log' });
+      }
+      return next;
+    });
+  };
 
   // Handler for glossary toggle
   const handleToggleGlossary = () => {
@@ -862,6 +895,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       closeDictionary();
     } else {
       openDictionary();
+      const gameId = getCurrentGameId();
+      if (gameId) trackPlaytestEvent('panel_opened', { gameId, playerId: currentPlayerId || undefined, panel: 'glossary' });
     }
   };
 

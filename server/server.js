@@ -18,6 +18,7 @@ import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
 import { isHomeIP as isHomeIPPure, ipv6Prefix64 } from './homeIP.js';
 import { parseLogLine, aggregateVisitorStats } from './visitorStats.js';
+import { aggregateEngagementStats } from './engagementStats.js';
 import geoip from 'geoip-lite';
 import {
   DEFAULT_INSTANCE_ID,
@@ -2445,15 +2446,31 @@ const PLAYTEST_EVENTS = new Set([
   'play_click',
   'return_visit',
   'share_click',
+  // In-game engagement tracking (TODO.md, decided 2026-08-02) — "how far
+  // players get, what draws their attention." Reuses this same endpoint
+  // rather than a parallel one. Pseudonymous gameId/playerId only, never
+  // the player's display name. See engagementStats.js for the aggregation
+  // and its own note on why "game_abandoned" isn't a tracked event here.
+  'space_reached',
+  'game_finished',
+  'panel_opened',
 ]);
 
+function sanitizeTrackField(value) {
+  return typeof value === 'string' ? value.slice(0, 60) : null;
+}
+
 app.post('/api/playtest/track', (req, res) => {
-  const { event, campaignSource } = req.body || {};
+  const { event, campaignSource, gameId, playerId, spaceId, panel } = req.body || {};
   if (typeof event !== 'string' || !PLAYTEST_EVENTS.has(event)) {
     return res.status(400).json({ error: 'Unknown or missing event' });
   }
   logVisitor(req, `PLAYTEST_${event.toUpperCase()}`, {
-    campaignSource: typeof campaignSource === 'string' ? campaignSource.slice(0, 60) : null,
+    campaignSource: sanitizeTrackField(campaignSource),
+    gameId: sanitizeTrackField(gameId),
+    playerId: sanitizeTrackField(playerId),
+    spaceId: sanitizeTrackField(spaceId),
+    panel: sanitizeTrackField(panel),
   });
   res.json({ success: true });
 });
@@ -2574,6 +2591,24 @@ app.get('/api/admin/playtest-stats', (req, res) => {
   }
 });
 
+// In-game engagement — "how far players get, what draws their attention"
+// (TODO.md, decided 2026-08-02). Separate from playtest-stats above (that
+// one answers acquisition-funnel questions; this one answers
+// in-game-progression questions) but reads the same log file via the same
+// cached reader used by /api/admin/stats/summary below — no new storage.
+// Aggregation (dedup logic, abandonment inference) lives in the pure,
+// unit-tested engagementStats.js. Admin-gated like its siblings.
+app.get('/api/admin/engagement-stats', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const entries = await getVisitorLogEntries();
+    res.json(aggregateEngagementStats(entries));
+  } catch (err) {
+    console.error('Failed to compute engagement stats:', err.message);
+    res.status(500).json({ error: 'Failed to compute engagement stats' });
+  }
+});
+
 // ===== ADMIN STATS DASHBOARD =====
 // GET /api/admin/stats/summary backs the /admin/stats page (client route in
 // App.tsx). Aggregation logic lives in visitorStats.js (pure, unit-tested);
@@ -2685,6 +2720,7 @@ app.use((req, res, _next) => {
         'GET /api/playtest/push-public-key',
         'POST /api/playtest/schedule-push',
         'GET /api/admin/playtest-stats',
+        'GET /api/admin/engagement-stats',
         'GET /api/admin/stats/summary'
       ]
     });

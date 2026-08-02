@@ -80,7 +80,6 @@
 ## 📱 Active — external testing & release
 
 - [ ] **Recruit 3–5 external players** for a structured UAT pass (open since April — the `/challenge` funnel + QR codes above are the remaining enablers).
-- [ ] **In-game engagement tracking** — how far players get, what draws their attention. Decided 2026-08-02 (see CHANGELOG) to build this instead of a feedback-triage cadence (the bug-report dashboard is enough on its own). **Ready-to-build shape:** reuse the existing `PLAYTEST_EVENTS`/`logVisitor` acquisition-funnel pattern (`server/server.js`) with a new small event set — `space_reached`, `game_finished`, `game_abandoned`, `panel_opened` (for the existing Rules/Glossary/"What to do & why"/Log affordances) — keyed to the pseudonymous `gameId`/`playerId`, never the player's display name. Aggregate via a new endpoint alongside `/api/admin/playtest-stats`. Not yet implemented.
 - [ ] **Bug-fix sprint after structured UAT** — placeholder.
 
 ## 🙋 Decisions waiting on the user
