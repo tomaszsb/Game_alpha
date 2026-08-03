@@ -488,6 +488,7 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
         <BaseEdge id={props.id} path={path} style={props.style} markerEnd={props.markerEnd} />
         {isAdmin && (
           <circle
+            className="nodrag nopan"
             cx={effectivePoint.x}
             cy={effectivePoint.y}
             r={7}
@@ -513,6 +514,7 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
       <SmartEdge {...props} nodes={nodes} options={TUNED_SMART_EDGE_OPTIONS} />
       {isAdmin && (
         <circle
+          className="nodrag nopan"
           cx={midX}
           cy={midY}
           r={6}
