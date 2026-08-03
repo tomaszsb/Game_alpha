@@ -458,16 +458,25 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
   const effectivePoint = dragPoint ?? waypoint;
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // TEMP G160 diagnostic logging — remove once the drag issue is found.
+    console.log('[G160] mousedown', { isAdmin, hasSetter: !!onSetEdgeWaypoint, edgeId: props.id });
     if (!isAdmin || !onSetEdgeWaypoint) return;
     e.stopPropagation();
     e.preventDefault();
+    let moveCount = 0;
     const onMove = (ev: MouseEvent) => {
-      setDragPoint(screenToFlowPosition({ x: ev.clientX, y: ev.clientY }));
+      moveCount++;
+      const p = screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
+      if (moveCount === 1 || moveCount % 10 === 0) {
+        console.log('[G160] mousemove', { moveCount, clientX: ev.clientX, clientY: ev.clientY, flowPoint: p });
+      }
+      setDragPoint(p);
     };
     const onUp = (ev: MouseEvent) => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
       const point = screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
+      console.log('[G160] mouseup — committing waypoint', { moveCount, point });
       setDragPoint(null);
       onSetEdgeWaypoint(props.id, point);
     };
