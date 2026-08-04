@@ -43,7 +43,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { BoardCanvas } from './BoardCanvas';
 import { useGameContext } from '../../context/GameContext';
 import { colors } from '../../styles/theme';
-import { fetchEdgeWaypoints, saveEdgeWaypoint, clearEdgeWaypoint, clearAllEdgeWaypoints } from '../../utils/saveEdgeWaypoint';
+import { fetchEdgeWaypoints, saveEdgeWaypoints, clearEdgeWaypoint, clearAllEdgeWaypoints, type EdgeWaypointResult } from '../../utils/saveEdgeWaypoint';
 
 interface BoardLayoutEditorProps {
   onClose: () => void;
@@ -59,7 +59,7 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
   // gate above: unlike tile positions, this doesn't feed BoardCanvas's
   // memoized initialNodes, so there's no stale-cache risk in rendering it
   // as soon as it arrives.
-  const [edgeWaypoints, setEdgeWaypoints] = useState<Record<string, { x: number; y: number }>>({});
+  const [edgeWaypoints, setEdgeWaypoints] = useState<Record<string, { x: number; y: number }[]>>({});
   const [edgeWaypointError, setEdgeWaypointError] = useState<string | null>(null);
 
   // Refresh GAME_CONFIG.csv on every open so we pick up any pos_x/pos_y
@@ -92,9 +92,9 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
     return () => { cancelled = true; };
   }, []);
 
-  const onSetEdgeWaypoint = useCallback((edgeId: string, point: { x: number; y: number }) => {
-    setEdgeWaypoints(prev => ({ ...prev, [edgeId]: point }));
-    saveEdgeWaypoint(edgeId, point.x, point.y).then(result => {
+  const onSetEdgeWaypoints = useCallback((edgeId: string, points: { x: number; y: number }[]) => {
+    setEdgeWaypoints(prev => ({ ...prev, [edgeId]: points }));
+    saveEdgeWaypoints(edgeId, points).then((result: EdgeWaypointResult) => {
       if (!result.success) setEdgeWaypointError(`Couldn't save the redirect (${result.detail})`);
     });
   }, []);
@@ -249,7 +249,7 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
             edgesVisible={true}
             showBuffer={true}
             edgeWaypoints={edgeWaypoints}
-            onSetEdgeWaypoint={onSetEdgeWaypoint}
+            onSetEdgeWaypoints={onSetEdgeWaypoints}
             onClearEdgeWaypoint={onClearEdgeWaypoint}
           />
         ) : (

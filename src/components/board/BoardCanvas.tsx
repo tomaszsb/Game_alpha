@@ -62,7 +62,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 import { resolveFundingAmountToken } from '../../utils/templateInterpolation';
@@ -418,91 +418,192 @@ const TUNED_SMART_EDGE_OPTIONS: SmartEdgeOptions = {
   nodePadding: 30,
 };
 
-// G160 (per-edge waypoint redirect, 2026-08-02). The auto-routed A* path is
-// right most of the time; when it isn't (a detour that reads as confusing —
-// fb:feedback-1778327469678-d27a73d0), an admin can drag a single waypoint
-// onto the edge to force it through a specific point instead. One point is
-// enough to fix "the detour looks wrong" without building full spline
-// editing — see TODO.md's G160 scope note for the fuller rationale.
+// G160 (per-edge waypoint redirect, 2026-08-02; multi-bend + manual
+// bundling, 2026-08-04). The auto-routed A* path is right most of the
+// time; when it isn't (a detour that reads as confusing —
+// fb:feedback-1778327469678-d27a73d0), an admin can drag bend points onto
+// the edge to force it through specific points instead. How many points
+// an edge is allowed scales with its on-screen length (maxWaypointsForLength
+// — "a short line gets one bend point, a longer one gets more").
 //
-// A waypointed edge is rendered as two straight segments (source→point,
-// point→target) via BaseEdge, bypassing A* entirely for that edge — the
-// admin's placement is authoritative, not a routing hint. No waypoint yet →
-// unchanged SmartEdge auto-routing. Either way, admin mode overlays a small
-// drag handle (solid + filled once a waypoint exists, hollow + dashed at the
-// edge's midpoint when it doesn't) so redirecting is discoverable without a
-// separate mode toggle. The handle is a distinct DOM element with its own
-// stopPropagation, so it doesn't interfere with the existing click-to-hide
-// gesture on the edge path itself.
+// A redirected edge (1+ waypoints) is rendered as straight segments
+// (source → each point in order → target) via BaseEdge, bypassing A*
+// entirely for that edge — the admin's placement is authoritative, not a
+// routing hint. No waypoints yet → unchanged SmartEdge auto-routing.
+// Admin mode overlays: a solid drag handle per existing point (drag to
+// move, double-click to remove just that one), and a hollow "add a
+// corner" handle at each segment's midpoint (drag it to insert a new
+// point there, up to the length-based cap).
+//
+// Manual bundling: while dragging any point, if it lands near another
+// edge's point it snaps to that exact coordinate (findSnapTarget). When
+// two or more edges share a run of identical points, that shared stretch
+// renders as a single thicker overlay (computeSegmentMerges) — the "bus"
+// convention real schematic/transit diagrams already use for multiple
+// lines running together. Deliberately only the INTERIOR segments (never
+// the source/target-touching ends, which depend on each edge's own
+// auto-computed floating attach point) participate — this doubles as the
+// "short individual stub into the shared trunk" look those diagrams use.
+// Each edge's own handle at a shared point spreads to a tiny deterministic
+// offset (computeHandleOffset) instead of stacking invisibly on its
+// siblings, so any one of several bundled edges stays individually
+// grabbable — with a hover tooltip naming which edge it is.
 interface WaypointEdgeData {
-  waypoint?: { x: number; y: number };
+  waypoints?: { x: number; y: number }[];
+  /** Every edge's own waypoint list, for snap-while-dragging and merge
+   *  detection against edges other than this one. */
+  allWaypoints?: Record<string, { x: number; y: number }[]>;
   isAdmin?: boolean;
-  onSetEdgeWaypoint?: (edgeId: string, point: { x: number; y: number }) => void;
+  /** Always the edge's COMPLETE ordered point list, never a partial patch. */
+  onSetEdgeWaypoints?: (edgeId: string, points: { x: number; y: number }[]) => void;
+  /** Removes every point on this edge, back to normal auto-routing. */
   onClearEdgeWaypoint?: (edgeId: string) => void;
   [key: string]: unknown;
 }
+
+const EMPTY_WAYPOINTS: { x: number; y: number }[] = [];
+const EMPTY_ALL_WAYPOINTS: Record<string, { x: number; y: number }[]> = {};
+const WAYPOINT_HANDLE_R = 7;
+const ADD_HANDLE_R = 5;
+const MERGED_STROKE_WIDTH = 5;
 
 function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
   const nodes = useNodes();
   const { screenToFlowPosition } = useReactFlow();
   const data = props.data as WaypointEdgeData | undefined;
   const isAdmin = !!data?.isAdmin;
-  const waypoint = data?.waypoint;
-  const onSetEdgeWaypoint = data?.onSetEdgeWaypoint;
+  const waypoints = data?.waypoints ?? EMPTY_WAYPOINTS;
+  const allWaypoints = data?.allWaypoints ?? EMPTY_ALL_WAYPOINTS;
+  const onSetEdgeWaypoints = data?.onSetEdgeWaypoints;
   const onClearEdgeWaypoint = data?.onClearEdgeWaypoint;
 
-  // Live preview point while dragging — separate from the persisted
-  // `waypoint` so a drag-in-progress doesn't round-trip through the parent's
-  // localStorage-backed state on every mousemove.
-  const [dragPoint, setDragPoint] = useState<{ x: number; y: number } | null>(null);
-  const effectivePoint = dragPoint ?? waypoint;
+  // Live-drag working copy — separate from the persisted `waypoints` so a
+  // drag-in-progress doesn't round-trip through the parent on every
+  // mousemove. Holds the FULL array (not just the one moving point)
+  // because inserting a new point shifts every later index.
+  const [drag, setDrag] = useState<{ index: number; points: { x: number; y: number }[] } | null>(null);
+  const effectivePoints = drag ? drag.points : waypoints;
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!isAdmin || !onSetEdgeWaypoint) return;
+  const maxPoints = maxWaypointsForLength(props.sourceX, props.sourceY, props.targetX, props.targetY);
+
+  const commit = useCallback((points: { x: number; y: number }[]) => {
+    if (points.length === 0) onClearEdgeWaypoint?.(props.id);
+    else onSetEdgeWaypoints?.(props.id, points);
+  }, [onClearEdgeWaypoint, onSetEdgeWaypoints, props.id]);
+
+  // Start dragging the point at `index`. `insertAt` (present only when
+  // adding a new corner) splices a fresh point into a copy of the
+  // COMMITTED array first — everything after is the same live-drag loop
+  // whether the point already existed or was just created.
+  const startDrag = useCallback((e: React.MouseEvent, index: number, insertAt?: { x: number; y: number }) => {
+    if (!isAdmin || !onSetEdgeWaypoints) return;
     e.stopPropagation();
     e.preventDefault();
+    const basePoints = insertAt
+      ? [...waypoints.slice(0, index), insertAt, ...waypoints.slice(index)]
+      : [...waypoints];
+    setDrag({ index, points: basePoints });
     const onMove = (ev: MouseEvent) => {
-      setDragPoint(screenToFlowPosition({ x: ev.clientX, y: ev.clientY }));
+      const raw = screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
+      const point = findSnapTarget(raw, props.id, allWaypoints) ?? raw;
+      setDrag(prev => {
+        if (!prev) return prev;
+        const next = [...prev.points];
+        next[index] = point;
+        return { index, points: next };
+      });
     };
-    const onUp = (ev: MouseEvent) => {
+    const onUp = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
-      const point = screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
-      setDragPoint(null);
-      onSetEdgeWaypoint(props.id, point);
+      setDrag(current => {
+        if (current) commit(current.points);
+        return null;
+      });
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [isAdmin, onSetEdgeWaypoint, screenToFlowPosition, props.id]);
+  }, [isAdmin, onSetEdgeWaypoints, waypoints, screenToFlowPosition, allWaypoints, props.id, commit]);
 
-  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    if (!isAdmin || !onClearEdgeWaypoint) return;
+  const removePoint = useCallback((e: React.MouseEvent, index: number) => {
+    if (!isAdmin) return;
     e.stopPropagation();
-    onClearEdgeWaypoint(props.id);
-  }, [isAdmin, onClearEdgeWaypoint, props.id]);
+    commit(waypoints.filter((_, i) => i !== index));
+  }, [isAdmin, waypoints, commit]);
 
-  if (effectivePoint) {
-    const path = buildWaypointEdgePath(props.sourceX, props.sourceY, effectivePoint, props.targetX, props.targetY);
+  if (effectivePoints.length > 0) {
+    const path = buildWaypointEdgePath(props.sourceX, props.sourceY, effectivePoints, props.targetX, props.targetY);
+    const merges = computeSegmentMerges(props.id, effectivePoints, allWaypoints);
+    const baseColor = (props.style as React.CSSProperties | undefined)?.stroke as string | undefined ?? '#b1b1b7';
+    const fullSequence = [
+      { x: props.sourceX, y: props.sourceY },
+      ...effectivePoints,
+      { x: props.targetX, y: props.targetY },
+    ];
+    const canAddMore = effectivePoints.length < maxPoints;
+
     return (
       <>
         <BaseEdge id={props.id} path={path} style={props.style} markerEnd={props.markerEnd} />
-        {isAdmin && (
-          <circle
-            className="nodrag nopan"
-            cx={effectivePoint.x}
-            cy={effectivePoint.y}
-            r={7}
-            fill="#f59e0b"
-            stroke="#fff"
-            strokeWidth={2}
-            style={{ cursor: 'grab', pointerEvents: 'all' }}
-            onMouseDown={handleMouseDown}
-            onClick={(e) => e.stopPropagation()}
-            onDoubleClick={handleDoubleClick}
-          >
-            <title>Drag to reroute · double-click to reset to auto-routing</title>
-          </circle>
-        )}
+        {merges.map((sharedWith, i) => sharedWith.length > 0 && (
+          <path
+            key={`merge-${i}`}
+            d={`M${fullSequence[i + 1].x},${fullSequence[i + 1].y} L${fullSequence[i + 2].x},${fullSequence[i + 2].y}`}
+            stroke={baseColor}
+            strokeWidth={MERGED_STROKE_WIDTH}
+            fill="none"
+            style={{ pointerEvents: 'none' }}
+          />
+        ))}
+        {isAdmin && canAddMore && fullSequence.slice(0, -1).map((from, i) => {
+          const to = fullSequence[i + 1];
+          const midX = (from.x + to.x) / 2;
+          const midY = (from.y + to.y) / 2;
+          return (
+            <circle
+              key={`add-${i}`}
+              className="nodrag nopan"
+              cx={midX}
+              cy={midY}
+              r={ADD_HANDLE_R}
+              fill="#fff"
+              stroke="#f59e0b"
+              strokeWidth={2}
+              strokeDasharray="2 2"
+              style={{ cursor: 'grab', pointerEvents: 'all' }}
+              onMouseDown={(e) => startDrag(e, i, { x: midX, y: midY })}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <title>Drag to add another bend point</title>
+            </circle>
+          );
+        })}
+        {isAdmin && effectivePoints.map((p, i) => {
+          const siblings = findEdgesAtPoint(p, props.id, allWaypoints);
+          const offset = computeHandleOffset(props.id, siblings);
+          return (
+            <circle
+              key={`point-${i}`}
+              className="nodrag nopan"
+              cx={p.x + offset.dx}
+              cy={p.y + offset.dy}
+              r={WAYPOINT_HANDLE_R}
+              fill="#f59e0b"
+              stroke="#fff"
+              strokeWidth={2}
+              style={{ cursor: 'grab', pointerEvents: 'all' }}
+              onMouseDown={(e) => startDrag(e, i)}
+              onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => removePoint(e, i)}
+            >
+              <title>
+                {siblings.length > 0
+                  ? `This connector (bundled with ${siblings.length} other${siblings.length === 1 ? '' : 's'} here) — drag to reroute, double-click to remove this point`
+                  : 'Drag to reroute · double-click to remove this point'}
+              </title>
+            </circle>
+          );
+        })}
       </>
     );
   }
@@ -523,7 +624,7 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
           strokeWidth={2}
           strokeDasharray="2 2"
           style={{ cursor: 'grab', pointerEvents: 'all' }}
-          onMouseDown={handleMouseDown}
+          onMouseDown={(e) => startDrag(e, 0, { x: midX, y: midY })}
           onClick={(e) => e.stopPropagation()}
         >
           <title>Drag to redirect this connector&apos;s path</title>
@@ -552,17 +653,19 @@ interface BoardCanvasProps {
   /** Called when an edge is clicked in admin mode. Parent persists. */
   onHideEdge?: (edgeId: string) => void;
   /** Per-edge waypoint override, keyed by edge id (`${source}__${target}`).
-   *  G160 (2026-08-02) — an edge with a stored waypoint renders as two
-   *  straight segments through that point instead of the A*-auto-routed
-   *  path, for the rare case where the auto-route detours somewhere
-   *  confusing. Renders identically for every viewer (not admin-gated) —
-   *  only the drag handle that CREATES/moves a waypoint is admin-only. */
-  edgeWaypoints?: Record<string, { x: number; y: number }>;
-  /** Called with the dropped flow-coordinate point when an admin finishes
-   *  dragging an edge's redirect handle. Parent persists. */
-  onSetEdgeWaypoint?: (edgeId: string, point: { x: number; y: number }) => void;
-  /** Called when an admin double-clicks a redirect handle to reset that
-   *  edge back to normal A* auto-routing. Parent persists. */
+   *  G160 (2026-08-02; multi-bend + manual bundling 2026-08-04) — an edge
+   *  with stored waypoints renders as straight segments through each point
+   *  in order instead of the A*-auto-routed path, for the rare case where
+   *  the auto-route detours somewhere confusing (or where several
+   *  connectors should visually bundle along a shared stretch). Renders
+   *  identically for every viewer (not admin-gated) — only the drag
+   *  handles that create/move points are admin-only. */
+  edgeWaypoints?: Record<string, { x: number; y: number }[]>;
+  /** Called with an edge's COMPLETE ordered point list (never a partial
+   *  patch) when an admin finishes dragging a point. Parent persists. */
+  onSetEdgeWaypoints?: (edgeId: string, points: { x: number; y: number }[]) => void;
+  /** Called when an admin double-clicks the last remaining point on an
+   *  edge, resetting it back to normal A* auto-routing. Parent persists. */
   onClearEdgeWaypoint?: (edgeId: string) => void;
   /** Called after a drag-save round-trip succeeds. The BoardLayoutEditor
    *  uses this to refresh dataService.gameConfigs so the cached positions
@@ -596,7 +699,7 @@ function BoardCanvasInner({
   hiddenEdgeIds,
   onHideEdge,
   edgeWaypoints,
-  onSetEdgeWaypoint,
+  onSetEdgeWaypoints,
   onClearEdgeWaypoint,
   onPositionSaved,
   showBuffer = false,
@@ -859,11 +962,15 @@ function BoardCanvasInner({
       // any) plus the admin callbacks the SmartBezierEdgeTuned handle needs.
       // A waypointed edge renders identically for every viewer; only the
       // drag handle itself is gated on isAdmin inside the edge component.
+      // allWaypoints is the whole map (not just this edge's own entry) —
+      // needed for snap-while-dragging and merge/bundle detection against
+      // every OTHER edge (multi-bend, 2026-08-04).
       const dataPatch = {
         ...e.data,
-        waypoint: edgeWaypoints?.[e.id],
+        waypoints: edgeWaypoints?.[e.id],
+        allWaypoints: edgeWaypoints,
         isAdmin,
-        onSetEdgeWaypoint,
+        onSetEdgeWaypoints,
         onClearEdgeWaypoint,
       };
       // Restyle in non-admin mode so path-taken edges (dim gray, dotted) are
@@ -887,7 +994,7 @@ function BoardCanvasInner({
         markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#adb5bd' },
       };
     });
-  }, [edges, edgesVisible, hiddenEdgeIds, isAdmin, currentPlayerId, players, validMoves, movementChoiceUnlocked, edgeWaypoints, onSetEdgeWaypoint, onClearEdgeWaypoint]);
+  }, [edges, edgesVisible, hiddenEdgeIds, isAdmin, currentPlayerId, players, validMoves, movementChoiceUnlocked, edgeWaypoints, onSetEdgeWaypoints, onClearEdgeWaypoint]);
 
   // Click an edge in admin mode → hide it. Single-click is the gesture
   // (React Flow has no native double-click on edges, and right-click

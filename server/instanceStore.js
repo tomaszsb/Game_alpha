@@ -53,7 +53,7 @@ export function assertValidInstanceId(id) {
  * @property {Object<string, any>} teacherCopies
  * @property {Object<string, string>} detours
  * @property {Object<string, InsertionConfig>} insertions
- * @property {Object<string, { x: number, y: number }>} edgeWaypoints
+ * @property {Object<string, Array<{ x: number, y: number }>>} edgeWaypoints
  */
 
 export function instanceDir(instancesRoot, id) {
@@ -346,17 +346,29 @@ export function setSlotPositions(config, positions) {
  * validated against real connections here (mirrors setSlotPositions:
  * unknown/stale ids are harmless, they just never render since the client
  * only looks up waypoints for edges it actually draws).
+ *
+ * points is the edge's COMPLETE ordered list of bend points (multi-bend,
+ * 2026-08-04) — the client always sends the full array after a drag, never
+ * a partial patch, so there's no index drift between client and server.
+ * An empty array is rejected (the client should DELETE instead — an edge
+ * either has real redirect points or no entry at all, never an empty one).
  * @param {InstanceConfig} config
  * @param {string} edgeId
- * @param {{ x: number|string, y: number|string }} point
+ * @param {Array<{ x: number|string, y: number|string }>} points
  */
-export function setEdgeWaypoint(config, edgeId, point) {
-  const x = Number(point?.x);
-  const y = Number(point?.y);
-  if (!Number.isFinite(x) || !Number.isFinite(y)) {
-    throw new Error(`Invalid waypoint for "${edgeId}": x/y must be finite numbers`);
+export function setEdgeWaypoints(config, edgeId, points) {
+  if (!Array.isArray(points) || points.length === 0) {
+    throw new Error(`Invalid waypoints for "${edgeId}": a non-empty array is required (use clear to remove)`);
   }
-  config.edgeWaypoints[edgeId] = { x, y };
+  const normalized = points.map((p, i) => {
+    const x = Number(p?.x);
+    const y = Number(p?.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      throw new Error(`Invalid waypoint ${i} for "${edgeId}": x/y must be finite numbers`);
+    }
+    return { x, y };
+  });
+  config.edgeWaypoints[edgeId] = normalized;
 }
 
 /** Clear one edge's waypoint redirect, back to normal auto-routing. */

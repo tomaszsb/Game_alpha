@@ -4,7 +4,7 @@
 // /api/instances/<id>/edge-waypoints instead of /positions.
 
 import { describe, it, expect, vi } from 'vitest';
-import { fetchEdgeWaypoints, saveEdgeWaypoint, clearEdgeWaypoint, clearAllEdgeWaypoints } from '../../src/utils/saveEdgeWaypoint';
+import { fetchEdgeWaypoints, saveEdgeWaypoints, clearEdgeWaypoint, clearAllEdgeWaypoints } from '../../src/utils/saveEdgeWaypoint';
 import { DEFAULT_INSTANCE_ID } from '../../src/components/board/saveBoardPosition';
 
 function makeJsonResponse(body: unknown, status = 200): Response {
@@ -17,16 +17,16 @@ function makeJsonResponse(body: unknown, status = 200): Response {
 }
 
 describe('fetchEdgeWaypoints', () => {
-  it('returns the parsed map on success, no auth required', async () => {
+  it('returns the parsed map on success (each edge is an ordered array of points, multi-bend 2026-08-04), no auth required', async () => {
     let captured: { url: string } | null = null;
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       captured = { url: String(input) };
-      return makeJsonResponse({ success: true, edgeWaypoints: { 'A__B': { x: 1, y: 2 } } });
+      return makeJsonResponse({ success: true, edgeWaypoints: { 'A__B': [{ x: 1, y: 2 }, { x: 3, y: 4 }] } });
     });
 
     const result = await fetchEdgeWaypoints({ fetch: fetchMock as unknown as typeof fetch, getBackendURL: () => 'http://backend:3001' });
 
-    expect(result).toEqual({ 'A__B': { x: 1, y: 2 } });
+    expect(result).toEqual({ 'A__B': [{ x: 1, y: 2 }, { x: 3, y: 4 }] });
     expect(captured!.url).toBe(`http://backend:3001/api/instances/${DEFAULT_INSTANCE_ID}/edge-waypoints`);
   });
 
@@ -43,15 +43,15 @@ describe('fetchEdgeWaypoints', () => {
   });
 });
 
-describe('saveEdgeWaypoint', () => {
-  it('happy path: POSTs edgeId/x/y to the instance endpoint with admin auth', async () => {
+describe('saveEdgeWaypoints', () => {
+  it('happy path: POSTs edgeId + the full ordered points array to the instance endpoint with admin auth', async () => {
     let captured: { url: string; init?: RequestInit } | null = null;
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       captured = { url: String(input), init };
       return makeJsonResponse({ success: true, edgeId: 'A__B', configVersion: 2, resolvedVersion: 2 });
     });
 
-    const result = await saveEdgeWaypoint('A__B', 120, -40.5, {
+    const result = await saveEdgeWaypoints('A__B', [{ x: 120, y: -40.5 }, { x: 200, y: 10 }], {
       fetch: fetchMock as unknown as typeof fetch,
       getAdminPassword: () => 'hunter2',
       getBackendURL: () => 'http://backend:3001'
@@ -61,12 +61,15 @@ describe('saveEdgeWaypoint', () => {
     expect(captured!.url).toBe(`http://backend:3001/api/instances/${DEFAULT_INSTANCE_ID}/edge-waypoints`);
     expect(captured!.init?.method).toBe('POST');
     expect((captured!.init?.headers as Record<string, string>)['x-admin-password']).toBe('hunter2');
-    expect(JSON.parse(captured!.init?.body as string)).toEqual({ edgeId: 'A__B', x: 120, y: -40.5 });
+    expect(JSON.parse(captured!.init?.body as string)).toEqual({
+      edgeId: 'A__B',
+      points: [{ x: 120, y: -40.5 }, { x: 200, y: 10 }]
+    });
   });
 
   it('returns step=auth without fetching when neither admin password nor teacher session exists', async () => {
     const fetchMock = vi.fn();
-    const result = await saveEdgeWaypoint('A__B', 1, 2, {
+    const result = await saveEdgeWaypoints('A__B', [{ x: 1, y: 2 }], {
       fetch: fetchMock as unknown as typeof fetch,
       getAdminPassword: () => null,
       getTeacherSession: () => null,
@@ -86,7 +89,7 @@ describe('saveEdgeWaypoint', () => {
       return makeJsonResponse({ success: true });
     });
 
-    const result = await saveEdgeWaypoint('A__B', 1, 2, {
+    const result = await saveEdgeWaypoints('A__B', [{ x: 1, y: 2 }], {
       fetch: fetchMock as unknown as typeof fetch,
       getAdminPassword: () => null,
       getTeacherSession: () => 'sess-token',
@@ -102,7 +105,7 @@ describe('saveEdgeWaypoint', () => {
       makeJsonResponse({ success: false, error: 'Failed to save edge waypoint', step: 'bake', detail: 'EACCES' }, 500)
     );
 
-    const result = await saveEdgeWaypoint('A__B', 1, 2, {
+    const result = await saveEdgeWaypoints('A__B', [{ x: 1, y: 2 }], {
       fetch: fetchMock as unknown as typeof fetch,
       getAdminPassword: () => 'pw',
       getBackendURL: () => ''
@@ -117,7 +120,7 @@ describe('saveEdgeWaypoint', () => {
   it('returns step=post with the error message on a network failure', async () => {
     const fetchMock = vi.fn(async () => { throw new Error('ECONNREFUSED'); });
 
-    const result = await saveEdgeWaypoint('A__B', 1, 2, {
+    const result = await saveEdgeWaypoints('A__B', [{ x: 1, y: 2 }], {
       fetch: fetchMock as unknown as typeof fetch,
       getAdminPassword: () => 'pw',
       getBackendURL: () => ''

@@ -39,7 +39,7 @@ import {
   addInsertion,
   updateInsertion,
   removeInsertion,
-  setEdgeWaypoint,
+  setEdgeWaypoints,
   clearEdgeWaypoint,
   clearAllEdgeWaypoints,
 } from './instanceStore.js';
@@ -1517,9 +1517,12 @@ app.post('/api/instances/:id/edge-waypoints', (req, res) => {
   if (!instanceLayerActive) {
     return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
   }
-  const { edgeId, x, y } = req.body || {};
+  const { edgeId, points } = req.body || {};
   if (!edgeId || typeof edgeId !== 'string') {
     return res.status(400).json({ success: false, error: 'edgeId is required' });
+  }
+  if (!Array.isArray(points) || points.length === 0) {
+    return res.status(400).json({ success: false, error: 'points must be a non-empty array' });
   }
 
   let step = 'load';
@@ -1541,7 +1544,7 @@ app.post('/api/instances/:id/edge-waypoints', (req, res) => {
     }
 
     step = 'apply';
-    setEdgeWaypoint(config, edgeId, { x, y });
+    setEdgeWaypoints(config, edgeId, points);
     step = 'save';
     saveInstance(instancesRoot, config);
     step = 'bake';

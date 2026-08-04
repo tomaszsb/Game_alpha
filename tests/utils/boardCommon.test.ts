@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
+import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
 
 // fb:97fa9c75 — five-step tile size hierarchy. Was a 3-step ladder where the
 // current-player tile and valid-move tiles got only border treatment, which
@@ -204,17 +204,17 @@ describe('computeVisibleEdgeIds (board/panel destination parity)', () => {
   });
 });
 
-// G160 (per-edge waypoint redirect, 2026-08-02) — an admin-redirected edge
-// bypasses A* auto-routing entirely and draws as two straight segments
-// through the stored waypoint.
+// G160 (per-edge waypoint redirect, 2026-08-02; multi-bend 2026-08-04) — an
+// admin-redirected edge bypasses A* auto-routing entirely and draws as
+// straight segments through zero or more stored waypoints.
 describe('buildWaypointEdgePath (G160 per-edge waypoint redirect)', () => {
-  it('builds a two-segment path through the waypoint', () => {
-    const path = buildWaypointEdgePath(0, 0, { x: 50, y: 100 }, 200, 0);
+  it('builds a two-segment path through a single waypoint', () => {
+    const path = buildWaypointEdgePath(0, 0, [{ x: 50, y: 100 }], 200, 0);
     expect(path).toBe('M0,0 L50,100 L200,0');
   });
 
   it('handles negative and fractional coordinates the same way (no rounding)', () => {
-    const path = buildWaypointEdgePath(-12.5, 4, { x: -3.25, y: -7 }, 88.1, 22);
+    const path = buildWaypointEdgePath(-12.5, 4, [{ x: -3.25, y: -7 }], 88.1, 22);
     expect(path).toBe('M-12.5,4 L-3.25,-7 L88.1,22');
   });
 
@@ -222,8 +222,166 @@ describe('buildWaypointEdgePath (G160 per-edge waypoint redirect)', () => {
     // Not a special case in the implementation, but worth pinning: dragging
     // the handle back onto an endpoint should render as a plain line, not
     // throw or produce a malformed path.
-    const path = buildWaypointEdgePath(10, 10, { x: 10, y: 10 }, 90, 10);
+    const path = buildWaypointEdgePath(10, 10, [{ x: 10, y: 10 }], 90, 10);
     expect(path).toBe('M10,10 L10,10 L90,10');
+  });
+
+  it('chains multiple waypoints in order (multi-bend, 2026-08-04)', () => {
+    const path = buildWaypointEdgePath(0, 0, [{ x: 20, y: 40 }, { x: 60, y: -10 }], 200, 0);
+    expect(path).toBe('M0,0 L20,40 L60,-10 L200,0');
+  });
+
+  it('an empty waypoint list degenerates to a plain source-to-target line', () => {
+    const path = buildWaypointEdgePath(0, 0, [], 200, 0);
+    expect(path).toBe('M0,0 L200,0');
+  });
+});
+
+// Multi-bend point cap, magnetic snapping, and manual bundling (2026-08-04).
+describe('maxWaypointsForLength', () => {
+  it('is always at least 1, even for a very short edge', () => {
+    expect(maxWaypointsForLength(0, 0, 10, 0)).toBe(1);
+    expect(maxWaypointsForLength(0, 0, 0, 0)).toBe(1);
+  });
+
+  it('scales with on-screen length at a 96-flow-unit "inch"', () => {
+    expect(maxWaypointsForLength(0, 0, 96, 0)).toBe(1);
+    expect(maxWaypointsForLength(0, 0, 192, 0)).toBe(2);
+    expect(maxWaypointsForLength(0, 0, 300, 0)).toBe(3);
+  });
+
+  it('uses straight-line (Euclidean) distance regardless of axis', () => {
+    // A 3-4-5 triangle scaled by 96: length 480 -> 5 inches.
+    expect(maxWaypointsForLength(0, 0, 288, 384)).toBe(5);
+  });
+});
+
+describe('computeSegmentMerges', () => {
+  it('reports no merges when no other edge shares any interior segment', () => {
+    const merges = computeSegmentMerges('A__B', [{ x: 10, y: 10 }, { x: 20, y: 20 }], {
+      'A__B': [{ x: 10, y: 10 }, { x: 20, y: 20 }],
+      'C__D': [{ x: 99, y: 99 }, { x: 100, y: 100 }],
+    });
+    expect(merges).toEqual([[]]);
+  });
+
+  it('finds another edge sharing the same interior segment, order-independent', () => {
+    const merges = computeSegmentMerges('A__B', [{ x: 10, y: 10 }, { x: 20, y: 20 }], {
+      'A__B': [{ x: 10, y: 10 }, { x: 20, y: 20 }],
+      'C__D': [{ x: 20, y: 20 }, { x: 10, y: 10 }], // reversed order — still the same shared stretch
+    });
+    expect(merges).toEqual([['C__D']]);
+  });
+
+  it('never checks the first or last segment (those touch source/target, not just other waypoints)', () => {
+    // Both edges have 3 waypoints (2 interior segments each); only the
+    // middle one is genuinely interior-to-interior on both sides for A__B.
+    const merges = computeSegmentMerges('A__B', [{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 20, y: 20 }], {
+      'A__B': [{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 20, y: 20 }],
+      'C__D': [{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 30, y: 30 }],
+    });
+    // Segment 0 (0,0)-(10,10) is shared, segment 1 (10,10)-(20,20) is not (C__D's is (10,10)-(30,30)).
+    expect(merges).toEqual([['C__D'], []]);
+  });
+
+  it('reports multiple sharing edges for the same segment', () => {
+    const shared = [{ x: 10, y: 10 }, { x: 20, y: 20 }];
+    const merges = computeSegmentMerges('A__B', shared, {
+      'A__B': shared,
+      'C__D': shared,
+      'E__F': shared,
+      'G__H': [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+    });
+    expect(merges).toEqual([['C__D', 'E__F']]);
+  });
+
+  it('tolerates tiny floating-point differences (sub-pixel) as the same point', () => {
+    const merges = computeSegmentMerges('A__B', [{ x: 10, y: 10 }, { x: 20, y: 20 }], {
+      'A__B': [{ x: 10, y: 10 }, { x: 20, y: 20 }],
+      'C__D': [{ x: 10.2, y: 9.9 }, { x: 20, y: 20 }],
+    });
+    expect(merges).toEqual([['C__D']]);
+  });
+});
+
+describe('findSnapTarget', () => {
+  it('returns the nearest other edge point within the threshold', () => {
+    const target = findSnapTarget({ x: 100, y: 100 }, 'A__B', {
+      'A__B': [{ x: 0, y: 0 }],
+      'C__D': [{ x: 105, y: 103 }],
+    });
+    expect(target).toEqual({ x: 105, y: 103 });
+  });
+
+  it('returns null when nothing is within the threshold', () => {
+    const target = findSnapTarget({ x: 100, y: 100 }, 'A__B', {
+      'C__D': [{ x: 500, y: 500 }],
+    });
+    expect(target).toBeNull();
+  });
+
+  it('ignores its own edge\'s points', () => {
+    const target = findSnapTarget({ x: 100, y: 100 }, 'A__B', {
+      'A__B': [{ x: 101, y: 101 }],
+    });
+    expect(target).toBeNull();
+  });
+
+  it('picks the closest match when multiple are within range', () => {
+    const target = findSnapTarget({ x: 100, y: 100 }, 'A__B', {
+      'C__D': [{ x: 108, y: 100 }],
+      'E__F': [{ x: 103, y: 100 }],
+    });
+    expect(target).toEqual({ x: 103, y: 100 });
+  });
+});
+
+describe('computeHandleOffset', () => {
+  it('is zero offset when nothing else shares the point', () => {
+    expect(computeHandleOffset('A__B', [])).toEqual({ dx: 0, dy: 0 });
+  });
+
+  it('spreads siblings deterministically around a small circle', () => {
+    const a = computeHandleOffset('A__B', ['C__D']);
+    const b = computeHandleOffset('C__D', ['A__B']);
+    expect(a).not.toEqual(b);
+    // Both at the same radius from center.
+    const radiusA = Math.hypot(a.dx, a.dy);
+    const radiusB = Math.hypot(b.dx, b.dy);
+    expect(radiusA).toBeCloseTo(5, 5);
+    expect(radiusB).toBeCloseTo(5, 5);
+  });
+
+  it('is stable across calls regardless of argument order (alphabetical, not insertion order)', () => {
+    const first = computeHandleOffset('B__B', ['A__A', 'C__C']);
+    const second = computeHandleOffset('B__B', ['C__C', 'A__A']);
+    expect(first).toEqual(second);
+  });
+});
+
+describe('findEdgesAtPoint', () => {
+  it('finds every other edge with a waypoint at the exact coordinate', () => {
+    const found = findEdgesAtPoint({ x: 10, y: 10 }, 'A__B', {
+      'A__B': [{ x: 10, y: 10 }],
+      'C__D': [{ x: 10, y: 10 }],
+      'E__F': [{ x: 99, y: 99 }],
+    });
+    expect(found).toEqual(['C__D']);
+  });
+
+  it('returns [] when no other edge shares the point', () => {
+    const found = findEdgesAtPoint({ x: 10, y: 10 }, 'A__B', {
+      'A__B': [{ x: 10, y: 10 }],
+      'C__D': [{ x: 99, y: 99 }],
+    });
+    expect(found).toEqual([]);
+  });
+
+  it('tolerates tiny floating-point differences within epsilon', () => {
+    const found = findEdgesAtPoint({ x: 10, y: 10 }, 'A__B', {
+      'C__D': [{ x: 10.3, y: 9.8 }],
+    });
+    expect(found).toEqual(['C__D']);
   });
 });
 

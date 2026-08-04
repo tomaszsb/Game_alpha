@@ -40,27 +40,31 @@ function authHeaders(deps: EdgeWaypointDeps): { headers: Record<string, string> 
   return { headers };
 }
 
-/** Fetch the classroom's current edge-waypoint redirects. Public read, no auth required. */
+/** Fetch the classroom's current edge-waypoint redirects (each edge's full ordered point list). Public read, no auth required. */
 export async function fetchEdgeWaypoints(
   deps: EdgeWaypointDeps = {},
   instanceId: string = DEFAULT_INSTANCE_ID
-): Promise<Record<string, { x: number; y: number }>> {
+): Promise<Record<string, { x: number; y: number }[]>> {
   const fetchFn = deps.fetch ?? fetch;
   const getURL = deps.getBackendURL ?? getBackendURL;
   try {
     const response = await fetchFn(`${getURL()}/api/instances/${instanceId}/edge-waypoints`);
     if (!response.ok) return {};
     const data = await response.json().catch(() => ({} as Record<string, unknown>));
-    return (data as { edgeWaypoints?: Record<string, { x: number; y: number }> }).edgeWaypoints || {};
+    return (data as { edgeWaypoints?: Record<string, { x: number; y: number }[]> }).edgeWaypoints || {};
   } catch {
     return {};
   }
 }
 
-export async function saveEdgeWaypoint(
+/**
+ * Save an edge's COMPLETE ordered list of bend points (multi-bend,
+ * 2026-08-04) — always the full array, never a partial patch, matching
+ * the server's replace-whole semantics.
+ */
+export async function saveEdgeWaypoints(
   edgeId: string,
-  x: number,
-  y: number,
+  points: { x: number; y: number }[],
   deps: EdgeWaypointDeps = {},
   instanceId: string = DEFAULT_INSTANCE_ID
 ): Promise<EdgeWaypointResult> {
@@ -74,7 +78,7 @@ export async function saveEdgeWaypoint(
     const response = await fetchFn(`${getURL()}/api/instances/${instanceId}/edge-waypoints`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ edgeId, x, y })
+      body: JSON.stringify({ edgeId, points })
     });
     const data = await response.json().catch(() => ({} as Record<string, unknown>));
     if (response.ok && (data as { success?: boolean }).success) {

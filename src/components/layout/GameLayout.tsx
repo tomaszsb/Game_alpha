@@ -41,7 +41,7 @@ import { ShutdownNotice } from '../common/ShutdownNotice';
 import { isAdminAuthenticated } from '../../utils/adminAuth';
 import { isTeacherLoggedIn } from '../../utils/teacherAuth';
 import { getCurrentGameId } from '../../utils/networkDetection';
-import { fetchEdgeWaypoints, saveEdgeWaypoint, clearEdgeWaypoint, clearAllEdgeWaypoints } from '../../utils/saveEdgeWaypoint';
+import { fetchEdgeWaypoints, saveEdgeWaypoints, clearEdgeWaypoint, clearAllEdgeWaypoints, type EdgeWaypointResult } from '../../utils/saveEdgeWaypoint';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 
 interface GameLayoutProps {
@@ -175,7 +175,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // feedback matching the drag), then saves in the background; a failed
   // save surfaces as a notification rather than silently reverting — a
   // reload would show the true last-saved state either way.
-  const [edgeWaypoints, setEdgeWaypointsState] = useState<Record<string, { x: number; y: number }>>({});
+  const [edgeWaypoints, setEdgeWaypointsState] = useState<Record<string, { x: number; y: number }[]>>({});
   useEffect(() => {
     let cancelled = false;
     fetchEdgeWaypoints().then(fetched => {
@@ -183,9 +183,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     });
     return () => { cancelled = true; };
   }, []);
-  const onSetEdgeWaypoint = useCallback((edgeId: string, point: { x: number; y: number }) => {
-    setEdgeWaypointsState(prev => ({ ...prev, [edgeId]: point }));
-    saveEdgeWaypoint(edgeId, point.x, point.y).then(result => {
+  const onSetEdgeWaypoints = useCallback((edgeId: string, points: { x: number; y: number }[]) => {
+    setEdgeWaypointsState(prev => ({ ...prev, [edgeId]: points }));
+    saveEdgeWaypoints(edgeId, points).then((result: EdgeWaypointResult) => {
       if (!result.success) {
         notificationService.notify(
           NotificationUtils.createErrorNotification('Board', `Couldn't save the connector redirect (${result.detail})`, 'System'),
@@ -1301,7 +1301,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 hiddenEdgeIds={hiddenEdgeIds}
                 onHideEdge={onHideEdge}
                 edgeWaypoints={edgeWaypoints}
-                onSetEdgeWaypoint={onSetEdgeWaypoint}
+                onSetEdgeWaypoints={onSetEdgeWaypoints}
                 onClearEdgeWaypoint={onClearEdgeWaypoint}
               />
             </div>

@@ -308,14 +308,155 @@ export function computeVisibleEdgeIds(
  * computeVisibleEdgeIds/resolveTileOverlap above) so it's unit-testable
  * without rendering React Flow's SVG tree.
  */
+/**
+ * Builds a path through zero or more waypoints as straight segments —
+ * source, through each point in order, to target. One waypoint reproduces
+ * the original G160 two-segment redirect exactly; more points (multi-bend,
+ * 2026-08-04) just chain more segments. An empty array degenerates to a
+ * plain source→target line rather than being a special case the caller
+ * needs to branch on.
+ */
 export function buildWaypointEdgePath(
   sourceX: number,
   sourceY: number,
-  waypoint: { x: number; y: number },
+  waypoints: { x: number; y: number }[],
   targetX: number,
   targetY: number,
 ): string {
-  return `M${sourceX},${sourceY} L${waypoint.x},${waypoint.y} L${targetX},${targetY}`;
+  const mid = waypoints.map(p => ` L${p.x},${p.y}`).join('');
+  return `M${sourceX},${sourceY}${mid} L${targetX},${targetY}`;
+}
+
+/**
+ * How many bend points an edge is allowed, scaled by its on-screen length
+ * (multi-bend, 2026-08-04 — "a short line gets one bend point, a longer
+ * one gets more"). Flow-space distance is used rather than the current
+ * zoomed screen distance, since it stays constant regardless of zoom
+ * level; 96 (the CSS reference px-per-inch) is a deliberately simple,
+ * documented heuristic for "an inch" on a board with no real physical
+ * scale — not a claim that flow units are literal CSS pixels. Always at
+ * least 1, so even a very short redirect can still get its original
+ * single bend point.
+ */
+export function maxWaypointsForLength(
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+): number {
+  const distance = Math.hypot(targetX - sourceX, targetY - sourceY);
+  const PIXELS_PER_INCH = 96;
+  return Math.max(1, Math.floor(distance / PIXELS_PER_INCH));
+}
+
+function samePoint(a: { x: number; y: number }, b: { x: number; y: number }, epsilon = 0.5): boolean {
+  return Math.abs(a.x - b.x) <= epsilon && Math.abs(a.y - b.y) <= epsilon;
+}
+
+/**
+ * For each INTERIOR segment of `points` (between consecutive waypoints —
+ * never the source/target-touching ends), which OTHER edges' ids have the
+ * same two points consecutively (in either order)? A short/manual edge
+ * bundle (2026-08-04): the admin snaps several edges' waypoints onto the
+ * same coordinates to make a shared stretch, which renders thicker.
+ * Deliberately excludes the first (source→points[0]) and last
+ * (points[-1]→target) segments — those depend on each edge's own
+ * auto-computed floating attach point, which isn't available here, and
+ * conveniently doubles as the "short individual stub into the shared
+ * trunk" look real bus/trunk-line diagrams already use.
+ * @returns one entry per interior segment (length = points.length - 1),
+ *   each the (possibly empty) list of other edge ids sharing it.
+ */
+export function computeSegmentMerges(
+  edgeId: string,
+  points: { x: number; y: number }[],
+  allWaypoints: Record<string, { x: number; y: number }[]>,
+): string[][] {
+  const merges: string[][] = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i];
+    const b = points[i + 1];
+    const matches: string[] = [];
+    for (const [otherId, otherPoints] of Object.entries(allWaypoints)) {
+      if (otherId === edgeId) continue;
+      for (let j = 0; j < otherPoints.length - 1; j++) {
+        if (
+          (samePoint(otherPoints[j], a) && samePoint(otherPoints[j + 1], b)) ||
+          (samePoint(otherPoints[j], b) && samePoint(otherPoints[j + 1], a))
+        ) {
+          matches.push(otherId);
+          break;
+        }
+      }
+    }
+    merges.push(matches);
+  }
+  return merges;
+}
+
+/**
+ * While dragging a point, is there another edge's waypoint close enough to
+ * snap onto? Returns that exact coordinate (so the two become perfectly
+ * coincident — computeSegmentMerges relies on exact, not approximate,
+ * matches) or null if nothing is close enough.
+ */
+export function findSnapTarget(
+  point: { x: number; y: number },
+  edgeId: string,
+  allWaypoints: Record<string, { x: number; y: number }[]>,
+  threshold = 12,
+): { x: number; y: number } | null {
+  let best: { x: number; y: number } | null = null;
+  let bestDist = threshold;
+  for (const [otherId, otherPoints] of Object.entries(allWaypoints)) {
+    if (otherId === edgeId) continue;
+    for (const p of otherPoints) {
+      const dist = Math.hypot(p.x - point.x, p.y - point.y);
+      if (dist <= bestDist) {
+        best = p;
+        bestDist = dist;
+      }
+    }
+  }
+  return best;
+}
+
+/**
+ * When N edges share the exact same point, each gets a tiny deterministic
+ * offset around it (a small rosette) instead of one ambiguous stacked
+ * handle — every one stays independently visible and grabbable. Order is
+ * alphabetical by edge id, so it's stable across renders/reloads without
+ * needing to persist anything about the arrangement.
+ */
+export function computeHandleOffset(
+  edgeId: string,
+  siblingIds: string[],
+  radius = 5,
+): { dx: number; dy: number } {
+  const sorted = [...new Set([edgeId, ...siblingIds])].sort();
+  if (sorted.length <= 1) return { dx: 0, dy: 0 };
+  const idx = sorted.indexOf(edgeId);
+  const angle = (2 * Math.PI * idx) / sorted.length;
+  return { dx: radius * Math.cos(angle), dy: radius * Math.sin(angle) };
+}
+
+/**
+ * Which OTHER edges have a waypoint at this exact coordinate (feeds
+ * computeHandleOffset — a handle only needs to spread apart from edges
+ * that are actually stacked on the same spot as it).
+ */
+export function findEdgesAtPoint(
+  point: { x: number; y: number },
+  edgeId: string,
+  allWaypoints: Record<string, { x: number; y: number }[]>,
+  epsilon = 0.5,
+): string[] {
+  const ids: string[] = [];
+  for (const [otherId, points] of Object.entries(allWaypoints)) {
+    if (otherId === edgeId) continue;
+    if (points.some(p => samePoint(p, point, epsilon))) ids.push(otherId);
+  }
+  return ids;
 }
 
 // fb:97fa9c75 — sizes exposed so the BoardLayoutEditor's ghost buffer stays

@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.91] - 2026-08-04
+
+Same-day follow-on to v3.1.90's permanent redirect handle: with dragging finally confirmed working live, two real feature requests came out of using it — multiple bend points on longer connectors, and the ability to make several connectors visually merge into one line where they run alongside each other. Researched precedent before building (electrical/schematic "bus" wires — several signals drawn as one thicker line with explicit join/split points — turned out to be the right real-world model; nothing in the React Flow ecosystem does this out of the box, but the interaction pattern the community already uses for draggable multi-point edges, "drag a point on a segment to create a corner," generalized cleanly).
+
+### Changed: one waypoint per edge → an ordered list, scaled by length
+`edgeWaypoints[edgeId]` is now `{x,y}[]` everywhere (server config, both API endpoints, the client util, both UI surfaces) instead of a single point. How many points an edge is allowed now scales with its on-screen length — roughly one per 96 flow-units (`maxWaypointsForLength` in `boardCommon.ts`, using flow-space distance rather than the current zoom level so the cap doesn't change as you zoom in and out; 96 is a simple, documented "call it an inch" heuristic since the board has no real physical scale). Dragging any point on an existing segment inserts a new corner there, up to that cap; double-clicking an existing point removes just that one (removing the last one reverts the edge to normal auto-routing, as before).
+
+### Built: manual connector bundling
+While dragging a point, if it lands near another edge's point it snaps onto that exact coordinate (`findSnapTarget`, ~12 flow-units). When two or more edges share a run of identical points, that shared stretch renders as one thicker overlay line instead of separately-drawn overlapping ones (`computeSegmentMerges`) — deliberately only the *interior* segments participate (never the ends touching each node, which depend on each edge's own auto-computed attach point) — which conveniently produces exactly the "short individual stub into a shared trunk" look real bus diagrams use, for free.
+
+**How you tell 5 bundled connectors apart to unsnap just one:** each edge's own drag handle spreads to a tiny deterministic offset around the shared point (`computeHandleOffset` — a small fixed "rosette" arrangement, alphabetical by edge id so it's stable across reloads) instead of stacking invisibly on top of its siblings. Every one stays independently visible and grabbable, with a hover tooltip naming which connector it is; the merged *line* itself still draws through the true shared coordinate, so it still reads as one thick line. Dragging one handle away from the shared spot un-merges just that connector — nothing else to clean up, since there's no separate "these are bundled" record to begin with; it's purely geometric.
+
+5 new pure functions in `boardCommon.ts` (`maxWaypointsForLength`, `computeSegmentMerges`, `findSnapTarget`, `computeHandleOffset`, `findEdgesAtPoint`), each independently unit-tested (23 new tests) before wiring into `BoardCanvas.tsx`'s edge component — every piece of the geometry was verified in isolation ahead of the trickier rendering integration. Server/client renamed to match the array shape (`setEdgeWaypoints`, `saveEdgeWaypoints`) with tests updated to match. Full suite: 2606/2606. Live-verified the multi-point server round-trip directly (3-point array POST → GET reflects it → empty array correctly rejected) — the actual drag/snap/bundle gestures in a real browser still need a live check, same caveat as v3.1.90.
+
+### Still ahead
+Snapping a connector's start/end to a fixed spot on its tile (4 side-middles, not just the automatic floating attach point) — independent of everything above, not yet built.
+
 ## [3.1.90] - 2026-08-04
 
 A same-day follow-on to v3.1.89's G160 session: the maintainer tried the redirect handle live and it silently did nothing (hover cursor worked, drag didn't). A multi-round diagnostic — a red herring CSS fix, console logging that got lost to DevTools scroll/collapse, then an on-screen debug badge — eventually surfaced the real cause: the maintainer had been testing through the **Board Layout Editor**, a separate standalone admin tool that was never wired up to G160 at all. That in turn raised a real design question (should any admin control be reachable mid-game?), which led to keeping the in-game teacher/admin toggle as-is but making G160's redirects work properly in both places, permanently.
