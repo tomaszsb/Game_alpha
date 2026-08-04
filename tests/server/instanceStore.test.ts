@@ -176,6 +176,24 @@ describe('edge waypoints (G160, made permanent 2026-08-04)', () => {
     expect(loaded.edgeWaypoints).toEqual({});
   });
 
+  it('loadInstance auto-upgrades a v3.1.90 single-point entry into a one-element array (2026-08-04 bug: caused a live "i.slice is not a function" crash on drag)', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    // Simulate a config saved under the one release (v3.1.90) that stored
+    // a bare {x,y} object per edge instead of an array.
+    (config as any).edgeWaypoints = { 'A__B': { x: 10, y: 20 } };
+    fs.writeFileSync(configPath(root, 'classroom-1'), JSON.stringify(config, null, 2));
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.edgeWaypoints).toEqual({ 'A__B': [{ x: 10, y: 20 }] });
+  });
+
+  it('loadInstance leaves an already-correct array shape untouched', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    (config as any).edgeWaypoints = { 'A__B': [{ x: 10, y: 20 }, { x: 30, y: 40 }] };
+    fs.writeFileSync(configPath(root, 'classroom-1'), JSON.stringify(config, null, 2));
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.edgeWaypoints).toEqual({ 'A__B': [{ x: 10, y: 20 }, { x: 30, y: 40 }] });
+  });
+
   it('setEdgeWaypoints stores an ordered array, overwriting whole on a second call (multi-bend, 2026-08-04)', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     setEdgeWaypoints(config, 'A__B', [{ x: 120, y: -40.5 }]);

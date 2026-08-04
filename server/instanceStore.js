@@ -195,6 +195,19 @@ export function loadInstance(instancesRoot, id) {
     parsed.edgeWaypoints = {};
   } else if (!parsed.edgeWaypoints || typeof parsed.edgeWaypoints !== 'object') {
     throw new Error(`Instance "${id}": invalid edgeWaypoints`);
+  } else {
+    // Multi-bend (2026-08-04) changed each entry from a single {x,y} point
+    // to an array of points. A config saved under v3.1.90 (the one release
+    // that shipped with the single-point shape) still has the old form on
+    // disk — auto-upgrade it in place here so every reader downstream can
+    // assume "always an array" without every call site re-checking. The
+    // next save naturally persists the upgraded shape.
+    for (const key of Object.keys(parsed.edgeWaypoints)) {
+      const value = parsed.edgeWaypoints[key];
+      if (value && !Array.isArray(value) && typeof value === 'object') {
+        parsed.edgeWaypoints[key] = [value];
+      }
+    }
   }
   return parsed;
 }

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.92] - 2026-08-04
+
+Hotfix for a real crash the maintainer hit immediately after deploying v3.1.91: dragging a redirect handle threw `Uncaught TypeError: i.slice is not a function` and broke the interaction entirely.
+
+### Fixed: v3.1.90's single-point waypoints crashed v3.1.91's array-based code
+v3.1.90 shipped storing each edge's redirect as one `{x,y}` object; v3.1.91 (same day) changed the shape to an array of points but never migrated data already saved under the old shape. The one connector the maintainer had redirected between those two versions was still a bare object on disk — `BoardCanvas.tsx`'s new code called `.slice()` on it expecting an array, which a plain object doesn't have.
+
+Fixed at the source: `loadInstance()` in `server/instanceStore.js` now auto-upgrades any old-shape single-point entry into a one-element array the moment it's read, so every caller downstream can assume "always an array" without re-checking. Self-healing — the next save naturally persists the corrected shape, no manual data fix or migration script needed. 2 new tests (upgrades an old entry; leaves an already-correct array alone). Full suite: 2608/2608.
+
 ## [3.1.91] - 2026-08-04
 
 Same-day follow-on to v3.1.90's permanent redirect handle: with dragging finally confirmed working live, two real feature requests came out of using it — multiple bend points on longer connectors, and the ability to make several connectors visually merge into one line where they run alongside each other. Researched precedent before building (electrical/schematic "bus" wires — several signals drawn as one thicker line with explicit join/split points — turned out to be the right real-world model; nothing in the React Flow ecosystem does this out of the box, but the interaction pattern the community already uses for draggable multi-point edges, "drag a point on a segment to create a corner," generalized cleanly).
