@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.94] - 2026-08-04
+
+Two real findings from live-testing v3.1.93: anchor-pinned connectors grabbed "pretty randomly" when several shared a spot, and the Board Layout Editor turned out to have no way to hide a connector at all.
+
+### Fixed: anchor handles landed on the same pixel when several edges pinned to one box side
+Reported as "it grabs pretty randomly" — several connectors pinned to the same side of the same hub tile computed to the exact same coordinate (`computeAnchorPoint` only depends on the node's box and the chosen side, so this is deterministic, not a fluke), so their handles stacked exactly on top of each other and a click landed on whichever happened to be on top.
+
+Same fix as the bend-point bundling case shipped earlier today: each colliding handle now spreads to a small deterministic offset (`computeHandleOffset`, already built and tested) instead of stacking invisibly. The new piece is *detecting* the collision in the first place — unlike bend points, two anchors don't need matching coordinates to compare; they only need to reference the same `(node, side)` pair, so `findEdgesAtAnchor` checks that directly against each edge's own source/target node ids rather than resolving or comparing any screen positions. Considered the maintainer's own suggestion (a click-to-open picker menu) but kept the already-shipped offset-handle pattern instead, so the disambiguation gesture stays consistent across bundled bend points and colliding anchors rather than introducing a second, different mechanism for what's the same underlying problem.
+
+5 new tests for `findEdgesAtAnchor`.
+
+### Fixed: the Board Layout Editor had no way to hide a connector
+A real pre-existing gap, not something today's other changes broke — `BoardLayoutEditor.tsx` never wired up the per-edge hide feature (`hiddenEdgeIds`/`onHideEdge`) that the in-game admin toggle has had for a while, only the global show/hide-all switch. Wired it in now, reusing the exact same per-device `localStorage` key the in-game toggle already uses — a connector hidden in either tool stays hidden in both, for that admin's own browser. Added the matching "N hidden · restore" pill to the editor's header (mirroring the "N redirected · restore" one from v3.1.90) and a one-line hint that clicking a connector hides it, since the gesture itself isn't otherwise discoverable.
+
+Full suite: 2642/2642.
+
 ## [3.1.93] - 2026-08-04
 
 Closes out today's G160 arc: the last of the three original asks (snap a connector's start/end to a fixed spot on its tile box) — the piece flagged as "still ahead" in the last two entries.

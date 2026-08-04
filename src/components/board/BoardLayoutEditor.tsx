@@ -63,6 +63,38 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
   // as soon as it arrives.
   const [edgeWaypoints, setEdgeWaypoints] = useState<Record<string, { x: number; y: number }[]>>({});
   const [boardEditError, setBoardEditError] = useState<string | null>(null);
+  // Per-edge hide set — same per-device localStorage tier and key
+  // GameLayout.tsx's in-game admin toggle already uses, so a connector
+  // hidden in either tool stays hidden in both (same admin, same device).
+  // Never wired up here before now — a real pre-existing gap, not
+  // something this session's other board changes broke.
+  const [hiddenEdgeIds, setHiddenEdgeIdsState] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const raw = window.localStorage.getItem('unravel:boardHiddenEdges');
+      if (raw) return new Set(JSON.parse(raw) as string[]);
+    } catch { /* ignore */ }
+    return new Set();
+  });
+  const setHiddenEdgeIds = useCallback((updater: (prev: Set<string>) => Set<string>) => {
+    setHiddenEdgeIdsState(prev => {
+      const next = updater(prev);
+      try {
+        window.localStorage.setItem('unravel:boardHiddenEdges', JSON.stringify([...next]));
+      } catch { /* ignored */ }
+      return next;
+    });
+  }, []);
+  const onHideEdge = useCallback((edgeId: string) => {
+    setHiddenEdgeIds(prev => {
+      const next = new Set(prev);
+      next.add(edgeId);
+      return next;
+    });
+  }, [setHiddenEdgeIds]);
+  const onClearHiddenEdges = useCallback(() => {
+    setHiddenEdgeIds(() => new Set());
+  }, [setHiddenEdgeIds]);
 
   // Refresh GAME_CONFIG.csv on every open so we pick up any pos_x/pos_y
   // changes persisted from a previous editor session (or via in-game drag).
@@ -204,6 +236,7 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
             Drag tiles to reposition. Each drop saves automatically — the
             green banner top-right confirms the new coordinates were written
             to <code>Spaces.csv</code>. Changes apply to every future game.
+            Click a connector line to hide it individually.
           </p>
           {reloadError && (
             <p
@@ -229,6 +262,25 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {hiddenEdgeIds.size > 0 && (
+            <button
+              type="button"
+              onClick={onClearHiddenEdges}
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#fff3cd',
+                color: '#664d03',
+                border: '1px solid #ffc107',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: 500
+              }}
+              title={`${hiddenEdgeIds.size} connector(s) hidden individually — click to restore`}
+            >
+              🚫 {hiddenEdgeIds.size} hidden · restore
+            </button>
+          )}
           {Object.keys(edgeWaypoints).length > 0 && (
             <button
               type="button"
@@ -280,6 +332,8 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
             players={[]}
             isAdmin={true}
             edgesVisible={true}
+            hiddenEdgeIds={hiddenEdgeIds}
+            onHideEdge={onHideEdge}
             showBuffer={true}
             edgeWaypoints={edgeWaypoints}
             onSetEdgeWaypoints={onSetEdgeWaypoints}

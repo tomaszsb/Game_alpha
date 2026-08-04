@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
+import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
 
 // fb:97fa9c75 — five-step tile size hierarchy. Was a 3-step ladder where the
 // current-player tile and valid-move tiles got only border treatment, which
@@ -435,6 +435,57 @@ describe('nearestAnchor', () => {
   it('always resolves to one of the 4 — no "too far" case', () => {
     const result = nearestAnchor({ x: 100000, y: -100000 }, box.x, box.y, box.width, box.height);
     expect(['top', 'right', 'bottom', 'left']).toContain(result.anchor);
+  });
+});
+
+describe('findEdgesAtAnchor', () => {
+  const endpoints = {
+    'A__B': { source: 'HUB', target: 'B' },
+    'A__C': { source: 'HUB', target: 'C' },
+    'A__D': { source: 'HUB', target: 'D' },
+    'X__Y': { source: 'X', target: 'Y' },
+  };
+
+  it('finds other edges pinned to the same side of the same node', () => {
+    const anchors = {
+      'A__B': { source: 'top' as const },
+      'A__C': { source: 'top' as const },
+      'A__D': { source: 'right' as const },
+    };
+    const found = findEdgesAtAnchor('A__B', 'HUB', 'top', anchors, endpoints);
+    expect(found).toEqual(['A__C']);
+  });
+
+  it('matches regardless of whether the collision is on the source or target end', () => {
+    const anchors = {
+      'A__B': { source: 'top' as const },
+      'X__Y': { target: 'top' as const }, // X__Y's TARGET happens to also be node HUB
+    };
+    const endpointsWithSharedHub = { ...endpoints, 'X__Y': { source: 'X', target: 'HUB' } };
+    const found = findEdgesAtAnchor('A__B', 'HUB', 'top', anchors, endpointsWithSharedHub);
+    expect(found).toEqual(['X__Y']);
+  });
+
+  it('does not match a different side of the same node', () => {
+    const anchors = {
+      'A__B': { source: 'top' as const },
+      'A__C': { source: 'bottom' as const },
+    };
+    const found = findEdgesAtAnchor('A__B', 'HUB', 'top', anchors, endpoints);
+    expect(found).toEqual([]);
+  });
+
+  it('does not match the same side of a DIFFERENT node', () => {
+    const anchors = {
+      'A__B': { source: 'top' as const },
+      'X__Y': { source: 'top' as const },
+    };
+    const found = findEdgesAtAnchor('A__B', 'HUB', 'top', anchors, endpoints);
+    expect(found).toEqual([]);
+  });
+
+  it('returns [] when no anchors exist at all', () => {
+    expect(findEdgesAtAnchor('A__B', 'HUB', 'top', {}, endpoints)).toEqual([]);
   });
 });
 

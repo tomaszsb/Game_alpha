@@ -505,6 +505,36 @@ export function nearestAnchor(
   return best!;
 }
 
+/**
+ * Which OTHER edges have an end pinned to this exact same (node, side) —
+ * e.g. several edges from a hub tile all pinned to its "top" — so their
+ * handles would otherwise land on the exact same pixel and clicks would
+ * land on whichever is on top essentially at random. Collision is
+ * determined purely by the abstract (nodeId, side) key, not by resolved
+ * screen coordinates: since computeAnchorPoint only depends on a node's
+ * box and the chosen side, two edges pinned to the same side of the same
+ * node are ALWAYS exactly coincident, by construction — no geometry or
+ * screen-position comparison needed to detect it.
+ */
+export function findEdgesAtAnchor(
+  edgeId: string,
+  nodeId: string,
+  side: BoxAnchor,
+  edgeAnchors: Record<string, { source?: BoxAnchor; target?: BoxAnchor }>,
+  edgeEndpoints: Record<string, { source: string; target: string }>,
+): string[] {
+  const ids: string[] = [];
+  for (const [otherId, otherAnchors] of Object.entries(edgeAnchors)) {
+    if (otherId === edgeId) continue;
+    const endpoints = edgeEndpoints[otherId];
+    if (!endpoints) continue;
+    const sourceMatches = otherAnchors.source === side && endpoints.source === nodeId;
+    const targetMatches = otherAnchors.target === side && endpoints.target === nodeId;
+    if (sourceMatches || targetMatches) ids.push(otherId);
+  }
+  return ids;
+}
+
 // fb:97fa9c75 — sizes exposed so the BoardLayoutEditor's ghost buffer stays
 // in lockstep with the runtime size hierarchy. MAX_INGRID is the largest
 // size a tile reaches WITHOUT popover-floating; the click-locked "expanded"
