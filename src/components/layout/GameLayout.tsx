@@ -1274,6 +1274,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               className={hidePanelColumn ? undefined : 'game-board-area'}
               style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}
             >
+              {(() => { console.log('[G160] GameLayout passing to BoardCanvas ' + JSON.stringify({ boardEditMode, hasSetter: !!onSetEdgeWaypoint, typeofSetter: typeof onSetEdgeWaypoint, hasHideEdge: !!onHideEdge })); return null; })()}
               <BoardCanvas
                 currentPlayerId={currentPlayerId}
                 players={players}
