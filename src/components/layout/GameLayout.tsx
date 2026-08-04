@@ -1274,7 +1274,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               className={hidePanelColumn ? undefined : 'game-board-area'}
               style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}
             >
-              {(() => { console.log('[G160] GameLayout passing to BoardCanvas ' + JSON.stringify({ boardEditMode, hasSetter: !!onSetEdgeWaypoint, typeofSetter: typeof onSetEdgeWaypoint, hasHideEdge: !!onHideEdge })); return null; })()}
               <BoardCanvas
                 currentPlayerId={currentPlayerId}
                 players={players}
@@ -1466,6 +1465,15 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         redirectedEdgeCount={Object.keys(edgeWaypoints).length}
         onClearRedirectedEdges={onClearAllEdgeWaypoints}
       />
+
+      {/* TEMP G160 on-screen diagnostic — remove once the drag issue is
+          found. console.log proved unreliable to capture reliably, so
+          this prints the same info directly on the page instead. */}
+      {boardEditMode && (
+        <div style={{ position: 'fixed', top: 4, right: 4, zIndex: 99999, background: '#000', color: '#0f0', padding: '4px 8px', fontSize: 12, fontFamily: 'monospace', borderRadius: 4 }}>
+          G160 debug: setter={String(!!onSetEdgeWaypoint)} hideEdge={String(!!onHideEdge)}
+        </div>
+      )}
 
       {/* One-time onboarding nudge for the dictionary feature.
           Self-contained: reads localStorage for "seen" state, auto-dismisses
