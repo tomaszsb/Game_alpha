@@ -590,6 +590,19 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
   // separate state from the bend-point drag above (dragging an anchor
   // never touches the middle path).
   const [anchorDrag, setAnchorDrag] = useState<{ end: 'source' | 'target'; anchor: BoxAnchor; point: { x: number; y: number } } | null>(null);
+  // Hovering an anchor handle before pressing down (2026-08-04) — "grabbing
+  // a box and grabbing a node use the same hand icon, hard to tell apart
+  // when close together." Highlights THIS edge's own line while hovering
+  // either of its anchor handles, so the admin can visually confirm which
+  // connector they're about to grab before committing to the drag.
+  const [hoveredAnchorEnd, setHoveredAnchorEnd] = useState<'source' | 'target' | null>(null);
+  const isAnchorHovered = hoveredAnchorEnd !== null;
+  const highlightedStyle: React.CSSProperties = {
+    ...(props.style as React.CSSProperties | undefined),
+    stroke: '#4f46e5',
+    strokeWidth: Math.max(4, (((props.style as React.CSSProperties | undefined)?.strokeWidth as number) ?? 1.5) * 2),
+  };
+  const effectiveEdgeStyle = isAnchorHovered ? highlightedStyle : props.style;
 
   const effectiveSourcePoint = anchorDrag?.end === 'source'
     ? anchorDrag.point
@@ -657,10 +670,12 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
         fill={anchors[end] ? '#4f46e5' : '#fff'}
         stroke="#4f46e5"
         strokeWidth={2}
-        style={{ cursor: 'grab', pointerEvents: 'all' }}
+        style={{ cursor: 'crosshair', pointerEvents: 'all' }}
         onMouseDown={(e) => startAnchorDrag(e, end)}
         onClick={(e) => e.stopPropagation()}
         onDoubleClick={(e) => clearAnchor(e, end)}
+        onMouseEnter={() => setHoveredAnchorEnd(end)}
+        onMouseLeave={() => setHoveredAnchorEnd(prev => (prev === end ? null : prev))}
       >
         <title>
           {siblings.length > 0
@@ -686,7 +701,7 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
 
     return (
       <>
-        <BaseEdge id={props.id} path={path} style={props.style} markerEnd={props.markerEnd} />
+        <BaseEdge id={props.id} path={path} style={effectiveEdgeStyle} markerEnd={props.markerEnd} />
         {isAdmin && anchorHandle('source', effectiveSourcePoint)}
         {isAdmin && anchorHandle('target', effectiveTargetPoint)}
         {merges.map((sharedWith, i) => sharedWith.length > 0 && (
@@ -766,6 +781,7 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
         targetY={effectiveTargetPoint.y}
         sourcePosition={effectiveSourcePosition}
         targetPosition={effectiveTargetPosition}
+        style={effectiveEdgeStyle}
       />
       {isAdmin && anchorHandle('source', effectiveSourcePoint)}
       {isAdmin && anchorHandle('target', effectiveTargetPoint)}

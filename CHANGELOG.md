@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.95] - 2026-08-04
+
+More live-testing feedback on today's board work: bulk-only "restore" buttons and handles that are genuinely hard to tell apart when close together.
+
+### Built: pick which connector to restore, instead of restoring all of them
+The "🚫 N hidden · restore" and "↩️ N redirected · restore" pills only ever cleared everything at once — reported as "I need to be able to pick which one gets restored." This was a real gap specifically for hidden connectors (once hidden, an edge has no visible surface left to interact with directly, unlike waypoints/anchors where double-clicking a specific handle already restores just that one).
+
+New shared `RestorablePillDropdown` component: clicking either pill now opens a small list of the affected connectors by readable name (`formatEdgeLabel`, e.g. "Scope Initiation → Fund Initiation"), each with its own restore button, plus "restore all" still available at the bottom for when that's genuinely what's wanted. Replaces both surfaces' previous bulk-only pills — the in-game `BoardToggle` and the standalone Board Layout Editor, which each had their own separate copy of this markup before.
+
+### Fixed: anchor handles were genuinely hard to tell apart from tile dragging
+"Grabbing a box and grabbing a node use the same hand icon... so close together." Anchor handles now show a distinct `crosshair` cursor instead of the `grab` cursor shared with tile-dragging and bend-point handles, and hovering an anchor handle immediately highlights its own connector line (thicker, distinct color) — instant confirmation of which line you're about to grab, before pressing down, rather than waiting on the native tooltip's hover delay.
+
+3 new tests (`formatEdgeLabel`) plus a `BoardToggle` test covering the new picker. Full suite: 2646/2646.
+
 ## [3.1.94] - 2026-08-04
 
 Two real findings from live-testing v3.1.93: anchor-pinned connectors grabbed "pretty randomly" when several shared a spot, and the Board Layout Editor turned out to have no way to hide a connector at all.

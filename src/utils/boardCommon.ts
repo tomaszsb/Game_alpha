@@ -91,6 +91,18 @@ export function shortName(s: string): string {
 }
 
 /**
+ * A human-readable label for an edge id (`${source}__${target}`), for
+ * restore-list UIs (2026-08-04) where an admin needs to pick a SPECIFIC
+ * hidden/redirected connector rather than restore everything at once.
+ * Falls back to the raw id if it doesn't look like a real edge id.
+ */
+export function formatEdgeLabel(edgeId: string): string {
+  const parts = edgeId.split('__');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return edgeId;
+  return `${shortName(parts[0])} → ${shortName(parts[1])}`;
+}
+
+/**
  * Append a Unicode ellipsis when text exceeds max characters. Used for
  * tile-tooltip story and action snippets in BoardCanvas.
  */

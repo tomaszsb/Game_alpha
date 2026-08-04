@@ -19,6 +19,7 @@
 import React from 'react';
 import { isAdminAuthenticated } from '../../utils/adminAuth';
 import { isTeacherLoggedIn } from '../../utils/teacherAuth';
+import { RestorablePillDropdown } from './RestorablePillDropdown';
 
 interface BoardToggleProps {
   editMode: boolean;
@@ -27,16 +28,22 @@ interface BoardToggleProps {
    *  only — not regular players. */
   edgesVisible: boolean;
   onEdgesVisibleChange: (v: boolean) => void;
-  /** Number of edges manually hidden (per-edge hide, admin-edit-mode only).
-   *  0 = none hidden. Shown as a small badge so it's not forgotten. */
-  hiddenEdgeCount?: number;
+  /** Ids of edges manually hidden (per-edge hide, admin-edit-mode only).
+   *  Empty = none hidden. Clicking the pill opens a list to pick which
+   *  one to restore (2026-08-04) — a hidden edge has no visible surface
+   *  left to interact with directly, unlike waypoints/anchors. */
+  hiddenEdgeIds?: string[];
+  /** Restore one specific hidden edge. */
+  onRestoreOneHiddenEdge?: (edgeId: string) => void;
   /** Restore all per-edge hides. */
   onClearHiddenEdges?: () => void;
-  /** Number of edges with a manual waypoint redirect (G160, admin-edit-mode
-   *  only). 0 = none redirected. Separate from hiddenEdgeCount — a redirect
-   *  reshapes an edge's path, a hide removes it entirely; independently
-   *  reversible so clearing one doesn't discard the other. */
-  redirectedEdgeCount?: number;
+  /** Ids of edges with a manual waypoint redirect (G160, admin-edit-mode
+   *  only). Empty = none redirected. Separate from hiddenEdgeIds — a
+   *  redirect reshapes an edge's path, a hide removes it entirely;
+   *  independently reversible so clearing one doesn't discard the other. */
+  redirectedEdgeIds?: string[];
+  /** Restore one specific edge's redirect back to auto-routing. */
+  onRestoreOneWaypoint?: (edgeId: string) => void;
   /** Restore all per-edge waypoint redirects to normal auto-routing. */
   onClearRedirectedEdges?: () => void;
 }
@@ -46,9 +53,11 @@ export function BoardToggle({
   onEditModeChange,
   edgesVisible,
   onEdgesVisibleChange,
-  hiddenEdgeCount = 0,
+  hiddenEdgeIds = [],
+  onRestoreOneHiddenEdge,
   onClearHiddenEdges,
-  redirectedEdgeCount = 0,
+  redirectedEdgeIds = [],
+  onRestoreOneWaypoint,
   onClearRedirectedEdges,
 }: BoardToggleProps) {
   // Re-check on each render so unlocking via /admin or a teacher login shows
@@ -116,25 +125,29 @@ export function BoardToggle({
       >
         🔗 Edges {edgesVisible ? 'on' : 'off'}
       </button>
-      {hiddenEdgeCount > 0 && onClearHiddenEdges && (
-        <button
-          type="button"
-          style={{ ...buttonStyle, background: '#fff3cd', borderColor: '#ffc107' }}
-          onClick={onClearHiddenEdges}
-          title={`${hiddenEdgeCount} edge${hiddenEdgeCount === 1 ? '' : 's'} hidden individually — click to restore`}
-        >
-          🚫 {hiddenEdgeCount} hidden · restore
-        </button>
+      {onClearHiddenEdges && onRestoreOneHiddenEdge && (
+        <RestorablePillDropdown
+          icon="🚫"
+          label="hidden"
+          itemIds={hiddenEdgeIds}
+          background="#fff3cd"
+          borderColor="#ffc107"
+          onRestoreOne={onRestoreOneHiddenEdge}
+          onRestoreAll={onClearHiddenEdges}
+          baseButtonStyle={buttonStyle}
+        />
       )}
-      {redirectedEdgeCount > 0 && onClearRedirectedEdges && (
-        <button
-          type="button"
-          style={{ ...buttonStyle, background: '#eef2ff', borderColor: '#6366f1' }}
-          onClick={onClearRedirectedEdges}
-          title={`${redirectedEdgeCount} edge${redirectedEdgeCount === 1 ? '' : 's'} redirected — click to restore auto-routing`}
-        >
-          ↩️ {redirectedEdgeCount} redirected · restore
-        </button>
+      {onClearRedirectedEdges && onRestoreOneWaypoint && (
+        <RestorablePillDropdown
+          icon="↩️"
+          label="redirected"
+          itemIds={redirectedEdgeIds}
+          background="#eef2ff"
+          borderColor="#6366f1"
+          onRestoreOne={onRestoreOneWaypoint}
+          onRestoreAll={onClearRedirectedEdges}
+          baseButtonStyle={buttonStyle}
+        />
       )}
     </div>
   );

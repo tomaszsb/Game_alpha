@@ -41,11 +41,21 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { BoardCanvas } from './BoardCanvas';
+import { RestorablePillDropdown } from './RestorablePillDropdown';
 import { useGameContext } from '../../context/GameContext';
 import { colors } from '../../styles/theme';
 import { fetchEdgeWaypoints, saveEdgeWaypoints, clearEdgeWaypoint, clearAllEdgeWaypoints, type EdgeWaypointResult } from '../../utils/saveEdgeWaypoint';
 import { fetchEdgeAnchors, saveEdgeAnchor, clearEdgeAnchor, type EdgeAnchorResult, type EdgeEnd } from '../../utils/saveEdgeAnchor';
 import type { BoxAnchor } from '../../utils/boardCommon';
+
+const pillButtonStyle: React.CSSProperties = {
+  padding: '0.5rem 1rem',
+  borderRadius: 6,
+  cursor: 'pointer',
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  border: '1px solid #dee2e6',
+};
 
 interface BoardLayoutEditorProps {
   onClose: () => void;
@@ -94,6 +104,13 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
   }, [setHiddenEdgeIds]);
   const onClearHiddenEdges = useCallback(() => {
     setHiddenEdgeIds(() => new Set());
+  }, [setHiddenEdgeIds]);
+  const onRestoreOneHiddenEdge = useCallback((edgeId: string) => {
+    setHiddenEdgeIds(prev => {
+      const next = new Set(prev);
+      next.delete(edgeId);
+      return next;
+    });
   }, [setHiddenEdgeIds]);
 
   // Refresh GAME_CONFIG.csv on every open so we pick up any pos_x/pos_y
@@ -262,44 +279,28 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {hiddenEdgeIds.size > 0 && (
-            <button
-              type="button"
-              onClick={onClearHiddenEdges}
-              style={{
-                padding: '0.5rem 1rem',
-                background: '#fff3cd',
-                color: '#664d03',
-                border: '1px solid #ffc107',
-                borderRadius: 6,
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 500
-              }}
-              title={`${hiddenEdgeIds.size} connector(s) hidden individually — click to restore`}
-            >
-              🚫 {hiddenEdgeIds.size} hidden · restore
-            </button>
-          )}
-          {Object.keys(edgeWaypoints).length > 0 && (
-            <button
-              type="button"
-              onClick={onClearAllEdgeWaypoints}
-              style={{
-                padding: '0.5rem 1rem',
-                background: '#eef2ff',
-                color: '#3730a3',
-                border: '1px solid #6366f1',
-                borderRadius: 6,
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 500
-              }}
-              title={`${Object.keys(edgeWaypoints).length} connector(s) redirected — click to restore auto-routing`}
-            >
-              ↩️ {Object.keys(edgeWaypoints).length} redirected · restore
-            </button>
-          )}
+          <RestorablePillDropdown
+            icon="🚫"
+            label="hidden"
+            itemIds={[...hiddenEdgeIds]}
+            background="#fff3cd"
+            borderColor="#ffc107"
+            textColor="#664d03"
+            onRestoreOne={onRestoreOneHiddenEdge}
+            onRestoreAll={onClearHiddenEdges}
+            baseButtonStyle={pillButtonStyle}
+          />
+          <RestorablePillDropdown
+            icon="↩️"
+            label="redirected"
+            itemIds={Object.keys(edgeWaypoints)}
+            background="#eef2ff"
+            borderColor="#6366f1"
+            textColor="#3730a3"
+            onRestoreOne={onClearEdgeWaypoint}
+            onRestoreAll={onClearAllEdgeWaypoints}
+            baseButtonStyle={pillButtonStyle}
+          />
           <button
             type="button"
             onClick={onClose}

@@ -80,7 +80,23 @@ describe('BoardToggle — G160 board-control access', () => {
 
   it('never shows the hidden-edge restore badge when nothing is hidden', () => {
     sessionStorage.setItem('admin_authenticated', 'true');
-    renderToggle({ hiddenEdgeCount: 0 });
+    renderToggle({ hiddenEdgeIds: [], onClearHiddenEdges: () => {}, onRestoreOneHiddenEdge: () => {} });
     expect(screen.queryByText(/hidden · restore/)).not.toBeInTheDocument();
+  });
+
+  it('shows the hidden-edge restore pill and opens a per-item picker (2026-08-04)', () => {
+    sessionStorage.setItem('admin_authenticated', 'true');
+    renderToggle({
+      hiddenEdgeIds: ['OWNER-SCOPE-INITIATION__OWNER-FUND-INITIATION'],
+      onClearHiddenEdges: () => {},
+      onRestoreOneHiddenEdge: () => {},
+    });
+    const pill = screen.getByRole('button', { name: /1 hidden · restore/ });
+    expect(pill).toBeInTheDocument();
+    // Nothing shown until the pill is clicked.
+    expect(screen.queryByText(/Scope Initiation/)).not.toBeInTheDocument();
+    fireEvent.click(pill);
+    expect(screen.getByText(/Scope Initiation → Fund Initiation/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Restore all 1/ })).toBeInTheDocument();
   });
 });

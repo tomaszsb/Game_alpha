@@ -169,6 +169,17 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const onClearHiddenEdges = useCallback(() => {
     setHiddenEdgeIds(() => new Set());
   }, [setHiddenEdgeIds]);
+  // Restore just ONE hidden connector (2026-08-04) — the bulk "restore
+  // all" button was the only way back for a hidden edge (unlike
+  // waypoints/anchors, a hidden edge has no visible surface left to
+  // double-click), so picking a specific one to restore needed a new path.
+  const onRestoreOneHiddenEdge = useCallback((edgeId: string) => {
+    setHiddenEdgeIds(prev => {
+      const next = new Set(prev);
+      next.delete(edgeId);
+      return next;
+    });
+  }, [setHiddenEdgeIds]);
   // Per-edge waypoint redirect (G160, 2026-08-02; made permanent 2026-08-04)
   // — persists into the classroom's instance config, same server-side tier
   // as tile positions (saveBoardPosition.ts): a redirect drawn once (here or
@@ -1524,9 +1535,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         onEditModeChange={setBoardEditMode}
         edgesVisible={boardEdgesVisible}
         onEdgesVisibleChange={setBoardEdgesVisible}
-        hiddenEdgeCount={hiddenEdgeIds.size}
+        hiddenEdgeIds={[...hiddenEdgeIds]}
+        onRestoreOneHiddenEdge={onRestoreOneHiddenEdge}
         onClearHiddenEdges={onClearHiddenEdges}
-        redirectedEdgeCount={Object.keys(edgeWaypoints).length}
+        redirectedEdgeIds={Object.keys(edgeWaypoints)}
+        onRestoreOneWaypoint={onClearEdgeWaypoint}
         onClearRedirectedEdges={onClearAllEdgeWaypoints}
       />
 

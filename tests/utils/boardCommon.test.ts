@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
+import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, formatEdgeLabel, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
 
 // fb:97fa9c75 — five-step tile size hierarchy. Was a 3-step ladder where the
 // current-player tile and valid-move tiles got only border treatment, which
@@ -123,6 +123,22 @@ describe('shortName fallback (used by ActionCenterPanel space header)', () => {
 
   it('handles short tokens (≤2 chars) without uppercasing them awkwardly', () => {
     expect(shortName('CON-INITIATION')).toBe('Initiation');
+  });
+});
+
+describe('formatEdgeLabel (restore-list UIs, 2026-08-04)', () => {
+  it('formats a real edge id as "Source → Target" using shortName on each side', () => {
+    expect(formatEdgeLabel('OWNER-SCOPE-INITIATION__OWNER-FUND-INITIATION')).toBe('Scope Initiation → Fund Initiation');
+  });
+
+  it('applies SPECIAL_NAMES overrides on either side', () => {
+    expect(formatEdgeLabel('PM-DECISION-CHECK__BANK-FUND-REVIEW')).toBe('PM Check → Bank Review');
+  });
+
+  it('falls back to the raw id when it does not look like a real edge id', () => {
+    expect(formatEdgeLabel('not-an-edge-id')).toBe('not-an-edge-id');
+    expect(formatEdgeLabel('A__B__C')).toBe('A__B__C');
+    expect(formatEdgeLabel('')).toBe('');
   });
 });
 
