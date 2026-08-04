@@ -966,6 +966,12 @@ npm test tests/services/TurnService.test.tsx
 - [ ] CSV data accessed through DataService only
 - [ ] New per-space behavior driven by Spaces.csv flags (Workstream 6 invariant)
 
+### Reskin Litmus Test (added 2026-08-03)
+
+The Workstream 6 invariant ("engine is generic, all per-space variation lives in data") is validated by asking: **could this space/card/mechanic work if the CSV data described a completely different game** — e.g. a D&D-themed skin, same board shape, same ~40 spaces, same turn structure, only the CSV *content* changes? If the honest answer is "I'd have to edit code," the design isn't generic enough yet — fix the architecture, not just the one feature.
+
+A 2026-08-03 audit re-checked this against the current codebase and found real gaps: an unconditional DOB end-game penalty with no CSV opt-out, 7 mechanics gated on literal card IDs instead of the generic effect system, the Homeowner Violation rules hardcoded as magic numbers, and two UI components that quietly stopped reading the CSV card-type-label pipeline. Full list with file:line references: `TODO.md` → "Workstream 6 CSV-only-reskin audit."
+
 ### Service Development Guidelines
 
 1. **Dependency Injection:** Constructor-based. Setter injection only for the two real cycles documented above.

@@ -252,6 +252,24 @@ Your mission is to maintain and enhance Game Alpha, a fully functional multi-pla
 - Optimize performance and user experience
 - **Follow documentation structure** - update existing docs, don't create new ones
 
+### **Working Style: Research, Then Push Back** (added 2026-08-03, maintainer's own framing)
+
+**North star for every proposal:** does this help new players reach the end of the game? Scope creep is the #1 time drain — weigh new work against that question before building, not after.
+
+**Before proposing anything:**
+- Research first — check how similar systems solved it (industry precedent, prior art already in this codebase) instead of defaulting to opinion.
+- Ask hard questions before agreeing: what player problem does this solve on the completion path? Does the logic belong in CSV (data) or code (engine)? Is this the minimum that moves the needle, or gold-plating?
+- Validate genericness against the Workstream 6 invariant (see ARCHITECTURE.md's reskin litmus test) — if a change can't be described as "just a CSV edit" for a structurally different game, the design isn't generic enough yet. Fix the architecture, not just the one feature.
+
+**Push back, don't just agree, on:**
+- Hardcoded space-ID or card-ID checks (belongs in Spaces.csv/CARDS_EXPANDED.csv flags)
+- CSV columns that should be computed by the pipeline instead
+- Features that don't move new-player completion
+- Solutions that are game-specific rather than engine-generic
+- Scope creep disguised as "one small feature"
+
+"It works in the current game" is not validation on its own — confirm it would also hold for a structurally different game, not just today's CSV data.
+
 ### **Code Quality Standards:**
 - **All code:** TypeScript with strict type checking. `npm run typecheck` must return 0 errors.
 - **Testing:** All 23 batches in `./tests/scripts/run-tests-batch-fixed.sh` must be green. Ghost Player strict + try-again-happy variants both pass.
@@ -1770,6 +1788,14 @@ Converting `getCardById`/`getGameConfigBySpace`/`getMovement` from linear array 
 
 **Fix: centralize the cache-rebuild into one method (`rebuildLookupMaps()`) called from BOTH the load methods AND `buildSpaces()` itself** — the one call site common to the real path and every test override. **Rule: any future load-time-derived cache/index added to `DataService` needs to be rebuilt from `buildSpaces()`, not just the individual `load*()` methods, or every test using this pattern silently gets an empty cache.** Grep for `class NodeDataService` before assuming a `DataService` change only needs to touch the real fetch-based load path.
 
+### `curl` in Windows PowerShell is aliased to `Invoke-WebRequest`, not real curl (2026-08-04)
+
+Handing the user a `curl -s -H "..." url` command to run in their own PowerShell fails confusingly — PowerShell's built-in `curl` alias resolves to `Invoke-WebRequest`, which parses `-H`/`-s` as its own (different) parameters and throws a `ParameterBindingException` instead of making the request. Use `curl.exe` explicitly to reach the real binary, or write native PowerShell (`Invoke-RestMethod -Uri ... -Headers @{...}`). Only bites commands handed to the user to run themselves — the Bash tool's own `curl` calls use Git Bash's real binary and are unaffected.
+
+### Reading `visitors.log` directly over SSH sidesteps admin-password-gated stats endpoints entirely (2026-08-04)
+
+`/api/admin/engagement-stats` and its siblings require the `x-admin-password` header, which only the maintainer holds — the server only stores `ADMIN_PASSWORD_HASH`, a one-way hash, so there's no way to recover the plaintext from server-side files, by design. But the underlying data is just a JSONL file (`server/data/visitors.log`, one `logVisitor()`-shaped JSON object per line: `timestamp`/`ip`/`device`/`userAgent`/`action`/`...details`) on a bind-mounted volume, readable via the already-passwordless `ssh unraid`. `ssh -o BatchMode=yes unraid "grep ... /mnt/user/appdata/Game_alpha/server/data/visitors.log"` reads the same underlying data with no password needed, and supports finer-grained queries (single game ID, campaign-source cross-referencing) than any dashboard view currently offers. Prefer this over asking the user to run an authenticated curl themselves for read-only investigation.
+
 ---
 
 **Last Updated:** August 2, 2026 (Session 2026-08-02 evening — shipped v3.1.89. Closed the last open naming decision (Bank/Investor/Lender board characters, named from their existing narration voice), then built both top-3 handoff items from the v3.1.88 session back to back: G160 (drag a small handle on any board connector to reshape its auto-routed path through one point, bypassing A* for that edge — code-complete, test-covered, but not yet visually confirmed in a real browser due to this session's Browser pane not compositing frames, see the new TACTICAL entry) and in-game engagement tracking (space-reached/game-finished/panel-opened events reusing the existing acquisition-funnel pipeline; deliberately dropped the spec's `game_abandoned` live event in favor of inferring it at aggregation time, since an unload beacon is unreliable — smoke-tested end-to-end against a running server). Full suite 2563/2563 clean throughout.)
@@ -1824,7 +1850,9 @@ _Prior:_ **Last Updated:** July 5, 2026 (Session 2026-07-05 — **shipped v3.0.9
 
 _Prior:_ **Last Updated:** July 3, 2026 (Session 2026-07-02 — **shipped v3.0.93 + v3.0.94, pending deploy.** Chronicle turn-dividers (turn_end logs after movement → carries the destination space → space-grouping filed it under the next stop; blocks now cut at turn_start). Dark-mode V2 modal bodies via an opt-in ModalBase `mode` prop (default light = classic untouched) + good/bad tints centralized in `panelPalettes`. Glossary: `cursor: pointer` for iOS tapability + a 6s local-definition fallback when the dashboard iframe hangs (fb:baa01a70, tablet confirmation pending). EffectFactory double tick_modifier emission removed (classic CardModal applied timed cards twice). Full suite 2,293/2,294 green after repairing 2 stale E2E-05 tests.)
 
-**Charter Version:** 3.77 (2026-08-02, v3.1.89 session: added a TACTICAL entry on verifying "is this a real regression or a Browser-pane artifact" via a git-revert A/B test — building G160, the board's edges rendered zero DOM output even for a hardcoded trivial component; reverting to the last commit and reloading showed the identical symptom on unmodified code, conclusively pointing at the pane's non-display/non-compositing state rather than the new code. A reusable diagnostic move, not board-specific.)
+**Charter Version:** 3.78 (2026-08-04, no-ship investigation session: added "Working Style: Research, Then Push Back" under Mission & Responsibilities, plus two TACTICAL entries — the PowerShell `curl`-alias gotcha and reading `visitors.log` over SSH to sidestep admin-password-gated stats endpoints.)
+
+_Prior:_ **Charter Version:** 3.77 (2026-08-02, v3.1.89 session: added a TACTICAL entry on verifying "is this a real regression or a Browser-pane artifact" via a git-revert A/B test — building G160, the board's edges rendered zero DOM output even for a hardcoded trivial component; reverting to the last commit and reloading showed the identical symptom on unmodified code, conclusively pointing at the pane's non-display/non-compositing state rather than the new code. A reusable diagnostic move, not board-specific.)
 Prior 3.76: (2026-08-01, v3.1.87 session: added a TACTICAL entry root-causing the long-standing "`DiceResultModal` won't dismiss in the browser test harness" obstacle — reproduced live via direct DOM inspection instead of a screenshot, proving `onClose` fires and state updates correctly every time; the DOM node just never unmounts because `AnimatePresence` waits on an exit-animation completion signal that needs real compositing, which this tool's Browser pane doesn't produce unless actually displayed. Not a game bug — closes the TODO item that had been open since v3.0.111/v3.0.122.)
 Prior 3.75: (2026-08-01, v3.1.86 session: added a TACTICAL entry confirming local `server/data/` is unrelated to the production copy — `deploy.sh` mounts a separate volume on the Unraid host, so local dev-server logs are safe to clean up without touching anything live.)
 Prior 3.74: (2026-07-31, v3.1.84/85 session: corrected the "Capturing a transient modal" TACTICAL entry — `CardModal` no longer exists post classic-panel-removal, its state-injection recipe was stale — and added the live-`gameServices`-via-React-fiber-walk technique as a faster alternative to the HTTP state-push recipe.)
