@@ -41,6 +41,7 @@ import { ShutdownNotice } from '../common/ShutdownNotice';
 import { isAdminAuthenticated } from '../../utils/adminAuth';
 import { isTeacherLoggedIn } from '../../utils/teacherAuth';
 import { getCurrentGameId } from '../../utils/networkDetection';
+import { fetchEdgeWaypoints, saveEdgeWaypoint, clearEdgeWaypoint, clearAllEdgeWaypoints } from '../../utils/saveEdgeWaypoint';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 
 interface GameLayoutProps {
@@ -166,41 +167,59 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const onClearHiddenEdges = useCallback(() => {
     setHiddenEdgeIds(() => new Set());
   }, [setHiddenEdgeIds]);
-  // Per-edge waypoint redirect (G160, 2026-08-02) — same per-device
-  // localStorage tier as hiddenEdgeIds above (a redirect is a display fix
-  // for a badly auto-routed connector, not real game data). One waypoint
-  // per edge id; dragging again overwrites it, double-clicking the handle
-  // clears it. See TODO.md's G160 scope note.
-  const [edgeWaypoints, setEdgeWaypointsState] = useState<Record<string, { x: number; y: number }>>(() => {
-    if (typeof window === 'undefined') return {};
-    try {
-      const raw = window.localStorage.getItem('unravel:boardEdgeWaypoints');
-      if (raw) return JSON.parse(raw) as Record<string, { x: number; y: number }>;
-    } catch { /* ignore */ }
-    return {};
-  });
-  const setEdgeWaypoints = useCallback((updater: (prev: Record<string, { x: number; y: number }>) => Record<string, { x: number; y: number }>) => {
-    setEdgeWaypointsState(prev => {
-      const next = updater(prev);
-      try {
-        window.localStorage.setItem('unravel:boardEdgeWaypoints', JSON.stringify(next));
-      } catch { /* ignored */ }
-      return next;
+  // Per-edge waypoint redirect (G160, 2026-08-02; made permanent 2026-08-04)
+  // — persists into the classroom's instance config, same server-side tier
+  // as tile positions (saveBoardPosition.ts): a redirect drawn once (here or
+  // in the Board Layout Editor) is visible to every teacher/device/future
+  // game, not just this browser. Updates locally first (immediate visual
+  // feedback matching the drag), then saves in the background; a failed
+  // save surfaces as a notification rather than silently reverting — a
+  // reload would show the true last-saved state either way.
+  const [edgeWaypoints, setEdgeWaypointsState] = useState<Record<string, { x: number; y: number }>>({});
+  useEffect(() => {
+    let cancelled = false;
+    fetchEdgeWaypoints().then(fetched => {
+      if (!cancelled) setEdgeWaypointsState(fetched);
     });
+    return () => { cancelled = true; };
   }, []);
   const onSetEdgeWaypoint = useCallback((edgeId: string, point: { x: number; y: number }) => {
-    setEdgeWaypoints(prev => ({ ...prev, [edgeId]: point }));
-  }, [setEdgeWaypoints]);
+    setEdgeWaypointsState(prev => ({ ...prev, [edgeId]: point }));
+    saveEdgeWaypoint(edgeId, point.x, point.y).then(result => {
+      if (!result.success) {
+        notificationService.notify(
+          NotificationUtils.createErrorNotification('Board', `Couldn't save the connector redirect (${result.detail})`, 'System'),
+          { playerId: 'system', playerName: 'System', actionType: 'edge_waypoint_save_error' }
+        );
+      }
+    });
+  }, [notificationService]);
   const onClearEdgeWaypoint = useCallback((edgeId: string) => {
-    setEdgeWaypoints(prev => {
+    setEdgeWaypointsState(prev => {
       const next = { ...prev };
       delete next[edgeId];
       return next;
     });
-  }, [setEdgeWaypoints]);
+    clearEdgeWaypoint(edgeId).then(result => {
+      if (!result.success) {
+        notificationService.notify(
+          NotificationUtils.createErrorNotification('Board', `Couldn't clear the connector redirect (${result.detail})`, 'System'),
+          { playerId: 'system', playerName: 'System', actionType: 'edge_waypoint_clear_error' }
+        );
+      }
+    });
+  }, [notificationService]);
   const onClearAllEdgeWaypoints = useCallback(() => {
-    setEdgeWaypoints(() => ({}));
-  }, [setEdgeWaypoints]);
+    setEdgeWaypointsState({});
+    clearAllEdgeWaypoints().then(result => {
+      if (!result.success) {
+        notificationService.notify(
+          NotificationUtils.createErrorNotification('Board', `Couldn't clear all connector redirects (${result.detail})`, 'System'),
+          { playerId: 'system', playerName: 'System', actionType: 'edge_waypoint_clear_all_error' }
+        );
+      }
+    });
+  }, [notificationService]);
   const [isNegotiationModalOpen, setIsNegotiationModalOpen] = useState<boolean>(false);
   const [negotiationPartnerId, setNegotiationPartnerId] = useState<string | null>(null);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState<boolean>(false);

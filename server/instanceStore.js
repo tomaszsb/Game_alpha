@@ -53,6 +53,7 @@ export function assertValidInstanceId(id) {
  * @property {Object<string, any>} teacherCopies
  * @property {Object<string, string>} detours
  * @property {Object<string, InsertionConfig>} insertions
+ * @property {Object<string, { x: number, y: number }>} edgeWaypoints
  */
 
 export function instanceDir(instancesRoot, id) {
@@ -131,6 +132,12 @@ export function createInstance(instancesRoot, { id, displayName }) {
     // the new space sits on. Sectioned as its own top-level key (audit round 4)
     // so a future config-directory split is mechanical.
     insertions: {},
+    // edgeWaypoints[edgeId] = { x, y } — a manual redirect point for a
+    // board connector whose auto-routed path detours somewhere confusing
+    // (G160). edgeId is `${source}__${target}`. Pure display data (not
+    // read by the game engine), so it's exposed as-is via a plain GET
+    // rather than baked into the resolved CSVs like slots/insertions are.
+    edgeWaypoints: {},
   };
   fs.mkdirSync(instanceDir(instancesRoot, id), { recursive: true });
   atomicWriteJson(file, config);
@@ -182,6 +189,12 @@ export function loadInstance(instancesRoot, id) {
     parsed.insertions = {};
   } else if (!parsed.insertions || typeof parsed.insertions !== 'object') {
     throw new Error(`Instance "${id}": invalid insertions`);
+  }
+  // edgeWaypoints (G160) is newer still — same default-if-missing treatment.
+  if (parsed.edgeWaypoints === undefined) {
+    parsed.edgeWaypoints = {};
+  } else if (!parsed.edgeWaypoints || typeof parsed.edgeWaypoints !== 'object') {
+    throw new Error(`Instance "${id}": invalid edgeWaypoints`);
   }
   return parsed;
 }
@@ -325,6 +338,35 @@ export function setSlotPositions(config, positions) {
     applied.push(spaceName);
   }
   return applied;
+}
+
+/**
+ * Set (or overwrite) one edge's manual waypoint redirect (G160). edgeId is
+ * `${source}__${target}`, matching the client's edge id format — not
+ * validated against real connections here (mirrors setSlotPositions:
+ * unknown/stale ids are harmless, they just never render since the client
+ * only looks up waypoints for edges it actually draws).
+ * @param {InstanceConfig} config
+ * @param {string} edgeId
+ * @param {{ x: number|string, y: number|string }} point
+ */
+export function setEdgeWaypoint(config, edgeId, point) {
+  const x = Number(point?.x);
+  const y = Number(point?.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    throw new Error(`Invalid waypoint for "${edgeId}": x/y must be finite numbers`);
+  }
+  config.edgeWaypoints[edgeId] = { x, y };
+}
+
+/** Clear one edge's waypoint redirect, back to normal auto-routing. */
+export function clearEdgeWaypoint(config, edgeId) {
+  delete config.edgeWaypoints[edgeId];
+}
+
+/** Clear every edge waypoint redirect in this classroom. */
+export function clearAllEdgeWaypoints(config) {
+  config.edgeWaypoints = {};
 }
 
 // ===== Phase 2: switch-off + teacher copies =====

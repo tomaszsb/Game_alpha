@@ -18,6 +18,12 @@
 // edit mode uses, so a change here is immediately reflected the next time
 // anyone (player or admin) loads the game, and survives every deploy.
 //
+// Same permanence for connector redirects (G160, /api/instances/.../
+// edge-waypoints, added 2026-08-04): a redirect handle dragged here fixes
+// a badly auto-routed line for every teacher/device/future game, not just
+// this browser — matching what the header banner already promises for
+// tile positions.
+//
 // IMPORTANT (v2.69.4): DataService caches GAME_CONFIG.csv at app startup
 // and never refetches it (the `loaded` flag guards loadData() from re-runs).
 // Without intervention, reopening this editor after a save shows tiles back
@@ -33,10 +39,11 @@
 //     pan/zoom/selection state, which a layout editor sits on heavily.
 // The on-disk source of truth gets refreshed when the editor is reopened.
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { BoardCanvas } from './BoardCanvas';
 import { useGameContext } from '../../context/GameContext';
 import { colors } from '../../styles/theme';
+import { fetchEdgeWaypoints, saveEdgeWaypoint, clearEdgeWaypoint, clearAllEdgeWaypoints } from '../../utils/saveEdgeWaypoint';
 
 interface BoardLayoutEditorProps {
   onClose: () => void;
@@ -46,6 +53,14 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
   const { dataService } = useGameContext();
   const [ready, setReady] = useState(false);
   const [reloadError, setReloadError] = useState<string | null>(null);
+  // Per-edge waypoint redirect (G160) — permanent, classroom-wide (same
+  // server tier as tile positions), so a redirect drawn here is also what
+  // players see in-game. Fetched independently of the reloadGameConfig
+  // gate above: unlike tile positions, this doesn't feed BoardCanvas's
+  // memoized initialNodes, so there's no stale-cache risk in rendering it
+  // as soon as it arrives.
+  const [edgeWaypoints, setEdgeWaypoints] = useState<Record<string, { x: number; y: number }>>({});
+  const [edgeWaypointError, setEdgeWaypointError] = useState<string | null>(null);
 
   // Refresh GAME_CONFIG.csv on every open so we pick up any pos_x/pos_y
   // changes persisted from a previous editor session (or via in-game drag).
@@ -68,6 +83,37 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
     })();
     return () => { cancelled = true; };
   }, [dataService]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchEdgeWaypoints().then(fetched => {
+      if (!cancelled) setEdgeWaypoints(fetched);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const onSetEdgeWaypoint = useCallback((edgeId: string, point: { x: number; y: number }) => {
+    setEdgeWaypoints(prev => ({ ...prev, [edgeId]: point }));
+    saveEdgeWaypoint(edgeId, point.x, point.y).then(result => {
+      if (!result.success) setEdgeWaypointError(`Couldn't save the redirect (${result.detail})`);
+    });
+  }, []);
+  const onClearEdgeWaypoint = useCallback((edgeId: string) => {
+    setEdgeWaypoints(prev => {
+      const next = { ...prev };
+      delete next[edgeId];
+      return next;
+    });
+    clearEdgeWaypoint(edgeId).then(result => {
+      if (!result.success) setEdgeWaypointError(`Couldn't clear the redirect (${result.detail})`);
+    });
+  }, []);
+  const onClearAllEdgeWaypoints = useCallback(() => {
+    setEdgeWaypoints({});
+    clearAllEdgeWaypoints().then(result => {
+      if (!result.success) setEdgeWaypointError(`Couldn't clear all redirects (${result.detail})`);
+    });
+  }, []);
 
   // Handle Escape to close, like a standard modal.
   useEffect(() => {
@@ -137,24 +183,56 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
               ⚠️ Couldn’t refresh latest positions ({reloadError}). Showing cached layout.
             </p>
           )}
+          {edgeWaypointError && (
+            <p
+              style={{
+                margin: '0.25rem 0 0',
+                fontSize: '0.78rem',
+                color: '#991b1b',
+              }}
+            >
+              ⚠️ {edgeWaypointError}
+            </p>
+          )}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          style={{
-            padding: '0.5rem 1rem',
-            background: '#f8f9fa',
-            color: '#495057',
-            border: '1px solid #dee2e6',
-            borderRadius: 6,
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            fontWeight: 500
-          }}
-          title="Close (Esc)"
-        >
-          ✕ Close
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {Object.keys(edgeWaypoints).length > 0 && (
+            <button
+              type="button"
+              onClick={onClearAllEdgeWaypoints}
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#eef2ff',
+                color: '#3730a3',
+                border: '1px solid #6366f1',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: 500
+              }}
+              title={`${Object.keys(edgeWaypoints).length} connector(s) redirected — click to restore auto-routing`}
+            >
+              ↩️ {Object.keys(edgeWaypoints).length} redirected · restore
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: '0.5rem 1rem',
+              background: '#f8f9fa',
+              color: '#495057',
+              border: '1px solid #dee2e6',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: 500
+            }}
+            title="Close (Esc)"
+          >
+            ✕ Close
+          </button>
+        </div>
       </div>
 
       {/* Board canvas, full remaining height. No game state — players empty,
@@ -170,6 +248,9 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
             isAdmin={true}
             edgesVisible={true}
             showBuffer={true}
+            edgeWaypoints={edgeWaypoints}
+            onSetEdgeWaypoint={onSetEdgeWaypoint}
+            onClearEdgeWaypoint={onClearEdgeWaypoint}
           />
         ) : (
           <div

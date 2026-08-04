@@ -39,6 +39,9 @@ import {
   addInsertion,
   updateInsertion,
   removeInsertion,
+  setEdgeWaypoint,
+  clearEdgeWaypoint,
+  clearAllEdgeWaypoints,
 } from './instanceStore.js';
 import { validateConfig } from './instanceValidation.js';
 import { buildCatalog } from './instanceCatalog.js';
@@ -1487,6 +1490,147 @@ app.post('/api/instances/:id/positions', (req, res) => {
   } catch (err) {
     console.error(`❌ Position save failed (step: ${step}):`, err.message);
     res.status(500).json({ success: false, error: 'Failed to save positions', step, detail: err.message });
+  }
+});
+
+// Edge waypoint redirects (G160). Same shape as positions above — pure
+// display data (which point a badly auto-routed connector should bend
+// through), not gameplay logic, so no validateConfig/bake-affecting content
+// changes are involved; ensureFreshBake here only keeps the bake stamp's
+// configVersion in sync with the version bump from saveInstance.
+app.get('/api/instances/:id/edge-waypoints', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+    res.json({ success: true, edgeWaypoints: config.edgeWaypoints || {} });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to read edge waypoints', detail: err.message });
+  }
+});
+
+app.post('/api/instances/:id/edge-waypoints', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  const { edgeId, x, y } = req.body || {};
+  if (!edgeId || typeof edgeId !== 'string') {
+    return res.status(400).json({ success: false, error: 'edgeId is required' });
+  }
+
+  let step = 'load';
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+
+    const access = checkInstanceWriteAccess(config, {
+      token: req.headers['x-instance-token'],
+      adminPassword: req.headers['x-admin-password'] || req.body.password,
+      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+      accountId: resolveTeacherAccountId(req),
+    });
+    if (!access.ok) {
+      logVisitor(req, 'INSTANCE_EDGE_WAYPOINT_AUTH_FAILED', { instanceId: req.params.id });
+      return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
+    }
+
+    step = 'apply';
+    setEdgeWaypoint(config, edgeId, { x, y });
+    step = 'save';
+    saveInstance(instancesRoot, config);
+    step = 'bake';
+    const { stamp } = ensureFreshBake({ stockDataDir: writableDataDir, instancesRoot, config });
+
+    logVisitor(req, 'INSTANCE_EDGE_WAYPOINT_SAVED', { instanceId: req.params.id, edgeId });
+    res.json({
+      success: true,
+      edgeId,
+      configVersion: config.configVersion,
+      resolvedVersion: stamp.configVersion,
+    });
+  } catch (err) {
+    console.error(`❌ Edge waypoint save failed (step: ${step}):`, err.message);
+    res.status(500).json({ success: false, error: 'Failed to save edge waypoint', step, detail: err.message });
+  }
+});
+
+app.delete('/api/instances/:id/edge-waypoints/:edgeId', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  let step = 'load';
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+
+    const access = checkInstanceWriteAccess(config, {
+      token: req.headers['x-instance-token'],
+      adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
+      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+      accountId: resolveTeacherAccountId(req),
+    });
+    if (!access.ok) {
+      logVisitor(req, 'INSTANCE_EDGE_WAYPOINT_AUTH_FAILED', { instanceId: req.params.id });
+      return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
+    }
+
+    step = 'apply';
+    clearEdgeWaypoint(config, req.params.edgeId);
+    step = 'save';
+    saveInstance(instancesRoot, config);
+    step = 'bake';
+    const { stamp } = ensureFreshBake({ stockDataDir: writableDataDir, instancesRoot, config });
+
+    logVisitor(req, 'INSTANCE_EDGE_WAYPOINT_CLEARED', { instanceId: req.params.id, edgeId: req.params.edgeId });
+    res.json({ success: true, configVersion: config.configVersion, resolvedVersion: stamp.configVersion });
+  } catch (err) {
+    console.error(`❌ Edge waypoint clear failed (step: ${step}):`, err.message);
+    res.status(500).json({ success: false, error: 'Failed to clear edge waypoint', step, detail: err.message });
+  }
+});
+
+app.delete('/api/instances/:id/edge-waypoints', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  let step = 'load';
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+
+    const access = checkInstanceWriteAccess(config, {
+      token: req.headers['x-instance-token'],
+      adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
+      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+      accountId: resolveTeacherAccountId(req),
+    });
+    if (!access.ok) {
+      logVisitor(req, 'INSTANCE_EDGE_WAYPOINT_AUTH_FAILED', { instanceId: req.params.id });
+      return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
+    }
+
+    step = 'apply';
+    clearAllEdgeWaypoints(config);
+    step = 'save';
+    saveInstance(instancesRoot, config);
+    step = 'bake';
+    const { stamp } = ensureFreshBake({ stockDataDir: writableDataDir, instancesRoot, config });
+
+    logVisitor(req, 'INSTANCE_EDGE_WAYPOINTS_CLEARED_ALL', { instanceId: req.params.id });
+    res.json({ success: true, configVersion: config.configVersion, resolvedVersion: stamp.configVersion });
+  } catch (err) {
+    console.error(`❌ Edge waypoints clear-all failed (step: ${step}):`, err.message);
+    res.status(500).json({ success: false, error: 'Failed to clear edge waypoints', step, detail: err.message });
   }
 });
 

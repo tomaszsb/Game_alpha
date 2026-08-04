@@ -15,6 +15,9 @@ import {
   checkInstanceWriteAccess,
   setSlotPositions,
   setSlotUsed,
+  setEdgeWaypoint,
+  clearEdgeWaypoint,
+  clearAllEdgeWaypoints,
   createTeacherCopy,
   updateTeacherCopy,
   deleteTeacherCopy,
@@ -155,6 +158,57 @@ describe('setSlotPositions', () => {
   it('rejects non-numeric coordinates', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     expect(() => setSlotPositions(config, { X: { x: NaN, y: 0 } })).toThrow(/finite/);
+  });
+});
+
+describe('edge waypoints (G160, made permanent 2026-08-04)', () => {
+  it('createInstance seeds an empty edgeWaypoints section; loadInstance round-trips it', () => {
+    createInstance(root, { id: 'classroom-1' });
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.edgeWaypoints).toEqual({});
+  });
+
+  it('loadInstance defaults edgeWaypoints for configs written before it existed', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    delete (config as any).edgeWaypoints;
+    fs.writeFileSync(configPath(root, 'classroom-1'), JSON.stringify(config, null, 2));
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.edgeWaypoints).toEqual({});
+  });
+
+  it('setEdgeWaypoint stores a point, overwriting on a second call', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setEdgeWaypoint(config, 'A__B', { x: 120, y: -40.5 });
+    expect(config.edgeWaypoints['A__B']).toEqual({ x: 120, y: -40.5 });
+    setEdgeWaypoint(config, 'A__B', { x: 10, y: 20 });
+    expect(config.edgeWaypoints['A__B']).toEqual({ x: 10, y: 20 });
+  });
+
+  it('rejects non-numeric coordinates', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    expect(() => setEdgeWaypoint(config, 'A__B', { x: NaN, y: 0 })).toThrow(/finite/);
+  });
+
+  it('clearEdgeWaypoint removes just that one edge', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setEdgeWaypoint(config, 'A__B', { x: 1, y: 2 });
+    setEdgeWaypoint(config, 'C__D', { x: 3, y: 4 });
+    clearEdgeWaypoint(config, 'A__B');
+    expect(config.edgeWaypoints).toEqual({ 'C__D': { x: 3, y: 4 } });
+  });
+
+  it('clearEdgeWaypoint on an edge with no waypoint is a harmless no-op', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    expect(() => clearEdgeWaypoint(config, 'NEVER-SET')).not.toThrow();
+    expect(config.edgeWaypoints).toEqual({});
+  });
+
+  it('clearAllEdgeWaypoints empties every redirect at once', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setEdgeWaypoint(config, 'A__B', { x: 1, y: 2 });
+    setEdgeWaypoint(config, 'C__D', { x: 3, y: 4 });
+    clearAllEdgeWaypoints(config);
+    expect(config.edgeWaypoints).toEqual({});
   });
 });
 
