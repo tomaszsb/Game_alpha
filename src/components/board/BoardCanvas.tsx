@@ -835,6 +835,8 @@ function BoardCanvasInner({
   // Admin mode keeps every edge visible — the editor needs the full network to
   // hover/click-hide individual edges.
   const visibleEdges = useMemo(() => {
+    // TEMP G160 diagnostic — remove once the drag issue is found.
+    console.log('[G160] visibleEdges memo recomputing', { hasSetter: !!onSetEdgeWaypoint, isAdmin });
     if (!edgesVisible) return [];
 
     const currentPlayer = currentPlayerId ? players.find(p => p.id === currentPlayerId) : undefined;
