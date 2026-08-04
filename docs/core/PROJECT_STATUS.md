@@ -5,21 +5,21 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** August 2, 2026 (evening)
+**Last Updated:** August 4, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.1.89** in the repo, pushed. **Not yet deployed** — v3.1.88 is what's currently live.
+**Current Version:** **3.1.95** — confirmed live via `/health` (commit `8af3a93`).
 
 ## Current sprint
-**2026-08-02 evening — closed the last open naming decision, then built both top-3 items from the v3.1.88 handoff.** Named the Bank/Investor/Lender board characters from their existing narration voice (board tiles now show a discipline badge instead of the generic "Funding" label). Built G160 (drag a small handle on any board connector to bend its auto-routed path through one point) — code-complete and test-covered, but not yet visually confirmed in a real browser: this session's Browser pane wasn't compositing frames, confirmed via a clean git-revert A/B test rather than assumed. Built in-game engagement tracking (space-reached/game-finished/panel-opened events, reusing the existing acquisition-funnel pipeline) — deliberately dropped the spec's `game_abandoned` live event in favor of inferring it at aggregation time, and smoke-tested end-to-end against a running server.
+**2026-08-04 — took G160 (board-connector redirect handles) from "code-complete, unconfirmed" to a fully-featured, permanent, server-backed editing system, driven by real-browser testing round trips.** Fixed the actual "hover works, drag doesn't" bug: not a CSS/JS issue, the user had been testing in the standalone Board Layout Editor, a tool that was never wired to the waypoint props at all (see CLAUDE.md TACTICAL). From there, live testing surfaced feature requests one at a time and each was built and re-verified: multi-bend waypoints capped by connector length, manual bundling/unbundling for overlapping connectors leaving the same node, box-side anchor snapping (4 fixed points per tile, server-persisted), a fix for anchor handles landing on identical pixels ("pretty random" grabbing — resolved via collision detection + an offset-rosette spread, reusing the bundling work rather than a new picker menu), a restore-one-of-several picker component shared across both admin surfaces, and a previously-missing hide-connector control in the Board Layout Editor. One hotfix (v3.1.92) shipped mid-arc for a live crash caused by an un-migrated data-shape change, fixed via self-healing schema upgrade rather than a manual data patch.
 
 ## Health
-- **Tests:** typecheck ✅ clean, build ✅ clean, fast suite **2563 passed / 0 failed** (173 files — up from 2552: +3 for the waypoint-path math, +11 for the engagement-stats aggregation). Ghost gates **33/33 clean** (all 10 files, ~14 min) — confirms neither the board UI change nor the new tracking calls touched real gameplay behavior.
-- **Lint:** clean on every touched file this session (0 errors; only pre-existing documented `set-state-in-effect` warnings, unchanged).
-- **Deploy:** v3.1.89 pushed to master, not yet deployed — a fresh `bash deploy.sh` run is needed to make the live site match the repo.
-- **Dashboard feedback:** not re-checked this session (no feedback-driven work; both fixes were maintainer/TODO-decided, not report-triaged).
+- **Tests:** typecheck ✅ clean, build ✅ clean, fast suite **2646 passed / 0 failed** (175 files). Ghost-gate background run from this session still pending confirmation (see NEXT_SESSION.md).
+- **Lint:** clean on every touched file this session.
+- **Deploy:** v3.1.95 confirmed live (`/health` → `8af3a93`).
+- **Dashboard feedback:** one report (`fb:feedback-1778327469678-d27a73d0`) confirmed fixed-and-live this session; flip-to-resolved pending a yes/no from the user (see NEXT_SESSION.md).
 - **Dictionary-scraper (separate repo/deploy):** unchanged this session.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **G160 real-browser confirmation** — code done, needs one real playthrough to confirm the drag-to-redirect handle actually works (see TODO.md).
+1. **v3.1.95 hover-highlight/distinct-cursor confirmation** — shipped and deployed, needs one live playthrough to confirm the anchor-vs-node grab disambiguation actually reads clearly to the user.
 2. **Demo video** — script + storyboard drafted; needs footage, then wire the "Watch demo" button.
-3. **Deploy v3.1.89** — whenever convenient; nothing urgent is blocked on it.
+3. **D&D-reskin engagement-data check** — held pending existing engagement-stats data review before any further work (see NEXT_SESSION.md).

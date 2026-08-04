@@ -15,7 +15,7 @@ The live server copies the repo's game data into its writable volume **once, on 
 The maintainer's chosen mental model (2026-06-12): **a deck of cards**, not a merge.
 
 - **Master library (the stock deck)** — every space the game ships with. Owned by the repo; refreshed on the server **on every deploy, unconditionally**. Never edited in place on the server. Nothing is ever deleted from it — superseded cards just stop being used.
-- **Classroom (instance)** — one teacher's table. Holds ONLY that teacher's choices: which cards are in use vs in the unused pile, tile positions, the teacher's own card copies, and detour rules. **Deploys never touch classroom data.**
+- **Classroom (instance)** — one teacher's table. Holds ONLY that teacher's choices: which cards are in use vs in the unused pile, tile positions, connector redirects/anchors (board-line waypoints and box-side snap points, added v3.1.90/v3.1.93), the teacher's own card copies, and detour rules. **Deploys never touch classroom data.**
 - **Teacher's copy** — a teacher who wants different wording/behavior does not edit the stock card; they get a **copy** of it with their changes, played in the same slot. The stock original stays intact in the library (their unused pile).
 - **Used/unused marker** — flipping it never destroys anything.
 
