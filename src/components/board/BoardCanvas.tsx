@@ -458,25 +458,16 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
   const effectivePoint = dragPoint ?? waypoint;
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // TEMP G160 diagnostic logging — remove once the drag issue is found.
-    console.log('[G160] mousedown ' + JSON.stringify({ isAdmin, hasSetter: !!onSetEdgeWaypoint, edgeId: props.id }));
     if (!isAdmin || !onSetEdgeWaypoint) return;
     e.stopPropagation();
     e.preventDefault();
-    let moveCount = 0;
     const onMove = (ev: MouseEvent) => {
-      moveCount++;
-      const p = screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
-      if (moveCount === 1 || moveCount % 10 === 0) {
-        console.log('[G160] mousemove ' + JSON.stringify({ moveCount, clientX: ev.clientX, clientY: ev.clientY, flowPoint: p }));
-      }
-      setDragPoint(p);
+      setDragPoint(screenToFlowPosition({ x: ev.clientX, y: ev.clientY }));
     };
     const onUp = (ev: MouseEvent) => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
       const point = screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
-      console.log('[G160] mouseup — committing waypoint ' + JSON.stringify({ moveCount, point }));
       setDragPoint(null);
       onSetEdgeWaypoint(props.id, point);
     };
@@ -835,8 +826,6 @@ function BoardCanvasInner({
   // Admin mode keeps every edge visible — the editor needs the full network to
   // hover/click-hide individual edges.
   const visibleEdges = useMemo(() => {
-    // TEMP G160 diagnostic — remove once the drag issue is found.
-    console.log('[G160] visibleEdges memo recomputing ' + JSON.stringify({ hasSetter: !!onSetEdgeWaypoint, isAdmin }));
     if (!edgesVisible) return [];
 
     const currentPlayer = currentPlayerId ? players.find(p => p.id === currentPlayerId) : undefined;
