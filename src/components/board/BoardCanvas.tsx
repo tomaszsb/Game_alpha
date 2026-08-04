@@ -596,19 +596,32 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
     : (anchors.target ? BOX_ANCHOR_TO_POSITION[anchors.target] : props.targetPosition);
 
   const startAnchorDrag = useCallback((e: React.MouseEvent, end: 'source' | 'target') => {
+    // TEMP diagnostic — remove once the "only one line drags" bug is found.
+    const box0 = end === 'source' ? sourceBox : targetBox;
+    window.dispatchEvent(new CustomEvent('g160-anchor-debug', { detail: {
+      edgeId: props.id, end, hasSetter: !!onSetEdgeAnchor, hasBox: !!box0,
+      clientX: e.clientX, clientY: e.clientY,
+    } }));
     if (!isAdmin || !onSetEdgeAnchor) return;
     e.stopPropagation();
     e.preventDefault();
     const box = end === 'source' ? sourceBox : targetBox;
     if (!box) return;
+    window.dispatchEvent(new CustomEvent('g160-anchor-debug', { detail: { edgeId: props.id, end, phase: 'listeners-attached' } }));
+    let moveCount = 0;
     const onMove = (ev: MouseEvent) => {
+      moveCount++;
       const raw = screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
       const { anchor, point } = nearestAnchor(raw, box.x, box.y, box.width, box.height);
+      if (moveCount === 1) {
+        window.dispatchEvent(new CustomEvent('g160-anchor-debug', { detail: { edgeId: props.id, end, phase: 'first-move', anchor } }));
+      }
       setAnchorDrag({ end, anchor, point });
     };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      window.dispatchEvent(new CustomEvent('g160-anchor-debug', { detail: { edgeId: props.id, end, phase: 'mouseup', moveCount } }));
       setAnchorDrag(current => {
         if (current) onSetEdgeAnchor(props.id, current.end, current.anchor);
         return null;

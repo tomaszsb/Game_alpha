@@ -1530,11 +1530,45 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         onClearRedirectedEdges={onClearAllEdgeWaypoints}
       />
 
+      {/* TEMP G160 on-screen diagnostic — remove once the "only one line
+          drags" anchor bug is found. Shows the last few anchor-drag
+          attempts across ANY edge, in order, so it's clear which edges
+          got as far as mousedown/listeners-attached/first-move/mouseup. */}
+      {boardEditMode && <AnchorDebugBadge />}
+
       {/* One-time onboarding nudge for the dictionary feature.
           Self-contained: reads localStorage for "seen" state, auto-dismisses
           after 12s or on click. Only renders during gameplay so the hint
           fires when there's actually game text with highlighted terms. */}
       {gamePhase === 'PLAY' && <DictionaryHint />}
+    </div>
+  );
+}
+
+// TEMP G160 diagnostic — remove once the "only one line drags" anchor bug
+// is found. Listens for the debug CustomEvent BoardCanvas.tsx's
+// startAnchorDrag dispatches on every attempt, across ANY edge, and shows
+// the last several as plain on-screen text (console.log proved unreliable
+// earlier this session — this can't be missed or scrolled past).
+function AnchorDebugBadge(): JSX.Element {
+  const [log, setLog] = useState<string[]>([]);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setLog(prev => [...prev.slice(-9), JSON.stringify(detail)]);
+    };
+    window.addEventListener('g160-anchor-debug', handler);
+    return () => window.removeEventListener('g160-anchor-debug', handler);
+  }, []);
+  return (
+    <div style={{
+      position: 'fixed', bottom: 4, right: 4, zIndex: 99999,
+      background: '#000', color: '#0f0', padding: '6px 8px',
+      fontSize: 11, fontFamily: 'monospace', borderRadius: 4,
+      maxWidth: 480, maxHeight: 220, overflowY: 'auto',
+    }}>
+      <div>G160 anchor debug (last {log.length}):</div>
+      {log.map((entry, i) => <div key={i}>{entry}</div>)}
     </div>
   );
 }
