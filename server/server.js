@@ -42,6 +42,9 @@ import {
   setEdgeWaypoints,
   clearEdgeWaypoint,
   clearAllEdgeWaypoints,
+  setEdgeAnchor,
+  clearEdgeAnchor,
+  clearAllEdgeAnchors,
 } from './instanceStore.js';
 import { validateConfig } from './instanceValidation.js';
 import { buildCatalog } from './instanceCatalog.js';
@@ -1634,6 +1637,154 @@ app.delete('/api/instances/:id/edge-waypoints', (req, res) => {
   } catch (err) {
     console.error(`❌ Edge waypoints clear-all failed (step: ${step}):`, err.message);
     res.status(500).json({ success: false, error: 'Failed to clear edge waypoints', step, detail: err.message });
+  }
+});
+
+// Box-side anchor snapping (2026-08-04) — pins one or both ends of a
+// connector to a fixed side-middle point on its node instead of the
+// automatic floating attach point. Same shape/pattern as edge-waypoints
+// above, a separate field so the already-deployed edgeWaypoints shape
+// never needs reshaping again.
+app.get('/api/instances/:id/edge-anchors', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+    res.json({ success: true, edgeAnchors: config.edgeAnchors || {} });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to read edge anchors', detail: err.message });
+  }
+});
+
+app.post('/api/instances/:id/edge-anchors', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  const { edgeId, end, anchor } = req.body || {};
+  if (!edgeId || typeof edgeId !== 'string') {
+    return res.status(400).json({ success: false, error: 'edgeId is required' });
+  }
+  if (end !== 'source' && end !== 'target') {
+    return res.status(400).json({ success: false, error: 'end must be "source" or "target"' });
+  }
+
+  let step = 'load';
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+
+    const access = checkInstanceWriteAccess(config, {
+      token: req.headers['x-instance-token'],
+      adminPassword: req.headers['x-admin-password'] || req.body.password,
+      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+      accountId: resolveTeacherAccountId(req),
+    });
+    if (!access.ok) {
+      logVisitor(req, 'INSTANCE_EDGE_ANCHOR_AUTH_FAILED', { instanceId: req.params.id });
+      return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
+    }
+
+    step = 'apply';
+    setEdgeAnchor(config, edgeId, end, anchor);
+    step = 'save';
+    saveInstance(instancesRoot, config);
+    step = 'bake';
+    const { stamp } = ensureFreshBake({ stockDataDir: writableDataDir, instancesRoot, config });
+
+    logVisitor(req, 'INSTANCE_EDGE_ANCHOR_SAVED', { instanceId: req.params.id, edgeId, end, anchor });
+    res.json({
+      success: true,
+      edgeId,
+      configVersion: config.configVersion,
+      resolvedVersion: stamp.configVersion,
+    });
+  } catch (err) {
+    console.error(`❌ Edge anchor save failed (step: ${step}):`, err.message);
+    res.status(500).json({ success: false, error: 'Failed to save edge anchor', step, detail: err.message });
+  }
+});
+
+app.delete('/api/instances/:id/edge-anchors/:edgeId/:end', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  const { end } = req.params;
+  if (end !== 'source' && end !== 'target') {
+    return res.status(400).json({ success: false, error: 'end must be "source" or "target"' });
+  }
+  let step = 'load';
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+
+    const access = checkInstanceWriteAccess(config, {
+      token: req.headers['x-instance-token'],
+      adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
+      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+      accountId: resolveTeacherAccountId(req),
+    });
+    if (!access.ok) {
+      logVisitor(req, 'INSTANCE_EDGE_ANCHOR_AUTH_FAILED', { instanceId: req.params.id });
+      return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
+    }
+
+    step = 'apply';
+    clearEdgeAnchor(config, req.params.edgeId, end);
+    step = 'save';
+    saveInstance(instancesRoot, config);
+    step = 'bake';
+    const { stamp } = ensureFreshBake({ stockDataDir: writableDataDir, instancesRoot, config });
+
+    logVisitor(req, 'INSTANCE_EDGE_ANCHOR_CLEARED', { instanceId: req.params.id, edgeId: req.params.edgeId, end });
+    res.json({ success: true, configVersion: config.configVersion, resolvedVersion: stamp.configVersion });
+  } catch (err) {
+    console.error(`❌ Edge anchor clear failed (step: ${step}):`, err.message);
+    res.status(500).json({ success: false, error: 'Failed to clear edge anchor', step, detail: err.message });
+  }
+});
+
+app.delete('/api/instances/:id/edge-anchors', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  let step = 'load';
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+
+    const access = checkInstanceWriteAccess(config, {
+      token: req.headers['x-instance-token'],
+      adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
+      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+      accountId: resolveTeacherAccountId(req),
+    });
+    if (!access.ok) {
+      logVisitor(req, 'INSTANCE_EDGE_ANCHOR_AUTH_FAILED', { instanceId: req.params.id });
+      return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
+    }
+
+    step = 'apply';
+    clearAllEdgeAnchors(config);
+    step = 'save';
+    saveInstance(instancesRoot, config);
+    step = 'bake';
+    const { stamp } = ensureFreshBake({ stockDataDir: writableDataDir, instancesRoot, config });
+
+    logVisitor(req, 'INSTANCE_EDGE_ANCHORS_CLEARED_ALL', { instanceId: req.params.id });
+    res.json({ success: true, configVersion: config.configVersion, resolvedVersion: stamp.configVersion });
+  } catch (err) {
+    console.error(`❌ Edge anchors clear-all failed (step: ${step}):`, err.message);
+    res.status(500).json({ success: false, error: 'Failed to clear edge anchors', step, detail: err.message });
   }
 });
 

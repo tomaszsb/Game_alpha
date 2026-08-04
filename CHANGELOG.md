@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.93] - 2026-08-04
+
+Closes out today's G160 arc: the last of the three original asks (snap a connector's start/end to a fixed spot on its tile box) — the piece flagged as "still ahead" in the last two entries.
+
+### Built: box-side anchor snapping
+An admin can now pin either end of a redirected or auto-routed connector to one of a node's 4 side-middle points (top/right/bottom/left) instead of the automatic floating attach point React Flow computes from relative node positions — deliberately just these 4, not free placement along the outline, matching the same "no fuss, discrete choices" philosophy as the bend-point work. Rendered as a small square handle (vs. the round bend-point handles) at each end; dragging always resolves to whichever of the 4 sides is nearest on release — there's no "too far, cancel" case. Double-click releases that end back to the automatic attach point.
+
+Independent of everything shipped earlier today — a connector can have an anchor pin, bend points, both, or neither. Deliberately a **separate** server field (`config.edgeAnchors`, not reshaping the already-deployed `edgeWaypoints` again — see v3.1.92's hotfix for why that's worth avoiding twice in one day) with its own mirrored endpoints (`GET`/`POST /api/instances/:id/edge-anchors`, `DELETE .../edge-anchors/:edgeId/:end`, `DELETE .../edge-anchors`) and client util (`saveEdgeAnchor.ts`). Same permanence model as everything else today: pin it once, every teacher/device/future game sees it.
+
+Implementation stayed contained to the edge component itself — no changes to node components or React Flow `Handle` elements, which would have risked regressing every other edge's default auto-routing. The edge component already reads node positions via `useNodes()` for its own overlap math, so computing "the coordinate of this box's top/right/bottom/left side" is pure geometry (`computeAnchorPoint`/`nearestAnchor` in `boardCommon.ts`), and an anchor override simply substitutes for `sourceX/sourceY`/`targetX/targetY` (and the matching `sourcePosition`/`targetPosition` hint) before handing off to either the bend-point path builder or `SmartEdge`'s own A* auto-routing — so a pinned end can still auto-route through the middle, or be combined with manual bend points, without the two systems needing to know about each other.
+
+2 new pure functions (7 tests), 11 new server unit tests, 4 new endpoint-auth tests, 7 new client util tests. Full suite: 2637/2637. Live-verified the full server round-trip directly (pin both ends → GET reflects both → single-end release preserves the other → invalid anchor name correctly rejected → clear-all). The actual drag-to-a-side gesture in a real browser still needs a live check, same caveat as the rest of today's work.
+
 ## [3.1.92] - 2026-08-04
 
 Hotfix for a real crash the maintainer hit immediately after deploying v3.1.91: dragging a redirect handle threw `Uncaught TypeError: i.slice is not a function` and broke the interaction entirely.

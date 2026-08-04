@@ -125,6 +125,19 @@ describe('server.js endpoint auth wiring', () => {
       .not.toContain('checkInstanceWriteAccess');
   });
 
+  it.each([
+    ['post', '/api/instances/:id/edge-anchors'],
+    ['delete', '/api/instances/:id/edge-anchors/:edgeId/:end'],
+    ['delete', '/api/instances/:id/edge-anchors'],
+  ])('%s %s requires instance write token or admin', (method, route) => {
+    expect(handlerHead(method, route, 1200)).toContain('checkInstanceWriteAccess(config');
+  });
+
+  it('GET /api/instances/:id/edge-anchors is open by design (read-only display data)', () => {
+    expect(handlerHead('get', '/api/instances/:id/edge-anchors', 600))
+      .not.toContain('checkInstanceWriteAccess');
+  });
+
   it('GET /api/instances/:id is open by design but never includes the write token', () => {
     const head = handlerHead('get', '/api/instances/:id', 800);
     // The destructure that strips writeToken from the response must stay.

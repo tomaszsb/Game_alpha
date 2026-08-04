@@ -44,6 +44,8 @@ import { BoardCanvas } from './BoardCanvas';
 import { useGameContext } from '../../context/GameContext';
 import { colors } from '../../styles/theme';
 import { fetchEdgeWaypoints, saveEdgeWaypoints, clearEdgeWaypoint, clearAllEdgeWaypoints, type EdgeWaypointResult } from '../../utils/saveEdgeWaypoint';
+import { fetchEdgeAnchors, saveEdgeAnchor, clearEdgeAnchor, type EdgeAnchorResult, type EdgeEnd } from '../../utils/saveEdgeAnchor';
+import type { BoxAnchor } from '../../utils/boardCommon';
 
 interface BoardLayoutEditorProps {
   onClose: () => void;
@@ -60,7 +62,7 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
   // memoized initialNodes, so there's no stale-cache risk in rendering it
   // as soon as it arrives.
   const [edgeWaypoints, setEdgeWaypoints] = useState<Record<string, { x: number; y: number }[]>>({});
-  const [edgeWaypointError, setEdgeWaypointError] = useState<string | null>(null);
+  const [boardEditError, setBoardEditError] = useState<string | null>(null);
 
   // Refresh GAME_CONFIG.csv on every open so we pick up any pos_x/pos_y
   // changes persisted from a previous editor session (or via in-game drag).
@@ -95,7 +97,7 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
   const onSetEdgeWaypoints = useCallback((edgeId: string, points: { x: number; y: number }[]) => {
     setEdgeWaypoints(prev => ({ ...prev, [edgeId]: points }));
     saveEdgeWaypoints(edgeId, points).then((result: EdgeWaypointResult) => {
-      if (!result.success) setEdgeWaypointError(`Couldn't save the redirect (${result.detail})`);
+      if (!result.success) setBoardEditError(`Couldn't save the redirect (${result.detail})`);
     });
   }, []);
   const onClearEdgeWaypoint = useCallback((edgeId: string) => {
@@ -105,13 +107,44 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
       return next;
     });
     clearEdgeWaypoint(edgeId).then(result => {
-      if (!result.success) setEdgeWaypointError(`Couldn't clear the redirect (${result.detail})`);
+      if (!result.success) setBoardEditError(`Couldn't clear the redirect (${result.detail})`);
     });
   }, []);
   const onClearAllEdgeWaypoints = useCallback(() => {
     setEdgeWaypoints({});
     clearAllEdgeWaypoints().then(result => {
-      if (!result.success) setEdgeWaypointError(`Couldn't clear all redirects (${result.detail})`);
+      if (!result.success) setBoardEditError(`Couldn't clear all redirects (${result.detail})`);
+    });
+  }, []);
+
+  // Box-side anchor snapping (2026-08-04) — independent of edgeWaypoints
+  // above, same permanent server tier.
+  const [edgeAnchors, setEdgeAnchors] = useState<Record<string, { source?: BoxAnchor; target?: BoxAnchor }>>({});
+  useEffect(() => {
+    let cancelled = false;
+    fetchEdgeAnchors().then(fetched => {
+      if (!cancelled) setEdgeAnchors(fetched);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const onSetEdgeAnchor = useCallback((edgeId: string, end: EdgeEnd, anchor: BoxAnchor) => {
+    setEdgeAnchors(prev => ({ ...prev, [edgeId]: { ...prev[edgeId], [end]: anchor } }));
+    saveEdgeAnchor(edgeId, end, anchor).then((result: EdgeAnchorResult) => {
+      if (!result.success) setBoardEditError(`Couldn't save the anchor (${result.detail})`);
+    });
+  }, []);
+  const onClearEdgeAnchor = useCallback((edgeId: string, end: EdgeEnd) => {
+    setEdgeAnchors(prev => {
+      const next = { ...prev };
+      const entry = { ...next[edgeId] };
+      delete entry[end];
+      if (Object.keys(entry).length === 0) delete next[edgeId];
+      else next[edgeId] = entry;
+      return next;
+    });
+    clearEdgeAnchor(edgeId, end).then((result: EdgeAnchorResult) => {
+      if (!result.success) setBoardEditError(`Couldn't clear the anchor (${result.detail})`);
     });
   }, []);
 
@@ -183,7 +216,7 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
               ⚠️ Couldn’t refresh latest positions ({reloadError}). Showing cached layout.
             </p>
           )}
-          {edgeWaypointError && (
+          {boardEditError && (
             <p
               style={{
                 margin: '0.25rem 0 0',
@@ -191,7 +224,7 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
                 color: '#991b1b',
               }}
             >
-              ⚠️ {edgeWaypointError}
+              ⚠️ {boardEditError}
             </p>
           )}
         </div>
@@ -251,6 +284,9 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
             edgeWaypoints={edgeWaypoints}
             onSetEdgeWaypoints={onSetEdgeWaypoints}
             onClearEdgeWaypoint={onClearEdgeWaypoint}
+            edgeAnchors={edgeAnchors}
+            onSetEdgeAnchor={onSetEdgeAnchor}
+            onClearEdgeAnchor={onClearEdgeAnchor}
           />
         ) : (
           <div

@@ -459,6 +459,52 @@ export function findEdgesAtPoint(
   return ids;
 }
 
+/** The 4 fixed connection points a connector's end can snap to (2026-08-04) — deliberately just these, not free placement along the box's outline. */
+export type BoxAnchor = 'top' | 'right' | 'bottom' | 'left';
+export const BOX_ANCHORS: BoxAnchor[] = ['top', 'right', 'bottom', 'left'];
+
+/** The flow-coordinate of one side-middle point on a node's bounding box. */
+export function computeAnchorPoint(
+  nodeX: number,
+  nodeY: number,
+  width: number,
+  height: number,
+  anchor: BoxAnchor,
+): { x: number; y: number } {
+  switch (anchor) {
+    case 'top': return { x: nodeX + width / 2, y: nodeY };
+    case 'right': return { x: nodeX + width, y: nodeY + height / 2 };
+    case 'bottom': return { x: nodeX + width / 2, y: nodeY + height };
+    case 'left': return { x: nodeX, y: nodeY + height / 2 };
+  }
+}
+
+/**
+ * Which of the 4 anchors is closest to a dropped point? Mandatory snap
+ * (per the "only 4 middle of each side" decision, not free-form) — there
+ * is no "too far away" case, dragging an end always resolves to one of
+ * the 4, whichever is nearest.
+ */
+export function nearestAnchor(
+  point: { x: number; y: number },
+  nodeX: number,
+  nodeY: number,
+  width: number,
+  height: number,
+): { anchor: BoxAnchor; point: { x: number; y: number } } {
+  let best: { anchor: BoxAnchor; point: { x: number; y: number } } | null = null;
+  let bestDist = Infinity;
+  for (const anchor of BOX_ANCHORS) {
+    const p = computeAnchorPoint(nodeX, nodeY, width, height, anchor);
+    const dist = Math.hypot(p.x - point.x, p.y - point.y);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = { anchor, point: p };
+    }
+  }
+  return best!;
+}
+
 // fb:97fa9c75 — sizes exposed so the BoardLayoutEditor's ghost buffer stays
 // in lockstep with the runtime size hierarchy. MAX_INGRID is the largest
 // size a tile reaches WITHOUT popover-floating; the click-locked "expanded"

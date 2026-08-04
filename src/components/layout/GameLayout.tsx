@@ -42,6 +42,8 @@ import { isAdminAuthenticated } from '../../utils/adminAuth';
 import { isTeacherLoggedIn } from '../../utils/teacherAuth';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { fetchEdgeWaypoints, saveEdgeWaypoints, clearEdgeWaypoint, clearAllEdgeWaypoints, type EdgeWaypointResult } from '../../utils/saveEdgeWaypoint';
+import { fetchEdgeAnchors, saveEdgeAnchor, clearEdgeAnchor, type EdgeAnchorResult, type EdgeEnd } from '../../utils/saveEdgeAnchor';
+import type { BoxAnchor } from '../../utils/boardCommon';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 
 interface GameLayoutProps {
@@ -216,6 +218,46 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         notificationService.notify(
           NotificationUtils.createErrorNotification('Board', `Couldn't clear all connector redirects (${result.detail})`, 'System'),
           { playerId: 'system', playerName: 'System', actionType: 'edge_waypoint_clear_all_error' }
+        );
+      }
+    });
+  }, [notificationService]);
+  // Box-side anchor snapping (2026-08-04) — independent of edgeWaypoints
+  // above, same permanent server-backed pattern (optimistic local update,
+  // background save, notify on failure).
+  const [edgeAnchors, setEdgeAnchorsState] = useState<Record<string, { source?: BoxAnchor; target?: BoxAnchor }>>({});
+  useEffect(() => {
+    let cancelled = false;
+    fetchEdgeAnchors().then(fetched => {
+      if (!cancelled) setEdgeAnchorsState(fetched);
+    });
+    return () => { cancelled = true; };
+  }, []);
+  const onSetEdgeAnchor = useCallback((edgeId: string, end: EdgeEnd, anchor: BoxAnchor) => {
+    setEdgeAnchorsState(prev => ({ ...prev, [edgeId]: { ...prev[edgeId], [end]: anchor } }));
+    saveEdgeAnchor(edgeId, end, anchor).then((result: EdgeAnchorResult) => {
+      if (!result.success) {
+        notificationService.notify(
+          NotificationUtils.createErrorNotification('Board', `Couldn't save the connector anchor (${result.detail})`, 'System'),
+          { playerId: 'system', playerName: 'System', actionType: 'edge_anchor_save_error' }
+        );
+      }
+    });
+  }, [notificationService]);
+  const onClearEdgeAnchor = useCallback((edgeId: string, end: EdgeEnd) => {
+    setEdgeAnchorsState(prev => {
+      const next = { ...prev };
+      const entry = { ...next[edgeId] };
+      delete entry[end];
+      if (Object.keys(entry).length === 0) delete next[edgeId];
+      else next[edgeId] = entry;
+      return next;
+    });
+    clearEdgeAnchor(edgeId, end).then((result: EdgeAnchorResult) => {
+      if (!result.success) {
+        notificationService.notify(
+          NotificationUtils.createErrorNotification('Board', `Couldn't clear the connector anchor (${result.detail})`, 'System'),
+          { playerId: 'system', playerName: 'System', actionType: 'edge_anchor_clear_error' }
         );
       }
     });
@@ -1303,6 +1345,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 edgeWaypoints={edgeWaypoints}
                 onSetEdgeWaypoints={onSetEdgeWaypoints}
                 onClearEdgeWaypoint={onClearEdgeWaypoint}
+                edgeAnchors={edgeAnchors}
+                onSetEdgeAnchor={onSetEdgeAnchor}
+                onClearEdgeAnchor={onClearEdgeAnchor}
               />
             </div>
           )}

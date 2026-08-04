@@ -18,6 +18,9 @@ import {
   setEdgeWaypoints,
   clearEdgeWaypoint,
   clearAllEdgeWaypoints,
+  setEdgeAnchor,
+  clearEdgeAnchor,
+  clearAllEdgeAnchors,
   createTeacherCopy,
   updateTeacherCopy,
   deleteTeacherCopy,
@@ -233,6 +236,72 @@ describe('edge waypoints (G160, made permanent 2026-08-04)', () => {
     setEdgeWaypoints(config, 'C__D', [{ x: 3, y: 4 }]);
     clearAllEdgeWaypoints(config);
     expect(config.edgeWaypoints).toEqual({});
+  });
+});
+
+describe('edge anchors (box-side snapping, 2026-08-04)', () => {
+  it('createInstance seeds an empty edgeAnchors section; loadInstance round-trips it', () => {
+    createInstance(root, { id: 'classroom-1' });
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.edgeAnchors).toEqual({});
+  });
+
+  it('loadInstance defaults edgeAnchors for configs written before it existed', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    delete (config as any).edgeAnchors;
+    fs.writeFileSync(configPath(root, 'classroom-1'), JSON.stringify(config, null, 2));
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.edgeAnchors).toEqual({});
+  });
+
+  it('setEdgeAnchor pins one end without disturbing the other', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setEdgeAnchor(config, 'A__B', 'source', 'top');
+    expect(config.edgeAnchors['A__B']).toEqual({ source: 'top' });
+    setEdgeAnchor(config, 'A__B', 'target', 'left');
+    expect(config.edgeAnchors['A__B']).toEqual({ source: 'top', target: 'left' });
+  });
+
+  it('setEdgeAnchor overwrites a previously-set end', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setEdgeAnchor(config, 'A__B', 'source', 'top');
+    setEdgeAnchor(config, 'A__B', 'source', 'right');
+    expect(config.edgeAnchors['A__B']).toEqual({ source: 'right' });
+  });
+
+  it('rejects an invalid end or anchor name', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    expect(() => setEdgeAnchor(config, 'A__B', 'middle' as any, 'top')).toThrow(/must be "source" or "target"/);
+    expect(() => setEdgeAnchor(config, 'A__B', 'source', 'center' as any)).toThrow(/must be one of/);
+  });
+
+  it('clearEdgeAnchor removes just one end, keeping the other', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setEdgeAnchor(config, 'A__B', 'source', 'top');
+    setEdgeAnchor(config, 'A__B', 'target', 'left');
+    clearEdgeAnchor(config, 'A__B', 'source');
+    expect(config.edgeAnchors['A__B']).toEqual({ target: 'left' });
+  });
+
+  it('clearEdgeAnchor drops the whole edge entry once both ends are cleared', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setEdgeAnchor(config, 'A__B', 'source', 'top');
+    clearEdgeAnchor(config, 'A__B', 'source');
+    expect(config.edgeAnchors).toEqual({});
+  });
+
+  it('clearEdgeAnchor on an edge with no anchors is a harmless no-op', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    expect(() => clearEdgeAnchor(config, 'NEVER-SET', 'source')).not.toThrow();
+    expect(config.edgeAnchors).toEqual({});
+  });
+
+  it('clearAllEdgeAnchors empties every pin at once', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setEdgeAnchor(config, 'A__B', 'source', 'top');
+    setEdgeAnchor(config, 'C__D', 'target', 'bottom');
+    clearAllEdgeAnchors(config);
+    expect(config.edgeAnchors).toEqual({});
   });
 });
 

@@ -54,6 +54,7 @@ export function assertValidInstanceId(id) {
  * @property {Object<string, string>} detours
  * @property {Object<string, InsertionConfig>} insertions
  * @property {Object<string, Array<{ x: number, y: number }>>} edgeWaypoints
+ * @property {Object<string, { source?: string, target?: string }>} edgeAnchors
  */
 
 export function instanceDir(instancesRoot, id) {
@@ -132,12 +133,20 @@ export function createInstance(instancesRoot, { id, displayName }) {
     // the new space sits on. Sectioned as its own top-level key (audit round 4)
     // so a future config-directory split is mechanical.
     insertions: {},
-    // edgeWaypoints[edgeId] = { x, y } — a manual redirect point for a
-    // board connector whose auto-routed path detours somewhere confusing
-    // (G160). edgeId is `${source}__${target}`. Pure display data (not
-    // read by the game engine), so it's exposed as-is via a plain GET
-    // rather than baked into the resolved CSVs like slots/insertions are.
+    // edgeWaypoints[edgeId] = [{ x, y }, ...] — an ordered list of manual
+    // bend points for a board connector whose auto-routed path detours
+    // somewhere confusing, or whose stretch should visually bundle with
+    // another edge's (G160, multi-bend 2026-08-04). edgeId is
+    // `${source}__${target}`. Pure display data (not read by the game
+    // engine), so it's exposed as-is via a plain GET rather than baked
+    // into the resolved CSVs like slots/insertions are.
     edgeWaypoints: {},
+    // edgeAnchors[edgeId] = { source?, target? } — pins one or both ends
+    // of a connector to a fixed side-middle point on its node (top/right/
+    // bottom/left) instead of the automatic floating attach point
+    // (2026-08-04). A separate field from edgeWaypoints (not reshaping an
+    // already-deployed field again) — same "pure display data" treatment.
+    edgeAnchors: {},
   };
   fs.mkdirSync(instanceDir(instancesRoot, id), { recursive: true });
   atomicWriteJson(file, config);
@@ -208,6 +217,12 @@ export function loadInstance(instancesRoot, id) {
         parsed.edgeWaypoints[key] = [value];
       }
     }
+  }
+  // edgeAnchors (box-side anchor snapping) is newer still.
+  if (parsed.edgeAnchors === undefined) {
+    parsed.edgeAnchors = {};
+  } else if (!parsed.edgeAnchors || typeof parsed.edgeAnchors !== 'object') {
+    throw new Error(`Instance "${id}": invalid edgeAnchors`);
   }
   return parsed;
 }
@@ -392,6 +407,45 @@ export function clearEdgeWaypoint(config, edgeId) {
 /** Clear every edge waypoint redirect in this classroom. */
 export function clearAllEdgeWaypoints(config) {
   config.edgeWaypoints = {};
+}
+
+const VALID_BOX_ANCHORS = ['top', 'right', 'bottom', 'left'];
+
+/**
+ * Pin one end of a connector to a fixed side-middle point on its node
+ * (box-side anchor snapping, 2026-08-04) instead of the automatic
+ * floating attach point. `end` is which end of the edge; `anchor` is
+ * which of the node's 4 sides.
+ * @param {InstanceConfig} config
+ * @param {string} edgeId
+ * @param {'source'|'target'} end
+ * @param {string} anchor
+ */
+export function setEdgeAnchor(config, edgeId, end, anchor) {
+  if (end !== 'source' && end !== 'target') {
+    throw new Error(`Invalid end "${end}": must be "source" or "target"`);
+  }
+  if (!VALID_BOX_ANCHORS.includes(anchor)) {
+    throw new Error(`Invalid anchor "${anchor}": must be one of ${VALID_BOX_ANCHORS.join(', ')}`);
+  }
+  config.edgeAnchors[edgeId] = { ...config.edgeAnchors[edgeId], [end]: anchor };
+}
+
+/** Clear one end's anchor pin, back to the automatic floating attach point. Drops the edge's entry entirely once both ends are cleared. */
+export function clearEdgeAnchor(config, edgeId, end) {
+  if (end !== 'source' && end !== 'target') {
+    throw new Error(`Invalid end "${end}": must be "source" or "target"`);
+  }
+  if (!config.edgeAnchors[edgeId]) return;
+  delete config.edgeAnchors[edgeId][end];
+  if (Object.keys(config.edgeAnchors[edgeId]).length === 0) {
+    delete config.edgeAnchors[edgeId];
+  }
+}
+
+/** Clear every edge anchor pin in this classroom. */
+export function clearAllEdgeAnchors(config) {
+  config.edgeAnchors = {};
 }
 
 // ===== Phase 2: switch-off + teacher copies =====

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
+import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
 
 // fb:97fa9c75 — five-step tile size hierarchy. Was a 3-step ladder where the
 // current-player tile and valid-move tiles got only border treatment, which
@@ -382,6 +382,59 @@ describe('findEdgesAtPoint', () => {
       'C__D': [{ x: 10.3, y: 9.8 }],
     });
     expect(found).toEqual(['C__D']);
+  });
+});
+
+// Box-side anchor snapping (2026-08-04) — a connector's start/end can be
+// pinned to one of a node's 4 side-middle points, instead of the automatic
+// floating attach point, deliberately just these 4, not free placement.
+describe('computeAnchorPoint', () => {
+  const box = { x: 100, y: 200, width: 150, height: 60 };
+
+  it('top is horizontally centered, at the node\'s own y', () => {
+    expect(computeAnchorPoint(box.x, box.y, box.width, box.height, 'top')).toEqual({ x: 175, y: 200 });
+  });
+
+  it('bottom is horizontally centered, at y + height', () => {
+    expect(computeAnchorPoint(box.x, box.y, box.width, box.height, 'bottom')).toEqual({ x: 175, y: 260 });
+  });
+
+  it('left is vertically centered, at the node\'s own x', () => {
+    expect(computeAnchorPoint(box.x, box.y, box.width, box.height, 'left')).toEqual({ x: 100, y: 230 });
+  });
+
+  it('right is vertically centered, at x + width', () => {
+    expect(computeAnchorPoint(box.x, box.y, box.width, box.height, 'right')).toEqual({ x: 250, y: 230 });
+  });
+});
+
+describe('nearestAnchor', () => {
+  const box = { x: 100, y: 200, width: 150, height: 60 };
+
+  it('picks top when the point is well above the box', () => {
+    const result = nearestAnchor({ x: 175, y: 0 }, box.x, box.y, box.width, box.height);
+    expect(result.anchor).toBe('top');
+    expect(result.point).toEqual({ x: 175, y: 200 });
+  });
+
+  it('picks right when the point is well to the right', () => {
+    const result = nearestAnchor({ x: 500, y: 230 }, box.x, box.y, box.width, box.height);
+    expect(result.anchor).toBe('right');
+  });
+
+  it('picks bottom when the point is well below', () => {
+    const result = nearestAnchor({ x: 175, y: 500 }, box.x, box.y, box.width, box.height);
+    expect(result.anchor).toBe('bottom');
+  });
+
+  it('picks left when the point is well to the left', () => {
+    const result = nearestAnchor({ x: -100, y: 230 }, box.x, box.y, box.width, box.height);
+    expect(result.anchor).toBe('left');
+  });
+
+  it('always resolves to one of the 4 — no "too far" case', () => {
+    const result = nearestAnchor({ x: 100000, y: -100000 }, box.x, box.y, box.width, box.height);
+    expect(['top', 'right', 'bottom', 'left']).toContain(result.anchor);
   });
 });
 

@@ -62,7 +62,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 import { resolveFundingAmountToken } from '../../utils/templateInterpolation';
@@ -448,6 +448,21 @@ const TUNED_SMART_EDGE_OPTIONS: SmartEdgeOptions = {
 // offset (computeHandleOffset) instead of stacking invisibly on its
 // siblings, so any one of several bundled edges stays individually
 // grabbable — with a hover tooltip naming which edge it is.
+// Box-side anchor snapping (2026-08-04). Independent of the waypoint/
+// bundling system above — this pins WHERE on the source/target node's box
+// the connector starts/ends (one of the 4 side-middles) instead of the
+// automatic floating attach point React Flow computes from relative node
+// positions. Rendered as a small square handle (vs. the round waypoint
+// handles) at each end; dragging always resolves to the nearest of that
+// node's 4 sides on release (mandatory snap, no free placement — the
+// board has no use for finer-grained anchor points than that).
+const BOX_ANCHOR_TO_POSITION: Record<BoxAnchor, Position> = {
+  top: Position.Top,
+  right: Position.Right,
+  bottom: Position.Bottom,
+  left: Position.Left,
+};
+
 interface WaypointEdgeData {
   waypoints?: { x: number; y: number }[];
   /** Every edge's own waypoint list, for snap-while-dragging and merge
@@ -458,13 +473,19 @@ interface WaypointEdgeData {
   onSetEdgeWaypoints?: (edgeId: string, points: { x: number; y: number }[]) => void;
   /** Removes every point on this edge, back to normal auto-routing. */
   onClearEdgeWaypoint?: (edgeId: string) => void;
+  /** Which side of the source/target node this edge is pinned to, if any. */
+  anchors?: { source?: BoxAnchor; target?: BoxAnchor };
+  onSetEdgeAnchor?: (edgeId: string, end: 'source' | 'target', anchor: BoxAnchor) => void;
+  onClearEdgeAnchor?: (edgeId: string, end: 'source' | 'target') => void;
   [key: string]: unknown;
 }
 
 const EMPTY_WAYPOINTS: { x: number; y: number }[] = [];
 const EMPTY_ALL_WAYPOINTS: Record<string, { x: number; y: number }[]> = {};
+const EMPTY_ANCHORS: { source?: BoxAnchor; target?: BoxAnchor } = {};
 const WAYPOINT_HANDLE_R = 7;
 const ADD_HANDLE_R = 5;
+const ANCHOR_HANDLE_SIZE = 10;
 const MERGED_STROKE_WIDTH = 5;
 
 function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
@@ -531,20 +552,117 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
     commit(waypoints.filter((_, i) => i !== index));
   }, [isAdmin, waypoints, commit]);
 
+  // Box-side anchor snapping — independent of the waypoint system above.
+  // sourceNode/targetNode give the actual node box (position + measured
+  // size, same fallback BoardCanvasInner's own overlap math uses) to snap
+  // against; anchors carries whichever end(s) are currently pinned.
+  const anchors = data?.anchors ?? EMPTY_ANCHORS;
+  const onSetEdgeAnchor = data?.onSetEdgeAnchor;
+  const onClearEdgeAnchor = data?.onClearEdgeAnchor;
+  const sourceNode = nodes.find(n => n.id === props.source);
+  const targetNode = nodes.find(n => n.id === props.target);
+  const sourceBox = useMemo(() => sourceNode && {
+    x: sourceNode.position.x,
+    y: sourceNode.position.y,
+    width: sourceNode.measured?.width ?? BOARD_TILE_COMPACT.w,
+    height: sourceNode.measured?.height ?? BOARD_TILE_COMPACT.h,
+  }, [sourceNode]);
+  const targetBox = useMemo(() => targetNode && {
+    x: targetNode.position.x,
+    y: targetNode.position.y,
+    width: targetNode.measured?.width ?? BOARD_TILE_COMPACT.w,
+    height: targetNode.measured?.height ?? BOARD_TILE_COMPACT.h,
+  }, [targetNode]);
+
+  // Live-drag preview for whichever end is currently being dragged —
+  // separate state from the bend-point drag above (dragging an anchor
+  // never touches the middle path).
+  const [anchorDrag, setAnchorDrag] = useState<{ end: 'source' | 'target'; anchor: BoxAnchor; point: { x: number; y: number } } | null>(null);
+
+  const effectiveSourcePoint = anchorDrag?.end === 'source'
+    ? anchorDrag.point
+    : (anchors.source && sourceBox ? computeAnchorPoint(sourceBox.x, sourceBox.y, sourceBox.width, sourceBox.height, anchors.source) : { x: props.sourceX, y: props.sourceY });
+  const effectiveTargetPoint = anchorDrag?.end === 'target'
+    ? anchorDrag.point
+    : (anchors.target && targetBox ? computeAnchorPoint(targetBox.x, targetBox.y, targetBox.width, targetBox.height, anchors.target) : { x: props.targetX, y: props.targetY });
+  // Which side of the box the curve should visually exit/enter from, for
+  // SmartEdge's auto-route branch — matches whichever anchor is pinned
+  // (or being live-dragged), falls back to React Flow's own floating hint.
+  const effectiveSourcePosition = anchorDrag?.end === 'source'
+    ? BOX_ANCHOR_TO_POSITION[anchorDrag.anchor]
+    : (anchors.source ? BOX_ANCHOR_TO_POSITION[anchors.source] : props.sourcePosition);
+  const effectiveTargetPosition = anchorDrag?.end === 'target'
+    ? BOX_ANCHOR_TO_POSITION[anchorDrag.anchor]
+    : (anchors.target ? BOX_ANCHOR_TO_POSITION[anchors.target] : props.targetPosition);
+
+  const startAnchorDrag = useCallback((e: React.MouseEvent, end: 'source' | 'target') => {
+    if (!isAdmin || !onSetEdgeAnchor) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const box = end === 'source' ? sourceBox : targetBox;
+    if (!box) return;
+    const onMove = (ev: MouseEvent) => {
+      const raw = screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
+      const { anchor, point } = nearestAnchor(raw, box.x, box.y, box.width, box.height);
+      setAnchorDrag({ end, anchor, point });
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setAnchorDrag(current => {
+        if (current) onSetEdgeAnchor(props.id, current.end, current.anchor);
+        return null;
+      });
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [isAdmin, onSetEdgeAnchor, sourceBox, targetBox, screenToFlowPosition, props.id]);
+
+  const clearAnchor = useCallback((e: React.MouseEvent, end: 'source' | 'target') => {
+    if (!isAdmin || !onClearEdgeAnchor) return;
+    e.stopPropagation();
+    onClearEdgeAnchor(props.id, end);
+  }, [isAdmin, onClearEdgeAnchor, props.id]);
+
+  const anchorHandle = (end: 'source' | 'target', point: { x: number; y: number }) => (
+    <rect
+      className="nodrag nopan"
+      x={point.x - ANCHOR_HANDLE_SIZE / 2}
+      y={point.y - ANCHOR_HANDLE_SIZE / 2}
+      width={ANCHOR_HANDLE_SIZE}
+      height={ANCHOR_HANDLE_SIZE}
+      fill={anchors[end] ? '#4f46e5' : '#fff'}
+      stroke="#4f46e5"
+      strokeWidth={2}
+      style={{ cursor: 'grab', pointerEvents: 'all' }}
+      onMouseDown={(e) => startAnchorDrag(e, end)}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => clearAnchor(e, end)}
+    >
+      <title>
+        {anchors[end]
+          ? `Pinned to this box's ${anchors[end]} side — drag to move, double-click to release`
+          : "Drag to pin this end to one of the box's 4 sides"}
+      </title>
+    </rect>
+  );
+
   if (effectivePoints.length > 0) {
-    const path = buildWaypointEdgePath(props.sourceX, props.sourceY, effectivePoints, props.targetX, props.targetY);
+    const path = buildWaypointEdgePath(effectiveSourcePoint.x, effectiveSourcePoint.y, effectivePoints, effectiveTargetPoint.x, effectiveTargetPoint.y);
     const merges = computeSegmentMerges(props.id, effectivePoints, allWaypoints);
     const baseColor = (props.style as React.CSSProperties | undefined)?.stroke as string | undefined ?? '#b1b1b7';
     const fullSequence = [
-      { x: props.sourceX, y: props.sourceY },
+      effectiveSourcePoint,
       ...effectivePoints,
-      { x: props.targetX, y: props.targetY },
+      effectiveTargetPoint,
     ];
     const canAddMore = effectivePoints.length < maxPoints;
 
     return (
       <>
         <BaseEdge id={props.id} path={path} style={props.style} markerEnd={props.markerEnd} />
+        {isAdmin && anchorHandle('source', effectiveSourcePoint)}
+        {isAdmin && anchorHandle('target', effectiveTargetPoint)}
         {merges.map((sharedWith, i) => sharedWith.length > 0 && (
           <path
             key={`merge-${i}`}
@@ -608,11 +726,23 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
     );
   }
 
-  const midX = (props.sourceX + props.targetX) / 2;
-  const midY = (props.sourceY + props.targetY) / 2;
+  const midX = (effectiveSourcePoint.x + effectiveTargetPoint.x) / 2;
+  const midY = (effectiveSourcePoint.y + effectiveTargetPoint.y) / 2;
   return (
     <>
-      <SmartEdge {...props} nodes={nodes} options={TUNED_SMART_EDGE_OPTIONS} />
+      <SmartEdge
+        {...props}
+        nodes={nodes}
+        options={TUNED_SMART_EDGE_OPTIONS}
+        sourceX={effectiveSourcePoint.x}
+        sourceY={effectiveSourcePoint.y}
+        targetX={effectiveTargetPoint.x}
+        targetY={effectiveTargetPoint.y}
+        sourcePosition={effectiveSourcePosition}
+        targetPosition={effectiveTargetPosition}
+      />
+      {isAdmin && anchorHandle('source', effectiveSourcePoint)}
+      {isAdmin && anchorHandle('target', effectiveTargetPoint)}
       {isAdmin && (
         <circle
           className="nodrag nopan"
@@ -667,6 +797,18 @@ interface BoardCanvasProps {
   /** Called when an admin double-clicks the last remaining point on an
    *  edge, resetting it back to normal A* auto-routing. Parent persists. */
   onClearEdgeWaypoint?: (edgeId: string) => void;
+  /** Box-side anchor pins, keyed by edge id (2026-08-04) — which side
+   *  (top/right/bottom/left) of the source/target node this edge's end is
+   *  snapped to, instead of the automatic floating attach point.
+   *  Independent of edgeWaypoints — an edge can have either, both, or
+   *  neither. */
+  edgeAnchors?: Record<string, { source?: BoxAnchor; target?: BoxAnchor }>;
+  /** Called when an admin finishes dragging an edge's source/target
+   *  anchor handle to a new side. Parent persists. */
+  onSetEdgeAnchor?: (edgeId: string, end: 'source' | 'target', anchor: BoxAnchor) => void;
+  /** Called when an admin double-clicks a pinned anchor handle, releasing
+   *  that end back to the automatic floating attach point. */
+  onClearEdgeAnchor?: (edgeId: string, end: 'source' | 'target') => void;
   /** Called after a drag-save round-trip succeeds. The BoardLayoutEditor
    *  uses this to refresh dataService.gameConfigs so the cached positions
    *  don't override the newly-persisted ones on a remount. Optional —
@@ -701,6 +843,9 @@ function BoardCanvasInner({
   edgeWaypoints,
   onSetEdgeWaypoints,
   onClearEdgeWaypoint,
+  edgeAnchors,
+  onSetEdgeAnchor,
+  onClearEdgeAnchor,
   onPositionSaved,
   showBuffer = false,
   centerOnCurrent = false,
@@ -972,6 +1117,9 @@ function BoardCanvasInner({
         isAdmin,
         onSetEdgeWaypoints,
         onClearEdgeWaypoint,
+        anchors: edgeAnchors?.[e.id],
+        onSetEdgeAnchor,
+        onClearEdgeAnchor,
       };
       // Restyle in non-admin mode so path-taken edges (dim gray, dotted) are
       // visually distinct from next-move edges (solid green). Admin mode
@@ -994,7 +1142,7 @@ function BoardCanvasInner({
         markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#adb5bd' },
       };
     });
-  }, [edges, edgesVisible, hiddenEdgeIds, isAdmin, currentPlayerId, players, validMoves, movementChoiceUnlocked, edgeWaypoints, onSetEdgeWaypoints, onClearEdgeWaypoint]);
+  }, [edges, edgesVisible, hiddenEdgeIds, isAdmin, currentPlayerId, players, validMoves, movementChoiceUnlocked, edgeWaypoints, onSetEdgeWaypoints, onClearEdgeWaypoint, edgeAnchors, onSetEdgeAnchor, onClearEdgeAnchor]);
 
   // Click an edge in admin mode → hide it. Single-click is the gesture
   // (React Flow has no native double-click on edges, and right-click
