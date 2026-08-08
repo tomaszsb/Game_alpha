@@ -179,4 +179,36 @@ describe('DataService', () => {
     // Second row has roll_group = 'groupA'
     expect(diceEffects[1].roll_group).toBe('groupA');
   });
+
+  // fb: 2026-08-08 — CON-INITIATION's subsequent-visit percentage fee is a
+  // construction change-order cost, but EffectFactory used to guess its
+  // category by checking if the space name contained "ARCH", so it silently
+  // fell into 'engineering'. Fix: an explicit fee_category CSV column (15th
+  // column, after roll_numeric_only) read directly instead of guessed.
+  it('should parse fee_category column (15th column) from DICE_EFFECTS.csv', async () => {
+    const diceEffectsWithFeeCategory = `space_name,visit_type,effect_type,card_type,roll_1,roll_2,roll_3,roll_4,roll_5,roll_6,roll_group,roll_action,roll_is_percentage,roll_numeric_only,fee_category
+ARCH-FEE-REVIEW,First,money,,8%,8%,10%,10%,12%,12%,,fee,true,false,architectural
+ENG-FEE-REVIEW,First,money,,2%,2%,4%,4%,6%,6%,,fee,true,false,engineering
+CON-INITIATION,Subsequent,money,,0%,2%,4%,6%,8%,10%,,fee,true,false,construction
+START,First,time,,1 day,2 days,3 days,4 days,5 days,6 days,,time,false,false,`;
+
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      const cleanUrl = url.split('?')[0];
+      if (cleanUrl === '/data/CLEAN_FILES/DICE_EFFECTS.csv') {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve(diceEffectsWithFeeCategory) });
+      }
+      const csvData = urlMap[cleanUrl];
+      if (!csvData) return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('') });
+      return Promise.resolve({ ok: true, text: () => Promise.resolve(csvData) });
+    });
+
+    const svc = new DataService();
+    await svc.loadData();
+
+    expect(svc.getDiceEffects('ARCH-FEE-REVIEW', 'First')[0].fee_category).toBe('architectural');
+    expect(svc.getDiceEffects('ENG-FEE-REVIEW', 'First')[0].fee_category).toBe('engineering');
+    expect(svc.getDiceEffects('CON-INITIATION', 'Subsequent')[0].fee_category).toBe('construction');
+    // Rows without the column populated stay undefined (blank -> undefined).
+    expect(svc.getDiceEffects('START', 'First')[0].fee_category).toBeUndefined();
+  });
 });

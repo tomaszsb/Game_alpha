@@ -728,8 +728,11 @@ export class EffectFactory {
         const isPercentage = diceEffect.roll_is_percentage ?? rollEffect.includes('%');
         const percentage = isPercentage ? extractPercentage(rollEffect) : null;
         if (percentage !== null && percentage > 0) {
-          // Determine fee category based on source (space name)
-          const feeCategory: 'architectural' | 'engineering' = source.includes('ARCH') ? 'architectural' : 'engineering';
+          // Use structured fee_category from CSV when available, fall back to
+          // the old name-literal guess only if a row doesn't carry it yet.
+          const feeCategory: 'architectural' | 'engineering' | 'construction' =
+            (diceEffect.fee_category as 'architectural' | 'engineering' | 'construction' | undefined)
+              || (source.includes('ARCH') ? 'architectural' : 'engineering');
           effects.push({
             effectType: 'RESOURCE_CHANGE',
             payload: {

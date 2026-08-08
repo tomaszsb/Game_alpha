@@ -41,7 +41,7 @@ export type Effect =
         reason?: string;
         sourceType?: 'bank' | 'investment' | 'owner' | 'other';  // Money source category
         percentageOfScope?: number;  // For design fees: percentage of project scope to deduct
-        feeCategory?: 'architectural' | 'engineering';  // Category for cost tracking
+        feeCategory?: 'architectural' | 'engineering' | 'construction';  // Category for cost tracking
         // v3.0.41 — Kid C follow-up. When this effect is registered as an
         // active (multi-turn) effect, applyActiveEffects re-checks the
         // affected player's current phase each turn before applying.

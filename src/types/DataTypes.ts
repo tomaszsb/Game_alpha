@@ -219,6 +219,7 @@ export interface DiceEffect {
   roll_action?: string;
   roll_is_percentage?: boolean;
   roll_numeric_only?: boolean;
+  fee_category?: string;
 }
 
 export interface SpaceContent {

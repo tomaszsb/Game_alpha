@@ -477,6 +477,72 @@ describe('EffectFactory', () => {
       expect(moneyEffect).toBeUndefined();
     });
 
+    // fb: 2026-08-08 — CON-INITIATION's Subsequent money row is a construction
+    // change-order cost, not an architect/engineer design fee. It doesn't
+    // contain "ARCH" in its dice source, so the old name-literal guess
+    // silently mislabeled it 'engineering'. The CSV now carries an explicit
+    // fee_category column that EffectFactory reads directly.
+    it('should set construction fee category for CON-INITIATION when fee_category is present in the CSV row', () => {
+      const diceEffects = [{
+        space_name: 'CON-INITIATION',
+        visit_type: 'Subsequent' as const,
+        effect_type: 'money' as const,
+        card_type: '',
+        roll_1: '0%',
+        roll_2: '2%',
+        roll_3: '4%',
+        roll_4: '6%',
+        roll_5: '8%',
+        roll_6: '10%',
+        fee_category: 'construction'
+      }];
+
+      // Roll a 2 -> 2%
+      const effects = EffectFactory.createEffectsFromDiceRoll(
+        diceEffects,
+        mockPlayerId,
+        'CON-INITIATION',
+        2,
+        'Test Player'
+      );
+
+      const moneyEffect = effects.find(e => e.effectType === 'RESOURCE_CHANGE');
+      expect(moneyEffect).toBeDefined();
+      expect(moneyEffect?.payload.percentageOfScope).toBe(2);
+      // Not 'engineering' — the pre-fix bug this regression locks in.
+      expect(moneyEffect?.payload.feeCategory).toBe('construction');
+    });
+
+    it('falls back to the ARCH-substring heuristic when fee_category is absent from the row (backward compat)', () => {
+      const diceEffects = [{
+        space_name: 'CON-INITIATION',
+        visit_type: 'Subsequent' as const,
+        effect_type: 'money' as const,
+        card_type: '',
+        roll_1: '0%',
+        roll_2: '2%',
+        roll_3: '4%',
+        roll_4: '6%',
+        roll_5: '8%',
+        roll_6: '10%'
+        // no fee_category field
+      }];
+
+      const effects = EffectFactory.createEffectsFromDiceRoll(
+        diceEffects,
+        mockPlayerId,
+        'CON-INITIATION',
+        2,
+        'Test Player'
+      );
+
+      const moneyEffect = effects.find(e => e.effectType === 'RESOURCE_CHANGE');
+      // Documents the pre-fix fallback behavior: without a CSV fee_category,
+      // 'dice:CON-INITIATION' doesn't contain "ARCH" so it defaults to
+      // 'engineering'. This is why the CSV column had to be added.
+      expect(moneyEffect?.payload.feeCategory).toBe('engineering');
+    });
+
     it('should still handle fixed money amounts (non-percentage)', () => {
       // Arrange
       const diceEffects = [{

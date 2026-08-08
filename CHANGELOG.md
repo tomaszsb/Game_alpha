@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.99] - 2026-08-08
+
+### Fixed: a construction change-order fee showed as "Engineer fee" — fee category was guessed from the space name
+Real, live-game bug from the 2026-08-03 audit (item 3, `EffectFactory.ts:732`): a percentage-of-scope money fee was categorized `architectural` vs `engineering` by checking whether the effect's source string contained `"ARCH"` — anything that didn't matched fell to `engineering` by default. That default silently caught `CON-INITIATION`'s subsequent-visit percentage cost too, which is a construction change-order fee, not an engineer's design fee — so returning to that space and rolling a cost showed "Engineer fee: X% of scope" in the ledger, factually wrong and voice-rule-breaking. `docs/core/TEACHER_LAYER_DESIGN.md` had already flagged this exact code as a name-literal coupling problem and prescribed the fix: "a `fee_category` column read at the effect/space level."
+
+Implemented that: `DICE_EFFECTS.csv` gets a new `fee_category` column, populated for the three money-percentage spaces (`ARCH-FEE-REVIEW` → architectural, `ENG-FEE-REVIEW` → engineering, `CON-INITIATION` → construction); `EffectFactory.ts` now reads it, falling back to the old name-guess only for rows that don't carry it. Display text picks "Change order fee" for the construction category — matching the space's own existing narration ("change order" language already used throughout `SPACE_CONTENT.csv`'s `CON-INITIATION` rows), not an invented term. `costHistory` now tracks `construction` as its own category rather than folding it into `engineering`'s running total. New end-to-end regression test reads the real production CSV through the full pipeline (`EffectFactory` → `FinancialEffectHandler`) and asserts the exact ledger description. Verified: typecheck clean, production build clean, full `tests/services/` suite 934/934, plus targeted `EffectFactory`/`DataService` suites.
+
 ## [3.1.98] - 2026-08-08
 
 ### Fixed: Investment cards showed "Investor" — two components bypassed the CSV-driven card-type-label pipeline

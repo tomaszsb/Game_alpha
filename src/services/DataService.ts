@@ -936,7 +936,8 @@ export class DataService implements IDataService {
         roll_group: values[10] || undefined,
         roll_action: values[11] || undefined,
         roll_is_percentage: values[12] === 'true',
-        roll_numeric_only: values[13] === 'true'
+        roll_numeric_only: values[13] === 'true',
+        fee_category: values[14] || undefined
       };
     });
   }

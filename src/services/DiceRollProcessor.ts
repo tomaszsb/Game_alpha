@@ -396,7 +396,11 @@ export class DiceRollProcessor {
           if (payload.percentageOfScope !== undefined) {
             const projectScope = this.gameRulesService.calculateProjectScope(currentPlayer.id);
             displayAmount = -Math.floor((projectScope * payload.percentageOfScope) / 100);
-            const feeType = payload.feeCategory === 'architectural' ? 'Architect' : 'Engineer';
+            const feeType = payload.feeCategory === 'architectural'
+              ? 'Architect'
+              : payload.feeCategory === 'construction'
+                ? 'Change order'
+                : 'Engineer';
             description = `${feeType} fee: ${payload.percentageOfScope}% of scope`;
           }
 

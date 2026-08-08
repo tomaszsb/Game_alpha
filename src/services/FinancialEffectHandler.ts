@@ -258,18 +258,32 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     }
 
     if (player.costs) {
-      const costCategory = payload.feeCategory === 'architectural' ? 'architectural' : 'engineering';
+      // 'construction' (change-order costs, e.g. CON-INITIATION subsequent
+      // visits) is intentionally NOT one of the CostBreakdown/ExpenseCategory
+      // buckets (see DataTypes.ts CostCategory comment) — it's tracked
+      // separately from architect/engineer design fees elsewhere
+      // (EffectEngineService contractor-hire cost uses expenditures.construction).
+      // Only bump the per-category bucket for the two design-fee categories;
+      // 'total' still reflects every percentage-of-scope fee charged here.
       const updatedCosts = { ...player.costs };
-      updatedCosts[costCategory] = (updatedCosts[costCategory] || 0) + feeAmount;
+      if (payload.feeCategory === 'architectural' || payload.feeCategory === 'engineering') {
+        updatedCosts[payload.feeCategory] = (updatedCosts[payload.feeCategory] || 0) + feeAmount;
+      }
       updatedCosts.total = (updatedCosts.total || 0) + feeAmount;
       updateData.costs = updatedCosts;
+
+      const feeLabel = payload.feeCategory === 'architectural'
+        ? 'Architect'
+        : payload.feeCategory === 'construction'
+          ? 'Change order'
+          : 'Engineer';
 
       const costHistory = [...(player.costHistory || [])];
       costHistory.push({
         id: `cost-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        category: costCategory,
+        category: payload.feeCategory === 'construction' ? 'construction' : (payload.feeCategory === 'architectural' ? 'architectural' : 'engineering'),
         amount: feeAmount,
-        description: `${payload.feeCategory === 'architectural' ? 'Architect' : 'Engineer'} fee: ${payload.percentageOfScope}% of scope`,
+        description: `${feeLabel} fee: ${payload.percentageOfScope}% of scope`,
         turn: currentTurn,
         timestamp: new Date(),
         spaceName: player.currentSpace
@@ -362,7 +376,11 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     const player = this.stateService.getPlayer(playerId);
     if (!player) return;
 
-    const feeType = payload.feeCategory === 'architectural' ? 'Architect' : 'Engineer';
+    const feeType = payload.feeCategory === 'architectural'
+      ? 'Architect'
+      : payload.feeCategory === 'construction'
+        ? 'Change order'
+        : 'Engineer';
     const formattedAmount = Math.abs(amount).toLocaleString();
 
     this.notificationService.notify(
