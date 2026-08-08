@@ -68,6 +68,33 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
     expect(screen.getByText(/Why this matters/i)).toBeInTheDocument(); // teaching callout
   });
 
+  // 2026-08-03 audit: this view's type chip used a hardcoded local label map
+  // ({ I: { label: 'Investor', ... } }) that disagreed with the CSV-driven
+  // pipeline (getCardTypeName / CARD_TYPES.csv), which says "Investment" —
+  // the same bug class v3.1.0 fixed elsewhere. The chip must read from the
+  // shared pipeline, not a hardcoded string local to this component.
+  it('labels an I-type card "Investment" via the CSV-driven pipeline, not a hardcoded "Investor" (audit 2026-08-03)', () => {
+    render(
+      <DictionaryProvider>
+        <PlayerCardDetailV2
+          isOpen
+          onClose={vi.fn()}
+          card={{ card_id: 'I001', card_type: 'I', card_name: 'Angel Round', description: 'Outside capital funds the project.', money_effect: '20000' }}
+          playerId="player1"
+          gameServices={services as any}
+          mode="light"
+        />
+      </DictionaryProvider>,
+    );
+    // The type chip must read "Investment" (CSV-driven), not the old
+    // hardcoded "Investor". The teaching callout prose legitimately still
+    // says "Investor capital funds..." (that field is untouched by design),
+    // so assert on the chip's exact text rather than absence of "Investor"
+    // anywhere on the page.
+    expect(screen.getByText('💼 Investment')).toBeInTheDocument();
+    expect(screen.queryByText('💼 Investor')).not.toBeInTheDocument();
+  });
+
   it('colours the day delta — green when it saves days, red when it adds (fb:39fd9f04)', () => {
     renderDetail(); // card saves 2 days (tick_modifier '-2')
     expect(screen.getByText('2 days')).toHaveStyle({ color: '#1e7e34' });

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.98] - 2026-08-08
+
+### Fixed: Investment cards showed "Investor" — two components bypassed the CSV-driven card-type-label pipeline
+Real, live-game bug from the 2026-08-03 audit (not reskin-specific): `PlayerCardDetailV2.tsx`'s card-detail modal had its own hardcoded `W/B/E/L/I` label map, so an Investment card's type chip read "Investor" while `CARD_TYPES.csv` — the actual source of truth, already wired up via `getCardTypeName()` in `cardTypeNames.ts` — says "Investment". Same bug class v3.1.0 fixed elsewhere; this one had regressed back in. `CardTypeBadge.tsx` had the same latent bug (falling back to `theme.ts`'s hardcoded label instead of the CSV pipeline) but it never reached a screen — its one live caller (`DiscardPileModal`) renders with `showLabel={false}`.
+
+Both now call `getCardTypeName()` for the visible label; `PlayerCardDetailV2`'s emoji/teaching-prose fields are untouched (those weren't flagged and aren't CSV-driven by design). New tests: `PlayerCardDetailV2` asserts an I-type card renders "Investment" not "Investor"; `CardTypeBadge.test.tsx` is a new file (no prior coverage existed) covering the CSV-override path, unknown-type fallback, and the `showLabel={false}` case that kept the badge bug latent. Verified: typecheck clean, production build clean, full `tests/components/` suite 464/464.
+
 ## [3.1.97] - 2026-08-08
 
 ### Investigation (no code change): root-caused why home IPv6 sessions still get flagged foreign

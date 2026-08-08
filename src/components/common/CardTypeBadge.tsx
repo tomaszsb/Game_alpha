@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { colors, theme } from '../../styles/theme';
+import { getCardTypeName } from '../../utils/cardTypeNames';
 
 export type CardType = 'W' | 'B' | 'E' | 'L' | 'I';
 
@@ -101,8 +102,15 @@ export function CardTypeBadge({
     lineHeight: 1,
   };
 
-  // Build display content
-  const displayLabel = showLabel ? cardTypeConfig.label : type;
+  // Build display content — label comes from the CSV-driven pipeline
+  // (getCardTypeName), NOT cardTypeConfig.label. cardTypeConfig.label is
+  // theme.ts's hardcoded fallback (still fine for colors/emoji, which
+  // aren't reskin-sensitive), but using it for the visible label bypassed
+  // CARD_TYPES.csv overrides — the same bug class fixed elsewhere in
+  // v3.1.0 (audit 2026-08-03). This was latent: the badge's only caller
+  // today renders with showLabel={false}, so the unsafe default was never
+  // actually on screen.
+  const displayLabel = showLabel ? getCardTypeName(type) : type;
 
   return (
     <span style={badgeStyle} className={className} data-card-type={type}>

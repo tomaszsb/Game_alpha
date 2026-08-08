@@ -77,3 +77,4 @@
 {"ts":"2026-07-31T00:18:01Z","item":"Copy game code to clipboard on deploy banner","fbId":"fb:feedback-1785191198601-2948cf19","model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":40.03,"commit":"2e99e5f"}
 {"ts":"2026-07-31T00:19:54Z","item":"none — no eligible item this iteration","fbId":null,"model":null,"outcome":"skipped","note":"all remaining Active items excluded by skip rules (external action, needs real playtest, TBD user approval, human-review-only, out-of-repo, or explicitly larger deferred follow-on)","commit":null}
 {"ts": "2026-08-08T17:36:21Z", "item": "DOB approval penalty audit finding - verified no live bug", "fbId": null, "model": "claude-sonnet-5", "outcome": "fixed", "usedPctAfter": null, "commit": "d25ed28"}
+{"ts":"2026-08-08T17:44:13.724Z","item":"Home-IPv6 false-foreign-alert - root-caused, moved to user decision","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":null,"commit":"382fddb"}

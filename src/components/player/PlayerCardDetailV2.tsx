@@ -23,7 +23,7 @@ import { IServiceContainer } from '../../types/ServiceContracts';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeColors } from '../common/CardTypeBadge';
-import { getCardDisplayTitle, getCardEffectSummary } from '../../utils/cardTypeNames';
+import { getCardDisplayTitle, getCardEffectSummary, getCardTypeName } from '../../utils/cardTypeNames';
 import { getCardDescriptionForPlayerCount } from '../../utils/templateInterpolation';
 import { panelPalettes, PanelMode } from './panelTheme';
 
@@ -42,12 +42,16 @@ export interface PlayerCardDetailV2Props {
 }
 
 // Type-level teaching notes — stable domain facts, NOT fabricated per-card text.
-const CARD_TYPE_META: Record<string, { label: string; emoji: string; teaches: string }> = {
-  W: { label: 'Work Package', emoji: '🧱', teaches: 'Work packages are the scope of construction — what actually gets built, filed, and inspected.' },
-  B: { label: 'Bank Loan', emoji: '🏦', teaches: 'Bank financing funds the project, but loans carry fees charged against the principal.' },
-  E: { label: 'Expeditor', emoji: '⚡', teaches: 'Expeditors are real NYC permitting pros — each one speeds a specific project phase.' },
-  L: { label: 'Life Event', emoji: '📰', teaches: 'Life events are the real-world surprises that shift a project’s time and money.' },
-  I: { label: 'Investor', emoji: '💼', teaches: 'Investor capital funds the project for a share — no repayment, but a fee applies.' },
+// Labels are NOT hardcoded here — they come from getCardTypeName() (the
+// CSV-driven pipeline in cardTypeNames.ts) so this view can't drift from
+// CARD_TYPES.csv the way it did before (audit 2026-08-03: this map's old
+// hardcoded "Investor" label disagreed with the CSV's "Investment").
+const CARD_TYPE_META: Record<string, { emoji: string; teaches: string }> = {
+  W: { emoji: '🧱', teaches: 'Work packages are the scope of construction — what actually gets built, filed, and inspected.' },
+  B: { emoji: '🏦', teaches: 'Bank financing funds the project, but loans carry fees charged against the principal.' },
+  E: { emoji: '⚡', teaches: 'Expeditors are real NYC permitting pros — each one speeds a specific project phase.' },
+  L: { emoji: '📰', teaches: 'Life events are the real-world surprises that shift a project’s time and money.' },
+  I: { emoji: '💼', teaches: 'Investor capital funds the project for a share — no repayment, but a fee applies.' },
 };
 
 export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
@@ -78,7 +82,8 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   const allPlayers = gameServices.stateService.getAllPlayers();
   const playerCount = Array.isArray(allPlayers) && allPlayers.length > 0 ? allPlayers.length : 2;
   const description = getCardDescriptionForPlayerCount(card, playerCount);
-  const meta = CARD_TYPE_META[card.card_type] || { label: card.card_type, emoji: '📄', teaches: '' };
+  const meta = CARD_TYPE_META[card.card_type] || { emoji: '📄', teaches: '' };
+  const typeLabel = getCardTypeName(card.card_type);
   const typeColors = getCardTypeColors(card.card_type || '');
   // Only Expeditors (E) are "activated" from this view. The influence zone offers
   // Activate on E cards only, and an E activation is the game's one play-from-hand
@@ -258,7 +263,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
               background: typeColors.primary,
             }}
           >
-            {meta.emoji} {meta.label}
+            {meta.emoji} {typeLabel}
           </span>
         </div>
 
