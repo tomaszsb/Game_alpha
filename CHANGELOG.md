@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.96] - 2026-08-08
+
+### Investigation (no code change): the DOB end-game penalty cannot misfire in the current game
+Carried-over concern from the 2026-08-03 CSV-only-reskin audit: `ApprovalService.computeEndGamePenalty` docks every winner -30 days/-$50k unless `dobApprovalStatus === 'approved'`, and `StateService.ts`'s `createNewPlayer` never initializes that field. Flagged as the audit's highest-severity finding and left unverified against the *current, non-reskinned* game — this session closed that gap.
+
+Traced the live CSVs directly: `FINISH` is the only `is_ending_space=Yes` row in `GAME_CONFIG.csv`, and `REG-DOB-FINAL-REVIEW` is the only space whose dice table can output it — no other space, in `MOVEMENT.csv`, `DICE_OUTCOMES.csv`, or `LOGIC_QUESTIONS.csv`, routes to `FINISH`. That space is also the board's only `has_final_review_gate=Yes` row, and the gate is enforced independently in two places — `DiceRollProcessor` discards the roll and force-routes back to the missing examiner, and `MovementService.getValidMoves`/`validateMove` collapse valid moves to the return route — both checking `dobApprovalStatus` live, not a cached flag. Every movement-execution path goes through `movePlayer` → `validateMove`, so there's no route to `FINISH` that skips the check. `tests/ghost/finalReviewStaleIntent.test.ts` already exercises this against the real board topology (via `bootstrapHeadlessServices()`, which loads the actual `public/data/CLEAN_FILES` CSVs), confirming a player missing DOB approval gets routed back to `REG-DOB-PLAN-EXAM` instead of reaching `FINISH`.
+
+The uninitialized field is real but harmless here — it reads as "not approved," which is correct until the player earns it via the DOB exam or Prof-Cert self-certification, and the gate re-checks live state so even a mid-game revoke would correctly re-trigger it. The audit's concern only applies to a hypothetical future reskin CSV that omits a DOB-equivalent gate space entirely — moot for the current board. 68/68 passing across `ApprovalService.test.ts`, `StateService-tryAgainApprovals.test.ts`, `MovementService-unifiedResolver.test.ts`, and `finalReviewStaleIntent.test.ts`.
+
 ## [3.1.95] - 2026-08-04
 
 More live-testing feedback on today's board work: bulk-only "restore" buttons and handles that are genuinely hard to tell apart when close together.
