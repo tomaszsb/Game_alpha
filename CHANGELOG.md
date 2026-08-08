@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.97] - 2026-08-08
+
+### Investigation (no code change): root-caused why home IPv6 sessions still get flagged foreign
+`TODO.md` had this flagged as "raised again 2026-08-04, not re-investigated" since the 2026-07-15 session's `/64`-prefix fix apparently didn't fully close it. This session actually root-caused it via `docker logs game_alpha` and `visitors.log` (live evidence, not re-reading old assumptions).
+
+Confirmed: `detectHomeIPv6()` fails on **every** attempt — `⚠️ Could not detect home IPv6 via https://ipv6.icanhazip.com: fetch failed` — because the container runs on the custom `game-net` Docker bridge network (`deploy.sh:43`), which has no outbound IPv6 route by default. `detectedHomeIPv6` never resolves, so `isHomeIP()`'s IPv6 branch always falls through to "foreign" for every IPv6 client, home or not. This is a different bug from the one fixed 2026-07-15 (exact-match vs. `/64`-prefix comparison, which is correct on its own) — the container simply never has an IPv6 address of its own to prefix-compare against. Cross-checked `visitors.log`: the maintainer's own repeated home sessions ("tomasz"/"Tom"/"Tomasz", 2026-07-13 through 08-04) all arrive over real `2600:4041:...` IPv6 addresses — every one of those would have been marked foreign.
+
+Both real fixes carry either infra risk (giving the Docker network real IPv6 routing, untestable headless on a live production box) or an ongoing-maintenance cost (a manual `HOME_IP` override, since the sampled addresses suggest the ISP periodically rotates the delegated prefix) — left as a decision for the maintainer rather than an autonomous change. Full detail and both options: TODO.md "Decisions waiting on the user".
+
 ## [3.1.96] - 2026-08-08
 
 ### Investigation (no code change): the DOB end-game penalty cannot misfire in the current game
