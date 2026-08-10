@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** August 4, 2026 — full G160 arc: real-browser confirmation surfaced a wiring gap (fixed), then live testing drove multi-bend waypoints, manual connector bundling, box-side anchor snapping, and a per-connector restore picker + hover-highlight — each round finding and fixing a real bug along the way. See CHANGELOG v3.1.90–v3.1.95.
-**Status:** Beta — live in production; **v3.1.95 confirmed deployed** (verified via `/health` reporting commit `8af3a93`).
-**Current Version:** 3.1.95, deployed and confirmed live.
+**Last Updated:** August 9, 2026 — Workstream 6 reskin-audit follow-ups: DOB/FDNY narration and CHARACTER_MAP both moved off hardcoded literals onto CSV-driven lookups (reskin items 3–4), plus a real live-game scoring bug fixed along the way (Bank Loan cards dodging loan fees). See CHANGELOG v3.1.96–v3.1.102.
+**Status:** Beta — repo is at v3.1.102, but **live deploy is 4 commits behind** (`/health` on 2026-08-10 reports commit `dce7bb0` = the pre-v3.1.100 focus-trap fix). v3.1.100 (Bank Loan fee bug fix), v3.1.101, and v3.1.102 (reskin items 3–4) are shipped in CHANGELOG but not yet live.
+**Current Version:** 3.1.102 (repo/CHANGELOG); live is commit `dce7bb0` — run `bash deploy.sh` on Unraid to catch it up.
 
 ---
 
