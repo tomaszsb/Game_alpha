@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.102] - 2026-08-09
+
+### Reskin: CHARACTER_MAP moved from a hardcoded literal to data/characters.csv
+Item 4 from the 2026-08-09 reskin-refactor survey, following on from the 2026-08-03 Workstream 6 CSV-only-reskin audit's "Moderate" finding (TODO.md). Item 3 already let a reskin CSV reassign which *existing* NPC speaks at a space (`npc_speaker`/`configureNpcSpeakers`), but the 9-character `CHARACTER_MAP` roster itself (`characters.ts`) was still a hardcoded object literal — a reskin could repoint spaces at the stock NPCs, but adding a genuinely new NPC identity (e.g. a "Dungeon Master" for the on-hold D&D reskin experiment) still required a code edit.
+
+Added `public/data/CLEAN_FILES/CHARACTERS.csv` as the source of truth for the roster, one row per NPC (`id`, `emoji`, `name`, `phase`, `color`, `image_roles`, `short_label`). `DataService` gained `loadCharacters()`/`getCharacterRows()`; `characters.ts` gained `configureCharacterMap()`, called from `App.tsx` before `configureNpcSpeakers` (a brand-new id needs to already be in `CHARACTER_MAP` before `npc_speaker` overrides try to resolve it). `CHARACTER_MAP` stays a plain, synchronously-populated object — seeded from a new `DEFAULT_CHARACTER_MAP` built-in at module load — so consumers that read it at import time (`SpeechService`'s `CHARACTER_PROFILES`) still see valid data before the async CSV fetch resolves. A missing CSV, an empty CSV, or a CSV where every row fails validation all fall back to `DEFAULT_CHARACTER_MAP` untouched — today's byte-identical output, verified by a dedicated regression test that diffs CSV-loaded output against the old hardcoded map. Individual malformed rows (missing a required field) are skipped with a `console.error`, without discarding the rest of the file; `image_roles` values that aren't a real `NpcImageRole` are filtered out rather than passed through.
+
+New regression test `tests/regression/CharacterMapCsvDriven.test.ts` covers: byte-identical default output from the shipped CSV, a new NPC (e.g. "Dungeon Master") becoming reachable via `getNpcCharacterInfo()`/`configureNpcSpeakers()` with no code change, empty/malformed-CSV fallback without crashing, partial-row skip-and-continue, and `image_roles` rejecting unknown values. `DataService.test.ts` updated for the new `loadCharacters()`/`getCharacterRows()` path. Verified: typecheck clean, production build clean, full suite 2732/2732 (193 files).
+
 ## [3.1.101] - 2026-08-09
 
 ### Reskin: DOB/FDNY narration copy now routes through the existing npc_speaker/approval_role CSV hooks

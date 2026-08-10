@@ -1,6 +1,8 @@
 // src/constants/characters.ts
 // Shared NPC character constants — single source of truth for CharacterBadge, SpeechService, and portrait system.
 
+import type { CharacterCsvRow } from '../types/DataTypes';
+
 export type Ethnicity = 'asian' | 'black' | 'hispanic' | 'white';
 export type Gender = 'male' | 'female';
 
@@ -52,7 +54,15 @@ export interface CharacterInfo {
   shortLabel: string;
 }
 
-export const CHARACTER_MAP: Record<string, CharacterInfo> = {
+/**
+ * 2026-08-09: CSV-portability lift, reskin item 4. Built-in fallback for the
+ * 9 stock NPCs -- used verbatim when data/CHARACTERS.csv is missing or every
+ * row in it fails validation (see configureCharacterMap below), and as
+ * CHARACTER_MAP's initial value so a module that reads CHARACTER_MAP
+ * synchronously at import time (SpeechService's CHARACTER_PROFILES, built
+ * before App's async data load resolves) always sees valid data.
+ */
+const DEFAULT_CHARACTER_MAP: Record<string, CharacterInfo> = {
   OWNER:      { emoji: '\u{1F454}', name: 'The Owner',        phase: 'Initiation',   color: '#2196F3', imageRoles: ['owner'], shortLabel: 'Owner' },
   ARCH:       { emoji: '\u{1F4D0}', name: 'The Architect',    phase: 'Design',       color: '#9C27B0', imageRoles: ['architect'], shortLabel: 'Architect' },
   ENG:        { emoji: '\u2699\uFE0F',  name: 'The Engineer',     phase: 'Engineering',  color: '#FF9800', imageRoles: ['engineer'], shortLabel: 'Engineer' },
@@ -72,6 +82,60 @@ export const CHARACTER_MAP: Record<string, CharacterInfo> = {
   LEND:       { emoji: '\u{1F91D}', name: 'The Lender',        phase: 'Funding',      color: '#FFC107', imageRoles: [], shortLabel: 'Lender' },
   INVESTOR:   { emoji: '\u{1F4BC}', name: 'The Investor',      phase: 'Funding',      color: '#3F51B5', imageRoles: [], shortLabel: 'Investor' },
 };
+
+/**
+ * 2026-08-09: CSV-portability lift, reskin item 4. Mutable \u2014 populated from
+ * DEFAULT_CHARACTER_MAP at module load (so every synchronous reader gets
+ * today's stock roster immediately) and then overwritten in place by
+ * configureCharacterMap() once CHARACTERS.csv loads at app startup. Object
+ * identity never changes, so existing `import { CHARACTER_MAP }` references
+ * see the CSV-driven data once configureCharacterMap runs.
+ */
+export const CHARACTER_MAP: Record<string, CharacterInfo> = { ...DEFAULT_CHARACTER_MAP };
+
+/**
+ * Call once at app startup (after DataService.loadData() resolves) with
+ * every row parsed from CHARACTERS.csv, to let a reskin replace or extend
+ * the built-in NPC roster \u2014 e.g. add a "Dungeon Master" entry for the D&D
+ * reskin experiment \u2014 without a code edit. Once a new id is present in
+ * CHARACTER_MAP, `configureNpcSpeakers`'s existing `npc_speaker` override
+ * chain can point any space at it, same as the 9 stock NPCs.
+ *
+ * A row missing a required field is skipped (logged) \u2014 the rest of the CSV
+ * still loads. If the CSV is missing (empty `rows`) or every row fails
+ * validation, CHARACTER_MAP keeps its built-in DEFAULT_CHARACTER_MAP
+ * contents untouched \u2014 the game never crashes over a bad reskin CSV.
+ */
+export function configureCharacterMap(rows: CharacterCsvRow[]): void {
+  if (!rows || rows.length === 0) return; // missing/empty CHARACTERS.csv \u2014 built-in defaults stand
+
+  const parsed: Record<string, CharacterInfo> = {};
+  for (const row of rows) {
+    const id = (row.id || '').trim();
+    const emoji = (row.emoji || '').trim();
+    const name = (row.name || '').trim();
+    const phase = (row.phase || '').trim();
+    const color = (row.color || '').trim();
+    const shortLabel = (row.short_label || '').trim();
+    if (!id || !emoji || !name || !phase || !color || !shortLabel) {
+      console.error('characters.ts: skipping malformed CHARACTERS.csv row (missing a required field):', row);
+      continue;
+    }
+    const imageRoles = (row.image_roles || '')
+      .split(',')
+      .map(r => r.trim())
+      .filter((r): r is NpcImageRole => (ALL_IMAGE_ROLES as string[]).includes(r));
+    parsed[id] = { emoji, name, phase, color, imageRoles, shortLabel };
+  }
+
+  if (Object.keys(parsed).length === 0) {
+    console.error('characters.ts: CHARACTERS.csv had no valid rows \u2014 falling back to the built-in NPC roster.');
+    return;
+  }
+
+  for (const key of Object.keys(CHARACTER_MAP)) delete CHARACTER_MAP[key];
+  Object.assign(CHARACTER_MAP, parsed);
+}
 
 /**
  * 2026-07-16: CSV-portability lift — reskin hook. Populated once at app

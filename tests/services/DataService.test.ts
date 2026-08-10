@@ -33,6 +33,9 @@ START,First,choice,Decide {playerName},Weigh your options at {spaceName},Commit,
 START,First,dice,Generic Roll Title,Generic desc,OK,,
 START,First,dice,Rolled a Six!,Lucky!,Celebrate,,6`;
 
+const mockCharactersCsv = `id,emoji,name,phase,color,image_roles,short_label
+OWNER,👔,The Owner,Initiation,#2196F3,owner,Owner`;
+
 const urlMap: { [key: string]: string } = {
   '/data/CLEAN_FILES/GAME_CONFIG.csv': mockGameConfigCsv,
   '/data/CLEAN_FILES/MOVEMENT.csv': mockMovementCsv,
@@ -42,6 +45,7 @@ const urlMap: { [key: string]: string } = {
   '/data/CLEAN_FILES/SPACE_CONTENT.csv': mockSpaceContentCsv,
   '/data/CLEAN_FILES/CARDS_EXPANDED.csv': mockCardsExpandedCsv,
   '/data/SOURCE_FILES/ModalConfig.csv': mockModalConfigCsv,
+  '/data/CLEAN_FILES/CHARACTERS.csv': mockCharactersCsv,
 };
 
 global.fetch = vi.fn().mockImplementation((url: string) => {
@@ -88,15 +92,48 @@ describe('DataService', () => {
 
   it('should fetch and parse all CSV files correctly', async () => {
     await dataService.loadData();
-    // 10 CLEAN_FILES CSVs (incl. LOGIC_QUESTIONS.csv + PATH_CHOICE_RULES.csv added in
-    // v2.57.0, CARD_TYPES.csv added 2026-07-16 for the CSV-portability lift)
-    // + 1 SOURCE_FILES/ModalConfig.csv = 11 fetches.
-    expect(global.fetch).toHaveBeenCalledTimes(11);
+    // 11 CLEAN_FILES CSVs (incl. LOGIC_QUESTIONS.csv + PATH_CHOICE_RULES.csv
+    // added in v2.57.0, CARD_TYPES.csv added 2026-07-16, CHARACTERS.csv added
+    // 2026-08-09 for the CSV-portability lift) + 1 SOURCE_FILES/ModalConfig.csv
+    // = 12 fetches.
+    expect(global.fetch).toHaveBeenCalledTimes(12);
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CARDS_EXPANDED\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/SOURCE_FILES\/ModalConfig\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/PATH_CHOICE_RULES\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CARD_TYPES\.csv/));
+    expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CHARACTERS\.csv/));
     expect(dataService.isLoaded()).toBe(true);
+  });
+
+  it('should parse CHARACTERS.csv rows via getCharacterRows', async () => {
+    await dataService.loadData();
+    const rows = dataService.getCharacterRows();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({
+      id: 'OWNER',
+      emoji: '👔',
+      name: 'The Owner',
+      phase: 'Initiation',
+      color: '#2196F3',
+      image_roles: 'owner',
+      short_label: 'Owner',
+    });
+  });
+
+  it('should tolerate a missing CHARACTERS.csv', async () => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      const cleanUrl = url.split('?')[0];
+      if (cleanUrl === '/data/CLEAN_FILES/CHARACTERS.csv') {
+        return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('') });
+      }
+      const csvData = urlMap[cleanUrl];
+      if (!csvData) return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('') });
+      return Promise.resolve({ ok: true, text: () => Promise.resolve(csvData) });
+    });
+    const svc = new DataService();
+    await svc.loadData();
+    expect(svc.isLoaded()).toBe(true);
+    expect(svc.getCharacterRows()).toEqual([]);
   });
 
   it('should expose modal config overrides via getModalConfig', async () => {

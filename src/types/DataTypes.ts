@@ -88,6 +88,27 @@ export interface CardTypeLabel {
   label: string;
 }
 
+/**
+ * 2026-08-09: CSV-portability lift, reskin item 4. One row of
+ * CHARACTERS.csv — the raw-string shape as parsed off disk, mirroring
+ * `CharacterInfo` (src/constants/characters.ts) plus the `id` map key.
+ * `image_roles` is a comma-separated list of NpcImageRole values (empty for
+ * no portrait art, matching BANK/LEND/INVESTOR today). Optional file — a
+ * missing/malformed CHARACTERS.csv leaves this empty and characters.ts's
+ * `configureCharacterMap` falls back to its built-in 9-NPC roster. This is
+ * what lets a reskin CSV add a brand-new NPC (e.g. "Dungeon Master") without
+ * a code edit.
+ */
+export interface CharacterCsvRow {
+  id: string;
+  emoji: string;
+  name: string;
+  phase: string;
+  color: string;
+  image_roles: string;
+  short_label: string;
+}
+
 export interface Movement {
   space_name: string;
   visit_type: 'First' | 'Subsequent';

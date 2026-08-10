@@ -1,0 +1,10 @@
+id,emoji,name,phase,color,image_roles,short_label
+OWNER,👔,The Owner,Initiation,#2196F3,owner,Owner
+ARCH,📐,The Architect,Design,#9C27B0,architect,Architect
+ENG,⚙️,The Engineer,Engineering,#FF9800,engineer,Engineer
+REG-DOB,📋,DOB Examiner,Regulatory,#f44336,"dob_examiner,dob_clerk",DOB
+REG-FDNY,🚒,FDNY Inspector,Regulatory,#E91E63,"fdny_examiner,fdny_clerk",FDNY
+CON,🏗️,The Contractor,Construction,#4CAF50,"contractor,inspector",Contractor
+BANK,🏦,The Bank,Funding,#009688,,Bank
+LEND,🤝,The Lender,Funding,#FFC107,,Lender
+INVESTOR,💼,The Investor,Funding,#3F51B5,,Investor

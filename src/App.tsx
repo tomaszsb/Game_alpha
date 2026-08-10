@@ -15,7 +15,7 @@ import { getTooltipService } from './services/TooltipService';
 import { getPreviewParams, clearPreviewParams } from './utils/dictionaryBridge';
 import { FeedbackButton } from './components/feedback/FeedbackButton';
 import { configureApprovalSpaces } from './services/ApprovalService';
-import { configureNpcSpeakers } from './constants/characters';
+import { configureNpcSpeakers, configureCharacterMap } from './constants/characters';
 import { configureCardTypeLabels } from './utils/cardTypeNames';
 import { VersionBadge } from './components/common/VersionBadge';
 import { debugWarn } from './utils/debugLog';
@@ -124,6 +124,13 @@ function AppContent(): JSX.Element {
           fdnyExam: dataService.getSpaceForApprovalRole('fdny_exam'),
           dobAudit: dataService.getSpaceForApprovalRole('dob_audit'),
         });
+        // 2026-08-09: reskin item 4 — let a reskin CSV replace/extend the
+        // built-in NPC roster itself (not just reassign spaces to existing
+        // NPCs). Must run BEFORE configureNpcSpeakers below: that function
+        // only registers a space override when the npc_speaker value already
+        // matches a CHARACTER_MAP key, so a brand-new reskin NPC (e.g.
+        // "Dungeon Master") has to land in CHARACTER_MAP first.
+        configureCharacterMap(dataService.getCharacterRows());
         // Same reskin hook for which NPC "speaks" at each space (see
         // ApprovalService.configureApprovalSpaces above for the pattern).
         configureNpcSpeakers(dataService.getNpcSpeakerAssignments());

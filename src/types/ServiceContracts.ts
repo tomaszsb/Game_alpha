@@ -150,6 +150,7 @@ export interface IDataService {
   getSpaceForApprovalRole(role: 'dob_exam' | 'fdny_exam' | 'dob_audit'): string | null;
   getNpcSpeakerAssignments(): Array<{ spaceName: string; npcSpeaker: string }>;
   getCardTypeLabels(): import('./DataTypes').CardTypeLabel[];
+  getCharacterRows(): import('./DataTypes').CharacterCsvRow[];
   getMinWCardsToLeave(spaceName: string): number;
   getFeeCalculationMethod(spaceName: string): 'flat' | 'percentage_of_scope';
   getFeeLabel(spaceName: string): string;

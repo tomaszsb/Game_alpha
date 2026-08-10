@@ -13,7 +13,8 @@ import {
   ModalConfigOverrides,
   LogicQuestion,
   PathChoiceRule,
-  CardTypeLabel
+  CardTypeLabel,
+  CharacterCsvRow
 } from '../types/DataTypes';
 import { getDataBasePath } from '../utils/dataInstance';
 
@@ -49,6 +50,8 @@ export class DataService implements IDataService {
   private pathChoiceRules: PathChoiceRule[] = [];
   // 2026-07-16: CSV-portability lift — reskin hook for card-type display labels.
   private cardTypeLabels: CardTypeLabel[] = [];
+  // 2026-08-09: CSV-portability lift, reskin item 4 — reskin hook for the NPC roster.
+  private characterRows: CharacterCsvRow[] = [];
   private loaded = false;
   private loadingPromise: Promise<void> | null = null;
 
@@ -74,7 +77,8 @@ export class DataService implements IDataService {
           this.loadModalConfigs(),
           this.loadLogicQuestions(),
           this.loadPathChoiceRules(),
-          this.loadCardTypeLabels()
+          this.loadCardTypeLabels(),
+          this.loadCharacters()
         ]);
 
         this.buildSpaces();
@@ -125,7 +129,8 @@ export class DataService implements IDataService {
       this.loadModalConfigs(),
       this.loadLogicQuestions(),
       this.loadPathChoiceRules(),
-      this.loadCardTypeLabels()
+      this.loadCardTypeLabels(),
+      this.loadCharacters()
     ]);
     this.buildSpaces();
   }
@@ -706,6 +711,56 @@ export class DataService implements IDataService {
    */
   getCardTypeLabels(): CardTypeLabel[] {
     return [...this.cardTypeLabels];
+  }
+
+  /**
+   * 2026-08-09: CSV-portability lift, reskin item 4 — load CHARACTERS.csv.
+   * Optional — a missing file simply leaves the array empty, and
+   * characters.ts's configureCharacterMap falls back to its built-in
+   * 9-NPC roster.
+   */
+  private async loadCharacters(): Promise<void> {
+    try {
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/CHARACTERS.csv?_=' + Date.now());
+      if (!response.ok) {
+        this.characterRows = [];
+        return;
+      }
+      const csvText = await response.text();
+      this.characterRows = this.parseCharactersCsv(csvText);
+    } catch {
+      this.characterRows = [];
+    }
+  }
+
+  private parseCharactersCsv(csvText: string): CharacterCsvRow[] {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+    return lines.slice(1)
+      .map(line => {
+        const values = this.parseCsvLine(line);
+        return {
+          id: (values[0] || '').trim(),
+          emoji: (values[1] || '').trim(),
+          name: (values[2] || '').trim(),
+          phase: (values[3] || '').trim(),
+          color: (values[4] || '').trim(),
+          image_roles: (values[5] || '').trim(),
+          short_label: (values[6] || '').trim()
+        };
+      })
+      .filter(r => r.id);
+  }
+
+  /**
+   * 2026-08-09: CSV-portability lift, reskin item 4. Every NPC row defined
+   * in CHARACTERS.csv. characters.ts's `configureCharacterMap` reads this at
+   * app startup to replace the hardcoded CHARACTER_MAP with CSV-driven
+   * data — this is what lets a reskin add a brand-new NPC (e.g. "Dungeon
+   * Master") without a code edit.
+   */
+  getCharacterRows(): CharacterCsvRow[] {
+    return [...this.characterRows];
   }
 
   private parsePathChoiceRulesCsv(csvText: string): PathChoiceRule[] {
