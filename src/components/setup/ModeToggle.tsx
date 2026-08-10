@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { colors } from '../../styles/theme';
 import { IconDesktop, IconTV, IconGlobe } from '../icons/SetupIcons';
+import { setStoredPreferredMode } from '../../utils/modePreference';
 
 interface ModeToggleProps {
   selectedMode: 'pc' | 'tv';
@@ -34,6 +35,15 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
   // used for /challenge's "Watch demo" button (ComingSoonButton).
   const [remoteModeTapped, setRemoteModeTapped] = useState(false);
 
+  // Remember an explicit tap so a reload (e.g. Fire TV Silk's "Request
+  // Desktop Site" toggle) doesn't lose the player's TV choice — see
+  // modePreference.ts. Only fires on an actual click here, never on the
+  // ?mode= URL param or the isSmartTV() auto-detect fallback in PlayerSetup.
+  const handleSelectMode = (mode: 'pc' | 'tv'): void => {
+    setStoredPreferredMode(mode);
+    onSelectMode(mode);
+  };
+
   return (
     <div style={{
       marginBottom: selectedMode === 'tv' ? '0.3rem' : '1rem',
@@ -53,7 +63,7 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
       <div style={{ display: 'flex', gap: '0.6rem' }}>
         <button
           type="button"
-          onClick={() => onSelectMode('pc')}
+          onClick={() => handleSelectMode('pc')}
           aria-pressed={selectedMode === 'pc'}
           style={{
             flex: 1,
@@ -79,7 +89,7 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
         </button>
         <button
           type="button"
-          onClick={() => onSelectMode('tv')}
+          onClick={() => handleSelectMode('tv')}
           aria-pressed={selectedMode === 'tv'}
           style={{
             flex: 1,

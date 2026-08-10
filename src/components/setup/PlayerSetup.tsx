@@ -10,6 +10,7 @@ import { Player } from '../../types/StateTypes';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 import { isSmartTV } from '../../utils/deviceDetection';
+import { getStoredPreferredMode, resolveInitialMode } from '../../utils/modePreference';
 import { DataEditor } from '../editor/DataEditor';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
 import { ClassroomSetup } from '../classroom/ClassroomSetup';
@@ -109,17 +110,20 @@ export function PlayerSetup({
   // Lobby controls — merged from the retired GameLobby screen so setup
   // happens on a single page. PC/TV mode is local state until the user
   // clicks Start Game; on start, TV mode appends ?mode=tv to the URL.
-  // Precedence (v3.0.25):
-  //   1. Explicit ?mode= in the URL wins (preserves a TV-mode reload).
-  //   2. Otherwise auto-preselect TV when the browser is a real smart TV
+  // Precedence (v3.0.25, localStorage added for the Fire TV Silk-UA-spoof
+  // report — a "Request Desktop Site" reload used to lose the TV choice):
+  //   1. Explicit ?mode= in the URL wins (preserves a TV-mode reload/join
+  //      link). This is a one-shot override — it is never written back to
+  //      localStorage, so it can't stick around and override a later visit.
+  //   2. Otherwise the last mode the user explicitly picked via the PC/TV
+  //      toggle (see modePreference.ts / ModeToggle.tsx).
+  //   3. Otherwise auto-preselect TV when the browser is a real smart TV
   //      (Tizen/webOS/Android TV/Fire TV/Chromecast/etc). A laptop-into-TV
   //      reports a desktop UA and falls through to PC — the prominent toggle
   //      is the manual fallback for that case.
   const [selectedMode, setSelectedMode] = useState<'pc' | 'tv'>(() => {
     const urlMode = new URLSearchParams(window.location.search).get('mode');
-    if (urlMode === 'tv') return 'tv';
-    if (urlMode === 'pc') return 'pc';
-    return isSmartTV() ? 'tv' : 'pc';
+    return resolveInitialMode(urlMode, getStoredPreferredMode(), isSmartTV);
   });
 
   // TV-remote scroll (fb:feedback-1783997840419-e121c34e — "Can't go back up
