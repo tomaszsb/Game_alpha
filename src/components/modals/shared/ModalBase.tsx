@@ -49,6 +49,30 @@ const prefersReducedMotion =
 // longer. The ✕ button, Escape, and footer buttons are unaffected.
 export const BACKDROP_GRACE_MS = 500;
 
+// Focus trap (Fire TV D-pad report-form bug: the remote sends Arrow keys,
+// never Tab, and ModalBase had no focus management at all — focus could
+// wander onto the page behind the modal with no way back).
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+}
+
+// Arrow keys have native meaning inside text-editable controls (move the
+// caret, change a <select>'s value) — only treat them as focus-trap
+// navigation outside those, so typing in a report-form text field isn't
+// hijacked. Tab always navigates focus regardless of this check.
+function isTextEditable(el: HTMLElement | null): boolean {
+  if (!el) return false;
+  if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') return true;
+  if (el.tagName === 'INPUT') {
+    const nonTextTypes = ['checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'color', 'file'];
+    return !nonTextTypes.includes((el as HTMLInputElement).type);
+  }
+  return el.isContentEditable;
+}
+
 // Animation variants
 const overlayVariants = {
   hidden: { opacity: 0 },
@@ -103,6 +127,8 @@ export function ModalBase({
   const [isMobile, setIsMobile] = useState(false);
   // When this open started — drives the backdrop click-through grace window.
   const openedAtRef = useRef<number>(0);
+  // Element that had focus before the modal opened — restored on close.
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (isOpen) openedAtRef.current = Date.now();
@@ -118,29 +144,79 @@ export function ModalBase({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Focus trap and escape key handling
+  // Initial focus + restore-on-close + body scroll lock. Split from the
+  // keydown-handling effect below so a parent re-rendering with a new
+  // onClose identity (common — inline arrow functions) can't re-steal focus
+  // out of the modal mid-interaction.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+
+    const container = modalRef.current;
+    if (container) {
+      const explicitTarget = container.querySelector<HTMLElement>('[data-modal-initial-focus]');
+      const [firstFocusable] = getFocusableElements(container);
+      (explicitTarget ?? firstFocusable ?? container).focus();
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      const toRestore = previouslyFocusedRef.current;
+      if (toRestore && document.contains(toRestore)) {
+        toRestore.focus();
+      }
+    };
+  }, [isOpen]);
+
+  // Escape-to-close plus the Tab/Arrow-key focus trap. Focusable elements
+  // are re-queried on every key press (not cached) so newly-revealed
+  // controls — e.g. a field that appears after another is filled in — are
+  // immediately reachable.
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+        return;
       }
+
+      const container = modalRef.current;
+      if (!container) return;
+
+      const isTab = e.key === 'Tab';
+      const isForward = e.key === 'ArrowDown' || e.key === 'ArrowRight';
+      const isBackward = e.key === 'ArrowUp' || e.key === 'ArrowLeft';
+      if (!isTab && !isForward && !isBackward) return;
+
+      const active = document.activeElement as HTMLElement | null;
+      if ((isForward || isBackward) && isTextEditable(active)) return;
+
+      const focusable = getFocusableElements(container);
+      if (focusable.length === 0) return;
+
+      const goingBackward = isTab ? e.shiftKey : isBackward;
+      const currentIndex = active ? focusable.indexOf(active) : -1;
+
+      let nextIndex: number;
+      if (currentIndex === -1) {
+        nextIndex = goingBackward ? focusable.length - 1 : 0;
+      } else if (goingBackward) {
+        nextIndex = currentIndex === 0 ? focusable.length - 1 : currentIndex - 1;
+      } else {
+        nextIndex = currentIndex === focusable.length - 1 ? 0 : currentIndex + 1;
+      }
+
+      e.preventDefault();
+      focusable[nextIndex].focus();
     };
 
     document.addEventListener('keydown', handleKeyDown);
-
-    // Focus the modal when it opens
-    modalRef.current?.focus();
-
-    // Prevent body scroll when modal is open
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = originalOverflow;
-    };
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
   const handleBackdropClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
