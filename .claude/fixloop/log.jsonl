@@ -79,3 +79,5 @@
 {"ts": "2026-08-08T17:36:21Z", "item": "DOB approval penalty audit finding - verified no live bug", "fbId": null, "model": "claude-sonnet-5", "outcome": "fixed", "usedPctAfter": null, "commit": "d25ed28"}
 {"ts":"2026-08-08T17:44:13.724Z","item":"Home-IPv6 false-foreign-alert - root-caused, moved to user decision","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":null,"commit":"382fddb"}
 {"ts":"2026-08-08T18:02:44.005Z","item":"Investment card label bypassed CSV pipeline - fixed","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":null,"commit":"fb1dbb0"}
+{"ts":"2026-08-08T18:28:11.017Z","item":"CON-INITIATION change-order fee mislabeled Engineer fee - fixed","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":null,"commit":"8e1be42"}
+{"ts":"2026-08-09T22:41:00.000Z","item":"EffectFactory sourceTypeMap: Bank Loan cards tagged Owner Funding, dodged loan-percentage fees - fixed","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":36.51,"commit":"fb4d064"}
