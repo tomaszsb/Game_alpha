@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.101] - 2026-08-09
+
+### Reskin: DOB/FDNY narration copy now routes through the existing npc_speaker/approval_role CSV hooks
+Item 3 from the 2026-08-09 reskin-refactor survey, following on from the 2026-08-03 Workstream 6 CSV-only-reskin audit's "Moderate" finding (TODO.md): 5 files had the literal strings "DOB"/"FDNY" hardcoded into player-facing narration/UI copy, bypassing the `npc_speaker`/`approval_role` CSV-portability hooks that already exist for character names and portraits. A reskin CSV (e.g. the on-hold D&D-skin experiment) could reassign every space's narrator via `npc_speaker`, but these 5 spots would still print "DOB"/"FDNY" regardless.
+
+Added `getDobLabel()`/`getFdnyLabel()` to `ApprovalService.ts`, resolving through the exact same override chain characters.ts already uses for NPC names/portraits (`getNpcCharacterInfo`, driven by `GAME_CONFIG.csv`'s `npc_speaker` column keyed off the space `approval_role` lookup) — no new CSV column needed. Added a `shortLabel` field to `CharacterInfo` (`characters.ts`) so a reskin that repoints `REG-DOB-PLAN-EXAM`'s `npc_speaker` at a different `CHARACTER_MAP` entry picks up that entry's short label automatically. Falls back to the literal `'DOB'`/`'FDNY'` when no override is configured — today's default, byte-identical output.
+
+Updated all 5 flagged files: `ApprovalService.ts` (narration in `grantProfCertApproval`, `revoke`, `checkFinalReviewGate`, `narrateOutcome`), `DiceRollProcessor.ts` (final-review gate-bounce banner), `EndGameModal.tsx` (missing-DOB penalty section), `ScoreboardV2.tsx` in `src/components/player` (approval-diode labels), and `endGameInsights.ts` (3 Project Debrief rules). Left `endGameInsights.ts`'s `REG_PREFIXES` space-name-prefix filter (drives the "regulatory-heavy" insight, not narration copy) and internal debug-log lines untouched — those are logic/diagnostics, not display copy, and out of scope for this item. New regression test `tests/regression/ReskinAgencyLabels.test.ts` covers: (a) default output matches today's literal exactly, (b) a mocked CSV override changes the label across both ApprovalService and endGameInsights consumers, (c) a missing/unmatched CSV value falls back to the literal. Verified: typecheck clean, full suite 2691/2691 (182 files), no new failures.
+
 ## [3.1.100] - 2026-08-09
 
 ### Fixed: Bank Loan cards were tagged as Owner Funding — and dodged loan-percentage fees

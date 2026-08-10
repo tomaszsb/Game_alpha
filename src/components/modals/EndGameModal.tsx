@@ -9,6 +9,7 @@ import { GameEndReason } from '../../types/StateTypes';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { buildEndGameStats, formatMoney, formatPercent, formatDays, EndGameStats } from '../../utils/endGameStats';
 import { buildEndGameInsights, Insight, InsightTone } from '../../utils/endGameInsights';
+import { getDobLabel } from '../../services/ApprovalService';
 import { shortName } from '../../utils/boardCommon';
 import { PostGameLogViewer } from '../game/PostGameLogViewer';
 import { getCurrentGameId } from '../../utils/networkDetection';
@@ -300,13 +301,13 @@ export function EndGameModal(): JSX.Element {
               fontSize: '16px',
               fontWeight: 'bold',
             }}>
-              ⚠️ DOB never signed off
+              ⚠️ {getDobLabel()} never signed off
             </h3>
             <p style={{ margin: '0 0 6px 0', fontSize: '14px', color: '#856404' }}>
               Your CO came late and cost the owner. Emergency processing added <strong>+{penalty.days} days</strong> and a <strong>${penalty.fee.toLocaleString()}</strong> fee to your final stats.
             </p>
             <p style={{ margin: '0', fontSize: '12px', color: '#856404', fontStyle: 'italic' }}>
-              Next game: secure DOB plan-exam approval before pushing for CO.
+              Next game: secure {getDobLabel()} plan-exam approval before pushing for CO.
             </p>
           </div>
         )}

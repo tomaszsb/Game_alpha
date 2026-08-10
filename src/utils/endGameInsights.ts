@@ -16,6 +16,7 @@
 
 import { Player } from '../types/DataTypes';
 import { EndGameStats } from './endGameStats';
+import { getDobLabel, getFdnyLabel } from '../services/ApprovalService';
 
 export type InsightTone = 'win' | 'observe' | 'lesson';
 
@@ -114,7 +115,7 @@ const rules: Rule[] = [
     if (stats.approvals.dob === 'approved' && stats.approvals.fdny === 'approved') {
       return {
         id: 'all-approved', tone: 'win', priority: 80,
-        headline: 'Both DOB and FDNY signed off cleanly.',
+        headline: `Both ${getDobLabel()} and ${getFdnyLabel()} signed off cleanly.`,
         detail: 'Solid documentation and prep — that\'s the gold-standard ending.',
       };
     }
@@ -124,8 +125,8 @@ const rules: Rule[] = [
     if (stats.approvals.dob === 'none') {
       return {
         id: 'dob-missing', tone: 'lesson', priority: 90,
-        headline: 'DOB never weighed in on the project.',
-        detail: 'That\'s the path that triggers the late-CO emergency-processing penalty. Push for DOB plan exam earlier.',
+        headline: `${getDobLabel()} never weighed in on the project.`,
+        detail: `That's the path that triggers the late-CO emergency-processing penalty. Push for ${getDobLabel()} plan exam earlier.`,
       };
     }
     return null;
@@ -133,8 +134,8 @@ const rules: Rule[] = [
   (stats) => {
     if (stats.approvals.dob === 'denied' || stats.approvals.fdny === 'denied') {
       const denied = [
-        stats.approvals.dob === 'denied' ? 'DOB' : null,
-        stats.approvals.fdny === 'denied' ? 'FDNY' : null,
+        stats.approvals.dob === 'denied' ? getDobLabel() : null,
+        stats.approvals.fdny === 'denied' ? getFdnyLabel() : null,
       ].filter(Boolean).join(' and ');
       return {
         id: 'approval-denied', tone: 'lesson', priority: 85,

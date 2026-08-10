@@ -41,17 +41,26 @@ export interface CharacterInfo {
   color: string;
   /** Which image roles this space prefix maps to (primary first) */
   imageRoles: NpcImageRole[];
+  /**
+   * 2026-08-09: CSV-portability lift. Short agency/role label used where
+   * narration needs a bare noun instead of the full `name` — e.g. "DOB
+   * approval" / "FDNY Plan Examiner" instead of "DOB Examiner approval".
+   * Reskin hook: flows through the same npc_speaker override chain as
+   * `name`/`emoji`/`color` (see getNpcCharacterInfo) — no separate CSV
+   * column needed. See ApprovalService.getDobLabel/getFdnyLabel.
+   */
+  shortLabel: string;
 }
 
 export const CHARACTER_MAP: Record<string, CharacterInfo> = {
-  OWNER:      { emoji: '\u{1F454}', name: 'The Owner',        phase: 'Initiation',   color: '#2196F3', imageRoles: ['owner'] },
-  ARCH:       { emoji: '\u{1F4D0}', name: 'The Architect',    phase: 'Design',       color: '#9C27B0', imageRoles: ['architect'] },
-  ENG:        { emoji: '\u2699\uFE0F',  name: 'The Engineer',     phase: 'Engineering',  color: '#FF9800', imageRoles: ['engineer'] },
-  'REG-DOB':  { emoji: '\u{1F4CB}', name: 'DOB Examiner',     phase: 'Regulatory',   color: '#f44336', imageRoles: ['dob_examiner', 'dob_clerk'] },
+  OWNER:      { emoji: '\u{1F454}', name: 'The Owner',        phase: 'Initiation',   color: '#2196F3', imageRoles: ['owner'], shortLabel: 'Owner' },
+  ARCH:       { emoji: '\u{1F4D0}', name: 'The Architect',    phase: 'Design',       color: '#9C27B0', imageRoles: ['architect'], shortLabel: 'Architect' },
+  ENG:        { emoji: '\u2699\uFE0F',  name: 'The Engineer',     phase: 'Engineering',  color: '#FF9800', imageRoles: ['engineer'], shortLabel: 'Engineer' },
+  'REG-DOB':  { emoji: '\u{1F4CB}', name: 'DOB Examiner',     phase: 'Regulatory',   color: '#f44336', imageRoles: ['dob_examiner', 'dob_clerk'], shortLabel: 'DOB' },
   // FDNY previously shared DOB's exact red — indistinguishable on the board's
   // discipline badge (fb:feedback-1782657383215-a9d3221a). Distinct magenta.
-  'REG-FDNY': { emoji: '\u{1F692}', name: 'FDNY Inspector',   phase: 'Regulatory',   color: '#E91E63', imageRoles: ['fdny_examiner', 'fdny_clerk'] },
-  CON:        { emoji: '\u{1F3D7}\uFE0F', name: 'The Contractor',   phase: 'Construction', color: '#4CAF50', imageRoles: ['contractor', 'inspector'] },
+  'REG-FDNY': { emoji: '\u{1F692}', name: 'FDNY Inspector',   phase: 'Regulatory',   color: '#E91E63', imageRoles: ['fdny_examiner', 'fdny_clerk'], shortLabel: 'FDNY' },
+  CON:        { emoji: '\u{1F3D7}\uFE0F', name: 'The Contractor',   phase: 'Construction', color: '#4CAF50', imageRoles: ['contractor', 'inspector'], shortLabel: 'Contractor' },
   // Funding-phase trio named 2026-08-02 (TODO "Bank/Investor/Lender character
   // naming"). No portrait art exists for these roles yet \u2014 imageRoles empty,
   // which falls back to the emoji everywhere a portrait would otherwise show
@@ -59,9 +68,9 @@ export const CHARACTER_MAP: Record<string, CharacterInfo> = {
   // every color above AND from each other, since all three share FUNDING's
   // phase color (#FF9800) and would otherwise blend into it or one another,
   // same reasoning as the earlier REG-DOB/REG-FDNY split.
-  BANK:       { emoji: '\u{1F3E6}', name: 'The Bank',          phase: 'Funding',      color: '#009688', imageRoles: [] },
-  LEND:       { emoji: '\u{1F91D}', name: 'The Lender',        phase: 'Funding',      color: '#FFC107', imageRoles: [] },
-  INVESTOR:   { emoji: '\u{1F4BC}', name: 'The Investor',      phase: 'Funding',      color: '#3F51B5', imageRoles: [] },
+  BANK:       { emoji: '\u{1F3E6}', name: 'The Bank',          phase: 'Funding',      color: '#009688', imageRoles: [], shortLabel: 'Bank' },
+  LEND:       { emoji: '\u{1F91D}', name: 'The Lender',        phase: 'Funding',      color: '#FFC107', imageRoles: [], shortLabel: 'Lender' },
+  INVESTOR:   { emoji: '\u{1F4BC}', name: 'The Investor',      phase: 'Funding',      color: '#3F51B5', imageRoles: [], shortLabel: 'Investor' },
 };
 
 /**

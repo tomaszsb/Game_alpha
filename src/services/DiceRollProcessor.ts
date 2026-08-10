@@ -11,7 +11,7 @@ import { Effect } from '../types/EffectTypes';
 import { buildResourceSnapshot } from '../utils/resourceSnapshot';
 import { shortName } from '../utils/boardCommon';
 import { resolveFundingAmountToken } from '../utils/templateInterpolation';
-import { DOB_AUDIT_SPACE } from './ApprovalService';
+import { DOB_AUDIT_SPACE, getDobLabel } from './ApprovalService';
 
 /**
  * Interface for dice roll effects processing result
@@ -523,7 +523,7 @@ export class DiceRollProcessor {
         // Phase 7.5 — gate-bounce narration for the modal banner. Not a real
         // approval status change (the player was bounced, not denied), so
         // 'minor-objection' gives the amber "go fix this" treatment.
-        this.lastApprovalOutcome = { text: `🛂 DOB clerk: ${gate.reason}`, kind: 'minor-objection' };
+        this.lastApprovalOutcome = { text: `🛂 ${getDobLabel()} clerk: ${gate.reason}`, kind: 'minor-objection' };
         // Domain-event stage 3: ToastWriter reacts to this emission (no
         // log-channel case for routed_back_to_review — see stage-3 scope note).
         this.stateService.emitGameEvent({

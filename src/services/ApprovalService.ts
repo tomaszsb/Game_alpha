@@ -10,6 +10,7 @@
 import { ApprovalStatus, Player, VisitType } from '../types/DataTypes';
 import { PlayerUpdateData } from '../types/StateTypes';
 import { ApprovalRevokedEvent, ApprovalOutcomeDeterminedEvent } from '../types/GameEvents';
+import { getNpcCharacterInfo } from '../constants/characters';
 
 /**
  * Which approval is being affected by an outcome.
@@ -74,6 +75,24 @@ export function configureApprovalSpaces(overrides: {
   if (overrides.dobExam) DOB_EXAM_SPACE = overrides.dobExam;
   if (overrides.fdnyExam) FDNY_EXAM_SPACE = overrides.fdnyExam;
   if (overrides.dobAudit) DOB_AUDIT_SPACE = overrides.dobAudit;
+}
+
+/**
+ * 2026-08-09: CSV-portability lift — reskin hook for "DOB"/"FDNY" narration
+ * copy (Workstream 6 CSV-only-reskin audit, TODO.md "Moderate" finding).
+ * Resolves through the SAME npc_speaker/approval_role override chain as the
+ * character portraits/names (characters.ts:getNpcCharacterInfo) — a reskin
+ * CSV that reassigns DOB_EXAM_SPACE's `npc_speaker` to a different
+ * CHARACTER_MAP entry automatically changes this label too, no code edit
+ * needed here. Falls back to the literal 'DOB'/'FDNY' when no override is
+ * configured, which is today's default (CLEAN_FILES/GAME_CONFIG.csv ships
+ * `npc_speaker` empty for the DOB/FDNY exam spaces).
+ */
+export function getDobLabel(): string {
+  return getNpcCharacterInfo(DOB_EXAM_SPACE)?.shortLabel ?? 'DOB';
+}
+export function getFdnyLabel(): string {
+  return getNpcCharacterInfo(FDNY_EXAM_SPACE)?.shortLabel ?? 'FDNY';
 }
 
 /**
@@ -261,7 +280,7 @@ export class ApprovalService implements IApprovalService {
         approval: 'dob',
         kind: 'approved',
         source: 'prof_cert_self_certify',
-        message: '🧾 Your professional certification is accepted — DOB approval granted.',
+        message: `🧾 Your professional certification is accepted — ${getDobLabel()} approval granted.`,
       },
     };
   }
@@ -288,9 +307,11 @@ export class ApprovalService implements IApprovalService {
       return { update, event: null };
     }
 
-    const revokedLabel = hadDob && hadFdny ? 'DOB and FDNY approval' : hadDob ? 'DOB approval' : 'FDNY approval';
+    const dobLabel = getDobLabel();
+    const fdnyLabel = getFdnyLabel();
+    const revokedLabel = hadDob && hadFdny ? `${dobLabel} and ${fdnyLabel} approval` : hadDob ? `${dobLabel} approval` : `${fdnyLabel} approval`;
     const message = context.reason === 'scope_change'
-      ? '⚠️ Your DOB approval is on hold — the scope just changed, so it needs a fresh look before you can move on.'
+      ? `⚠️ Your ${dobLabel} approval is on hold — the scope just changed, so it needs a fresh look before you can move on.`
       : `⚠️ ${context.cardName}: your ${revokedLabel} needs to be re-obtained.`;
 
     return {
@@ -332,7 +353,7 @@ export class ApprovalService implements IApprovalService {
         passed: false,
         missing: 'both',
         routeTo: DOB_EXAM_SPACE,
-        reason: 'The clerk reviewed your file and found no DOB approval and no FDNY approval. Sending you back to DOB plan exam first.',
+        reason: `The clerk reviewed your file and found no ${getDobLabel()} approval and no ${getFdnyLabel()} approval. Sending you back to ${getDobLabel()} plan exam first.`,
       };
     }
 
@@ -341,7 +362,7 @@ export class ApprovalService implements IApprovalService {
         passed: false,
         missing: 'dob',
         routeTo: DOB_EXAM_SPACE,
-        reason: 'The clerk reviewed your file and found no DOB approval. Sending you back to plan exam.',
+        reason: `The clerk reviewed your file and found no ${getDobLabel()} approval. Sending you back to plan exam.`,
       };
     }
 
@@ -350,7 +371,7 @@ export class ApprovalService implements IApprovalService {
       passed: false,
       missing: 'fdny',
       routeTo: FDNY_EXAM_SPACE,
-      reason: 'The clerk reviewed your file and found no FDNY sign-off. Sending you to FDNY plan exam.',
+      reason: `The clerk reviewed your file and found no ${getFdnyLabel()} sign-off. Sending you to ${getFdnyLabel()} plan exam.`,
     };
   }
 
@@ -368,36 +389,39 @@ export class ApprovalService implements IApprovalService {
   }
 
   narrateOutcome(outcome: ApprovalOutcome, sourceSpace: string, visitType: VisitType): string {
+    const dobLabel = getDobLabel();
+    const fdnyLabel = getFdnyLabel();
+
     // AUDIT outcomes are always revocation-only (status='minor-objection' on DOB).
     if (sourceSpace === DOB_AUDIT_SPACE) {
-      return '⚠️ Audit found issues. DOB approval is on hold — head back to plan exam to clear it up.';
+      return `⚠️ Audit found issues. ${dobLabel} approval is on hold — head back to plan exam to clear it up.`;
     }
 
     if (outcome.approval === 'dob') {
       if (outcome.kind === 'approved') {
-        return '✅ DOB Plan Examiner: approved. Take it to FDNY next.';
+        return `✅ ${dobLabel} Plan Examiner: approved. Take it to ${fdnyLabel} next.`;
       }
       if (outcome.kind === 'minor-objection') {
-        return '⚠️ DOB Plan Examiner: minor objection. Revise and resubmit on the next turn.';
+        return `⚠️ ${dobLabel} Plan Examiner: minor objection. Revise and resubmit on the next turn.`;
       }
       // denied — DOB sends to architect
-      return '❌ DOB Plan Examiner: rejected. Your architect needs to revise the plans before you can come back.';
+      return `❌ ${dobLabel} Plan Examiner: rejected. Your architect needs to revise the plans before you can come back.`;
     }
 
     // FDNY
     if (outcome.kind === 'approved') {
-      return '✅ FDNY Plan Examiner: approved. Pick your next stop.';
+      return `✅ ${fdnyLabel} Plan Examiner: approved. Pick your next stop.`;
     }
     if (outcome.kind === 'minor-objection') {
-      return '⚠️ FDNY Plan Examiner: minor objection. Revise and resubmit on the next turn.';
+      return `⚠️ ${fdnyLabel} Plan Examiner: minor objection. Revise and resubmit on the next turn.`;
     }
     // FDNY denied — First visit can route to architect (harder); Subsequent always engineer.
     // We can't tell the destination from the outcome alone, so soften the
     // language to cover both cases.
     if (visitType === 'First') {
-      return '❌ FDNY Plan Examiner: rejected. Substantial issues — back to the design team to address them.';
+      return `❌ ${fdnyLabel} Plan Examiner: rejected. Substantial issues — back to the design team to address them.`;
     }
-    return '❌ FDNY Plan Examiner: rejected. Your engineer needs to fix the issues before you can come back.';
+    return `❌ ${fdnyLabel} Plan Examiner: rejected. Your engineer needs to fix the issues before you can come back.`;
   }
 
   // --- private resolvers ---

@@ -16,6 +16,7 @@ import { IServiceContainer } from '../../types/ServiceContracts';
 import { PanelMode, panelPalettes } from './panelTheme';
 import { playerLifecyclePosition } from '../../utils/lifecycleProgress';
 import { PlayerAvatar } from '../common/PlayerAvatar';
+import { getDobLabel, getFdnyLabel } from '../../services/ApprovalService';
 
 export interface ScoreboardV2Props {
   gameServices: IServiceContainer;
@@ -165,13 +166,13 @@ export const ScoreboardV2: React.FC<ScoreboardV2Props> = ({ gameServices, mode }
               {(dobv || fdnyv) && (
                 <span style={{ display: 'flex', gap: 8, fontSize: 10, color: p.muted }}>
                   {dobv && (
-                    <span title={`DOB ${dobv.label}`}>
-                      DOB <span style={{ color: dobv.dot, fontWeight: 600 }}>{dobv.mark}</span>
+                    <span title={`${getDobLabel()} ${dobv.label}`}>
+                      {getDobLabel()} <span style={{ color: dobv.dot, fontWeight: 600 }}>{dobv.mark}</span>
                     </span>
                   )}
                   {fdnyv && (
-                    <span title={`FDNY ${fdnyv.label}`}>
-                      FDNY <span style={{ color: fdnyv.dot, fontWeight: 600 }}>{fdnyv.mark}</span>
+                    <span title={`${getFdnyLabel()} ${fdnyv.label}`}>
+                      {getFdnyLabel()} <span style={{ color: fdnyv.dot, fontWeight: 600 }}>{fdnyv.mark}</span>
                     </span>
                   )}
                 </span>
