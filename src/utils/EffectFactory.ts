@@ -35,11 +35,14 @@ export class EffectFactory {
     const cardName = card.card_name || 'Unknown Card';
 
 
-    // Determine sourceType based on card type (B = owner, L = bank, I = investment)
+    // Determine sourceType based on card type, per CARD_TYPES.csv (B = Bank Loan, I = Investment).
+    // Real Owner Funding (OWNER_SEED_MONEY) is a separate code path in EffectEngineService
+    // that hardcodes sourceType: 'owner' directly and does not use this map.
+    // L (Life Event) cards are not a funding-source category, so they fall through to 'other',
+    // same as W/E cards.
     const sourceTypeMap: { [key: string]: 'owner' | 'bank' | 'investment' | 'other' } = {
-      'B': 'owner',      // B cards = Owner funding (including seed money)
-      'L': 'bank',       // L cards = Bank loans
-      'I': 'investment', // I cards = Investment deals
+      'B': 'bank',       // B cards = Bank Loan (CARD_TYPES.csv)
+      'I': 'investment', // I cards = Investment (CARD_TYPES.csv)
     };
     const sourceType = sourceTypeMap[card.card_type] || 'other';
 
@@ -109,7 +112,7 @@ export class EffectFactory {
             resource: 'MONEY',
             amount: moneyAmount,
             source: cardSource,
-            sourceType,  // Track money source based on card type (B=owner, L=bank, I=investment)
+            sourceType,  // Track money source based on card type (B=bank, I=investment, else other)
             reason: `${cardName}: ${card.money_effect}`
           }
         });
@@ -193,7 +196,7 @@ export class EffectFactory {
             resource: 'MONEY',
             amount: loanAmount,
             source: cardSource,
-            sourceType,  // Track money source based on card type (B=owner, L=bank, I=investment)
+            sourceType,  // Track money source based on card type (B=bank, I=investment, else other)
             reason: `${cardName}: Loan of $${loanAmount.toLocaleString()}`
           }
         });

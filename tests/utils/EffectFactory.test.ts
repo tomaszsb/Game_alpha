@@ -265,6 +265,70 @@ describe('EffectFactory', () => {
       expect(effects[0].effectType).toBe('LOG');
       expect((effects[0].payload as any).message).toContain('Card played: Empty Card by player player1');
     });
+
+    // 2026-08-09 — sourceTypeMap didn't match CARD_TYPES.csv: 'B' (Bank Loan)
+    // was mapped to 'owner' and 'L' (Life Event) was mapped to 'bank'. This
+    // isn't cosmetic — FinancialEffectHandler shows the "Owner Funding" toast
+    // only for sourceType 'owner', and ResourceService only records a
+    // player.loans[] entry (used for LOAN_PERCENTAGE fees) for sourceType
+    // 'bank'. Real Owner Funding (OWNER_SEED_MONEY) is a separate code path
+    // in EffectEngineService that hardcodes 'owner' directly and doesn't use
+    // this map, so it's unaffected by this fix.
+    describe('sourceType mapping (fb: sourceTypeMap vs CARD_TYPES.csv, 2026-08-09)', () => {
+      it('maps a B (Bank Loan) card with loan_amount to sourceType: bank', () => {
+        const mockCard: Card = {
+          card_id: 'B900',
+          card_name: 'Test Bank Loan',
+          card_type: 'B',
+          description: 'A test bank loan card',
+          loan_amount: '10000',
+          loan_rate: '0'
+        };
+
+        const effects = EffectFactory.createEffectsFromCard(mockCard, mockPlayerId);
+        const loanEffect = effects.find(
+          e => e.effectType === 'RESOURCE_CHANGE' && (e.payload as any).resource === 'MONEY'
+        );
+        expect(loanEffect).toBeDefined();
+        // Was 'owner' before the fix.
+        expect((loanEffect?.payload as any).sourceType).toBe('bank');
+      });
+
+      it('maps an L (Life Event) card with a money_effect to sourceType: other', () => {
+        const mockCard: Card = {
+          card_id: 'L900',
+          card_name: 'Test Life Event',
+          card_type: 'L',
+          description: 'A test life event card',
+          money_effect: '+500'
+        };
+
+        const effects = EffectFactory.createEffectsFromCard(mockCard, mockPlayerId);
+        const moneyEffect = effects.find(
+          e => e.effectType === 'RESOURCE_CHANGE' && (e.payload as any).resource === 'MONEY'
+        );
+        expect(moneyEffect).toBeDefined();
+        // Was 'bank' before the fix — Life Event payouts/fines are not bank loans.
+        expect((moneyEffect?.payload as any).sourceType).toBe('other');
+      });
+
+      it('still maps an I (Investment) card to sourceType: investment (unchanged)', () => {
+        const mockCard: Card = {
+          card_id: 'I900',
+          card_name: 'Test Investment',
+          card_type: 'I',
+          description: 'A test investment card',
+          money_effect: '+2000'
+        };
+
+        const effects = EffectFactory.createEffectsFromCard(mockCard, mockPlayerId);
+        const moneyEffect = effects.find(
+          e => e.effectType === 'RESOURCE_CHANGE' && (e.payload as any).resource === 'MONEY'
+        );
+        expect(moneyEffect).toBeDefined();
+        expect((moneyEffect?.payload as any).sourceType).toBe('investment');
+      });
+    });
   });
 
   describe('createEffectsFromSpaceEntry - fee effects', () => {

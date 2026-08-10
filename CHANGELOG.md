@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.100] - 2026-08-09
+
+### Fixed: Bank Loan cards were tagged as Owner Funding — and dodged loan-percentage fees
+Real, live-game bug found while investigating the 2026-08-03 audit's "worth a look on its own" note about `EffectFactory.ts`'s funding-source map disagreeing with `CARD_TYPES.csv`. Confirmed: `sourceTypeMap` in `EffectFactory.createEffectsFromCard` (`EffectFactory.ts:38-44`) mapped `B`-type cards to `sourceType: 'owner'` and `L`-type cards to `sourceType: 'bank'` — backwards from `CARD_TYPES.csv`'s own labels (`B` = Bank Loan, `L` = Life Event) and from the actual card content (every B card is literally named/described as a loan, e.g. B001 "Small Business Loan").
+
+This wasn't just wrong toast text ("💰 Owner Funding" instead of a bank-loan notice) — `sourceType` also drives `ResourceService.ts`'s funding-source switch, where `'bank'` records a `player.loans[]` entry used later by `LOAN_PERCENTAGE` regulatory fees (a % of total loan principal). So drawing a Bank Loan card was silently exempting that money from loan-based fees it should have been subject to, while any Life Event card with a money effect was incorrectly counted as a bank loan instead. Real Owner Funding (`OWNER_SEED_MONEY`, triggered by space effects, not cards) is a separate code path in `EffectEngineService.ts` that already hardcodes `sourceType: 'owner'` directly — fixing this map doesn't touch it.
+
+Fixed the map to `B → 'bank'`, `I → 'investment'` (unchanged), and dropped the `L` entry so Life Event cards fall through to the existing `'other'` default, same as Work Package/Expeditor cards. New unit tests (`EffectFactory.test.ts`) cover all three card types' `sourceType`; new regression test (`tests/regression/CardSourceTypeMapping.test.ts`) reads the real `B001` row and `CARD_TYPES.csv` through the production parser, following the v3.1.99 pattern, so future CSV drift breaks the test instead of silently reintroducing the bug. Verified: typecheck clean, production build clean, full `tests/utils/` + `tests/services/` + `tests/regression/` suites 1616/1616.
+
 ## [3.1.99] - 2026-08-08
 
 ### Fixed: a construction change-order fee showed as "Engineer fee" — fee category was guessed from the space name
