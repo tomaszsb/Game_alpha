@@ -40,6 +40,16 @@ const HISENSE_VIDAA_UA =
 const TCL_SMART_TV_SPACE_UA =
   'Mozilla/5.0 (Linux; Android 14; Smart TV Pro Build/UTT2.250416.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/150.0.0.0 Mobile Safari/537.36';
 
+// Real UA captured server-side (visitors.log) for the Amazon Fire TV Stick /
+// Silk browser bug report filed 2026-08-09 against game G-QPYB-SJ6K. AFT[A-Z]
+// has matched "AFTSS" since isSmartTV() was introduced (v3.0.25), so this is
+// a regression lock, not a fix — investigation found the reported
+// mobile-misdetection does NOT reproduce against this exact UA on current
+// code; see CHANGELOG/report for the open question on what actually happened
+// on that device.
+const FIRE_TV_SILK_UA =
+  'Mozilla/5.0 (Linux; Android 9; AFTSS) AppleWebKit/537.36 (KHTML, like Gecko) Silk/138.15.1 like Chrome/138.0.7204.244 Safari/537.36';
+
 describe('isSmartTV', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -55,6 +65,7 @@ describe('isSmartTV', () => {
       ['Roku', 'Roku/DVP-9.10 (519.10E04111A)'],
       ['Hisense VIDAA', 'Mozilla/5.0 (Linux; VIDAA 4.0) AppleWebKit/537.36'],
       ['TCL Android TV ("Smart TV" with a space)', TCL_SMART_TV_SPACE_UA],
+      ['Amazon Fire TV Stick (Silk browser, "AFTSS")', FIRE_TV_SILK_UA],
     ];
 
     tvAgents.forEach(([name, ua]) => {
@@ -93,6 +104,10 @@ describe('detectDeviceType', () => {
     withUserAgent(TCL_SMART_TV_SPACE_UA, () => expect(detectDeviceType()).toBe('desktop'));
   });
 
+  it('returns "desktop" for an Amazon Fire TV Stick / Silk browser, not "mobile" (regression lock for G-QPYB-SJ6K report, 2026-08-09)', () => {
+    withUserAgent(FIRE_TV_SILK_UA, () => expect(detectDeviceType()).toBe('desktop'));
+  });
+
   it('still returns "mobile" for a real Android phone', () => {
     withUserAgent(
       'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36',
@@ -122,6 +137,12 @@ describe('isPhoneScreen', () => {
   it('returns false for a TCL Android TV ("Smart TV" with a space) at a small self-reported screen (2026-07-22 real-hardware bug)', () => {
     withUserAgent(TCL_SMART_TV_SPACE_UA, () => {
       withScreenSize(960, 540, () => expect(isPhoneScreen()).toBe(false));
+    });
+  });
+
+  it('returns false for an Amazon Fire TV Stick / Silk browser regardless of screen size (regression lock for G-QPYB-SJ6K report, 2026-08-09)', () => {
+    withUserAgent(FIRE_TV_SILK_UA, () => {
+      withScreenSize(1920, 1080, () => expect(isPhoneScreen()).toBe(false));
     });
   });
 
