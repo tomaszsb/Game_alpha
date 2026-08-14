@@ -46,9 +46,13 @@ export class EffectFactory {
     };
     const sourceType = sourceTypeMap[card.card_type] || 'other';
 
-    // === RE-ROLL MECHANICS (E066 Specific) ===
-    // Check if this is E066 - Investor Pitch Preparation
-    if (card.card_id === 'E066') {
+    // === RE-ROLL MECHANICS ===
+    // Grants an extra die throw this turn (stock E066 "Investor Pitch
+    // Preparation"). 2026-08-10: reskin item 1 — was `card.card_id ===
+    // 'E066'`, now driven by the `card_mechanic` CSV column (DataTypes.ts's
+    // Card['card_mechanic']) so any card tagged `grant_reroll` gets this,
+    // independent of its id.
+    if (card.card_mechanic === 'grant_reroll') {
       effects.push({
         effectType: 'TURN_CONTROL',
         payload: {
@@ -63,7 +67,7 @@ export class EffectFactory {
 
     // === CHOICE OF EFFECTS (Player Choice Between Options) ===
     // Prefer structured card_mechanic column; fall back to description parsing
-    const isChoice = card.card_mechanic === 'choice' ||
+    const isChoice = card.card_mechanic === 'choice' || card.card_mechanic === 'discard_e_or_delay' ||
       (!card.card_mechanic && card.description?.includes(' or '));
     if (isChoice) {
       const choiceEffect = this.parseChoiceOfEffects(card, playerId, cardSource, cardName);
@@ -980,8 +984,14 @@ export class EffectFactory {
     cardSource: string, 
     cardName: string
   ): Effect | null {
-    // For E012: "Discard 1 Expeditor Card or the current filing takes 1 day more time."
-    if (card.card_id === 'E012') {
+    // "Discard 1 Expeditor Card or the current filing takes 1 day more time."
+    // (stock E012 "Paperwork Snag"). 2026-08-10: reskin item 1 — was
+    // `card.card_id === 'E012'`, now driven by the dedicated `card_mechanic`
+    // tag `discard_e_or_delay` (DataTypes.ts's Card['card_mechanic']) kept
+    // separate from the generic `choice` value above so a future genuinely
+    // data-driven choice card can use `choice` without colliding with this
+    // specific hardcoded payload.
+    if (card.card_mechanic === 'discard_e_or_delay') {
       return {
         effectType: 'CHOICE_OF_EFFECTS',
         payload: {

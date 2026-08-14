@@ -101,7 +101,8 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
       card_id: 'E066',
       card_name: 'Investor Pitch Preparation',
       description: 'Gain 1 extra die throw this turn if you do not like the outcome of first throw.',
-      card_type: 'E'
+      card_type: 'E',
+      card_mechanic: 'grant_reroll'
     };
 
     const effects = EffectFactory.createEffectsFromCard(e066Card, 'player1');

@@ -77,7 +77,8 @@ describe('E012 Card - Choice of Effects Integration', () => {
       card_id: 'E012',
       card_name: 'Paperwork Snag',
       description: 'Discard 1 Expeditor Card or the current filing takes 1 day more time.',
-      card_type: 'E'
+      card_type: 'E',
+      card_mechanic: 'discard_e_or_delay'
     };
 
     const effects = EffectFactory.createEffectsFromCard(e012Card, 'player1');
@@ -101,6 +102,40 @@ describe('E012 Card - Choice of Effects Integration', () => {
       expect(payload.options[1].effects).toHaveLength(1);
       expect(payload.options[1].effects[0].effectType).toBe('RESOURCE_CHANGE');
     }
+  });
+
+  // 2026-08-10: reskin item 1 (Workstream 6 audit, TODO.md) — this used to
+  // be gated on `card.card_id === 'E012'`. Proves the fix follows the
+  // card_mechanic tag, not the literal id.
+  it('a renumbered card still gets the choice if it keeps the discard_e_or_delay tag', () => {
+    const renamed: Card = {
+      card_id: 'DND-SNAG-01',
+      card_name: 'Cursed Scroll',
+      description: 'Discard 1 spell or the quest takes 1 day more time.',
+      card_type: 'E',
+      card_mechanic: 'discard_e_or_delay'
+    };
+
+    const effects = EffectFactory.createEffectsFromCard(renamed, 'player1');
+
+    expect(effects).toHaveLength(1);
+    expect(effects[0].effectType).toBe('CHOICE_OF_EFFECTS');
+  });
+
+  it('reusing the literal id E012 for an unrelated card no longer forces a choice', () => {
+    const unrelated: Card = {
+      card_id: 'E012',
+      card_name: 'Totally Different Card',
+      description: 'Not a choice card.',
+      card_type: 'E',
+      money_effect: '100'
+      // no card_mechanic — a reskin CSV that reuses 'E012' for an unrelated
+      // card and doesn't tag it must not force this specific choice.
+    };
+
+    const effects = EffectFactory.createEffectsFromCard(unrelated, 'player1');
+
+    expect(effects.some(e => e.effectType === 'CHOICE_OF_EFFECTS')).toBe(false);
   });
 
   it('should process E012 choice effect - option 0 (discard card)', async () => {

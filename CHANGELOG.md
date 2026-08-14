@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.103] - 2026-08-14
+
+### Reskin: 7 card mechanics moved off literal card-ID gates onto the existing card_mechanic CSV column
+Item 1 (the last BLOCKING finding) from the 2026-08-03 Workstream 6 CSV-only-reskin audit (TODO.md): `card.card_id === 'E024'`-style checks in `CardService.ts`, `GameRulesService.ts`, and `EffectFactory.ts` gated 7 cards' bespoke mechanics (opponent-choice targeting, a negotiation hand-off, a re-roll grant, a discard-or-delay choice, and the two Homeowner Violation variants) on their literal stock card IDs. A reskin CSV that renumbered one of these cards silently lost the mechanic; one that reused the old ID for an unrelated card would misfire into the wrong handler.
+
+The fix reuses the *existing* `card_mechanic` CSV column — already the generic, data-driven dispatch mechanism for 8 other mechanics (`dice_conditional`, `work_type_conditional`, etc., confirmed clean by the 2026-08-03 audit) — rather than inventing a new pattern. Added 6 new `card_mechanic` values (`return_to_sender`, `favor_called_in`, `backchannel_favor`, `grant_reroll`, `discard_e_or_delay`, `notice_of_violation_flat`/`_daily`) to `Card['card_mechanic']` (`DataTypes.ts`) and `DataService.ts`'s CSV-value allowlist, tagged the 7 stock cards (E024, E009, E075, E066, E012, L050, L051) with them in `CARDS_EXPANDED.csv`, and swapped every `card.card_id === '<ID>'` dispatch check for `card.card_mechanic === '<tag>'` in the 4 flagged call sites. E012's tag is deliberately its own value (`discard_e_or_delay`) rather than reusing the generic `choice` value it carried before, so a future genuinely-data-driven choice card can use `choice` without colliding with E012's hardcoded payload.
+
+The bespoke handler bodies (opponent selection via ChoiceService, the negotiation-modal hand-off, the violation-state fields) are untouched — that logic is legitimately custom, not itself a reskin gap; only the *trigger* moved from ID-equality to a CSV tag. Default output is byte-identical (the shipped CSV carries the same 7 IDs with their matching tags). New regression tests in `CardService.test.ts`, `GameRulesService.test.ts`, `EffectFactory.test.ts`, and `E012-integration.test.ts` each prove two things per mechanic: a renumbered card keeps the mechanic if it keeps the tag, and reusing the old literal ID for an unrelated, untagged card no longer misfires. Verified: typecheck clean, full suite 2739/2740 (193 files) — the one failure (`instanceResolver.test.ts`, unrelated server-side instance-baking code) is a Windows `rmdir` filesystem-timing flake, confirmed by re-running that file alone (27/27 clean).
+
 ## [3.1.102] - 2026-08-09
 
 ### Reskin: CHARACTER_MAP moved from a hardcoded literal to data/characters.csv

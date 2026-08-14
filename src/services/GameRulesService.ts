@@ -120,14 +120,18 @@ export class GameRulesService implements IGameRulesService {
     }
 
     // fb:73318276 — same "button does nothing" class as fb:58277eca above.
-    // E024 "Return to Sender" cancels any player's currently-ACTIVE Expeditor
-    // effect (CardService.handleReturnToSender picks a target from every
-    // player's activeCards — self OR opponents). When nobody currently has an
-    // active E effect in play (common, since most Expeditors are Immediate-
-    // duration one-shots, not ongoing), activating it silently no-ops — no
-    // modal, no message, nothing observable, which read as "how does this
-    // card work?" Gate it here so the button isn't offered with no target.
-    if (card?.card_id === 'E024') {
+    // "Return to Sender" (stock E024) cancels any player's currently-ACTIVE
+    // Expeditor effect (CardService.handleReturnToSender picks a target from
+    // every player's activeCards — self OR opponents). When nobody currently
+    // has an active E effect in play (common, since most Expeditors are
+    // Immediate-duration one-shots, not ongoing), activating it silently
+    // no-ops — no modal, no message, nothing observable, which read as "how
+    // does this card work?" Gate it here so the button isn't offered with no
+    // target. 2026-08-10: reskin item 1 — was `card?.card_id === 'E024'`,
+    // now driven by the same `card_mechanic` tag CardService.handlePlayCard
+    // dispatches on (DataTypes.ts's Card['card_mechanic']), so this gate
+    // stays in sync with whichever card a reskin tags `return_to_sender`.
+    if (card?.card_mechanic === 'return_to_sender') {
       const anyActiveExpeditor = this.stateService.getGameState().players.some((p) =>
         (p.activeCards || []).some((ac) => {
           const activeCardData = this.dataService.getCardById(ac.cardId);

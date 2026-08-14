@@ -345,7 +345,7 @@ describe('GameRulesService', () => {
     // active, the button used to activate anyway and silently no-op — same
     // "button does nothing" class as fb:58277eca above.
     describe('E024 "Return to Sender" target check (fb:73318276)', () => {
-      const returnToSender = { card_id: 'E024', card_type: 'E', card_name: 'Return to Sender', phase_restriction: 'Any' };
+      const returnToSender = { card_id: 'E024', card_type: 'E', card_name: 'Return to Sender', phase_restriction: 'Any', card_mechanic: 'return_to_sender' as const };
 
       it('blocks activation when no player has an active Expeditor', () => {
         const player = { ...mockPlayer, hand: ['E024'], activeCards: [] };
@@ -396,6 +396,36 @@ describe('GameRulesService', () => {
         });
 
         expect(gameRulesService.canPlayCard('player1', 'E024')).toBe(false);
+      });
+
+      // 2026-08-10: reskin item 1 (Workstream 6 audit, TODO.md) — this gate
+      // used to be `card?.card_id === 'E024'`. Proves the fix follows the
+      // CSV-driven card_mechanic tag instead of the literal id.
+      it('a renumbered card keeps the gate if it keeps the return_to_sender tag', () => {
+        const renamed = { ...returnToSender, card_id: 'DND-CANCEL-01' };
+        const player = { ...mockPlayer, hand: ['DND-CANCEL-01'], activeCards: [] };
+        mockStateService.getPlayer.mockReturnValue(player);
+        mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [player] });
+        mockDataService.getCardById.mockImplementation((id: string) =>
+          id === 'DND-CANCEL-01' ? renamed : undefined,
+        );
+
+        expect(gameRulesService.canPlayCard('player1', 'DND-CANCEL-01')).toBe(false);
+      });
+
+      it('reusing the literal id E024 for an unrelated card no longer applies this gate', () => {
+        const unrelated = { card_id: 'E024', card_type: 'E', card_name: 'Totally Different Card', phase_restriction: 'Any' };
+        const player = { ...mockPlayer, hand: ['E024'], activeCards: [] };
+        mockStateService.getPlayer.mockReturnValue(player);
+        mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [player] });
+        mockDataService.getCardById.mockImplementation((id: string) =>
+          id === 'E024' ? unrelated : undefined,
+        );
+
+        // No active Expeditors anywhere (same setup as the "blocks" case
+        // above), but without the tag this gate must not apply — the card
+        // is just an ordinary card as far as canPlayCard is concerned.
+        expect(gameRulesService.canPlayCard('player1', 'E024')).toBe(true);
       });
     });
   });

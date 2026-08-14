@@ -2080,6 +2080,7 @@ describe('CardService - Enhanced Coverage', () => {
       card_type: 'E',
       description: 'Choose another team and propose a trade.',
       phase_restriction: 'Any',
+      card_mechanic: 'backchannel_favor' as const,
     };
 
     beforeEach(() => {
@@ -2195,6 +2196,7 @@ describe('CardService - Enhanced Coverage', () => {
       card_type: 'L',
       description: 'An inspector finds uncorrected work...',
       cost: 0,
+      card_mechanic: 'notice_of_violation_flat' as const,
     };
     const L051_CARD = {
       card_id: 'L051',
@@ -2202,6 +2204,7 @@ describe('CardService - Enhanced Coverage', () => {
       card_type: 'L',
       description: 'An inspector finds a condition serious enough...',
       cost: 0,
+      card_mechanic: 'notice_of_violation_daily' as const,
     };
     const W_DRAWN_CARD = { card_id: 'W999', card_name: 'Emergency Repair', card_type: 'W', cost: 200000 };
 
@@ -2250,6 +2253,50 @@ describe('CardService - Enhanced Coverage', () => {
 
         expect(mockStateService.updateTempState).toHaveBeenCalledWith('player1', expect.objectContaining({
           violationTier: 'large',
+        }));
+      });
+    });
+
+    // 2026-08-10: reskin item 1 (Workstream 6 audit, TODO.md) — this handler
+    // used to be gated on `card.card_id === 'L050'/'L051'`. Proves the fix:
+    // the mechanic now follows the CSV tag, not the literal id.
+    describe('reskin item 1 — dispatch follows card_mechanic, not card_id', () => {
+      it('a renumbered card keeps the mechanic if it keeps the card_mechanic tag', async () => {
+        const renamedCard = { ...L050_CARD, card_id: 'DND-VIOLATION-01' };
+        mockDataService.getCardById.mockImplementation((cardId: string) => {
+          if (cardId === 'DND-VIOLATION-01') return renamedCard;
+          if (cardId === 'W999') return W_DRAWN_CARD;
+          return undefined;
+        });
+
+        await cardService.applyCardEffects('player1', 'DND-VIOLATION-01');
+
+        expect(mockStateService.updateTempState).toHaveBeenCalledWith('player1', expect.objectContaining({
+          violationStatus: 'active',
+          violationVariant: 'flat',
+        }));
+      });
+
+      it('reusing the literal id L050 for an unrelated card no longer misfires the violation handler', async () => {
+        const unrelatedCard = {
+          card_id: 'L050',
+          card_name: 'Totally Different Life Event',
+          card_type: 'L',
+          description: 'Something unrelated to violations.',
+          cost: 0,
+          money_effect: '500',
+          // no card_mechanic — a reskin CSV that reuses 'L050' for an
+          // unrelated card and doesn't tag it gets ordinary effect
+          // processing, not the violation handler.
+        };
+        mockDataService.getCardById.mockImplementation((cardId: string) =>
+          cardId === 'L050' ? unrelatedCard : undefined
+        );
+
+        await cardService.applyCardEffects('player1', 'L050');
+
+        expect(mockStateService.updateTempState).not.toHaveBeenCalledWith('player1', expect.objectContaining({
+          violationStatus: 'active',
         }));
       });
     });

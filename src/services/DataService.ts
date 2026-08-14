@@ -1112,6 +1112,15 @@ export class DataService implements IDataService {
   }
 
   private parseCardsCsv(csvText: string): Card[] {
+    const VALID_CARD_MECHANICS = new Set([
+      'choice', 'dice_conditional', 'work_type_conditional', 'utility_conditional',
+      'competing_worktype_conditional', 'high_profile_conditional', 'leader_phase_conditional',
+      'bulk_permit_conditional',
+      // 2026-08-10: reskin item 1 — see Card['card_mechanic'] in DataTypes.ts
+      'return_to_sender', 'favor_called_in', 'backchannel_favor', 'grant_reroll',
+      'discard_e_or_delay', 'notice_of_violation_flat', 'notice_of_violation_daily',
+    ]);
+
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) {
       throw new Error('CARDS_EXPANDED.csv must have at least a header row and one data row');
@@ -1207,7 +1216,7 @@ export class DataService implements IDataService {
         scope: values[20] || undefined,
 
         // Structured effect columns (optional, for eliminating text parsing)
-        card_mechanic: (values[22] === 'choice' || values[22] === 'dice_conditional' || values[22] === 'work_type_conditional' || values[22] === 'utility_conditional' || values[22] === 'competing_worktype_conditional' || values[22] === 'high_profile_conditional' || values[22] === 'leader_phase_conditional' || values[22] === 'bulk_permit_conditional') ? values[22] as Card['card_mechanic'] : undefined,
+        card_mechanic: VALID_CARD_MECHANICS.has(values[22]) ? values[22] as Card['card_mechanic'] : undefined,
         dice_range_1_min: values[23] ? parseInt(values[23]) : undefined,
         dice_range_1_max: values[24] ? parseInt(values[24]) : undefined,
         dice_range_1_time: values[25] ? parseInt(values[25]) : undefined,

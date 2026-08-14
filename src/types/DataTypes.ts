@@ -494,7 +494,17 @@ export interface Card {
   // Structured effect columns (replaces description/name regex parsing)
   // 'bulk_permit_conditional' (2026-07-26, E040 "Bulk Discount") gates on
   // 3+ Work Package cards gained this turn — see CardService.playerFiledBulkPermitsThisTurn.
-  card_mechanic?: 'choice' | 'dice_conditional' | 'work_type_conditional' | 'utility_conditional' | 'competing_worktype_conditional' | 'high_profile_conditional' | 'leader_phase_conditional' | 'bulk_permit_conditional';
+  // 2026-08-10: reskin item 1 (Workstream 6 audit, TODO.md) added the last 6
+  // values below, replacing `card.card_id === 'E024'`-style literal-ID gates
+  // in CardService.ts/GameRulesService.ts/EffectFactory.ts. Each still routes
+  // to its own bespoke handler (opponent choice, negotiation hand-off,
+  // violation state) — that logic isn't reskin-generic and doesn't need to
+  // be — but which CARD triggers it is now a CSV tag instead of a hardcoded
+  // ID, so a reskin can rename/renumber the card (keep the tag, mechanic
+  // still fires) or safely reuse the old literal ID for an unrelated card
+  // (no tag, no misfire).
+  card_mechanic?: 'choice' | 'dice_conditional' | 'work_type_conditional' | 'utility_conditional' | 'competing_worktype_conditional' | 'high_profile_conditional' | 'leader_phase_conditional' | 'bulk_permit_conditional'
+    | 'return_to_sender' | 'favor_called_in' | 'backchannel_favor' | 'grant_reroll' | 'discard_e_or_delay' | 'notice_of_violation_flat' | 'notice_of_violation_daily';
   dice_range_1_min?: number;
   dice_range_1_max?: number;
   dice_range_1_time?: number;

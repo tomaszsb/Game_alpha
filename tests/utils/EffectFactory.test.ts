@@ -200,7 +200,8 @@ describe('EffectFactory', () => {
         card_id: 'E066',
         card_name: 'Investor Pitch Preparation',
         card_type: 'E',
-        description: 'Gain 1 extra die throw this turn if you do not like the outcome'
+        description: 'Gain 1 extra die throw this turn if you do not like the outcome',
+        card_mechanic: 'grant_reroll'
       };
 
       // Act
@@ -220,6 +221,39 @@ describe('EffectFactory', () => {
           reason: 'Investor Pitch Preparation: Gain 1 extra die throw this turn if you do not like the outcome'
         }
       });
+    });
+
+    // 2026-08-10: reskin item 1 (Workstream 6 audit, TODO.md) — this used to
+    // be gated on `card.card_id === 'E066'`. Proves the fix follows the
+    // card_mechanic tag, not the literal id.
+    it('a renumbered card still grants a re-roll if it keeps the grant_reroll tag', () => {
+      const renamed: Card = {
+        card_id: 'DND-REROLL-01',
+        card_name: 'Reroll the Dice',
+        card_type: 'E',
+        description: 'Gain 1 extra die throw.',
+        card_mechanic: 'grant_reroll'
+      };
+
+      const effects = EffectFactory.createEffectsFromCard(renamed, mockPlayerId);
+
+      expect(effects.some(e => e.effectType === 'TURN_CONTROL')).toBe(true);
+    });
+
+    it('reusing the literal id E066 for an unrelated card no longer grants a re-roll', () => {
+      const unrelated: Card = {
+        card_id: 'E066',
+        card_name: 'Totally Different Card',
+        card_type: 'E',
+        description: 'Not a reroll card.',
+        money_effect: '100'
+        // no card_mechanic — a reskin CSV that reuses 'E066' for an
+        // unrelated card and doesn't tag it must not grant a reroll.
+      };
+
+      const effects = EffectFactory.createEffectsFromCard(unrelated, mockPlayerId);
+
+      expect(effects.some(e => e.effectType === 'TURN_CONTROL')).toBe(false);
     });
 
     it('should handle targeted cards', () => {

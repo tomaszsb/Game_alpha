@@ -1157,32 +1157,46 @@ export class CardService implements ICardService {
     }
 
 
-    // Special handling for E024 "Return to Sender"
-    if (card.card_id === 'E024') {
+    // Special handling for "Return to Sender" (stock E024). 2026-08-10:
+    // reskin item 1 — was `card.card_id === 'E024'`. A literal-ID gate meant
+    // a reskin CSV that renumbered this card lost the mechanic silently, or
+    // one that reused 'E024' for an unrelated card misfired into this
+    // handler. Now driven by the `card_mechanic` CSV column (see
+    // DataTypes.ts's Card['card_mechanic']) — any card explicitly tagged
+    // `return_to_sender` gets this behavior, regardless of its id.
+    if (card.card_mechanic === 'return_to_sender') {
       await this.handleReturnToSender(playerId, card);
       return this.stateService.getGameState();
     }
 
-    // Special handling for E009 "Favor Called In" - Choose opponent, they +2 days, you -2 days
-    if (card.card_id === 'E009') {
+    // Special handling for "Favor Called In" (stock E009) - Choose opponent,
+    // they +2 days, you -2 days. 2026-08-10: reskin item 1, same card_mechanic
+    // fix as return_to_sender above.
+    if (card.card_mechanic === 'favor_called_in') {
       await this.handleFavorCalledIn(playerId, card);
       return this.stateService.getGameState();
     }
 
-    // Special handling for E075 "Backchannel Favor" - Choose a partner and
-    // open a negotiation with them (NegotiationModal), instead of resolving
-    // a fixed numeric effect.
-    if (card.card_id === 'E075') {
+    // Special handling for "Backchannel Favor" (stock E075) - Choose a
+    // partner and open a negotiation with them (NegotiationModal), instead
+    // of resolving a fixed numeric effect. 2026-08-10: reskin item 1, same
+    // card_mechanic fix as return_to_sender above.
+    if (card.card_mechanic === 'backchannel_favor') {
       await this.handleBackchannelFavor(playerId, card);
       return this.stateService.getGameState();
     }
 
-    // Special handling for L050/L051 "Notice of Violation" / "Immediately
-    // Hazardous Violation" — draws a corrective Work Package and sets
-    // violation status fields, instead of a fixed numeric effect. See
+    // Special handling for "Notice of Violation" / "Immediately Hazardous
+    // Violation" (stock L050/L051) — draws a corrective Work Package and
+    // sets violation status fields, instead of a fixed numeric effect. See
     // TODO.md's 2026-07-31 spec for the full tier/fee-rate design.
-    if (card.card_id === 'L050' || card.card_id === 'L051') {
-      await this.handleNoticeOfViolation(playerId, card, card.card_id === 'L050' ? 'flat' : 'daily');
+    // 2026-08-10: reskin item 1 — was `card.card_id === 'L050'/'L051'`. Each
+    // card now carries its own `notice_of_violation_flat`/`_daily` tag
+    // directly, so the variant comes from the CSV instead of an ID-equality
+    // ternary — a reskin's flat-variant violation card doesn't have to be
+    // literally named/numbered 'L050'.
+    if (card.card_mechanic === 'notice_of_violation_flat' || card.card_mechanic === 'notice_of_violation_daily') {
+      await this.handleNoticeOfViolation(playerId, card, card.card_mechanic === 'notice_of_violation_flat' ? 'flat' : 'daily');
       return this.stateService.getGameState();
     }
 
