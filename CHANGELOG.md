@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.5] - 2026-08-14
+
+### Fix: admin stats search now surfaces a game/IP's full history, not just what's inside the selected window and top 20 rows
+TODO.md (found 2026-08-04): "No dashboard feature exists to see a single game's event trail or space-reached path — had to grep `visitors.log` directly over SSH instead. The `/admin/stats` page's 'Search IP or game ID' box filters the recent-activity table but doesn't include `PLAYTEST_*` events or reach past its display window."
+
+Root cause: `aggregateVisitorStats()` (`server/visitorStats.js`) cut to the selected window (default 7 days) *before* applying the search filter, then capped the `recent` feed at the newest 20 rows. `PLAYTEST_SPACE_REACHED`/`PLAYTEST_GAME_FINISHED`/etc. entries do carry `gameId` and do match search — they were never specially excluded, they just fell off the same window/20-row cliff as everything else once a game's trail got old or long enough.
+
+Fix, scoped to the `recent` activity list only (every other widget — KPIs, traffic chart, sources, devices, geography, home/foreign split, CSV export — stays exactly window+filter scoped as before): all non-window filters (action/source/search/origin/country) are now composed into one `filteredAll` set over the full un-windowed traffic; `pool` is `filteredAll` further cut to the window (unchanged output vs. before — same filters, just computed once and reused). When a search is active, `recent` is built from `filteredAll` instead of the window-cut `pool`, with the cap raised from 20 to 500 — so a targeted search escapes the window truncation while still correctly composing with any other active filter (origin/action/source/country all still apply). No frontend change needed — `StatsDashboard.tsx` already renders whatever `recent` comes back.
+
+New tests in `tests/server/visitorStats.test.ts`: a 40-day-old search match surfaces under a `'24h'` window while an in-window non-match doesn't (and `totals.inWindow` stays correctly window-scoped at 0 — only `recent` reaches outside it); the non-search case is unchanged (window-cut, capped at 20); and a combined search+origin filter proves a search-driven `recent` still respects other active filters rather than showing every search match regardless of origin/action/source/country (this composition case was caught and fixed during landing — the fix's first draft built the search-driven `recent` from an unfiltered pool, which would have silently ignored any other active filter whenever a search was also active). Verified: typecheck clean, full suite 2731/2731 (186/186 files, no flakes this run), build clean.
+
 ## [3.2.4] - 2026-08-14
 
 ### Fix: `instanceResolver.test.ts` teardown hardened against a transient Windows filesystem race

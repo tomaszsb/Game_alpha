@@ -228,21 +228,33 @@ export function aggregateVisitorStats(rawEntries, options = {}) {
   };
 
   // ---- windowed + filtered pool driving everything else on the page ----
+  // Shared search predicate (matches gameId or ip, case-insensitive substring)
+  // -- factored out so it can't drift between the two uses below.
+  const matchesSearch = filters.search
+    ? (() => {
+        const q = filters.search.toLowerCase();
+        return (e) => (e.ip || '').toLowerCase().includes(q) || (e.gameId || '').toLowerCase().includes(q);
+      })()
+    : null;
+
+  // All non-window filters (action/source/search/origin/country) applied to
+  // the full (bot/admin-noise-excluded but NOT window-cut) traffic. `pool`
+  // below is this set additionally cut to the selected window -- computing
+  // it this way (rather than window-cutting first) means `filteredAll` stays
+  // available for the "recent" activity feed to reuse when a search is
+  // active, so a search still respects action/source/origin/country filters
+  // even though it deliberately ignores the window cutoff (see below).
+  let filteredAll = real;
+  if (filters.action) filteredAll = filteredAll.filter((e) => e.action === filters.action);
+  if (filters.source) filteredAll = filteredAll.filter((e) => (e.campaignSource || 'none') === filters.source);
+  if (matchesSearch) filteredAll = filteredAll.filter(matchesSearch);
+  if (filters.origin === 'home') filteredAll = filteredAll.filter((e) => isHomeIP(e.ip));
+  else if (filters.origin === 'foreign') filteredAll = filteredAll.filter((e) => !isHomeIP(e.ip));
+  if (filters.country) filteredAll = filteredAll.filter((e) => (geoLookup(e.ip) || 'unknown') === filters.country);
+
   const windowMs = WINDOW_MS[window] ?? WINDOW_MS['30d'];
   const cutoff = windowMs === Infinity ? -Infinity : now - windowMs;
-  let pool = real.filter((e) => e._ts >= cutoff && e._ts <= now);
-
-  if (filters.action) pool = pool.filter((e) => e.action === filters.action);
-  if (filters.source) pool = pool.filter((e) => (e.campaignSource || 'none') === filters.source);
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    pool = pool.filter((e) =>
-      (e.ip || '').toLowerCase().includes(q) || (e.gameId || '').toLowerCase().includes(q)
-    );
-  }
-  if (filters.origin === 'home') pool = pool.filter((e) => isHomeIP(e.ip));
-  else if (filters.origin === 'foreign') pool = pool.filter((e) => !isHomeIP(e.ip));
-  if (filters.country) pool = pool.filter((e) => (geoLookup(e.ip) || 'unknown') === filters.country);
+  const pool = filteredAll.filter((e) => e._ts >= cutoff && e._ts <= now);
 
   // ---- traffic over time (bucketed) + games-created overlay ----
   const hourly = window === '24h';
@@ -308,10 +320,20 @@ export function aggregateVisitorStats(rawEntries, options = {}) {
     .sort((a, b) => b.count - a.count);
 
   // ---- recent activity feed (newest first) ----
-  const recent = pool
+  // When a search is active, the point is tracing one game/IP's full history
+  // -- the window toggle exists to scope the KPIs/charts, not to truncate a
+  // targeted search, so pull matches from `filteredAll` (every other active
+  // filter still applied, just not window-cut) instead of the window-cut
+  // `pool`, with a generous (not 20-row) cap. Without a search, behavior is
+  // unchanged: `pool`, capped at 20.
+  const RECENT_SEARCH_CAP = 500;
+  const RECENT_DEFAULT_CAP = 20;
+  const recentSource = matchesSearch ? filteredAll : pool;
+  const recentCap = matchesSearch ? RECENT_SEARCH_CAP : RECENT_DEFAULT_CAP;
+  const recent = recentSource
     .slice()
     .sort((a, b) => b._ts - a._ts)
-    .slice(0, 20)
+    .slice(0, recentCap)
     .map((e) => redact(e, full, isHomeIP, geoLookup));
 
   // ---- CSV-export slice: the same filtered pool, oldest first ----

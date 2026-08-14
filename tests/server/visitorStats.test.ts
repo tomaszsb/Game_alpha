@@ -226,6 +226,40 @@ describe('aggregateVisitorStats', () => {
     expect(bySearch.totals.inWindow).toBe(1);
   });
 
+  it('search-driven `recent` reaches outside the selected window, while the unfiltered `recent` stays window-cut and capped at 20', () => {
+    const oldMatch = at(40 * 24, { action: 'PLAYTEST_SPACE_REACHED', gameId: 'G-TRAIL-0001', ip: '7.7.7.7' }); // 40 days ago -> outside '24h' window
+    const inWindowNonMatch = at(1, { action: 'CREATE_GAME', gameId: 'G-OTHER-9999', ip: '8.8.8.8' }); // in-window but doesn't match the search
+    const entries = [oldMatch, inWindowNonMatch].filter(Boolean);
+
+    const searched = aggregateVisitorStats(entries, { now: NOW, window: '24h', filters: { search: 'G-TRAIL' } });
+    expect(searched.recent).toHaveLength(1);
+    expect(searched.recent[0].gameId).toBe('G-TRAIL-0001');
+    // totals/kpis/etc. stay window+filter scoped -- only `recent` reaches outside the window.
+    expect(searched.totals.inWindow).toBe(0);
+
+    // Non-search case: unchanged behavior -- `recent` stays window-cut and capped at 20.
+    // Distinct IPs per entry so this doesn't trip the same-IP rapid-fire bot detector.
+    const manyEntries = Array.from({ length: 25 }, (_, i) => at(1, { action: 'CREATE_GAME', gameId: `G-MANY-${i}`, ip: `9.9.9.${i}` })).filter(Boolean);
+    const unsearched = aggregateVisitorStats([...manyEntries, oldMatch], { now: NOW, window: '24h' });
+    expect(unsearched.recent).toHaveLength(20);
+    expect(unsearched.recent.some((r) => r.gameId === 'G-TRAIL-0001')).toBe(false);
+  });
+
+  it('search-driven `recent` still respects other active filters (origin/action/source/country), not just search', () => {
+    const isHomeIP = (ip: string) => ip.startsWith('192.168.');
+    const homeMatch = at(1, { action: 'PLAYTEST_SPACE_REACHED', gameId: 'G-COMBO-0001', ip: '192.168.1.5' });
+    const foreignMatch = at(1, { action: 'PLAYTEST_SPACE_REACHED', gameId: 'G-COMBO-0002', ip: '8.8.8.8' });
+    const entries = [homeMatch, foreignMatch].filter(Boolean);
+
+    // Search + origin=home: the foreign match's gameId also contains "G-COMBO",
+    // so a search that ignored the origin filter would wrongly include it too.
+    const result = aggregateVisitorStats(entries, {
+      now: NOW, window: '24h', isHomeIP, filters: { search: 'G-COMBO', origin: 'home' },
+    });
+    expect(result.recent).toHaveLength(1);
+    expect(result.recent[0].gameId).toBe('G-COMBO-0001');
+  });
+
   it('filters by home/foreign origin', () => {
     const entries = [
       at(1, { ip: '192.168.1.5' }),

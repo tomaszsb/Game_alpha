@@ -81,3 +81,5 @@
 {"ts":"2026-08-08T18:02:44.005Z","item":"Investment card label bypassed CSV pipeline - fixed","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":null,"commit":"fb1dbb0"}
 {"ts":"2026-08-08T18:28:11.017Z","item":"CON-INITIATION change-order fee mislabeled Engineer fee - fixed","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":null,"commit":"8e1be42"}
 {"ts":"2026-08-09T22:41:00.000Z","item":"EffectFactory sourceTypeMap: Bank Loan cards tagged Owner Funding, dodged loan-percentage fees - fixed","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":36.51,"commit":"fb4d064"}
+{"ts":"2026-08-14T22:48:51.763Z","item":"instanceResolver.test.ts flaky afterEach teardown (Windows ENOTEMPTY/EPERM)","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":18.35,"commit":"31a00f9"}
+{"ts":"2026-08-14T23:01:23.933Z","item":"Admin stats search window/20-row-capped, hiding a game full trail - fixed","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":null,"commit":"pending"}
