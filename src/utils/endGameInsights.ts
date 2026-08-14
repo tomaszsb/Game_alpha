@@ -32,10 +32,22 @@ export interface Insight {
   id: string;
 }
 
-const REG_PREFIXES = ['REG-DOB-', 'REG-FDNY-'];
+// 2026-08-14: reskin audit follow-up (TODO.md, Workstream 6). Default
+// fallback for the 'regulatory-heavy' rule below — literal space-name
+// prefixes, kept only so a caller that doesn't inject `isRegulatorySpace`
+// (see buildEndGameInsights opts) gets byte-identical behavior to before.
+// A reskin CSV that renames these spaces away from the REG-DOB-/REG-FDNY-
+// convention needs the injected, CSV-driven version instead — see
+// EndGameModal.tsx's call site, which injects a `phase === 'REGULATORY'`
+// lookup via DataService.getGameConfigBySpace.
+const DEFAULT_REG_PREFIXES = ['REG-DOB-', 'REG-FDNY-'];
 
-function isRegSpace(spaceName: string): boolean {
-  return REG_PREFIXES.some(p => spaceName.startsWith(p));
+function defaultIsRegulatorySpace(spaceName: string): boolean {
+  return DEFAULT_REG_PREFIXES.some(p => spaceName.startsWith(p));
+}
+
+interface RuleContext {
+  isRegulatorySpace: (spaceName: string) => boolean;
 }
 
 // === Rules ===
@@ -43,7 +55,7 @@ function isRegSpace(spaceName: string): boolean {
 // — caller sorts by priority. Rule ids are kebab-case for grep-ability in
 // tests and logs.
 
-type Rule = (stats: EndGameStats, player: Player) => Insight | null;
+type Rule = (stats: EndGameStats, player: Player, ctx: RuleContext) => Insight | null;
 
 const rules: Rule[] = [
   // === PACING ===
@@ -216,10 +228,10 @@ const rules: Rule[] = [
   },
 
   // === REGULATORY TIME ===
-  (stats) => {
+  (stats, _player, ctx) => {
     if (stats.daysTotal <= 0 || stats.journey.length === 0) return null;
     const regDays = stats.journey
-      .filter(step => isRegSpace(step.spaceName))
+      .filter(step => ctx.isRegulatorySpace(step.spaceName))
       .reduce((sum, step) => sum + step.daysSpent, 0);
     if (regDays > 0 && regDays / stats.daysTotal >= 0.4) {
       const pct = Math.round((regDays / stats.daysTotal) * 100);
@@ -306,12 +318,25 @@ const rules: Rule[] = [
 export function buildEndGameInsights(
   stats: EndGameStats,
   player: Player,
-  opts: { maxInsights?: number } = {},
+  opts: {
+    maxInsights?: number;
+    /**
+     * 2026-08-14: reskin audit follow-up (TODO.md, Workstream 6). CSV-driven
+     * replacement for the 'regulatory-heavy' rule's literal REG-DOB-/
+     * REG-FDNY- space-name-prefix check. Callers with a DataService should
+     * inject `spaceName => dataService.getGameConfigBySpace(spaceName)?.phase
+     * === 'REGULATORY'` (see EndGameModal.tsx) so a reskin CSV that renames
+     * these spaces still gets a correct insight. Omitting this keeps today's
+     * literal-prefix default — a no-op for the stock game.
+     */
+    isRegulatorySpace?: (spaceName: string) => boolean;
+  } = {},
 ): Insight[] {
   const max = opts.maxInsights ?? 5;
+  const ctx: RuleContext = { isRegulatorySpace: opts.isRegulatorySpace ?? defaultIsRegulatorySpace };
   const all: Insight[] = [];
   for (const rule of rules) {
-    const insight = rule(stats, player);
+    const insight = rule(stats, player, ctx);
     if (insight) all.push(insight);
   }
   // Sort by priority descending; stable order is fine since each rule emits at

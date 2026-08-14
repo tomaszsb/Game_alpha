@@ -159,8 +159,15 @@ export function EndGameModal(): JSX.Element {
   // under, so they stay winner-only.
   const insights: Insight[] = useMemo(() => {
     if (!winnerPlayer || !stats) return [];
-    return buildEndGameInsights(stats, winnerPlayer, { maxInsights: 5 });
-  }, [winnerPlayer, stats]);
+    return buildEndGameInsights(stats, winnerPlayer, {
+      maxInsights: 5,
+      // 2026-08-14: reskin audit follow-up (TODO.md, Workstream 6) — CSV-driven
+      // replacement for the 'regulatory-heavy' rule's literal REG-DOB-/
+      // REG-FDNY- space-name-prefix default, so a reskin that renames these
+      // spaces still gets a correct insight.
+      isRegulatorySpace: (spaceName) => dataService.getGameConfigBySpace(spaceName)?.phase === 'REGULATORY',
+    });
+  }, [winnerPlayer, stats, dataService]);
 
   const footer = (
     <button

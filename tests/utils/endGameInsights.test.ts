@@ -222,6 +222,37 @@ describe('buildEndGameInsights — regulatory time', () => {
     );
     expect(ids(out)).not.toContain('regulatory-heavy');
   });
+
+  // 2026-08-14: reskin audit follow-up (TODO.md, Workstream 6) — this rule
+  // used to be gated on a literal REG-DOB-/REG-FDNY- space-name-prefix
+  // check with no way to override it. Proves the fix: an injected
+  // `isRegulatorySpace` (what EndGameModal.tsx passes, backed by
+  // DataService.getGameConfigBySpace(...).phase) drives the rule instead.
+  it('an injected isRegulatorySpace overrides the default prefix check', () => {
+    const journey = [
+      { spaceName: 'CASTLE-INSPECTION', daysSpent: 60, entryTurn: 1 },
+      { spaceName: 'MARKET-SQUARE', daysSpent: 40, entryTurn: 2 },
+    ];
+
+    // Default (no injection): a reskin-renamed space doesn't match the
+    // literal prefix, so the rule doesn't fire even though it should.
+    const withoutInjection = buildEndGameInsights(
+      makeStats({ daysTotal: 100, journey }),
+      makePlayer(),
+    );
+    expect(ids(withoutInjection)).not.toContain('regulatory-heavy');
+
+    // With injection: a reskin CSV that tags CASTLE-INSPECTION as the
+    // 'REGULATORY' phase gets a correct insight without a code change.
+    const withInjection = buildEndGameInsights(
+      makeStats({ daysTotal: 100, journey }),
+      makePlayer(),
+      { isRegulatorySpace: (spaceName) => spaceName === 'CASTLE-INSPECTION' },
+    );
+    const ins = withInjection.find(i => i.id === 'regulatory-heavy');
+    expect(ins).toBeDefined();
+    expect(ins?.headline).toMatch(/60%/);
+  });
 });
 
 describe('buildEndGameInsights — revisits', () => {

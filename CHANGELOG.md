@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.105] - 2026-08-14
+
+### Reskin: "regulatory-heavy" end-game insight no longer gated on literal REG-DOB-/REG-FDNY- space names
+Follow-up from the 2026-08-03 Workstream 6 CSV-only-reskin audit (TODO.md), one of the two remaining Moderate-tier items after v3.1.101's DOB/FDNY narration fix. `endGameInsights.ts`'s `isRegSpace` summed a player's "regulatory review" days by checking whether each visited space's name literally started with `REG-DOB-`/`REG-FDNY-` — a reskin that renamed those spaces lost the insight silently (it just stops firing, doesn't misfire, so this was Moderate not BLOCKING, but still a real reskin-portability gap).
+
+`buildEndGameInsights()` now takes an optional `isRegulatorySpace` injector; when omitted it falls back to the old literal-prefix check (byte-identical default). `EndGameModal.tsx` — the only real caller — injects `dataService.getGameConfigBySpace(spaceName)?.phase === 'REGULATORY'` instead, which the audit confirmed picks out exactly the same 8 spaces as the old prefix check today (verified directly against `GAME_CONFIG.csv`), while following the space's actual phase category instead of its name. `endGameStats.ts` already documented this exact pattern (`projectScope` injected by the caller "since computing it requires the DataService" — the rule module itself stays a pure, service-free function); this follows the same shape rather than threading DataService into `endGameInsights.ts` directly.
+
+New regression test in `endGameInsights.test.ts` proves both halves: a reskin-renamed space is silently skipped under the default (old behavior, unchanged), and correctly counted once the phase-based lookup is injected. Verified: typecheck clean, full suite 2748/2748 (194/194 files, no flakes this run).
+
+Still open from the audit: hardcoded English UI copy in `uiStrings.ts`/`RulesModal.tsx` — a genuinely bigger job (effectively a small localization layer, not a quick swap), holding for a scope discussion rather than starting blind.
+
 ## [3.1.104] - 2026-08-14
 
 ### Reskin: Homeowner Violation tier threshold, filing deadline, and fee rates moved to VIOLATION_RULES.csv
