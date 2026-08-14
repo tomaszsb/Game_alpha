@@ -152,6 +152,7 @@ export interface IDataService {
   getCardTypeLabels(): import('./DataTypes').CardTypeLabel[];
   getCharacterRows(): import('./DataTypes').CharacterCsvRow[];
   getViolationRuleRows(): import('./DataTypes').ViolationRuleCsvRow[];
+  getUIStringRows(): import('./DataTypes').UIStringCsvRow[];
   getMinWCardsToLeave(spaceName: string): number;
   getFeeCalculationMethod(spaceName: string): 'flat' | 'percentage_of_scope';
   getFeeLabel(spaceName: string): string;

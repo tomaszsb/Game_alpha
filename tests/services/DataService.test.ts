@@ -40,6 +40,9 @@ const mockViolationRulesCsv = `tier,threshold,deadline_days,fee_rate_ontime,fee_
 small,500000,180,0.04,0.08,500
 large,500000,180,0.10,0.20,2000`;
 
+const mockUIStringsCsv = `key,template
+DICE_BUTTON.WORK,Get Work Packages`;
+
 const urlMap: { [key: string]: string } = {
   '/data/CLEAN_FILES/GAME_CONFIG.csv': mockGameConfigCsv,
   '/data/CLEAN_FILES/MOVEMENT.csv': mockMovementCsv,
@@ -51,6 +54,7 @@ const urlMap: { [key: string]: string } = {
   '/data/SOURCE_FILES/ModalConfig.csv': mockModalConfigCsv,
   '/data/CLEAN_FILES/CHARACTERS.csv': mockCharactersCsv,
   '/data/CLEAN_FILES/VIOLATION_RULES.csv': mockViolationRulesCsv,
+  '/data/CLEAN_FILES/UI_STRINGS.csv': mockUIStringsCsv,
 };
 
 global.fetch = vi.fn().mockImplementation((url: string) => {
@@ -97,17 +101,18 @@ describe('DataService', () => {
 
   it('should fetch and parse all CSV files correctly', async () => {
     await dataService.loadData();
-    // 12 CLEAN_FILES CSVs (incl. LOGIC_QUESTIONS.csv + PATH_CHOICE_RULES.csv
+    // 13 CLEAN_FILES CSVs (incl. LOGIC_QUESTIONS.csv + PATH_CHOICE_RULES.csv
     // added in v2.57.0, CARD_TYPES.csv added 2026-07-16, CHARACTERS.csv added
-    // 2026-08-09, VIOLATION_RULES.csv added 2026-08-14 for the
-    // CSV-portability lift) + 1 SOURCE_FILES/ModalConfig.csv = 13 fetches.
-    expect(global.fetch).toHaveBeenCalledTimes(13);
+    // 2026-08-09, VIOLATION_RULES.csv + UI_STRINGS.csv added 2026-08-14 for
+    // the CSV-portability lift) + 1 SOURCE_FILES/ModalConfig.csv = 14 fetches.
+    expect(global.fetch).toHaveBeenCalledTimes(14);
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CARDS_EXPANDED\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/SOURCE_FILES\/ModalConfig\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/PATH_CHOICE_RULES\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CARD_TYPES\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CHARACTERS\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/VIOLATION_RULES\.csv/));
+    expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/UI_STRINGS\.csv/));
     expect(dataService.isLoaded()).toBe(true);
   });
 
@@ -178,6 +183,29 @@ describe('DataService', () => {
     await svc.loadData();
     expect(svc.isLoaded()).toBe(true);
     expect(svc.getViolationRuleRows()).toEqual([]);
+  });
+
+  it('should parse UI_STRINGS.csv rows via getUIStringRows', async () => {
+    await dataService.loadData();
+    const rows = dataService.getUIStringRows();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({ key: 'DICE_BUTTON.WORK', template: 'Get Work Packages' });
+  });
+
+  it('should tolerate a missing UI_STRINGS.csv', async () => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      const cleanUrl = url.split('?')[0];
+      if (cleanUrl === '/data/CLEAN_FILES/UI_STRINGS.csv') {
+        return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('') });
+      }
+      const csvData = urlMap[cleanUrl];
+      if (!csvData) return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('') });
+      return Promise.resolve({ ok: true, text: () => Promise.resolve(csvData) });
+    });
+    const svc = new DataService();
+    await svc.loadData();
+    expect(svc.isLoaded()).toBe(true);
+    expect(svc.getUIStringRows()).toEqual([]);
   });
 
   it('should expose modal config overrides via getModalConfig', async () => {

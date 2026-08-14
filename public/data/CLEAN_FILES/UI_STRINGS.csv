@@ -1,0 +1,48 @@
+key,template
+DICE_BUTTON.WORK,Get Work Packages
+DICE_BUTTON.BANK,Apply for Bank Loans
+DICE_BUTTON.EXPEDITOR,Hire Expeditors
+DICE_BUTTON.INVESTMENT,Seek Investments
+DICE_BUTTON.LIFE_EVENT,Check for Life Events
+DICE_BUTTON.FEE,Determine Fee Amount
+DICE_BUTTON.FUNDING,Determine Funding
+DICE_BUTTON.TIME,Determine Time Impact
+DICE_BUTTON.QUALITY,Assess Quality
+DICE_BUTTON.EFFECTS,Determine Effects
+DICE_BUTTON.BONUS,Check for Bonus
+DICE_BUTTON.BONUS_FUNDING,Check for Bonus Funding
+DICE_BUTTON.BONUS_EFFECTS,Check for Bonus Effects
+DICE_BUTTON.NEXT_STEP,Determine Next Step
+DICE_BUTTON.OUTCOME,Determine Outcome
+DICE_FEEDBACK.prefix,Outcome:
+DICE_FEEDBACK.got,Got {count} {typeName}{plural}
+DICE_FEEDBACK.gained,Gained ${amount}
+DICE_FEEDBACK.spent,Spent ${amount}
+DICE_FEEDBACK.timePenalty,Time Penalty: {days} {unit}
+DICE_FEEDBACK.timeSaved,Time Saved: {days} {unit}
+DICE_FEEDBACK.timeBonus,Time Bonus: {days} {unit}
+DICE_FEEDBACK.movedTo,Moved to {dest}
+DICE_FEEDBACK.ON_CURRENT_SPACE,on current space
+DICE_FEEDBACK.ACTION_COMPLETED,Action completed
+NOTIF.diceRollMedium.withSummary,→ {summary}
+NOTIF.diceRollMedium.empty,No change this time
+NOTIF.diceRollDetailed.withSummary,{player}: {summary}
+NOTIF.diceRollDetailed.empty,{player}: no change this time
+NOTIF.NO_EFFECTS,No change
+NOTIF.cardPlayShort,✓
+NOTIF.cardPlayMedium.withSummary,⚡ Activated {name} → {summary}
+NOTIF.cardPlayMedium.empty,⚡ Activated {name}
+CARD_REPLACE.title,{mode} {typeName}
+CARD_REPLACE.instruction,Select up to {max} to replace
+CARD_REPLACE.instructionReturn.plural,Select up to {max} to return
+CARD_REPLACE.instructionReturn.singular,Select one to return
+CARD_REPLACE.confirm.withCount,{mode} {count}
+CARD_REPLACE.confirm.zero,{mode}
+CARD_REPLACE.empty,No {typeName} available to {action}
+CARD_REPLACE.counter,{selected} of {max} selected
+CARD_REPLACE.RETURN_BUTTON,Return to Main Panel
+CARD_DETAILS.TRANSFER_TOGGLE,↔ Transfer
+CARD_DETAILS.TRANSFER_CONFIRM,Transfer
+CARD_DETAILS.TRANSFER_HEADING,Select player to transfer to:
+DISCARD_PILE.EMPTY_STATE,No resources used yet
+DISCARD_PILE.FILTER_LABEL,Filter by type

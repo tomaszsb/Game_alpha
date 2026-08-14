@@ -133,6 +133,28 @@ export interface ViolationRuleCsvRow {
   daily_rate: string;
 }
 
+/**
+ * 2026-08-14: CSV-portability lift, reskin item — vocabulary swap for
+ * button/notification text. One row of UI_STRINGS.csv: a dot-path `key`
+ * (mirrors src/constants/uiStrings.ts's export shape, e.g.
+ * `DICE_BUTTON.WORK`, `DICE_FEEDBACK.got`) and a `template` string using the
+ * same `{token}` placeholder syntax templateInterpolation.ts already uses
+ * for ModalConfig.csv text. Conditional strings (different wording depending
+ * on an argument, e.g. NOTIF.diceRollMedium's "has a summary" vs "no change"
+ * branches) get one row per branch (`.withSummary` / `.empty` suffixes).
+ * Optional file — a missing UI_STRINGS.csv, or any row with an empty
+ * `template`, falls back to the built-in default text for that key;
+ * uiStrings.ts's `configureUIStrings` never crashes on a bad row, it just
+ * skips it. Not every uiStrings.ts key is CSV-overridable: `cardPlayDetailed`
+ * is left as an in-code-only default because its text embeds literal `"`
+ * characters that the shared CSV parser (DataService.parseCsvLine) can't
+ * round-trip correctly.
+ */
+export interface UIStringCsvRow {
+  key: string;
+  template: string;
+}
+
 export interface Movement {
   space_name: string;
   visit_type: 'First' | 'Subsequent';

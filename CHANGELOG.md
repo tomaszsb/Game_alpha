@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.1] - 2026-08-14
+
+### Reskin: button/notification text moved to UI_STRINGS.csv
+Last item scoped from the 2026-08-03 Workstream 6 CSV-only-reskin audit (TODO.md) — the maintainer confirmed this is a vocabulary-swap reskin (still English, matching the D&D-skin-experiment framing everywhere else in the audit), not multi-language translation, and asked for the smaller half (`uiStrings.ts`) first.
+
+`uiStrings.ts` had ~47 button/notification strings hardcoded as plain constants and template-literal functions across `DICE_BUTTON`, `DICE_FEEDBACK`, `NOTIF`, `CARD_REPLACE`, `CARD_DETAILS`, and `DISCARD_PILE` — used by 5 consumers (`CardDetailsModal.tsx`, `CardReplacementModal.tsx`, `DiscardPileModal.tsx`, `NotificationUtils.ts`, `buttonFormatting.ts`). Rather than inventing a new mechanism, this reuses one that already exists: `templateInterpolation.ts`'s `{token}` placeholder syntax, already driving `ModalConfig.csv` text (`"Decide {playerName}"` etc.).
+
+Added `public/data/CLEAN_FILES/UI_STRINGS.csv` (key → template, dot-path keys mirroring the export shape, e.g. `DICE_BUTTON.WORK`, `DICE_FEEDBACK.got`). `DataService` gained `loadUIStrings()`/`getUIStringRows()`; `uiStrings.ts` gained a `getUIString(key, vars?)` lookup (CSV override, falling back to a `DEFAULT_UI_STRINGS` map) and `configureUIStrings()`, called from `App.tsx`. Every exported shape (`DICE_BUTTON`, `DICE_FEEDBACK`, etc.) is UNCHANGED externally — plain-string members are now getters, template-function members now call `getUIString()` internally — so all 5 consumers needed zero changes. Conditional strings (different wording depending on an argument, e.g. `NOTIF.diceRollMedium`'s "has a summary" vs "no change" branches) got one CSV key per branch (`.withSummary`/`.empty` suffixes), since a single template can't express a branch.
+
+One deliberate gap: `NOTIF.cardPlayDetailed`'s two branches embed literal `"` characters, which the shared CSV parser (`DataService.parseCsvLine`) can't round-trip (its quote handling is a naive per-character toggle, not RFC4180 `""`-escaping) — rather than touch that shared parser for one string's punctuation, those two keys stay in-code-only defaults, never CSV-overridable. Documented in both `DataTypes.ts`'s `UIStringCsvRow` and `uiStrings.ts` itself.
+
+New regression test `tests/regression/UIStringsCsvDriven.test.ts` covers: byte-identical default output from the shipped CSV, a plain-string override, a templated-string override (interpolation still works), independently overriding each branch of a conditional string, an unrecognized key skipped without crashing or blocking other rows, missing-CSV fallback, and confirms the two non-overridable `cardPlayDetailed` keys still work correctly after unrelated overrides. All 166 pre-existing tests across the 5 consumer files pass completely unchanged — direct proof of byte-identical default behavior. `DataService.test.ts` updated for the new loader (fetch count 13→14). Verified: typecheck clean, full suite 2757/2757 (195/195 files, no flakes this run).
+
+Still open from the original audit scope discussion: `RulesModal.tsx` (the bigger half — ~184 lines / ~25 text pieces, plus a second, distinct bug where it hardcodes literal space names in prose) is not yet started.
+
 ## [3.2.0] - 2026-08-14
 
 ### Chore: versioning convention change — patch number caps at 99, then rolls the minor

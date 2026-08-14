@@ -15,7 +15,8 @@ import {
   PathChoiceRule,
   CardTypeLabel,
   CharacterCsvRow,
-  ViolationRuleCsvRow
+  ViolationRuleCsvRow,
+  UIStringCsvRow
 } from '../types/DataTypes';
 import { getDataBasePath } from '../utils/dataInstance';
 
@@ -55,6 +56,8 @@ export class DataService implements IDataService {
   private characterRows: CharacterCsvRow[] = [];
   // 2026-08-14: CSV-portability lift, reskin item 2 — reskin hook for the Homeowner Violation tier/fee-rate numbers.
   private violationRuleRows: ViolationRuleCsvRow[] = [];
+  // 2026-08-14: CSV-portability lift — reskin hook for button/notification text vocabulary.
+  private uiStringRows: UIStringCsvRow[] = [];
   private loaded = false;
   private loadingPromise: Promise<void> | null = null;
 
@@ -82,7 +85,8 @@ export class DataService implements IDataService {
           this.loadPathChoiceRules(),
           this.loadCardTypeLabels(),
           this.loadCharacters(),
-          this.loadViolationRules()
+          this.loadViolationRules(),
+          this.loadUIStrings()
         ]);
 
         this.buildSpaces();
@@ -135,7 +139,8 @@ export class DataService implements IDataService {
       this.loadPathChoiceRules(),
       this.loadCardTypeLabels(),
       this.loadCharacters(),
-      this.loadViolationRules()
+      this.loadViolationRules(),
+      this.loadUIStrings()
     ]);
     this.buildSpaces();
   }
@@ -814,6 +819,50 @@ export class DataService implements IDataService {
    */
   getViolationRuleRows(): ViolationRuleCsvRow[] {
     return [...this.violationRuleRows];
+  }
+
+  /**
+   * 2026-08-14: CSV-portability lift — load UI_STRINGS.csv. Optional — a
+   * missing file simply leaves the array empty, and uiStrings.ts's
+   * configureUIStrings falls back to its built-in button/notification text.
+   */
+  private async loadUIStrings(): Promise<void> {
+    try {
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/UI_STRINGS.csv?_=' + Date.now());
+      if (!response.ok) {
+        this.uiStringRows = [];
+        return;
+      }
+      const csvText = await response.text();
+      this.uiStringRows = this.parseUIStringsCsv(csvText);
+    } catch {
+      this.uiStringRows = [];
+    }
+  }
+
+  private parseUIStringsCsv(csvText: string): UIStringCsvRow[] {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+    return lines.slice(1)
+      .map(line => {
+        const values = this.parseCsvLine(line);
+        return {
+          key: (values[0] || '').trim(),
+          template: (values[1] || '').trim()
+        };
+      })
+      .filter(r => r.key);
+  }
+
+  /**
+   * 2026-08-14: CSV-portability lift. Every row defined in UI_STRINGS.csv.
+   * uiStrings.ts's `configureUIStrings` reads this at app startup to
+   * override its hardcoded button/notification text — a reskin CSV can
+   * swap vocabulary (e.g. "Hire Expeditors" -> "Recruit a Scout") without a
+   * code edit.
+   */
+  getUIStringRows(): UIStringCsvRow[] {
+    return [...this.uiStringRows];
   }
 
   private parsePathChoiceRulesCsv(csvText: string): PathChoiceRule[] {
