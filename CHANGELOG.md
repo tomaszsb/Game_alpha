@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.3] - 2026-08-14
+
+### Chore: patched 4 of 8 `npm audit` high-severity findings, deferred the rest
+Flagged in the v3.2.2 deploy log's `npm ci` output (8 high severity vulnerabilities). Ran `npm audit fix` (no `--force`) — resolved 4 advisories cleanly within existing `package.json` semver ranges, so only `package-lock.json` changed:
+- `brace-expansion` 5.0.8 → 5.0.9 (DoS via unbounded intermediate arrays) — transitive via `eslint-plugin-react`, dev-only.
+- `ip-address` 10.2.0 → 10.5.0 (3 CVEs: SSRF/trust-boundary bypass via IP-string misclassification) — transitive via `geoip-lite`, a real **production** dependency (`server/server.js`, `server/visitorStats.js`, the admin stats dashboard's Geography section). Traced the actual usage before treating this as fixed-and-forgotten: `geoLookup()` only feeds a country-code *display* label, never a security decision (no "block this IP" gate anywhere reads its result), and the IP string reaching it is `getClientIP()`'s Cloudflare-verified `cf-connecting-ip` header first — non-spoofable — with the attacker-influenceable `x-forwarded-for` only as a fallback for non-Cloudflare traffic. The SSRF-bypass vector these CVEs describe requires the misclassification to gate a security check, which doesn't happen here — real exploitability in this codebase is effectively nil even before the patch, but no reason not to take the free, in-range fix anyway.
+- `js-yaml` 4.3.0 → 4.3.1 (quadratic CPU DoS in `!!omap` resolution) — transitive via `eslint`/`puppeteer`, dev-only.
+- `nanoid` 3.3.16 → 3.3.18 (infinite loop when a custom generator's size is 0) — transitive via `vite`/`postcss`, build-time only.
+
+Deliberately left alone: the remaining 4 (`extract-zip`, `@puppeteer/browsers`, `puppeteer`, `puppeteer-core` — all one advisory chain, extract-zip's unvalidated symlink path traversal during Chromium download). `npm audit fix --force` would downgrade `puppeteer` from `24.43.1` to `19.8.0` — a large regression, not a real fix, and `puppeteer` is dev-only tooling (screenshot/E2E scripts) that never ships to the running server, so the actual risk is a local, one-time archive-extraction step trusting Google's own Chromium CDN — not worth the downgrade. Revisit if/when a non-breaking `puppeteer` major ships a patched `extract-zip`.
+
+Also surfaced, not fixed: `npm ci`/`npm install` warn `EBADENGINE` — `package.json` declares `"node": ">=24.0.0"` but this dev machine runs Node 20.19.0. Harmless today since the actual deploy `Dockerfile` builds on `node:24-alpine` (confirmed in the v3.2.2 deploy log), but worth noting as a latent local/prod environment mismatch.
+
+Verified: typecheck clean, production build clean (vite/nanoid chain intact), `eslint` runs clean (js-yaml chain intact, only a pre-existing unrelated `react-hooks/set-state-in-effect` warning in `App.tsx`), full suite 2762/2762 (196/196 files, no flakes this run — confirms `geoip-lite`'s `ip-address` bump didn't disturb `homeIP.test.ts`/`visitorStats.test.ts`/`engagementStats.test.ts`). No code changes — dependency-only.
+
 ## [3.2.2] - 2026-08-14
 
 ### Reskin: RulesModal.tsx text and literal space-name references moved to UI_STRINGS.csv
