@@ -17,6 +17,7 @@ import { FeedbackButton } from './components/feedback/FeedbackButton';
 import { configureApprovalSpaces } from './services/ApprovalService';
 import { configureNpcSpeakers, configureCharacterMap } from './constants/characters';
 import { configureCardTypeLabels } from './utils/cardTypeNames';
+import { configureViolationRules } from './utils/violationRules';
 import { VersionBadge } from './components/common/VersionBadge';
 import { debugWarn } from './utils/debugLog';
 
@@ -136,6 +137,10 @@ function AppContent(): JSX.Element {
         configureNpcSpeakers(dataService.getNpcSpeakerAssignments());
         // Same reskin hook for card-type display labels ("Work Package" etc).
         configureCardTypeLabels(dataService.getCardTypeLabels());
+        // 2026-08-14: reskin item 2 — let a reskin CSV replace the Homeowner
+        // Violation tier threshold, filing deadline, and fee/daily-accrual
+        // rates. No ordering dependency on the other configure calls above.
+        configureViolationRules(dataService.getViolationRuleRows());
 
         // Try to load state from server first (multi-device sync)
         await stateService.loadStateFromServer();

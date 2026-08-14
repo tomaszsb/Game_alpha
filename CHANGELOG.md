@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.104] - 2026-08-14
+
+### Reskin: Homeowner Violation tier threshold, filing deadline, and fee rates moved to VIOLATION_RULES.csv
+Item 2 (the last remaining finding, non-BLOCKING) from the 2026-08-03 Workstream 6 CSV-only-reskin audit (TODO.md). `violationRules.ts` had the $500k large-tier threshold, 180-day filing deadline, 4%/8%/10%/20% fee rates, and $500/$2000 daily-accrual rates baked in as hardcoded TypeScript constants. Item 1 (v3.1.103) already fixed *which* card triggers the mechanic; this fixes the *dollar amounts* behind it — a reskin with a completely different economy (e.g. gold pieces at different rates) couldn't touch these without a code edit.
+
+Added `public/data/CLEAN_FILES/VIOLATION_RULES.csv` (2 rows, tier=`small`/`large`) as the source of truth. `DataService` gained `loadViolationRules()`/`getViolationRuleRows()`; `violationRules.ts`'s exported `VIOLATION_TIER_THRESHOLD`/`VIOLATION_DEADLINE_DAYS` are now mutable (`let`, live-binding) and its fee-rate tables are reassigned in place by a new `configureViolationRules()`, called from `App.tsx` after `DataService.loadData()` resolves. Safe as a live-binding reassignment (unlike `CHARACTER_MAP` in v3.1.102): every consumer (`CardService.ts`, `TurnService.ts`) reads these values at gameplay time inside a method body, never at module-import time, so there's no synchronous-before-CSV-loads reader to worry about. `threshold` is read off the CSV's `large` row (the project-scope cutoff); `deadline_days` off the `small` row (a single global deadline, duplicated on both rows so each stays self-describing). The two-tier `small`/`large` structure itself stays fixed — only the numbers behind it are reskin-configurable, matching the audit's actual finding (magic numbers, not the tier count).
+
+Requires both a `small` and a `large` row with every field a valid number; missing either row, or any non-numeric field, logs a clear error and leaves every value at its built-in default — the game never crashes over a bad reskin CSV. New regression test `tests/regression/ViolationRulesCsvDriven.test.ts` covers: byte-identical output from the shipped CSV, a reskin CSV with different numbers actually changing tier classification/fees/daily accrual, missing-CSV fallback, missing-tier-row fallback, and non-numeric-field fallback — all without crashing. `DataService.test.ts` updated for the new loader (fetch count 12→13). Verified: typecheck clean, full suite 2745/2747 (193/194 files) — the 2 failures (`instanceResolver.test.ts`, unrelated server-side instance-baking code) are Windows filesystem-race flakes (`EPERM`/`ENOTEMPTY` on temp-dir rename/rmdir under the full suite's parallel load), confirmed by re-running that file alone (27/27 clean) — same file flaked differently (`ENOTEMPTY`) in the v3.1.103 full run today too. Worth a look if it keeps recurring; not touched by this change.
+
 ## [3.1.103] - 2026-08-14
 
 ### Reskin: 7 card mechanics moved off literal card-ID gates onto the existing card_mechanic CSV column

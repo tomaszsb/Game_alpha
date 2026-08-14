@@ -109,6 +109,30 @@ export interface CharacterCsvRow {
   short_label: string;
 }
 
+/**
+ * 2026-08-14: CSV-portability lift, reskin item 2 (last non-BLOCKING item
+ * from the 2026-08-03 Workstream 6 audit, TODO.md). One row of
+ * VIOLATION_RULES.csv — the raw-string shape as parsed off disk, mirroring
+ * the tier/fee-rate/deadline constants src/utils/violationRules.ts used to
+ * hardcode. Exactly 2 rows expected, tier='small' and tier='large' (the
+ * fixed ViolationTier union isn't reskin-extensible — only the numbers
+ * behind each tier are). `threshold` is only read off the 'large' row (the
+ * project-scope cutoff at which 'large' applies); `deadline_days` is only
+ * read off the 'small' row (a single global deadline, duplicated on both
+ * rows so each row stays self-describing on its own). Optional file — a
+ * missing/malformed VIOLATION_RULES.csv leaves this empty and
+ * violationRules.ts's `configureViolationRules` falls back to its built-in
+ * numbers.
+ */
+export interface ViolationRuleCsvRow {
+  tier: string;
+  threshold: string;
+  deadline_days: string;
+  fee_rate_ontime: string;
+  fee_rate_late: string;
+  daily_rate: string;
+}
+
 export interface Movement {
   space_name: string;
   visit_type: 'First' | 'Subsequent';

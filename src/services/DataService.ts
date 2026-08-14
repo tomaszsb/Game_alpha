@@ -14,7 +14,8 @@ import {
   LogicQuestion,
   PathChoiceRule,
   CardTypeLabel,
-  CharacterCsvRow
+  CharacterCsvRow,
+  ViolationRuleCsvRow
 } from '../types/DataTypes';
 import { getDataBasePath } from '../utils/dataInstance';
 
@@ -52,6 +53,8 @@ export class DataService implements IDataService {
   private cardTypeLabels: CardTypeLabel[] = [];
   // 2026-08-09: CSV-portability lift, reskin item 4 — reskin hook for the NPC roster.
   private characterRows: CharacterCsvRow[] = [];
+  // 2026-08-14: CSV-portability lift, reskin item 2 — reskin hook for the Homeowner Violation tier/fee-rate numbers.
+  private violationRuleRows: ViolationRuleCsvRow[] = [];
   private loaded = false;
   private loadingPromise: Promise<void> | null = null;
 
@@ -78,7 +81,8 @@ export class DataService implements IDataService {
           this.loadLogicQuestions(),
           this.loadPathChoiceRules(),
           this.loadCardTypeLabels(),
-          this.loadCharacters()
+          this.loadCharacters(),
+          this.loadViolationRules()
         ]);
 
         this.buildSpaces();
@@ -130,7 +134,8 @@ export class DataService implements IDataService {
       this.loadLogicQuestions(),
       this.loadPathChoiceRules(),
       this.loadCardTypeLabels(),
-      this.loadCharacters()
+      this.loadCharacters(),
+      this.loadViolationRules()
     ]);
     this.buildSpaces();
   }
@@ -761,6 +766,54 @@ export class DataService implements IDataService {
    */
   getCharacterRows(): CharacterCsvRow[] {
     return [...this.characterRows];
+  }
+
+  /**
+   * 2026-08-14: CSV-portability lift, reskin item 2 — load
+   * VIOLATION_RULES.csv. Optional — a missing file simply leaves the array
+   * empty, and violationRules.ts's configureViolationRules falls back to
+   * its built-in tier/fee-rate numbers.
+   */
+  private async loadViolationRules(): Promise<void> {
+    try {
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/VIOLATION_RULES.csv?_=' + Date.now());
+      if (!response.ok) {
+        this.violationRuleRows = [];
+        return;
+      }
+      const csvText = await response.text();
+      this.violationRuleRows = this.parseViolationRulesCsv(csvText);
+    } catch {
+      this.violationRuleRows = [];
+    }
+  }
+
+  private parseViolationRulesCsv(csvText: string): ViolationRuleCsvRow[] {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+    return lines.slice(1)
+      .map(line => {
+        const values = this.parseCsvLine(line);
+        return {
+          tier: (values[0] || '').trim(),
+          threshold: (values[1] || '').trim(),
+          deadline_days: (values[2] || '').trim(),
+          fee_rate_ontime: (values[3] || '').trim(),
+          fee_rate_late: (values[4] || '').trim(),
+          daily_rate: (values[5] || '').trim()
+        };
+      })
+      .filter(r => r.tier);
+  }
+
+  /**
+   * 2026-08-14: CSV-portability lift, reskin item 2. Every row defined in
+   * VIOLATION_RULES.csv. violationRules.ts's `configureViolationRules` reads
+   * this at app startup to replace the hardcoded tier threshold, filing
+   * deadline, fee rates, and daily-accrual rates with CSV-driven data.
+   */
+  getViolationRuleRows(): ViolationRuleCsvRow[] {
+    return [...this.violationRuleRows];
   }
 
   private parsePathChoiceRulesCsv(csvText: string): PathChoiceRule[] {
