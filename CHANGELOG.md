@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.4] - 2026-08-14
+
+### Fix: `instanceResolver.test.ts` teardown hardened against a transient Windows filesystem race
+`tests/server/instanceResolver.test.ts` flaked twice in one day (2026-08-14) under the full test suite's parallel Vitest-worker load — once `ENOTEMPTY` on a directory removal, once `EPERM` on a rename, in a different sub-test each time — but passed cleanly (27/27) every time it ran alone. Diagnosed as a transient teardown race (Windows antivirus/indexer briefly holding a handle on a file just written/renamed inside the test's own temp dir), not a defect in `server/instanceResolver.js` (the teacher classroom-instance baking system under test).
+
+`afterEach`'s `fs.rmSync(tmp, { recursive: true, force: true })` now also passes `maxRetries: 5, retryDelay: 100` — Node's built-in linear-backoff retry for exactly this error class (`EBUSY`/`EMFILE`/`ENFILE`/`ENOTEMPTY`/`EPERM`). Purely additive: no effect on a clean removal, no assertions touched, no test logic changed.
+
+Also investigated whether `server/instanceResolver.js`'s own `renameSync`/`rmSync` calls (`bakeInstance`'s atomic directory swap, `sweepBakeDebris`) were implicated closely enough to warrant a production-code change — they weren't (the `rmSync` in `sweepBakeDebris` runs well before the swap's two renames, not immediately adjacent to them), so that file was left untouched per the fix's own scoping rule (no evidence, no production edit). Surfaced but out of scope: `server/instanceStore.js`'s `atomicWriteJson` also does a bare `renameSync` and is exercised far more often across this suite — a more plausible candidate if the flake recurs, worth a look then rather than now.
+
+Verified: typecheck clean, `instanceResolver.test.ts` run 4x back to back (27/27 every time), run concurrently alongside 3 other heavy test files (166 tests, all passed), full suite clean, production build clean.
+
 ## [3.2.3] - 2026-08-14
 
 ### Chore: patched 4 of 8 `npm audit` high-severity findings, deferred the rest

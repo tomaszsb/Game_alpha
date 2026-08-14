@@ -54,7 +54,12 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fs.rmSync(tmp, { recursive: true, force: true });
+  // maxRetries/retryDelay: Windows-only mitigation for a transient
+  // ENOTEMPTY/EPERM/EBUSY teardown race seen under full-suite parallel
+  // Vitest workers (antivirus/indexer briefly holding a handle on a file
+  // that was just written or renamed inside this temp dir). Retries with
+  // linear backoff before giving up; no effect on a clean removal.
+  fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });
 
 describe('computeStockVersion', () => {
