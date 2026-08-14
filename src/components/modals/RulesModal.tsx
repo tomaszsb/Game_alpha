@@ -3,6 +3,7 @@
 import React from 'react';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { colors, theme } from '../../styles/theme';
+import { getUIString } from '../../constants/uiStrings';
 
 interface RulesModalProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps): JSX.Element | 
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
-      Got it!
+      {getUIString('RULES.footer.gotIt')}
     </button>
   );
 
@@ -66,7 +67,7 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps): JSX.Element | 
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
-      title="Rules"
+      title={getUIString('RULES.title')}
       emoji={theme.emoji.rules}
       maxWidth="800px"
       footer={footer}
@@ -75,107 +76,101 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps): JSX.Element | 
       <div style={textStyle}>
         <section style={sectionStyle}>
           <h3 style={headingStyle}>
-            {theme.emoji.target} Game Objective
+            {theme.emoji.target} {getUIString('RULES.objective.heading')}
           </h3>
           <p>
-            Navigate through the development process from initial scope to project completion.
-            Manage your time, money, and resources while making strategic decisions to successfully
-            complete your construction project.
+            {getUIString('RULES.objective.body')}
           </p>
         </section>
 
         <section style={sectionStyle}>
           <h3 style={headingStyle}>
-            📋 Turn Structure
+            📋 {getUIString('RULES.turnStructure.heading')}
           </h3>
           <ol style={listStyle}>
             <li style={listItemStyle}>
-              <strong>Determine Outcome:</strong> Each space has different possible outcomes that affect your project
+              <strong>{getUIString('RULES.turnStructure.step1.label')}</strong> {getUIString('RULES.turnStructure.step1.body')}
             </li>
             <li style={listItemStyle}>
-              <strong>Complete Actions:</strong> Perform any required actions (like hiring expeditors or securing funding)
+              <strong>{getUIString('RULES.turnStructure.step2.label')}</strong> {getUIString('RULES.turnStructure.step2.body')}
             </li>
             <li style={listItemStyle}>
-              <strong>End Turn:</strong> Once all actions are completed, end your turn to advance
+              <strong>{getUIString('RULES.turnStructure.step3.label')}</strong> {getUIString('RULES.turnStructure.step3.body')}
             </li>
           </ol>
         </section>
 
         <section style={sectionStyle}>
           <h3 style={headingStyle}>
-            {theme.emoji.cards} Resource Types
+            {theme.emoji.cards} {getUIString('RULES.resourceTypes.heading')}
           </h3>
           <div style={cardGridStyle}>
             <div>
               <strong style={{ color: colors.game.cardTypes.W.primary }}>
-                {colors.game.cardTypes.W.emoji} Work Packages:
-              </strong> Construction work scopes and project requirements
+                {colors.game.cardTypes.W.emoji} {getUIString('RULES.resourceTypes.W.label')}
+              </strong> {getUIString('RULES.resourceTypes.W.body')}
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.B.primary }}>
-                {colors.game.cardTypes.B.emoji} Bank Loans:
-              </strong> Funding and financial resources
+                {colors.game.cardTypes.B.emoji} {getUIString('RULES.resourceTypes.B.label')}
+              </strong> {getUIString('RULES.resourceTypes.B.body')}
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.E.primary }}>
-                {colors.game.cardTypes.E.emoji} Expeditors:
-              </strong> Filing representatives who can help or hinder application processes
+                {colors.game.cardTypes.E.emoji} {getUIString('RULES.resourceTypes.E.label')}
+              </strong> {getUIString('RULES.resourceTypes.E.body')}
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.L.primary }}>
-                {colors.game.cardTypes.L.emoji} Life Events:
-              </strong> Real-world surprises like new laws, weather delays, and unforeseen circumstances
+                {colors.game.cardTypes.L.emoji} {getUIString('RULES.resourceTypes.L.label')}
+              </strong> {getUIString('RULES.resourceTypes.L.body')}
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.I.primary }}>
-                {colors.game.cardTypes.I.emoji} Investors:
-              </strong> Investment opportunities and funding partners
+                {colors.game.cardTypes.I.emoji} {getUIString('RULES.resourceTypes.I.label')}
+              </strong> {getUIString('RULES.resourceTypes.I.body')}
             </div>
           </div>
         </section>
 
         <section style={sectionStyle}>
           <h3 style={headingStyle}>
-            {colors.game.cardTypes.W.emoji} Key Spaces
+            {colors.game.cardTypes.W.emoji} {getUIString('RULES.keySpaces.heading')}
           </h3>
           <ul style={listStyle}>
             <li style={listItemStyle}>
-              <strong>OWNER-SCOPE-INITIATION:</strong> Define project scope and hire expeditors
+              <strong>{getUIString('RULES.keySpaces.item1.label')}</strong> {getUIString('RULES.keySpaces.item1.body')}
             </li>
             <li style={listItemStyle}>
-              <strong>OWNER-FUND-INITIATION:</strong> Secure initial funding
+              <strong>{getUIString('RULES.keySpaces.item2.label')}</strong> {getUIString('RULES.keySpaces.item2.body')}
             </li>
             <li style={listItemStyle}>
-              <strong>ARCH/ENG Spaces:</strong> Work with architects and engineers
+              <strong>{getUIString('RULES.keySpaces.item3.label')}</strong> {getUIString('RULES.keySpaces.item3.body')}
             </li>
             <li style={listItemStyle}>
-              <strong>REG Spaces:</strong> Handle permits and regulatory requirements
+              <strong>{getUIString('RULES.keySpaces.item4.label')}</strong> {getUIString('RULES.keySpaces.item4.body')}
             </li>
             <li style={listItemStyle}>
-              <strong>CON Spaces:</strong> Construction and final project phases
+              <strong>{getUIString('RULES.keySpaces.item5.label')}</strong> {getUIString('RULES.keySpaces.item5.body')}
             </li>
           </ul>
         </section>
 
         <section style={sectionStyle}>
           <h3 style={headingStyle}>
-            {theme.emoji.negotiation} Negotiation
+            {theme.emoji.negotiation} {getUIString('RULES.negotiation.heading')}
           </h3>
           <p>
-            Some spaces allow negotiation. If you have a snapshot from entering the space,
-            you can restore your previous state. Otherwise, you’ll receive a time penalty
-            but can try again.
+            {getUIString('RULES.negotiation.body')}
           </p>
         </section>
 
         <section>
           <h3 style={headingStyle}>
-            {theme.emoji.trophy} Winning
+            {theme.emoji.trophy} {getUIString('RULES.winning.heading')}
           </h3>
           <p>
-            Successfully navigate through all phases of development and reach the final
-            completion space to win the game. Manage your resources wisely and make
-            strategic decisions to overcome challenges along the way.
+            {getUIString('RULES.winning.body')}
           </p>
         </section>
       </div>

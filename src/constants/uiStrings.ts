@@ -91,6 +91,56 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
 
   'DISCARD_PILE.EMPTY_STATE': 'No resources used yet',
   'DISCARD_PILE.FILTER_LABEL': 'Filter by type',
+
+  // --- RulesModal ---
+  // 2026-08-14: reskin follow-up to the button/notification lift above.
+  // RulesModal.tsx's "Key Spaces" section has a second, distinct problem on
+  // top of plain wording: it names literal space ids (OWNER-SCOPE-INITIATION
+  // etc.) in prose — a documentation-drift bug even for a same-language
+  // reskin that just renames spaces, not just a translation gap. Rather than
+  // building a live DataService lookup (this is a curated 5-item highlight
+  // reel, not a generated list of every space — a lookup would still need a
+  // hardcoded "which spaces count as highlights" list, no simpler than this),
+  // the fix is the same as everywhere else: let a reskin CSV override the
+  // label text directly, including the space names, same getUIString()
+  // mechanism as the button/notification strings above.
+  'RULES.title': 'Rules',
+  'RULES.footer.gotIt': 'Got it!',
+  'RULES.objective.heading': 'Game Objective',
+  'RULES.objective.body': 'Navigate through the development process from initial scope to project completion. Manage your time, money, and resources while making strategic decisions to successfully complete your construction project.',
+  'RULES.turnStructure.heading': 'Turn Structure',
+  'RULES.turnStructure.step1.label': 'Determine Outcome:',
+  'RULES.turnStructure.step1.body': 'Each space has different possible outcomes that affect your project',
+  'RULES.turnStructure.step2.label': 'Complete Actions:',
+  'RULES.turnStructure.step2.body': 'Perform any required actions (like hiring expeditors or securing funding)',
+  'RULES.turnStructure.step3.label': 'End Turn:',
+  'RULES.turnStructure.step3.body': 'Once all actions are completed, end your turn to advance',
+  'RULES.resourceTypes.heading': 'Resource Types',
+  'RULES.resourceTypes.W.label': 'Work Packages:',
+  'RULES.resourceTypes.W.body': 'Construction work scopes and project requirements',
+  'RULES.resourceTypes.B.label': 'Bank Loans:',
+  'RULES.resourceTypes.B.body': 'Funding and financial resources',
+  'RULES.resourceTypes.E.label': 'Expeditors:',
+  'RULES.resourceTypes.E.body': 'Filing representatives who can help or hinder application processes',
+  'RULES.resourceTypes.L.label': 'Life Events:',
+  'RULES.resourceTypes.L.body': 'Real-world surprises like new laws, weather delays, and unforeseen circumstances',
+  'RULES.resourceTypes.I.label': 'Investors:',
+  'RULES.resourceTypes.I.body': 'Investment opportunities and funding partners',
+  'RULES.keySpaces.heading': 'Key Spaces',
+  'RULES.keySpaces.item1.label': 'OWNER-SCOPE-INITIATION:',
+  'RULES.keySpaces.item1.body': 'Define project scope and hire expeditors',
+  'RULES.keySpaces.item2.label': 'OWNER-FUND-INITIATION:',
+  'RULES.keySpaces.item2.body': 'Secure initial funding',
+  'RULES.keySpaces.item3.label': 'ARCH/ENG Spaces:',
+  'RULES.keySpaces.item3.body': 'Work with architects and engineers',
+  'RULES.keySpaces.item4.label': 'REG Spaces:',
+  'RULES.keySpaces.item4.body': 'Handle permits and regulatory requirements',
+  'RULES.keySpaces.item5.label': 'CON Spaces:',
+  'RULES.keySpaces.item5.body': 'Construction and final project phases',
+  'RULES.negotiation.heading': 'Negotiation',
+  'RULES.negotiation.body': 'Some spaces allow negotiation. If you have a snapshot from entering the space, you can restore your previous state. Otherwise, you’ll receive a time penalty but can try again.',
+  'RULES.winning.heading': 'Winning',
+  'RULES.winning.body': 'Successfully navigate through all phases of development and reach the final completion space to win the game. Manage your resources wisely and make strategic decisions to overcome challenges along the way.',
 };
 
 const UI_STRING_OVERRIDES = new Map<string, string>();
@@ -102,8 +152,13 @@ const UI_STRING_OVERRIDES = new Map<string, string>();
  * `interpolateTemplate` — same syntax ModalConfig.csv text already uses).
  * An unknown key (not in DEFAULT_UI_STRINGS either) returns the bare key so
  * a typo is visibly wrong rather than silently blank.
+ *
+ * Exported (unlike the object exports below, which wrap it for their own
+ * key sets) for consumers with free-form prose rather than a fixed group of
+ * labeled strings — RulesModal.tsx calls this directly per text node rather
+ * than through a single-use named export for each one.
  */
-function getUIString(key: string, vars: Record<string, string | number | undefined> = {}): string {
+export function getUIString(key: string, vars: Record<string, string | number | undefined> = {}): string {
   const template = UI_STRING_OVERRIDES.get(key) ?? DEFAULT_UI_STRINGS[key] ?? key;
   return interpolateTemplate(template, vars);
 }
@@ -132,6 +187,15 @@ export function configureUIStrings(rows: UIStringCsvRow[]): void {
     UI_STRING_OVERRIDES.set(key, template);
   }
 }
+
+/**
+ * Test-only: clears every CSV override so a test that calls
+ * configureUIStrings() doesn't leak state into the next test in the same
+ * file (UI_STRING_OVERRIDES is module-level state, shared across every test
+ * that imports this module normally — see endGameInsights.ts's `_testOnly`
+ * for the same pattern). Not used by app code.
+ */
+export const _testOnly = { resetUIStringOverrides: () => UI_STRING_OVERRIDES.clear() };
 
 // --- Dice roll button labels (formatDiceRollButton) ---
 export const DICE_BUTTON = {

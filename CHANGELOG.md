@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.2] - 2026-08-14
+
+### Reskin: RulesModal.tsx text and literal space-name references moved to UI_STRINGS.csv
+Closes out the 2026-08-03 Workstream 6 CSV-only-reskin audit (TODO.md) — every finding from that audit is now fixed. Second half of the v3.2.1 vocabulary-swap work, deliberately sequenced after the smaller `uiStrings.ts` piece.
+
+`RulesModal.tsx` had ~184 lines of hardcoded English prose across 6 sections (Objective/Turn Structure/Resource Types/Key Spaces/Negotiation/Winning), plus a second, distinct problem the audit specifically flagged: its "Key Spaces" section named literal board space ids in prose ("OWNER-SCOPE-INITIATION," "ARCH/ENG Spaces," "REG Spaces," "CON Spaces") — a documentation-drift bug independent of wording, since even a same-language reskin that renames those spaces would leave the Rules page showing stale names. Considered building a live `DataService` space lookup for this instead of a text swap, but rejected it: the "Key Spaces" list is a curated 5-item highlight reel, not a generated list of every space, so a lookup would still need its own hardcoded "which spaces count as highlights" list — no simpler than letting a reskin author just write the label text directly. The uniform text-override mechanism from v3.2.1 already solves both problems (wording AND the space-name references) with one mechanism, so that's what this uses.
+
+Added 37 more keys to the same `UI_STRINGS.csv` from v3.2.1 (dot-path keys under a new `RULES.*` namespace) rather than a separate file or loader — same `getUIString()`/`configureUIStrings()` machinery, no new infrastructure. `getUIString()` itself is now exported (it was module-private before) since `RulesModal.tsx`'s free-form prose calls it directly per text node rather than through single-use named wrapper exports the way `DICE_BUTTON` etc. do. Verified every new CSV row matches its in-code default byte-for-byte via a script that extracted both sides from source and diffed them, rather than hand-checking 37 rows.
+
+New test file `tests/components/modals/RulesModal.test.tsx` (no prior coverage existed for this component) covers: every section renders with today's default text, the footer button closes the modal, a reskin CSV can rename the Key Spaces labels including the literal space ids, and a reskin CSV can override the modal title and footer button. Added a test-only `_testOnly.resetUIStringOverrides()` export to `uiStrings.ts` (mirrors `endGameInsights.ts`'s existing `_testOnly` pattern) so tests that call `configureUIStrings()` don't leak overrides into later tests in the same file. Verified: typecheck clean, full suite 2762/2762 (196/196 files, no flakes this run).
+
+**Audit status: closed.** Both BLOCKING findings (v3.1.103, v3.1.104) and all three Moderate findings (v3.1.101, v3.1.102, v3.1.105, v3.2.1, v3.2.2) from the 2026-08-03 Workstream 6 CSV-only-reskin audit are now fixed.
+
 ## [3.2.1] - 2026-08-14
 
 ### Reskin: button/notification text moved to UI_STRINGS.csv
