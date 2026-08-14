@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.0] - 2026-08-14
+
+### Chore: versioning convention change — patch number caps at 99, then rolls the minor
+Maintainer preference: `X.Y.99`'s next bump is `X.(Y+1).0`, not `X.Y.100`. `package.json` (was `3.1.105`, already past the new cap) and `package-lock.json`'s two version fields (which had also drifted to a stale `3.1.95` — hadn't been bumped alongside `package.json` for several recent versions, a gap `docs/core/CLAUDE.md`'s existing "bump package.json when releasing" rule already flags as a 3-place, single-commit requirement) both corrected to `3.2.0`. No code changes. Documented the new rule in `docs/core/CLAUDE.md` right next to the existing version-bump rule — going forward only; v3.0 (reached patch 142) and v3.1 (reached patch 105) were not renumbered, since rewriting already-published version history breaks more cross-references than it fixes.
+
 ## [3.1.105] - 2026-08-14
 
 ### Reskin: "regulatory-heavy" end-game insight no longer gated on literal REG-DOB-/REG-FDNY- space names

@@ -500,6 +500,8 @@ Fix: bumped `package.json` (and the two `version` entries in `package-lock.json`
 
 **Diagnostic:** if the live UI version doesn't match what you intended to ship, check `grep version package.json` BEFORE blaming the deploy. The "⚠ N behind" indicator means the deployed commit is N commits behind HEAD — but a stuck version number means `package.json` is the deeper miss, even after a clean deploy.
 
+**Patch number caps at 99, then rolls the minor** (maintainer preference, 2026-08-14). `X.Y.99`'s next bump is `X.(Y+1).0`, not `X.Y.100` — same odometer logic as a clock's seconds rolling the minute. This is a going-forward convention, not a retroactive one: v3.0 and v3.1 both ran patch numbers well past 99 (v3.0 reached 142, v3.1 reached 105) before this was flagged, and those historical CHANGELOG entries were NOT renumbered — rewriting already-published version history creates more cross-reference breakage (other docs, deploy health-check comparisons) than it's worth. The rollover just starts applying from here: `v3.1.105`'s corrective bump became `v3.2.0` (2026-08-14), not `v3.1.106`.
+
 ### Pin LF line endings via `.gitattributes` on Windows-edited repos (2026-06-02)
 
 This project's working tree lives on a Windows D: drive (`D:\Unravel\Current_Game\Game_Alpha`). Without `.gitattributes` or `core.autocrlf`, Windows tools repeatedly flipped LF→CRLF on edit/save, producing massive phantom diffs that masked real changes. On 2026-06-02, `git status` was showing 44 modified files with ~30,727 insertions / 30,683 deletions — and `git diff --ignore-cr-at-eol` revealed **zero real content changes**.
