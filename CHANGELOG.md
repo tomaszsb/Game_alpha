@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.7] - 2026-08-15
+
+### Fix: internal effect-type names and unformatted money no longer leak into player-facing toasts
+Found via live playtesting (a full-game playthrough): toasts sometimes read literally "→ choice", "→ movement", or "→ qualitative_outcome, qualitative_outcome" instead of a readable description — confirmed 11+ times across one session.
+
+Root cause: `NotificationUtils.ts`'s `createDiceRollNotification()` only explicitly handled `cards`/`money`/`time` in its effect-summary switch, falling back to the raw internal `effect.type` constant for everything else (`choice`, `movement`, `qualitative_outcome`, `card_draw`, `info`) — even though those effects already carry a proper human-readable `description` (e.g. `DiceRollProcessor.ts` builds `"Hired a contractor of High quality"` for a `qualitative_outcome` effect, it just wasn't being read). The sibling function 40 lines below, `createCardPlayNotification()`, already had the correct fallback (`effect.description || effect.type`) — same file, same fix to copy.
+
+Same function's `money` case also hand-built the dollar string (`` `-$${Math.abs(v)}` ``) instead of using the project's own formatter, which is why unformatted amounts like "→ -$176400" showed up in these same toasts even though the identical figure displayed correctly elsewhere on screen. Now uses `FormatUtils.formatMoney(..., { compact: false })` — the same non-abbreviated convention already used for exact dollar amounts elsewhere (`buttonFormatting.ts`, `costPreview.ts`, `CardDisplay.tsx`, and yesterday's v3.2.6 cost-preview fix) — confirmed the real formatter produces `"$176,400"`, not the `"$176.4K"` a default-compact call would have given.
+
+New tests in `tests/utils/NotificationUtils.test.ts` (5 cases added to the existing file): a `choice` effect with no description falls back to the type name; a `choice`/`qualitative_outcome` effect with a description shows it instead; multiple `qualitative_outcome` effects join by description; a large money value formats with comma grouping. Verified: typecheck clean, 31/31 tests in the file (102/102 across the file plus adjacent formatting-utility tests), build clean, and the real (non-mocked) `FormatUtils.formatMoney(176400, { compact: false })` independently confirmed to return `"$176,400"`.
+
 ## [3.2.6] - 2026-08-15
 
 ### Fix: turn-control cost preview (hover/tap-to-compare) silently omitted money in three real situations

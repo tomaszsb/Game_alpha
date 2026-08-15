@@ -70,6 +70,84 @@ describe('NotificationUtils', () => {
         detailed: NOTIF.diceRollDetailed('Dave', 'unknown_effect'),
       });
     });
+
+    // Regression coverage for the raw-code-name toast bug (fb: 11+ live
+    // playtesting hits, e.g. "→ choice", "→ qualitative_outcome").
+    it('falls back to the raw type only when a "choice" effect has no description', () => {
+      const effects = [
+        { type: 'choice' }
+      ];
+
+      const result = NotificationUtils.createDiceRollNotification(3, effects, 'Alice');
+
+      expect(result).toEqual({
+        short: '✓',
+        medium: NOTIF.diceRollMedium('choice'),
+        detailed: NOTIF.diceRollDetailed('Alice', 'choice'),
+      });
+    });
+
+    it('shows the human-readable description for a "choice" effect instead of the raw type', () => {
+      const effects = [
+        { type: 'choice', description: 'Chose to expedite review' }
+      ];
+
+      const result = NotificationUtils.createDiceRollNotification(3, effects, 'Alice');
+
+      expect(result).toEqual({
+        short: '✓',
+        medium: NOTIF.diceRollMedium('Chose to expedite review'),
+        detailed: NOTIF.diceRollDetailed('Alice', 'Chose to expedite review'),
+      });
+    });
+
+    it('shows the human-readable description for a "qualitative_outcome" effect instead of the raw type', () => {
+      const effects = [
+        { type: 'qualitative_outcome', description: 'Hired a contractor of High quality' }
+      ];
+
+      const result = NotificationUtils.createDiceRollNotification(6, effects, 'Bob');
+
+      expect(result).toEqual({
+        short: '✓',
+        medium: NOTIF.diceRollMedium('Hired a contractor of High quality'),
+        detailed: NOTIF.diceRollDetailed('Bob', 'Hired a contractor of High quality'),
+      });
+    });
+
+    it('joins multiple qualitative_outcome effects by their descriptions, not the repeated raw type', () => {
+      const effects = [
+        { type: 'qualitative_outcome', description: 'Hired a contractor of High quality' },
+        { type: 'qualitative_outcome', description: 'Contractor signed at 1.2x — agreed price $500,000, schedule +5d' }
+      ];
+
+      const result = NotificationUtils.createDiceRollNotification(6, effects, 'Bob');
+
+      expect(result.medium).toBe(NOTIF.diceRollMedium(
+        'Hired a contractor of High quality, Contractor signed at 1.2x — agreed price $500,000, schedule +5d'
+      ));
+    });
+
+    it('formats a large money effect with commas, not abbreviated or raw digits', () => {
+      const effects = [
+        { type: 'money', value: -176400 }
+      ];
+
+      const result = NotificationUtils.createDiceRollNotification(4, effects, 'Alice');
+
+      // The shared FormatUtils mock renders via toLocaleString, so this also
+      // proves the summary text is comma-formatted rather than raw digits
+      // ("-$176400") or abbreviated ("-$176.4K").
+      expect(result).toEqual({
+        short: '✓',
+        medium: NOTIF.diceRollMedium('-$176,400'),
+        detailed: NOTIF.diceRollDetailed('Alice', '-$176,400'),
+      });
+      // Guard the real (unmocked) formatMoney call shape: compact must be
+      // explicitly disabled, otherwise the real formatter would abbreviate
+      // this to "$176.4K" instead of "$176,400" in the live game.
+      expect(FormatUtils.formatMoney).toHaveBeenCalledWith(176400, { compact: false });
+    });
   });
 
   describe('createManualActionNotification', () => {

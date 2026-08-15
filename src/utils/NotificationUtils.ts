@@ -18,14 +18,16 @@ export class NotificationUtils {
           return `${effect.cardCount ?? 1} ${getCardTypeName(effect.cardType || '', effect.cardCount ?? 1)}`;
         case 'money': {
           const v = effect.value ?? 0;
-          return v > 0 ? `+$${Math.abs(v)}` : `-$${Math.abs(v)}`;
+          return v > 0
+            ? `+${FormatUtils.formatMoney(Math.abs(v), { compact: false })}`
+            : `-${FormatUtils.formatMoney(Math.abs(v), { compact: false })}`;
         }
         case 'time': {
           const v = effect.value ?? 0;
           return v > 0 ? `+${v}d` : `-${v}d`;
         }
         default:
-          return effect.type;
+          return effect.description || effect.type;
       }
     }).join(', ');
 
