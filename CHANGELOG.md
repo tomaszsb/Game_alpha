@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.8] - 2026-08-15
+
+### Fix: Site Stats dashboard asked for the admin password twice
+Tom reported the `/admin/stats` dashboard sat behind two separate logins — one to unlock Admin Tools on the setup screen, a second on the dashboard itself. Traced both: the server gates every admin route (including `GET /api/admin/stats/summary`) through the same `requireAdmin()` check against one `ADMIN_PASSWORD_HASH`, and the client uses one shared session module (`src/utils/adminAuth.ts`, `sessionStorage` keys `admin_authenticated`/`admin_password`) for both the setup-screen unlock and `AdminStatsPage.tsx` — by design, a single login, not two independent gates. `AdminStatsPage.tsx`'s own comment confirms the intent: "an admin who already unlocked Admin Tools in this tab skips straight to the dashboard."
+
+Root cause: the "📊 Site Stats" button opened the dashboard via `window.open('/admin/stats', '_blank', 'noopener')`. `noopener` creates a fully disconnected new browsing context — and per the sessionStorage spec, that's exactly what blocks the browser from cloning `sessionStorage` into the new tab (same-origin auxiliary tabs opened *without* `noopener`/`noreferrer` inherit a copy of the opener's `sessionStorage`; ones opened *with* it don't). So the second prompt was an accidental side effect of the `noopener` flag, not a deliberate second credential gate. Confirmed the mechanism with an isolated same-origin two-page test: a `noopener` tab landed in a browsing context disconnected from the opener, a non-`noopener` tab inherited the opener's `sessionStorage` directly.
+
+Fix: drop `noopener` from the one `window.open` call (`src/components/setup/AdminToolsPanel.tsx`) — `noreferrer`/`noopener` mainly guards against a malicious cross-origin destination hijacking the opener tab; `/admin/stats` is same-origin and only reachable from an already-unlocked admin panel, so the protection wasn't buying anything here. Verified: typecheck clean, full suite 2747/2747 (187/187 files). Full two-tab manual confirmation wasn't possible in this session's sandboxed browser (popups are blocked outright there), so give it a real-browser check next time you're in Admin Tools.
+
 ## [3.2.7] - 2026-08-15
 
 ### Fix: internal effect-type names and unformatted money no longer leak into player-facing toasts

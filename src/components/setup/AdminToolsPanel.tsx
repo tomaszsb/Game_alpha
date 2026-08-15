@@ -195,7 +195,7 @@ export function AdminToolsPanel({
             </button>
             <button
               type="button"
-              onClick={() => window.open('/admin/stats', '_blank', 'noopener')}
+              onClick={() => window.open('/admin/stats', '_blank')}
               style={{
                 padding: '0.6rem 1rem',
                 backgroundColor: colors.secondary.main,
