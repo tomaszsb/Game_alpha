@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** August 15, 2026 — live playtesting found the turn-control cost preview (hover/tap-to-compare on "next move"/"negotiate") silently omitted money in three real situations: Try Again dropping Bank Loan/Investment draws, a dice-resolved fee vanishing once rolled instead of showing the amount, and owner seed money never appearing at all (v3.2.6). See CHANGELOG v3.2.6.
-**Status:** Beta — repo at v3.2.6, live deploy at v3.2.5 (pending deploy).
-**Current Version:** 3.2.6 (repo; live is v3.2.5 until next deploy).
+**Status:** Beta — repo and live deploy are both at v3.2.6, confirmed live via `/health` bundle-hash check (`d2f964c`).
+**Current Version:** 3.2.6 (repo + live, in sync).
 
 ---
 
