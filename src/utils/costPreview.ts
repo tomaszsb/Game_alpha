@@ -123,8 +123,13 @@ function cardNoun(cardType: string, count: number): string {
   }
 }
 
-/** Classify one `cards` SpaceEffect row into a bucket + short fragment. */
-function classifyCardEffect(effect: SpaceEffect): { bucket: CostPreviewRowKey; fragment: string } | null {
+/** Classify one `cards` SpaceEffect row into a bucket + short fragment.
+ * Exported so getTryAgainCostPreview can classify the space's own `cards`
+ * effects directly (see its money-fragment collection below) rather than
+ * re-deriving this from getEndTurnCostPreview's collapsed row output, which
+ * can't distinguish a card draw from a fee once both land in the 'money'
+ * bucket. */
+export function classifyCardEffect(effect: SpaceEffect): { bucket: CostPreviewRowKey; fragment: string } | null {
   const action = (effect.effect_action || '').toLowerCase();
   let verb: 'draw' | 'replace' | 'give' | 'return' | 'transfer';
   let cardType: string;
@@ -162,15 +167,24 @@ function classifyCardEffect(effect: SpaceEffect): { bucket: CostPreviewRowKey; f
 
 /** Classify one `dice` SpaceEffect row. The outcome is unknowable ahead of
  * the roll, so the value is always the plain word "Varies" — never a
- * simulated/guessed number, and never the die face itself. */
-function classifyDiceEffect(effect: SpaceEffect): { bucket: CostPreviewRowKey; fragment: string } | null {
+ * simulated/guessed number, and never the die face itself.
+ *
+ * `kind` distinguishes the two flavors that share the 'money' bucket: a
+ * dice-drawn Bank Loan/Investment card ('draw', an inflow this turn — TEMP
+ * rollback discards and re-rolls it on Try Again) vs a dice-determined fee
+ * ('fee', an outflow only charged on commit — never applies on Try Again).
+ * Both render identically ("Varies") on the End Turn side; `kind` only
+ * matters to getTryAgainCostPreview, which must include the former and
+ * exclude the latter. Exported for that reuse — see its money-fragment
+ * collection below. */
+export function classifyDiceEffect(effect: SpaceEffect): { bucket: CostPreviewRowKey; fragment: string; kind: 'draw' | 'fee' } | null {
   const cat = String(effect.effect_value || '').trim().toLowerCase();
-  if (cat === 'w cards' || cat === 'w card') return { bucket: 'work', fragment: 'Varies' };
-  if (cat === 'e cards' || cat === 'e card') return { bucket: 'expediting', fragment: 'Varies' };
-  if (cat === 'i cards' || cat === 'i card' || cat === 'b cards' || cat === 'b card') return { bucket: 'money', fragment: 'Varies' };
-  if (cat === 'quality' || cat === 'multiplier') return { bucket: 'labor', fragment: 'Varies' };
-  if (cat === 'time outcomes' || cat === 'time') return { bucket: 'time', fragment: 'Varies' };
-  if (cat === 'fee paid' || cat === 'fees paid') return { bucket: 'money', fragment: 'Varies' };
+  if (cat === 'w cards' || cat === 'w card') return { bucket: 'work', fragment: 'Varies', kind: 'draw' };
+  if (cat === 'e cards' || cat === 'e card') return { bucket: 'expediting', fragment: 'Varies', kind: 'draw' };
+  if (cat === 'i cards' || cat === 'i card' || cat === 'b cards' || cat === 'b card') return { bucket: 'money', fragment: 'Varies', kind: 'draw' };
+  if (cat === 'quality' || cat === 'multiplier') return { bucket: 'labor', fragment: 'Varies', kind: 'draw' };
+  if (cat === 'time outcomes' || cat === 'time') return { bucket: 'time', fragment: 'Varies', kind: 'draw' };
+  if (cat === 'fee paid' || cat === 'fees paid') return { bucket: 'money', fragment: 'Varies', kind: 'fee' };
   // 'l cards', 'next step', and anything else fall outside the 5-row schema.
   return null;
 }
@@ -277,6 +291,22 @@ export function getEndTurnCostPreview(
     // would keep showing "Varies" for something that already happened
     // (fb:feedback-1783922070233-49395e17).
     if (effect.trigger_type === 'manual' && isManualEffectCompleted(effect, completedActions)) {
+      // A completed DICE-determined fee is a special case: unlike a
+      // completed card draw (nothing more to say, the card's already
+      // dealt), rolling turns "Varies" into a concrete, known dollar
+      // figure — and a button literally labeled "Pay the fee" is about to
+      // lock it in. Silently dropping the row here would hide the one
+      // number the player most needs right before committing, so surface
+      // what was actually charged (via this turn's outflow ledger) instead
+      // of just skipping. Only the dice/fee case gets this treatment —
+      // other completed effect types have no "resolved amount" to show in
+      // its place, so they stay silently skipped as before.
+      if (effect.effect_type === 'dice' && classifyDiceEffect(effect)?.kind === 'fee') {
+        const ledger = gameServices.stateService.getTurnOutflow(playerId);
+        if (ledger.moneySpent > 0) {
+          pushFragment(buckets, 'money', `${FormatUtils.formatMoney(ledger.moneySpent, { compact: false })} paid`);
+        }
+      }
       continue;
     }
     if (effect.effect_type === 'cards') {
@@ -287,6 +317,21 @@ export function getEndTurnCostPreview(
       if (result) pushFragment(buckets, result.bucket, result.fragment);
     } else if (effect.effect_type === 'fee' && effect.effect_action === 'deduct') {
       pushFragment(buckets, 'money', classifyFeeEffect(effect, gameServices, playerId));
+    }
+  }
+
+  // OWNER-FUND-INITIATION auto-applies "owner seed money" (80–120% of
+  // project scope, ManualActionProcessor.handleAutomaticFunding) the moment
+  // the player arrives, before they can act at all — it's not a
+  // SPACE_EFFECTS.csv row, so nothing above has any way to see it. Surface
+  // the actual amount already offered (moneySources.ownerFunding, the
+  // single source of truth for this) so "Take the check" doesn't show
+  // nothing for the exact figure the space's own narrative just quoted.
+  if (gameServices.dataService.shouldAutoApplyFunding(spaceName)) {
+    const player = gameServices.stateService.getPlayer(playerId);
+    const offered = player?.moneySources?.ownerFunding ?? 0;
+    if (offered > 0) {
+      pushFragment(buckets, 'money', `+${FormatUtils.formatMoney(offered, { compact: false })} offered`);
     }
   }
 
@@ -322,13 +367,43 @@ export function getTryAgainCostPreview(
     });
   }
 
+  // ---- money: real spend (sticks) vs drawn loans/investments/seed money
+  // (revert) — two different fates that must not be conflated into one
+  // check, since getEndTurnCostPreview's own 'money' bucket mixes them with
+  // FEE text that must NEVER appear here (a fee is only charged on commit).
+  const moneyFragments: string[] = [];
   const ledger = gameServices.stateService.getTurnOutflow(playerId);
   if (ledger.moneySpent > 0) {
+    moneyFragments.push(`${FormatUtils.formatMoney(ledger.moneySpent, { compact: false })} stays spent`);
+  }
+  // Bank Loan / Investment draws (via a `cards` row, or a `dice` row like
+  // INVESTOR-FUND-REVIEW's "I cards" outcome) are inflows the space
+  // declares — like Work/Expediting/Labor below, TEMP rollback discards
+  // them and the next attempt re-draws. Classified directly from the
+  // space's own effects (not from getEndTurnCostPreview's collapsed money
+  // bucket) so a fee fragment can never leak in here alongside them.
+  let hasMoneyDraw = effects.some((effect) => {
+    if (effect.effect_type === 'cards') return classifyCardEffect(effect)?.bucket === 'money';
+    if (effect.effect_type === 'dice') {
+      const result = classifyDiceEffect(effect);
+      return result?.bucket === 'money' && result.kind === 'draw';
+    }
+    return false;
+  });
+  // Owner seed money (OWNER-FUND-INITIATION) isn't a SPACE_EFFECTS row at
+  // all — see getEndTurnCostPreview's comment — but it's the same shape of
+  // "inflow that reverts": a fresh random amount gets rolled again on the
+  // next attempt.
+  if (gameServices.dataService.shouldAutoApplyFunding(player.currentSpace)) hasMoneyDraw = true;
+  if (hasMoneyDraw) {
+    moneyFragments.push('Will be re-drawn next turn');
+  }
+  if (moneyFragments.length > 0) {
     rows.push({
       key: 'money',
       icon: ROW_META.money.icon,
       label: ROW_META.money.label,
-      value: `${FormatUtils.formatMoney(ledger.moneySpent, { compact: false })} stays spent`,
+      value: moneyFragments.join(' + '),
     });
   }
 
