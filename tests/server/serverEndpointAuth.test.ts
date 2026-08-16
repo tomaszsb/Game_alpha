@@ -366,7 +366,7 @@ describe('server.js endpoint auth wiring', () => {
 
   it('GAME_STARTED sends the owner alert (gated on foreignGameAlertsEnabled + !isHomeIP) with player names', () => {
     const start = source.indexOf("app.post('/api/games/:gameId/state'");
-    const body = source.slice(start, start + 2400);
+    const body = source.slice(start, start + 3000);
     expect(body).toContain('settings.foreignGameAlertsEnabled && !isHomeIP(logEntry.ip)');
     expect(body).toContain('sendOwnerAlert(');
     expect(body).toContain('players: ${playerNames}');
@@ -376,7 +376,7 @@ describe('server.js endpoint auth wiring', () => {
 
   it('GAME_STARTED owner alert is capped, not just kill-switched — a burst can\'t spam the carrier gateway', () => {
     const start = source.indexOf("app.post('/api/games/:gameId/state'");
-    const body = source.slice(start, start + 2400);
+    const body = source.slice(start, start + 3000);
     // The alert call must be gated behind the hourly cap, inside the
     // existing kill-switch + foreign-IP check — not a separate bypass path.
     expect(body).toContain('canSendForeignGameAlert()');

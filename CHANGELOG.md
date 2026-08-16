@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.9] - 2026-08-16
+
+### Fix: foreign-game text alert didn't say when the game actually started
+Traced a real SMS alert that reached Tom's phone ~16 hours after the game it was reporting actually started — the carrier's email-to-SMS gateway (T-Mobile) delivered it late, and without a timestamp in the message it read as if it had just happened. Confirmed via `visitors.log`: the `GAME_STARTED` event for the reported game had a timestamp far earlier than the text's arrival, and `sendOwnerAlert()` (`server/mailer.js`) is a synchronous, no-retry send — nothing on the server side was delayed, only the gateway's delivery.
+
+Added the actual event time (from the log entry's own timestamp, formatted in Eastern time to match how the rest of this project reports dates) to the alert text, so a late-delivered text is unambiguous: `Game <id> started 8/15, 9:15 AM ET with players: ...`. Widened two source-text assertion windows in `tests/server/serverEndpointAuth.test.ts` that were pinned to a fixed character count and would otherwise have clipped the new formatting code out of the region they check. Verified: typecheck clean, full suite 2747/2747 (187/187 files).
+
 ## [3.2.8] - 2026-08-15
 
 ### Fix: Site Stats dashboard asked for the admin password twice

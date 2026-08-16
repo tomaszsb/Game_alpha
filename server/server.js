@@ -2248,7 +2248,18 @@ app.post('/api/games/:gameId/state', async (req, res) => {
     if (settings.foreignGameAlertsEnabled && !isHomeIP(logEntry.ip)) {
       if (canSendForeignGameAlert()) {
         try {
-          await sendOwnerAlert(`Game ${gameId} started with players: ${playerNames} (IP ${logEntry.ip}, ${logEntry.device})`);
+          // Carrier email-to-SMS gateways can deliver minutes to hours late
+          // (confirmed 2026-08-16: a real alert arrived ~16h after the game
+          // actually started) -- stamp the real event time so a late text
+          // doesn't get mistaken for something happening right now.
+          const alertTime = new Date(logEntry.timestamp).toLocaleString('en-US', {
+            timeZone: 'America/New_York',
+            month: 'numeric',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          });
+          await sendOwnerAlert(`Game ${gameId} started ${alertTime} ET with players: ${playerNames} (IP ${logEntry.ip}, ${logEntry.device})`);
         } catch (err) {
           console.warn('⚠️ Could not send foreign-game alert:', err.message);
         }
