@@ -1,31 +1,32 @@
 # Next session starter — written 2026-08-16 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.9 — repo and live deploy both confirmed in sync (user-supplied deploy log: build log `Version: 75cbbee`, container verified running that image).
-- **Branch:** master, clean, pushed (only an untracked scratch file `idea.txt` at repo root — a maintainer draft, not touched).
-- **This session:** pulled `visitors.log` for the ~3 weeks since the admin stats dashboard shipped and closed out two TODO items gated on real playtest signal — the D&D-reskin engagement question (real signal still thin, 9 real games in 13 days, but points at join-friction over board theme) and two items with no telemetry either way (Con-Initiation crash, next-action-button highlight). Traced and fixed the Site Stats dashboard's double-login (v3.2.8 — `noopener` was severing `sessionStorage` inheritance into the new tab, not a real second credential gate). A live SMS alert arriving ~16h late led to timestamping the alert text (v3.2.9) and, along the way, actually fixing the host-level root cause of the IPv6 false-foreign-alert bug — walked the maintainer through enabling real IPv6 on Tower directly (bonding/bridging chain + a `forwarding`+`accept_ra=2` quirk specific to Docker/VM hosts, full recipe in CLAUDE.md TACTICAL). Also root-caused a VM-Manager GUI toggle silently disagreeing with the actual running service (`libvirtd`) — fixed via direct service stop, not the GUI.
-- **Test suite:** 2747/2747 fast suite (187/187 files), run twice this session (once per shipped version). Ghost regression suite still running in background at handoff — check `.claude/ghost-history.jsonl` or re-run `npm run test:ghost` before trusting a "clean" claim if this section wasn't updated with a real result.
+- **Version:** v3.2.9 — deployed and confirmed live. No app version shipped this continuation (infra/ops only, no `src`/`server` changes).
+- **Branch:** master, clean, pushed (only untracked scratch file `idea.txt` at repo root — a maintainer draft, not touched).
+- **This session:** finished the Docker-side half of the IPv6 false-foreign-alert fix left open at the prior handoff — `game-net` recreated with `--ipv6 --subnet`, confirmed live via `docker logs game_alpha` showing a real auto-detected home IPv6 address. The whole multi-session fix is now closed end to end. Along the way, an attempt to also set IPv6 via `/etc/docker/daemon.json` collided with flags Unraid's own `rc.docker` already passes to dockerd, briefly crashing Docker and taking every container on Tower down — recovered via a pre-made config backup (full trap in CLAUDE.md TACTICAL). Recovery surfaced an unrelated, pre-existing bug: `cloudflare-tunnel` had a literal unfilled `YOUR_TOKEN_HERE` placeholder as its token and had been crash-looping for at least 12 days undetected, silently taking `game`/`dashboard`/`api`/`photos.unravelcodes.com` offline from outside — fixed with a real token, all four confirmed reachable again. `deploy.sh`'s network-create line now always requests `--ipv6`/`--subnet` so a future accidental network removal can't silently regress the fix.
+- **Test suite:** no test run this continuation (zero-game-source session — only `TODO.md`/`deploy.sh`/`CLAUDE.md`/`PROJECT_STATUS.md` changed). Last full-suite baseline: 2747/2747 (187/187 files), from earlier the same day, unaffected by anything this continuation touched. Typecheck + build re-verified clean just now.
 - **Build/typecheck:** both clean.
 
 ## Top 3 open items
-1. **Docker-side IPv6 for the game container is the one piece left of the false-foreign-alert fix.** Host networking is live and persisted (survives reboot via `/boot/config/go`). The `game-net` Docker network itself still needs `--ipv6` + a subnet, and `daemon.json` needs IPv6 config — this requires stopping the *whole* Docker service (every container on the box, not just the game) to apply, so it needs a deliberate maintenance window with the maintainer at the box, not a quick follow-up. Full detail: TODO.md "Active — infra / deploy / data".
-2. **D&D-reskin engagement data — still thin, revisit after another 2-3 weeks of traffic.** This session's read: 4 of 9 real games since tracking went live never get a second player (solo dead-end at space #1), only 1 finished a full game. Recommend keeping the reskin on hold and treating join/invite friction as the real blocker — a new board theme doesn't fix a game nobody else joins. Full detail: TODO.md "Active — bugs & investigations".
-3. **Con-Initiation crash + next-action-button highlight — both still open, no telemetry can settle either.** A UI crash or a stale highlight never fires a tracking event, so `visitors.log` genuinely can't confirm or rule out either one. Both need a direct real-play repro from the maintainer. Full detail: TODO.md.
+1. **G160 restore-picker + hover-highlight (v3.1.95)** — code-complete and deployed, just needs your own real-browser confirmation it feels right. Closes fb:feedback-1778327469678-d27a73d0.
+2. **D&D-reskin engagement data — still thin, revisit after another 2-3 weeks of traffic.** Current read: 4 of 9 real games since tracking went live never get a second player. Recommend keeping the reskin on hold, treating join/invite friction as the real blocker. Full detail: TODO.md.
+3. **Con-Initiation crash + next-action-button highlight — both still open, no telemetry can settle either.** Both need a direct real-play repro from you. The diagnostic capture mechanism for a future crash already exists (global error capture auto-attaches to any in-game "Report a bug" submission) — nothing left to build there, just needs someone to hit that button right when/after it happens. Full detail: TODO.md.
 
 ## Test failures to address
-None. Fast suite green throughout.
+None. Last real run was green throughout.
 
 ## Decisions waiting on the user
-None new this session — the one standing decision (home-IP fix: real IPv6 routing vs. manual override) was made and acted on this session, see top-3 item 1.
+None new.
 
 ## Suggested first move
-Ask whether the maintainer wants to schedule the Docker-side IPv6 maintenance window (item 1) now, or leave it for whenever's convenient — it's real work but not urgent (the host-level fix already stops false alerts from the maintainer's own devices, which was the original complaint; only *other* real IPv6 visitors from outside are still affected). Otherwise, nothing else in the top-3 needs an immediate move — items 2 and 3 are both "wait for more signal" states.
+Nothing urgent — all three top items are "wait for confirmation/signal" states, not active code work. If you get a spare minute in a real browser, item 1 (G160) is the quickest to actually close out. Otherwise, worth a passing thought: today's `cloudflare-tunnel` outage (item flagged in TODO.md's "Reliability / plumbing" parking lot) sat undetected for 12+ days purely by luck — no rush, but a free external uptime check would catch the next one in minutes instead of by accident.
 
 ## Suggested model for next session
-Sonnet 5 — the remaining Docker/IPv6 work is careful infra execution (not architecturally ambiguous), and everything else is routine investigation/bug-fix territory.
+Sonnet 5 — nothing in the top-3 needs deep architectural judgment; it's confirmation/investigation work, standard territory.
 
 ## Reminders
 - Deploy runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Hand this to the maintainer — don't run it yourself (deploy-handoff rule).
 - **Never `taskkill /F /IM node.exe`** — kills all MCP servers too. Kill by PID from `netstat -ano`.
-- **The Bash safety classifier hard-blocks live `sysctl -w` (and similar host-network) changes on the remote Unraid host even with explicit in-chat user permission.** Don't retry — hand the exact command to the user to run themselves via SSH/the Unraid terminal, then verify read-only afterward. Same likely applies to any future Docker-service-stop step for item 1 above.
+- **This session's safety classifier hard-blocks live host-network/Docker-daemon changes on the remote Unraid host even with explicit in-chat permission.** Don't retry — hand the exact command to the user, verify read-only afterward. Confirmed again this session (same as the earlier `accept_ra=2` finding).
+- If a Docker daemon restart on Tower ever fails again, check `/var/log/docker.log` for the real reason — `rc.docker`'s own console output only says "Failed."
 - `idea.txt` at repo root is an untracked maintainer scratch file. Left alone.
