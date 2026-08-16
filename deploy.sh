@@ -40,7 +40,11 @@ echo "   Version: $GIT_COMMIT"
 docker build --build-arg GIT_COMMIT=$GIT_COMMIT -t game_alpha .
 
 echo "Ensuring isolated network exists..."
-docker network create game-net 2>/dev/null || true
+# --ipv6/--subnet only take effect on first creation (2026-08-16 maintenance
+# window) -- the || true makes this a no-op on every later deploy where the
+# network already exists, but if it's ever removed again this recreates it
+# WITH IPv6 instead of silently regressing back to the false-foreign-alert bug.
+docker network create --ipv6 --subnet fd00:dead:beef:1::/64 game-net 2>/dev/null || true
 
 echo "Stopping existing container..."
 docker stop game_alpha 2>/dev/null || true
