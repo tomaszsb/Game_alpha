@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.11] - 2026-08-17
+
+### Feature: pick-by-name popup for grabbing one connector out of a stacked group in the Board Layout Editor
+Follow-up to v3.2.10's handle-spreading fix: spreading stacked handles into a small rosette helps when 2-3 connectors converge on one tile side, but a 6px-radius circle still overlaps heavily once several more share a spot, and it's still a fine click to land on the exact one you want.
+
+Hovering a handle with stacked siblings now opens a small list (`{formatEdgeLabel}` names, reusing the same label helper `RestorablePillDropdown` already uses) instead of relying on landing the click exactly right. Picking a name "arms" that edge — it's bumped to the top of the stack via a per-edge `zIndex` on the React Flow edges array, so the very next normal drag on that spot grabs the one you actually asked for. The popup stays open once opened (closes on outside click, same pattern as `RestorablePillDropdown`) rather than closing on mouse-leave, so moving the cursor down toward the list itself doesn't dismiss it. Starting any anchor drag clears the armed state so it doesn't stay stuck elevated after use.
+
+Editor-only UI addition, no game-logic or data changes. Verified: typecheck clean, `boardCommon` test suite (96/96) still green, production build clean.
+
 ## [3.2.10] - 2026-08-16
 
 ### Fix: overlapping connector handles in the Board Layout Editor still stacked (and were unreachable) when neither line had been pinned

@@ -52,7 +52,7 @@ import {
   type EdgeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { BaseEdge, BezierEdge, useNodes } from '@xyflow/react';
+import { BaseEdge, BezierEdge, EdgeLabelRenderer, useNodes } from '@xyflow/react';
 import { SmartEdge } from '@jalez/react-flow-smart-edge';
 import {
   svgDrawSmoothLinePath,
@@ -62,7 +62,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, formatEdgeLabel, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 import { resolveFundingAmountToken } from '../../utils/templateInterpolation';
@@ -484,6 +484,12 @@ interface WaypointEdgeData {
   edgeEndpoints?: Record<string, { source: string; target: string }>;
   onSetEdgeAnchor?: (edgeId: string, end: 'source' | 'target', anchor: BoxAnchor) => void;
   onClearEdgeAnchor?: (edgeId: string, end: 'source' | 'target') => void;
+  /** Which edge id, if any, was picked from the "N connectors land here
+   *  together" popup (2026-08-16) — that edge's zIndex gets bumped in the
+   *  edges array so it paints on top of its stacked siblings and can
+   *  actually be grabbed by a normal drag afterward. */
+  armedAnchorId?: string | null;
+  onArmAnchor?: (edgeId: string | null) => void;
   [key: string]: unknown;
 }
 
@@ -571,6 +577,8 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
   const edgeEndpoints = data?.edgeEndpoints ?? EMPTY_EDGE_ENDPOINTS;
   const onSetEdgeAnchor = data?.onSetEdgeAnchor;
   const onClearEdgeAnchor = data?.onClearEdgeAnchor;
+  const armedAnchorId = data?.armedAnchorId ?? null;
+  const onArmAnchor = data?.onArmAnchor;
   const sourceNode = nodes.find(n => n.id === props.source);
   const targetNode = nodes.find(n => n.id === props.target);
   const sourceBox = useMemo(() => sourceNode && {
@@ -597,6 +605,23 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
   // connector they're about to grab before committing to the drag.
   const [hoveredAnchorEnd, setHoveredAnchorEnd] = useState<'source' | 'target' | null>(null);
   const isAnchorHovered = hoveredAnchorEnd !== null;
+  // "N connectors land here together" popup (2026-08-16) — the rosette
+  // offset above only spreads stacked handles so far (a 6px-radius circle
+  // still overlaps heavily once 3+ edges share a spot). Opened by hovering
+  // whichever handle is actually reachable (same trigger as the highlight
+  // above); stays open once opened — closes on an outside click, same
+  // pattern as RestorablePillDropdown, rather than on mouse-leave, so
+  // moving the cursor down toward the list itself doesn't slam it shut.
+  const [pickerOpenEnd, setPickerOpenEnd] = useState<'source' | 'target' | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!pickerOpenEnd) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as globalThis.Node)) setPickerOpenEnd(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [pickerOpenEnd]);
   const highlightedStyle: React.CSSProperties = {
     ...(props.style as React.CSSProperties | undefined),
     stroke: '#4f46e5',
@@ -624,6 +649,10 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
     if (!isAdmin || !onSetEdgeAnchor) return;
     e.stopPropagation();
     e.preventDefault();
+    // A drag starting on ANY handle means whichever one the picker popup
+    // armed has done its job (got this handle to the front) — clear it so
+    // it doesn't stay stuck elevated after use.
+    onArmAnchor?.(null);
     const box = end === 'source' ? sourceBox : targetBox;
     if (!box) return;
     const onMove = (ev: MouseEvent) => {
@@ -641,7 +670,7 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [isAdmin, onSetEdgeAnchor, sourceBox, targetBox, screenToFlowPosition, props.id]);
+  }, [isAdmin, onSetEdgeAnchor, sourceBox, targetBox, screenToFlowPosition, props.id, onArmAnchor]);
 
   const clearAnchor = useCallback((e: React.MouseEvent, end: 'source' | 'target') => {
     if (!isAdmin || !onClearEdgeAnchor) return;
@@ -665,31 +694,82 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
     const offset = computeHandleOffset(props.id, siblings, 6);
     const cx = point.x + offset.dx;
     const cy = point.y + offset.dy;
+    const isArmed = armedAnchorId === props.id;
     return (
-      <rect
-        className="nodrag nopan"
-        x={cx - ANCHOR_HANDLE_SIZE / 2}
-        y={cy - ANCHOR_HANDLE_SIZE / 2}
-        width={ANCHOR_HANDLE_SIZE}
-        height={ANCHOR_HANDLE_SIZE}
-        fill={anchors[end] ? '#4f46e5' : '#fff'}
-        stroke="#4f46e5"
-        strokeWidth={2}
-        style={{ cursor: 'crosshair', pointerEvents: 'all' }}
-        onMouseDown={(e) => startAnchorDrag(e, end)}
-        onClick={(e) => e.stopPropagation()}
-        onDoubleClick={(e) => clearAnchor(e, end)}
-        onMouseEnter={() => setHoveredAnchorEnd(end)}
-        onMouseLeave={() => setHoveredAnchorEnd(prev => (prev === end ? null : prev))}
-      >
-        <title>
-          {siblings.length > 0
-            ? `${siblings.length + 1} connectors land here together — drag to move just this one${anchors[end] ? ', double-click to release it' : ''}`
-            : anchors[end]
-              ? `Pinned to this box's ${anchors[end]} side — drag to move, double-click to release`
-              : "Drag to pin this end to one of the box's 4 sides"}
-        </title>
-      </rect>
+      <React.Fragment key={`anchor-${end}`}>
+        <rect
+          className="nodrag nopan"
+          x={cx - ANCHOR_HANDLE_SIZE / 2}
+          y={cy - ANCHOR_HANDLE_SIZE / 2}
+          width={ANCHOR_HANDLE_SIZE}
+          height={ANCHOR_HANDLE_SIZE}
+          fill={isArmed ? '#22c55e' : anchors[end] ? '#4f46e5' : '#fff'}
+          stroke={isArmed ? '#16a34a' : '#4f46e5'}
+          strokeWidth={2}
+          style={{ cursor: 'crosshair', pointerEvents: 'all' }}
+          onMouseDown={(e) => startAnchorDrag(e, end)}
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => clearAnchor(e, end)}
+          onMouseEnter={() => {
+            setHoveredAnchorEnd(end);
+            if (siblings.length > 0) setPickerOpenEnd(end);
+          }}
+          onMouseLeave={() => setHoveredAnchorEnd(prev => (prev === end ? null : prev))}
+        >
+          <title>
+            {siblings.length > 0
+              ? `${siblings.length + 1} connectors land here together — hover opened a list below to pick which one, or drag to move whichever is on top${anchors[end] ? ', double-click to release it' : ''}`
+              : anchors[end]
+                ? `Pinned to this box's ${anchors[end]} side — drag to move, double-click to release`
+                : "Drag to pin this end to one of the box's 4 sides"}
+          </title>
+        </rect>
+        {siblings.length > 0 && pickerOpenEnd === end && (
+          <EdgeLabelRenderer>
+            <div
+              ref={pickerRef}
+              className="nodrag nopan"
+              style={{
+                position: 'absolute',
+                transform: `translate(-50%, 0) translate(${cx}px, ${cy + 10}px)`,
+                background: '#fff',
+                border: '1px solid #dee2e6',
+                borderRadius: 8,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                minWidth: 200,
+                maxHeight: 220,
+                overflowY: 'auto',
+                zIndex: 3000,
+                fontFamily: 'system-ui, sans-serif',
+                fontSize: 12,
+                pointerEvents: 'all',
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div style={{ padding: '6px 10px', fontWeight: 600, color: '#495057', borderBottom: '1px solid #f1f3f5' }}>
+                {siblings.length + 1} connectors here — pick one to grab
+              </div>
+              {[props.id, ...siblings].map(id => (
+                <div
+                  key={id}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    onArmAnchor?.(id);
+                    setPickerOpenEnd(null);
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    fontWeight: id === props.id ? 600 : 400,
+                  }}
+                >
+                  {formatEdgeLabel(id)}{id === props.id ? ' (this one)' : ''}
+                </div>
+              ))}
+            </div>
+          </EdgeLabelRenderer>
+        )}
+      </React.Fragment>
     );
   };
 
@@ -1111,6 +1191,12 @@ function BoardCanvasInner({
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
 
+  // Which edge, if any, was picked from an anchor-handle "N connectors
+  // land here together" popup (2026-08-16) — bumped to the front (zIndex)
+  // in visibleEdges below so a stacked handle can actually be grabbed by a
+  // normal drag right after being picked by name.
+  const [armedAnchorId, setArmedAnchorId] = useState<string | null>(null);
+
   // Every edge's source/target NODE ids (not coordinates) — lets the
   // anchor-snapping system (2026-08-04) tell whether two DIFFERENT edges
   // are pinned to the same side of the same node, without needing to
@@ -1179,16 +1265,24 @@ function BoardCanvasInner({
         edgeEndpoints,
         onSetEdgeAnchor,
         onClearEdgeAnchor,
+        armedAnchorId,
+        onArmAnchor: setArmedAnchorId,
       };
+      // Picked from an anchor-handle popup (2026-08-16) — paint this one
+      // last (on top of its stacked siblings) so it's the one a normal
+      // drag actually grabs. Undefined (React Flow's own default) for
+      // every other edge, same as before this existed.
+      const zIndex = armedAnchorId === e.id ? 1000 : undefined;
       // Restyle in non-admin mode so path-taken edges (dim gray, dotted) are
       // visually distinct from next-move edges (solid green). Admin mode
       // keeps the default flat gray so the editor matches its old look.
-      if (!allowedIds) return { ...e, data: dataPatch };
+      if (!allowedIds) return { ...e, data: dataPatch, zIndex };
       const isNextMove = nextMoveIds.has(e.id);
       if (isNextMove) {
         return {
           ...e,
           data: dataPatch,
+          zIndex,
           style: { stroke: '#10b981', strokeWidth: 2 },
           markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#10b981' },
         };
@@ -1197,11 +1291,12 @@ function BoardCanvasInner({
       return {
         ...e,
         data: dataPatch,
+        zIndex,
         style: { stroke: '#adb5bd', strokeWidth: 1.5, strokeDasharray: '4 4', opacity: 0.7 },
         markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#adb5bd' },
       };
     });
-  }, [edges, edgesVisible, hiddenEdgeIds, isAdmin, currentPlayerId, players, validMoves, movementChoiceUnlocked, edgeWaypoints, onSetEdgeWaypoints, onClearEdgeWaypoint, edgeAnchors, onSetEdgeAnchor, onClearEdgeAnchor, edgeEndpoints]);
+  }, [edges, edgesVisible, hiddenEdgeIds, isAdmin, currentPlayerId, players, validMoves, movementChoiceUnlocked, edgeWaypoints, onSetEdgeWaypoints, onClearEdgeWaypoint, edgeAnchors, onSetEdgeAnchor, onClearEdgeAnchor, edgeEndpoints, armedAnchorId]);
 
   // Click an edge in admin mode → hide it. Single-click is the gesture
   // (React Flow has no native double-click on edges, and right-click
