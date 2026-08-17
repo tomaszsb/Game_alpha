@@ -518,15 +518,35 @@ export function nearestAnchor(
 }
 
 /**
- * Which OTHER edges have an end pinned to this exact same (node, side) —
+ * The side an edge end lands on when it has never been pinned. Every board
+ * tile (BoardCanvasNode) renders exactly one target Handle fixed on its
+ * left and one source Handle fixed on its right, so an unpinned edge's
+ * point is ALWAYS that same left/right spot on its node — not just close
+ * to another unpinned edge's point, but pixel-identical to it.
+ */
+export const DEFAULT_ANCHOR_SIDE: Record<'source' | 'target', BoxAnchor> = {
+  source: 'right',
+  target: 'left',
+};
+
+/**
+ * Which OTHER edges have an end landing on this exact same (node, side) —
  * e.g. several edges from a hub tile all pinned to its "top" — so their
  * handles would otherwise land on the exact same pixel and clicks would
  * land on whichever is on top essentially at random. Collision is
  * determined purely by the abstract (nodeId, side) key, not by resolved
  * screen coordinates: since computeAnchorPoint only depends on a node's
- * box and the chosen side, two edges pinned to the same side of the same
- * node are ALWAYS exactly coincident, by construction — no geometry or
+ * box and the chosen side, two edges on the same side of the same node
+ * are ALWAYS exactly coincident, by construction — no geometry or
  * screen-position comparison needed to detect it.
+ *
+ * Covers unpinned edges too (2026-08-16, fb: found live-testing G160's
+ * restore-picker session) — an edge with no explicit anchor still lands on
+ * DEFAULT_ANCHOR_SIDE, so two+ unpinned edges converging on the same hub
+ * tile stacked their handles with zero separation and no way to tell them
+ * apart, since the old version only ever compared edges that had an entry
+ * in edgeAnchors (i.e. had been pinned at least once). Iterating
+ * edgeEndpoints instead of edgeAnchors covers every edge, pinned or not.
  */
 export function findEdgesAtAnchor(
   edgeId: string,
@@ -536,12 +556,13 @@ export function findEdgesAtAnchor(
   edgeEndpoints: Record<string, { source: string; target: string }>,
 ): string[] {
   const ids: string[] = [];
-  for (const [otherId, otherAnchors] of Object.entries(edgeAnchors)) {
+  for (const [otherId, endpoints] of Object.entries(edgeEndpoints)) {
     if (otherId === edgeId) continue;
-    const endpoints = edgeEndpoints[otherId];
-    if (!endpoints) continue;
-    const sourceMatches = otherAnchors.source === side && endpoints.source === nodeId;
-    const targetMatches = otherAnchors.target === side && endpoints.target === nodeId;
+    const otherAnchors = edgeAnchors[otherId] ?? {};
+    const otherSourceSide = otherAnchors.source ?? DEFAULT_ANCHOR_SIDE.source;
+    const otherTargetSide = otherAnchors.target ?? DEFAULT_ANCHOR_SIDE.target;
+    const sourceMatches = otherSourceSide === side && endpoints.source === nodeId;
+    const targetMatches = otherTargetSide === side && endpoints.target === nodeId;
     if (sourceMatches || targetMatches) ids.push(otherId);
   }
   return ids;

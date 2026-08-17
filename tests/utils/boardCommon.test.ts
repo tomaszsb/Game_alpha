@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, formatEdgeLabel, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
+import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, formatEdgeLabel, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
 
 // fb:97fa9c75 — five-step tile size hierarchy. Was a 3-step ladder where the
 // current-player tile and valid-move tiles got only border treatment, which
@@ -502,6 +502,45 @@ describe('findEdgesAtAnchor', () => {
 
   it('returns [] when no anchors exist at all', () => {
     expect(findEdgesAtAnchor('A__B', 'HUB', 'top', {}, endpoints)).toEqual([]);
+  });
+
+  // 2026-08-16 — found live-testing the restore-picker/hover-highlight
+  // session: unpinned edges land on DEFAULT_ANCHOR_SIDE (every tile's
+  // Handle is fixed left/right), so several of them converging on the same
+  // hub stacked with zero separation and no way to grab a specific one.
+  // The old version only ever scanned edgeAnchors' keys, which skips any
+  // edge that had never been pinned — these cases would all have failed
+  // before the fix (empty [] instead of the sibling list).
+  it('finds other UNPINNED edges that land on the same default side', () => {
+    // A__C, A__D carry no anchor entry at all — same as a freshly drawn,
+    // never-dragged connector.
+    const found = findEdgesAtAnchor('A__B', 'HUB', DEFAULT_ANCHOR_SIDE.source, {}, endpoints);
+    expect(found).toEqual(['A__C', 'A__D']);
+  });
+
+  it('matches an unpinned edge against one explicitly pinned to the same default side', () => {
+    const anchors = { 'A__D': { source: 'right' as const } };
+    const found = findEdgesAtAnchor('A__B', 'HUB', 'right', anchors, endpoints);
+    expect(found).toEqual(['A__C', 'A__D']);
+  });
+
+  it('does not match an unpinned source against an unpinned target on the same node', () => {
+    // A__B/A__C/A__D leave HUB (unpinned source, defaults to 'right').
+    // Z__HUB arrives at HUB (unpinned target, defaults to 'left') — both
+    // ends touch HUB, but on opposite fixed sides, so they must not collide.
+    const endpointsWithIncoming = { ...endpoints, 'Z__HUB': { source: 'Z', target: 'HUB' } };
+    const found = findEdgesAtAnchor('A__B', 'HUB', DEFAULT_ANCHOR_SIDE.source, {}, endpointsWithIncoming);
+    expect(found).not.toContain('Z__HUB');
+  });
+
+  it('finds other unpinned edges landing on the default TARGET side too', () => {
+    const endpointsIntoHub = {
+      'B__A': { source: 'B', target: 'HUB' },
+      'C__A': { source: 'C', target: 'HUB' },
+      'X__Y': { source: 'X', target: 'Y' },
+    };
+    const found = findEdgesAtAnchor('B__A', 'HUB', DEFAULT_ANCHOR_SIDE.target, {}, endpointsIntoHub);
+    expect(found).toEqual(['C__A']);
   });
 });
 

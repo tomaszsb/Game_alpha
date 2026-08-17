@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.10] - 2026-08-16
+
+### Fix: overlapping connector handles in the Board Layout Editor still stacked (and were unreachable) when neither line had been pinned
+Follow-up to v3.1.95's "hover an anchor handle to highlight its line" fix, found live-testing it this session: when several connector lines converge on the same tile, one handle always highlighted but there was no way to reach or even tell that others were stacked underneath it.
+
+Root cause: `findEdgesAtAnchor()` (`src/utils/boardCommon.ts`), the function behind the "spread overlapping handles into a small rosette" fix from the same 2026-08-04 session, only ever compared edges that had been explicitly pinned to a box side (i.e. had an entry in `edgeAnchors`). But every board tile (`BoardCanvasNode`) renders exactly one target `Handle` fixed on its left and one source `Handle` fixed on its right — so an *unpinned* line's handle always lands on that same fixed spot too, pixel-identical to any other unpinned line touching the same side of the same tile. Two or more never-dragged lines converging on a hub tile stacked their handles with zero separation, and the spreading logic never saw them because it only iterated `edgeAnchors`' keys, which unpinned edges never appear in.
+
+Fix: `findEdgesAtAnchor` now iterates `edgeEndpoints` (which has an entry for every edge, pinned or not) instead of `edgeAnchors`, and falls back to a new `DEFAULT_ANCHOR_SIDE` constant (`{ source: 'right', target: 'left' }`, matching `BoardCanvasNode`'s fixed `Handle` layout) whenever an edge's end isn't pinned. `BoardCanvas.tsx`'s `anchorHandle()` does the same fallback when resolving which side to check, so unpinned siblings now get folded into the same offset-rosette treatment already used for pinned ones — no separate code path. Tooltip text softened from "connectors pinned here together" to "connectors land here together" since the group may now include lines that were never actually pinned.
+
+4 new tests in `tests/utils/boardCommon.test.ts` cover the previously-blind cases: unpinned edges matching each other on the default source side, an unpinned edge matching one explicitly pinned to that same default side, an unpinned source correctly NOT colliding with an unpinned target on the opposite fixed side of the same tile, and the symmetric default-target-side case. All 5 pre-existing `findEdgesAtAnchor` tests still pass unchanged. Verified live in the Board Layout Editor: a spot with 3 previously-identical-pixel handles now shows 3 visibly separated ones. Verified: typecheck clean, full suite 2751/2751 (187/187 files), build clean.
+
 ## [3.2.9] - 2026-08-16
 
 ### Fix: foreign-game text alert didn't say when the game actually started

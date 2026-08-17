@@ -62,7 +62,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 import { resolveFundingAmountToken } from '../../utils/templateInterpolation';
@@ -650,13 +650,18 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
   }, [isAdmin, onClearEdgeAnchor, props.id]);
 
   const anchorHandle = (end: 'source' | 'target', point: { x: number; y: number }) => {
-    // Spread apart when several edges are pinned to the same side of the
-    // same node — otherwise their handles stack on the exact same pixel
-    // and clicks land on whichever happens to be on top, essentially at
-    // random. Same "tiny offset rosette" treatment as bundled waypoints.
+    // Spread apart when several edges land on the same side of the same
+    // node — otherwise their handles stack on the exact same pixel and
+    // clicks (or hovers) land on whichever happens to be on top,
+    // essentially at random. Same "tiny offset rosette" treatment as
+    // bundled waypoints. Falls back to DEFAULT_ANCHOR_SIDE when this end
+    // isn't pinned — an unpinned edge still lands on a fixed spot (every
+    // tile's Handle is fixed left/right), so unpinned siblings stack on
+    // each other exactly as much as pinned ones do (2026-08-16, found
+    // live-testing the pinned-only version of this fix).
     const nodeId = end === 'source' ? props.source : props.target;
-    const side = anchors[end];
-    const siblings = side ? findEdgesAtAnchor(props.id, nodeId, side, allAnchors, edgeEndpoints) : [];
+    const side = anchors[end] ?? DEFAULT_ANCHOR_SIDE[end];
+    const siblings = findEdgesAtAnchor(props.id, nodeId, side, allAnchors, edgeEndpoints);
     const offset = computeHandleOffset(props.id, siblings, 6);
     const cx = point.x + offset.dx;
     const cy = point.y + offset.dy;
@@ -679,7 +684,7 @@ function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
       >
         <title>
           {siblings.length > 0
-            ? `${siblings.length + 1} connectors pinned here together — drag to move just this one, double-click to release it`
+            ? `${siblings.length + 1} connectors land here together — drag to move just this one${anchors[end] ? ', double-click to release it' : ''}`
             : anchors[end]
               ? `Pinned to this box's ${anchors[end]} side — drag to move, double-click to release`
               : "Drag to pin this end to one of the box's 4 sides"}
