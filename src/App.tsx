@@ -8,7 +8,8 @@ import { useGameContext } from './context/GameContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { colors } from './styles/theme';
 import { getAppScreen, getURLParams } from './utils/getAppScreen';
-import { getCurrentGameId, getBackendURL } from './utils/networkDetection';
+import { getCurrentGameId, getCurrentGameToken, getBackendURL } from './utils/networkDetection';
+import { getStoredLastGame, setStoredLastGame, clearStoredLastGame } from './utils/lastGameMemory';
 import { detectDeviceType } from './utils/deviceDetection';
 import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dictionary';
 import { getTooltipService } from './services/TooltipService';
@@ -47,6 +48,82 @@ function LoadingScreen({ message }: { message?: string }): JSX.Element {
       <div>{message || 'Loading Game Data...'}</div>
       <div style={{ fontSize: '16px', color: colors.text.secondary, marginTop: '10px' }}>
         Please wait while we initialize the game
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Shown on a bare-URL visit (no ?g= at all) when this browser has a
+ * still-live game in localStorage. A choice, not a redirect — see the
+ * "Resume-your-last-game" note on the App() component above.
+ */
+function ResumeGamePrompt({
+  gameId,
+  onResume,
+  onStartNew,
+}: {
+  gameId: string;
+  onResume: () => void;
+  onStartNew: () => void;
+}): JSX.Element {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: colors.background.secondary,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ marginBottom: '20px', fontSize: '48px' }}>🏗️</div>
+      <div style={{ fontSize: '22px', fontWeight: 600, color: colors.neutral.black, marginBottom: '8px' }}>
+        Resume your last game?
+      </div>
+      <div style={{ fontSize: '16px', color: colors.text.secondary, marginBottom: '28px' }}>
+        This browser still has a game in progress: <strong>{gameId}</strong>
+      </div>
+      <div style={{ display: 'flex', gap: '12px' }}>
+        <button
+          type="button"
+          onClick={onResume}
+          style={{
+            padding: '12px 24px',
+            fontSize: '16px',
+            fontWeight: 600,
+            color: '#fff',
+            background: colors.primary.main,
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+          }}
+        >
+          Resume {gameId}
+        </button>
+        <button
+          type="button"
+          onClick={onStartNew}
+          style={{
+            padding: '12px 24px',
+            fontSize: '16px',
+            fontWeight: 600,
+            color: colors.neutral.black,
+            background: 'transparent',
+            border: `1px solid ${colors.text.secondary}`,
+            borderRadius: '8px',
+            cursor: 'pointer',
+          }}
+        >
+          Start a new game
+        </button>
       </div>
     </div>
   );
@@ -287,6 +364,19 @@ function AppContent(): JSX.Element {
   );
 }
 
+type BootstrapPhase = 'checking-resume' | 'offer-resume' | 'auto-creating' | 'done';
+
+/**
+ * Only queries the server when there's actually a stored game to check —
+ * the common case (first-ever visit, nothing in localStorage) skips
+ * straight to auto-creating with no extra network round trip or loading
+ * frame.
+ */
+function getInitialBootstrapPhase(): BootstrapPhase {
+  if (getCurrentGameId()) return 'done';
+  return getStoredLastGame() ? 'checking-resume' : 'auto-creating';
+}
+
 /**
  * App component serves as the composition root for the entire application.
  * It wraps the main layout with the ServiceProvider to provide dependency injection
@@ -298,18 +388,56 @@ function AppContent(): JSX.Element {
  * later, ServiceProvider's state load would fall through to the legacy
  * /api/gamestate endpoint and could pick up a stale PLAY-phase game from
  * the single-game era, which would skip PlayerSetup entirely.
+ *
+ * Resume-your-last-game (v3.2.x): a bare-URL visit with NO ?g= at all (a
+ * stripped link, a bookmark to the root domain) used to silently start a
+ * brand-new game, discarding any in-progress one this browser had. If
+ * localStorage remembers a game, we verify it still exists server-side
+ * (`/api/games/<id>/join-info`, same check JoinByCodePanel uses) and offer
+ * a resume/start-new choice instead of guessing. Deliberately NOT an
+ * auto-redirect — teachers/testers open the bare URL specifically to start
+ * fresh games too often for that to be safe.
  */
 export function App(): JSX.Element {
-  // True only on the initial render when there's no game id yet. The effect
-  // below either redirects (full reload with the new game id in the URL) or
-  // — on POST failure — clears this flag so the rest of the app can mount
-  // anyway. `useState(() => ...)` runs the check once; it doesn't react to
-  // URL changes after mount (a redirect would unmount everything anyway).
-  const [autoCreating, setAutoCreating] = useState(() => !getCurrentGameId());
+  // Runs the resume/auto-create decision once on mount; `useState(() =>
+  // ...)` doesn't react to URL changes after that (a redirect unmounts
+  // everything anyway).
+  const [phase, setPhase] = useState<BootstrapPhase>(getInitialBootstrapPhase);
+  const [resumeCandidate, setResumeCandidate] = useState<{ gameId: string; token?: string } | null>(null);
   const [autoCreateError, setAutoCreateError] = useState<string | null>(null);
 
+  // Verify a stored "last game" still exists before offering to resume it —
+  // a game that already auto-expired (~24-41h idle) shouldn't be offered.
   useEffect(() => {
-    if (!autoCreating) return;
+    if (phase !== 'checking-resume') return;
+    let cancelled = false;
+    (async () => {
+      const stored = getStoredLastGame();
+      if (!stored) { if (!cancelled) setPhase('auto-creating'); return; }
+      try {
+        const backendURL = getBackendURL();
+        const response = await fetch(`${backendURL}/api/games/${stored.gameId}/join-info`);
+        if (cancelled) return;
+        if (!response.ok) {
+          clearStoredLastGame();
+          setPhase('auto-creating');
+          return;
+        }
+        const data: { token?: string } = await response.json();
+        setResumeCandidate({ gameId: stored.gameId, token: data.token || stored.token });
+        setPhase('offer-resume');
+      } catch {
+        // Server unreachable — fall through to the normal auto-create path
+        // rather than blocking the user on a resume prompt that can't be
+        // verified either way.
+        if (!cancelled) setPhase('auto-creating');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'auto-creating') return;
     let cancelled = false;
     (async () => {
       try {
@@ -334,14 +462,41 @@ export function App(): JSX.Element {
         setAutoCreateError(
           err instanceof Error ? err.message : 'Could not reach the game server.'
         );
-        setAutoCreating(false);
+        setPhase('done');
       }
     })();
     return () => { cancelled = true; };
-  }, [autoCreating]);
+  }, [phase]);
 
-  if (autoCreating) {
-    return <LoadingScreen message="Setting up a new game…" />;
+  // Remembers this game as "last game" whenever the app mounts (or a
+  // resume/auto-create redirect lands) with a valid ?g= in the URL —
+  // covers created, resumed, and join-by-code-visited games alike.
+  useEffect(() => {
+    if (phase !== 'done') return;
+    const gameId = getCurrentGameId();
+    if (gameId) setStoredLastGame(gameId, getCurrentGameToken());
+  }, [phase]);
+
+  if (phase === 'checking-resume' || phase === 'auto-creating') {
+    return <LoadingScreen message={phase === 'checking-resume' ? 'Checking for a game to resume…' : 'Setting up a new game…'} />;
+  }
+
+  if (phase === 'offer-resume' && resumeCandidate) {
+    return (
+      <ResumeGamePrompt
+        gameId={resumeCandidate.gameId}
+        onResume={() => {
+          const url = new URL(window.location.href);
+          url.searchParams.set('g', resumeCandidate.gameId);
+          if (resumeCandidate.token) url.searchParams.set('token', resumeCandidate.token);
+          window.location.href = url.toString();
+        }}
+        onStartNew={() => {
+          clearStoredLastGame();
+          setPhase('auto-creating');
+        }}
+      />
+    );
   }
 
   return (

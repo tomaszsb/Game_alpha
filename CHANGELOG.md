@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.12] - 2026-08-17
+
+### Feature: "Resume your last game?" prompt on a bare-URL visit
+Closes the one genuine gap identified in the 2026-08-15 investigation (see TODO.md history): a bare-URL visit with no `?g=` at all — a stripped link, a bookmark to the root domain — silently started a brand-new game, discarding any in-progress one this browser had. Two real rejoin paths already existed (Share-game-link URL, Join-by-Code panel) but neither helps if the player never had the link or code in front of them.
+
+New `src/utils/lastGameMemory.ts` (same pattern as `modePreference.ts`: a try/catch-wrapped localStorage helper, `unravelcodes:last-game` key) remembers `{gameId, token}` whenever the app mounts with a valid `?g=` — covers created, resumed, and join-by-code-visited games alike. On a bare-URL visit, `App.tsx`'s bootstrap now checks for a stored record before auto-creating: if present, it verifies the game still exists via the same `/api/games/<id>/join-info` endpoint `JoinByCodePanel` already uses (catches the ~24-41h auto-expire case), then shows a "Resume G-XXXX-XXXX? / Start a new game" choice — never a silent auto-redirect, since teachers/testers routinely open the bare URL specifically to start fresh games. The common case (no stored record at all) skips the extra network check and loading frame entirely.
+
+9 new tests in `tests/utils/lastGameMemory.test.ts` cover the round-trip, malformed/missing-gameId storage, and the storage-disabled (private mode) fallback. Live-verified all three paths in a real browser session: resume restores the exact in-progress state (scope, money, action history), "start a new game" clears the record and auto-creates fresh, and a stale/nonexistent stored gameId falls through cleanly to auto-create with no stuck prompt. Verified: typecheck clean, build clean.
+
 ## [3.2.11] - 2026-08-17
 
 ### Feature: pick-by-name popup for grabbing one connector out of a stacked group in the Board Layout Editor
