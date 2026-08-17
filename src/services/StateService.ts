@@ -1861,9 +1861,11 @@ export class StateService implements IStateService {
   /**
    * Load game state from backend server
    * Called on app initialization to restore state across devices
-   * Returns true if state was loaded successfully, false otherwise
+   * Returns 'loaded', 'not-found' (gameId in the URL doesn't exist on the
+   * server — an expired/invalid shared link), or 'unavailable' (no state
+   * yet, no gameId, or the server couldn't be reached).
    */
-  async loadStateFromServer(): Promise<boolean> {
+  async loadStateFromServer(): Promise<'loaded' | 'not-found' | 'unavailable'> {
     return this.serverSyncService.loadFromServer();
   }
 

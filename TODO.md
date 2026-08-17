@@ -153,7 +153,6 @@
 ### Known limitations / environmental (accepted, flag-only)
 - [ ] **Q2 first-visit blind spot** — `scope_changed_since_last_visit` has no snapshot on a first FDNY-FEE-REVIEW visit → defaults "no change"; maintainer accepted 2026-06-15. Sturdier fix if ever needed: snapshot scope at FDNY approval grant.
 - [ ] **Loan-repayment deadline + TCO mechanic** (maintainer idea 2026-07-02, "way later") — needs a TCO mechanic; real expansion.
-- [ ] **"Play on Perplexity" load failure** — embedded browser blocked scripts + expired game id; no code bug. At most a friendlier "game expired / open in a full browser" message. <!-- fb:feedback-1781190420890-5a155a1a -->
 - [ ] **Swap terser → native minifier (Rolldown/Oxc or esbuild)** — bundle-affecting, verify via deploy playtest; preserve vite.config.ts console behaviors. Build is ~8s, low priority.
 - [ ] **`CARDS_EXPANDED.csv` carries a stray `\r` mid-row on 386 of 399 rows — INERT, do not "fix" it (investigated 2026-07-29, don't re-chase)** — the file's records end with a bare `\n`, but each one has a carriage return sitting inside column 22 (`work_type_restriction`), which is where the file used to end. **It never reaches the game** — `DataService.parseCsvLine` ([DataService.ts:1009](src/services/DataService.ts:1009)) calls `.trim()` on every field, which strips the `\r` (verified over all 398 data rows: 0 fields retain a `\r`). The one real caveat is that the safety rests on that single `.trim()`, so don't remove it.
 

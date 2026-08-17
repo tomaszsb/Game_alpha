@@ -130,6 +130,65 @@ function ResumeGamePrompt({
 }
 
 /**
+ * Shown when a shared game link's gameId doesn't exist on the server —
+ * expired (games auto-expire ~24-41h idle), mistyped, or the game was
+ * deleted. Previously this silently fell through to a blank 0-player
+ * setup screen with the old (invalid) gameId still in the URL, which read
+ * as a broken app rather than a link that had simply expired — the "Play
+ * on Perplexity" load-failure report. Also relevant for any embedded
+ * in-app browser (Perplexity, etc.) that blocks some scripts outright:
+ * this message at least explains the "open in a full browser" workaround
+ * even when the deeper cause is the embedded browser itself, not the link.
+ */
+function ExpiredGameLinkScreen({ onStartNew }: { onStartNew: () => void }): JSX.Element {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: colors.background.secondary,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ marginBottom: '20px', fontSize: '48px' }}>🔗</div>
+      <div style={{ fontSize: '22px', fontWeight: 600, color: colors.neutral.black, marginBottom: '8px' }}>
+        This game link isn't working
+      </div>
+      <div style={{ fontSize: '16px', color: colors.text.secondary, marginBottom: '10px', maxWidth: '440px' }}>
+        The game it points to may have expired, or the link may be mistyped. Ask whoever's hosting for a current link or code.
+      </div>
+      <div style={{ fontSize: '14px', color: colors.text.secondary, marginBottom: '28px', maxWidth: '440px' }}>
+        If you opened this from an app's built-in browser (e.g. Perplexity), try opening it in your regular browser instead — some in-app browsers block features this game needs.
+      </div>
+      <button
+        type="button"
+        onClick={onStartNew}
+        style={{
+          padding: '12px 24px',
+          fontSize: '16px',
+          fontWeight: 600,
+          color: '#fff',
+          background: colors.primary.main,
+          border: 'none',
+          borderRadius: '8px',
+          cursor: 'pointer',
+        }}
+      >
+        Start a new game
+      </button>
+    </div>
+  );
+}
+
+/**
  * DictionaryPanelWrapper manages the dictionary panel state via context
  *
  * When useEmbeddedDashboard is enabled, the panel will render an iframe
@@ -165,6 +224,11 @@ function AppContent(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [gameState, setGameState] = useState(stateService.getGameState());
   const [initialPreview, setInitialPreview] = useState<{action: string; id: string} | null>(null);
+  // Set when the ?g= in the URL doesn't exist on the server — an expired
+  // or mistyped shared link (the "Play on Perplexity" load-failure
+  // report). Without this, the app silently fell through to a blank
+  // 0-player setup screen with no indication the link itself was bad.
+  const [expiredGameLink, setExpiredGameLink] = useState(false);
 
   // Subscribe to game state changes
   useEffect(() => {
@@ -225,7 +289,10 @@ function AppContent(): JSX.Element {
         configureUIStrings(dataService.getUIStringRows());
 
         // Try to load state from server first (multi-device sync)
-        await stateService.loadStateFromServer();
+        const loadResult = await stateService.loadStateFromServer();
+        if (loadResult === 'not-found') {
+          setExpiredGameLink(true);
+        }
 
         // v3.0.41: removed `fixPlayerStartingSpaces` + `forceResetAllPlayersToCorrectStartingSpace`
         // calls. They migrated players stuck on the old 'START-QUICK-PLAY-GUIDE'
@@ -318,6 +385,21 @@ function AppContent(): JSX.Element {
 
   if (isLoading) {
     return <LoadingScreen />;
+  }
+
+  if (expiredGameLink) {
+    return (
+      <ExpiredGameLinkScreen
+        onStartNew={() => {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('g');
+          url.searchParams.delete('token');
+          url.searchParams.delete('p');
+          url.searchParams.delete('playerId');
+          window.location.href = url.toString();
+        }}
+      />
+    );
   }
 
   // Read URL parameters to determine routing

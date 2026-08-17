@@ -334,7 +334,7 @@ export interface IStateService {
   setTVDarkMode(value: boolean): GameState;
 
   // Server synchronization methods
-  loadStateFromServer(): Promise<boolean>;
+  loadStateFromServer(): Promise<'loaded' | 'not-found' | 'unavailable'>;
   replaceState(newState: GameState, serverVersion?: number): void;
 
   // WebSocket synchronization methods

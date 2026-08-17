@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.13] - 2026-08-17
+
+### Fix: an expired or invalid shared game link silently dropped players into a blank 0-player setup screen
+Closes fb:feedback-1781190420890-5a155a1a ("Play on Perplexity" load failure). The earlier investigation had already ruled out a code bug behind the embedded-browser side of that report, but flagged one real gap: opening a `?g=` link whose game no longer exists on the server (auto-expired after ~24-41h idle, mistyped, or deleted) gave zero indication anything was wrong — it silently fell through to a fresh, empty setup screen with the old invalid gameId still sitting in the URL.
+
+Root cause: `/api/games/:id/state`'s two distinct 404 cases were indistinguishable to the client — `validateGameToken`'s "game not found" 404 and the "game exists but has no saved state yet" 404 (the ordinary state right after auto-create) carry the same HTTP status, differing only in response body (the latter always includes `stateVersion`). `ServerSyncService.loadFromServer()` collapsed both to `false`, so App.tsx had no way to tell "genuinely bad link" apart from "brand new game, first load."
+
+`loadFromServer()` (and `StateService.loadStateFromServer()`) now return `'loaded' | 'not-found' | 'unavailable'` instead of a boolean, checking for `stateVersion` in the 404 body to split the two cases. App.tsx shows a new `ExpiredGameLinkScreen` only on `'not-found'` — explains the link may have expired, suggests asking the host for a current one, and (since the original report came from Perplexity's embedded browser) notes that in-app browsers sometimes block features this game needs. A "Start a new game" button strips `?g=`/`token`/`p`/`playerId` and reloads into the normal auto-create flow.
+
+5 new tests in `tests/services/ServerSyncService.loadFromServer.test.ts` cover all three return values plus the network-error and non-404-error paths. Live-verified in a real browser: a nonexistent gameId shows the new screen, a freshly auto-created game (which also 404s on its first load) is unaffected and reaches the normal setup screen, and "Start a new game" recovers cleanly. Verified: typecheck clean, build clean.
+
 ## [3.2.12] - 2026-08-17
 
 ### Feature: "Resume your last game?" prompt on a bare-URL visit

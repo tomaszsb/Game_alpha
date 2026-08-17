@@ -227,12 +227,23 @@ export class ServerSyncService {
   /**
    * Load game state from backend server
    * Called on app initialization to restore state across devices
-   * Returns true if state was loaded successfully, false otherwise
+   *
+   * Returns a 3-way result rather than a plain boolean (pre-2026-08-17):
+   * 'loaded' and everything-else used to collapse to true/false, which
+   * meant a genuinely-nonexistent gameId (an expired/invalid shared link —
+   * the "Play on Perplexity" load-failure report) was indistinguishable
+   * from the ordinary "brand-new game, no state posted yet" 404 a fresh
+   * auto-create always hits first. Both are HTTP 404 from the server, but
+   * the response body differs: `/state`'s "game not found" 404 (via
+   * validateGameToken) omits `stateVersion`, while its "game exists but
+   * has no state yet" 404 always includes `stateVersion: 0`. App.tsx uses
+   * 'not-found' to show a "this game link has expired" message instead of
+   * silently dropping the user into a blank new-game setup screen.
    */
-  public async loadFromServer(): Promise<boolean> {
+  public async loadFromServer(): Promise<'loaded' | 'not-found' | 'unavailable'> {
     // Lazy initialization of server URL
     if (!this.initializeServerUrl()) {
-      return false;
+      return 'unavailable';
     }
 
     // Defensive: with no gameId in the URL, getGameStateAPIPath falls
@@ -243,7 +254,7 @@ export class ServerSyncService {
     // legacy path by accident.
     if (!getCurrentGameId()) {
       debugLog('No game id in URL — skipping server state load.');
-      return false;
+      return 'unavailable';
     }
 
     try {
@@ -258,13 +269,20 @@ export class ServerSyncService {
       const response = await fetch(`${this.serverUrl}${apiPath}`, { headers: fetchHeaders });
 
       if (response.status === 404) {
-        debugLog('No server state found, using local state');
-        return false;
+        const body = await response.json().catch(() => null);
+        if (body && typeof body === 'object' && 'stateVersion' in body) {
+          // Game exists, just has no saved state yet — the normal
+          // freshly-auto-created-game case.
+          debugLog('No server state found, using local state');
+          return 'unavailable';
+        }
+        debugLog(`Game ${gameId} not found on server — expired or invalid link`);
+        return 'not-found';
       }
 
       if (!response.ok) {
         debugWarn(`Failed to load state from server: ${response.status} ${response.statusText}`);
-        return false;
+        return 'unavailable';
       }
 
       const { state, stateVersion } = await response.json();
@@ -283,14 +301,14 @@ export class ServerSyncService {
         debugLog(`   Players: ${state.players?.length || 0}`);
         debugLog(`   Phase: ${state.gamePhase || 'UNKNOWN'}`);
         debugLog(`   Player 0 spaceVisitLog: ${logLength} entries`);
-        return true;
+        return 'loaded';
       }
 
-      return false;
+      return 'unavailable';
     } catch (_error) {
       // Server not available - continue with local state
       debugLog('Server not available, using local state');
-      return false;
+      return 'unavailable';
     }
   }
 
