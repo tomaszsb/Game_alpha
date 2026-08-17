@@ -5,21 +5,20 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** August 16, 2026 (continued)
+**Last Updated:** August 17, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.9** — deployed and confirmed live. No app version shipped in this session's continuation (infra/ops only).
+**Current Version:** **3.2.13** — pushed to origin/master, not yet deployed.
 
 ## Current sprint
-**2026-08-16 continued — finished the Docker-side IPv6 fix, then an unplanned incident-response detour.** `game-net` recreated with `--ipv6 --subnet`, confirmed live: `game_alpha` now auto-detects its real home IPv6 address. The multi-session false-foreign-alert fix (host networking earlier the same day, this piece now) is fully closed end to end. Along the way: an attempt to also set IPv6 via Docker's `daemon.json` collided with flags Unraid's own `rc.docker` already passes to dockerd, briefly crashing Docker and taking every container on Tower down — recovered via a pre-made backup (full trap + the safer fix in CLAUDE.md TACTICAL). That recovery surfaced an unrelated, pre-existing bug: `cloudflare-tunnel` had a literal unfilled `YOUR_TOKEN_HERE` placeholder token and had been crash-looping, silently taking `game`/`dashboard`/`api`/`photos.unravelcodes.com` offline from outside — fixed with a real token, all four confirmed reachable again.
+**2026-08-17 — first session under the new "work TODO.md proactively" pattern.** Finished a board-editor picker-popup left uncommitted from the prior session (v3.2.11), then shipped two real reliability fixes straight from the backlog: a "Resume your last game?" prompt for bare-URL visits (v3.2.12), and a friendly explanation screen for expired/invalid shared game links instead of a silent blank setup screen (v3.2.13, closes fb:feedback-1781190420890-5a155a1a). Also attempted a live repro of the long-standing Con-Initiation crash report using the session's Browser-pane tool — confirmed (not just suspected) that the tool cannot produce a trustworthy repro here, since the tab reports `document.visibilityState: 'hidden'` even when called "foregrounded." That item now firmly needs the maintainer's own browser.
 
 ## Health
-- **Tests:** typecheck ✅ clean, build ✅ clean. No test run this continuation (zero-game-source session — only `TODO.md`/`deploy.sh` changed); last full-suite baseline **2747/2747** (187 files) from earlier the same day, unaffected.
+- **Tests:** typecheck ✅ clean, build ✅ clean. Full suite (`npm test`) **2765/2765** passing (189 files). `npm run test:ghost` backgrounded, result pending as of this snapshot — check `.claude/NEXT_SESSION.md` if it hadn't finished by session end.
 - **Lint:** not touched this session.
-- **Deploy:** v3.2.9 unchanged/still live. Today's real changes were host-level (Tower's Docker networking) and a `deploy.sh` future-proofing line, not a new app version.
-- **Dashboard feedback:** not touched this session.
-- **Dictionary-scraper (separate repo/deploy):** unchanged this session — though its public dashboard/API were briefly unreachable from outside during the tunnel outage above, now restored.
+- **Deploy:** v3.2.13 pushed to origin/master, not yet deployed — maintainer deploys manually.
+- **Dashboard feedback:** fb:feedback-1781190420890-5a155a1a fixed this session (v3.2.13) but not yet flipped resolved — pending deploy confirmation.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **G160 restore-picker + hover-highlight (v3.1.95)** — code-complete and deployed, just needs the maintainer's own real-browser confirmation it feels right.
-2. **D&D-reskin engagement-data question** — real signal still thin (9 real games in 13 days); current read points at join-friction over board theme. Revisit after another 2-3 weeks of traffic.
-3. **Con-Initiation crash + next-action-button highlight** — both still open, no telemetry exists to confirm or rule out either; need a direct real-play repro.
+1. **Con-Initiation crash** — needs the maintainer's own foregrounded-browser repro; confirmed this session that automated tooling cannot produce trustworthy signal here.
+2. **G160 restore-picker + hover-highlight (v3.1.95) + the new pick-by-name popup (v3.2.11)** — code-complete and deployed, just needs the maintainer's own real-browser confirmation it feels right.
+3. **D&D-reskin engagement-data question** — real signal still thin (9 real games in 13 days); current read points at join-friction over board theme. Revisit after another 2-3 weeks of traffic.

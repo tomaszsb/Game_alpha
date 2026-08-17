@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** August 16, 2026 — pulled `visitors.log` since the admin stats dashboard shipped and closed out two TODO items gated on real playtest signal (D&D-reskin engagement question — points to join-friction, not board theme; two items with no telemetry either way). Traced and fixed the Site Stats dashboard's double-login (`noopener` was severing `sessionStorage` inheritance into the new tab, v3.2.8). A live SMS alert arriving ~16h late led to timestamping the alert text (v3.2.9) and, along the way, actually fixing the host-level root cause of the IPv6 false-foreign-alert bug — Tower now has real, persisted IPv6 on its LAN bridge; the game container's own Docker-side IPv6 wiring is the remaining piece (see the infra section below). See CHANGELOG v3.2.8–v3.2.9.
-**Status:** Beta — repo at v3.2.9, live deploy confirmed at v3.2.9 (user-verified deploy log).
-**Current Version:** 3.2.9 (repo and live match).
+**Last Updated:** August 17, 2026 — first session working TODO.md proactively (pick 3-6 ship-now items without per-item go-ahead). Finished a board-editor picker popup left uncommitted from the prior session (v3.2.11). Shipped "Resume your last game?" for bare-URL visits (v3.2.12) and a friendly expired-link screen instead of a silent blank setup screen (v3.2.13, closes fb:feedback-1781190420890-5a155a1a — the Perplexity load-failure item). Attempted a live repro of the Con-Initiation crash — confirmed the session's Browser-pane tool cannot produce trustworthy signal on it (`document.visibilityState` reports `'hidden'` even when called "foregrounded"); needs the maintainer's own browser. See CHANGELOG v3.2.11–v3.2.13.
+**Status:** Beta — repo at v3.2.13, pushed to origin/master, not yet deployed.
+**Current Version:** 3.2.13 (repo ahead of live deploy).
 
 ---
 

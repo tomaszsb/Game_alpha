@@ -2,6 +2,12 @@
 
 ---
 
+## v3.2.12–3.2.13 — A broken or expired game link now tells you what happened (August 17, 2026)
+
+- **If you open the game with no link at all and this browser still has a game in progress, you'll now be asked "Resume your last game?"** instead of it silently starting a brand-new one. You can still choose to start fresh if that's what you meant to do.
+- **If you open a shared link to a game that's expired or no longer exists, you'll now see a clear message explaining that** — with a button to start a new game — instead of landing on a confusing blank setup screen with no players.
+- **Behind the scenes:** most of this session was finishing up admin/teacher board-editing tooling (a way to pick exactly which connector line you're grabbing when several overlap) — nothing else that changes what you see as a player.
+
 ## v3.1.89 — Your funding spaces have names now (August 2, 2026)
 
 - **The Bank, The Lender, and The Investor** now show up by name on the board instead of just "Funding" — same as how the Architect, Engineer, and DOB/FDNY inspectors already stand out from their phase color alone.

@@ -1,32 +1,33 @@
-# Next session starter — written 2026-08-16 by /koniec
+# Next session starter — written 2026-08-17 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.9 — deployed and confirmed live. No app version shipped this continuation (infra/ops only, no `src`/`server` changes).
+- **Version:** v3.2.13 — pushed to origin/master, **not yet deployed**.
 - **Branch:** master, clean, pushed (only untracked scratch file `idea.txt` at repo root — a maintainer draft, not touched).
-- **This session:** finished the Docker-side half of the IPv6 false-foreign-alert fix left open at the prior handoff — `game-net` recreated with `--ipv6 --subnet`, confirmed live via `docker logs game_alpha` showing a real auto-detected home IPv6 address. The whole multi-session fix is now closed end to end. Along the way, an attempt to also set IPv6 via `/etc/docker/daemon.json` collided with flags Unraid's own `rc.docker` already passes to dockerd, briefly crashing Docker and taking every container on Tower down — recovered via a pre-made config backup (full trap in CLAUDE.md TACTICAL). Recovery surfaced an unrelated, pre-existing bug: `cloudflare-tunnel` had a literal unfilled `YOUR_TOKEN_HERE` placeholder as its token and had been crash-looping for at least 12 days undetected, silently taking `game`/`dashboard`/`api`/`photos.unravelcodes.com` offline from outside — fixed with a real token, all four confirmed reachable again. `deploy.sh`'s network-create line now always requests `--ipv6`/`--subnet` so a future accidental network removal can't silently regress the fix.
-- **Test suite:** no test run this continuation (zero-game-source session — only `TODO.md`/`deploy.sh`/`CLAUDE.md`/`PROJECT_STATUS.md` changed). Last full-suite baseline: 2747/2747 (187/187 files), from earlier the same day, unaffected by anything this continuation touched. Typecheck + build re-verified clean just now.
+- **This session:** first run under the new "work TODO.md proactively" pattern. Finished a board-editor picker popup left uncommitted from the prior session (v3.2.11, "N connectors land here together" pick-by-name popup). Shipped a "Resume your last game?" prompt for bare-URL visits (v3.2.12) and a friendly explanation screen for an expired/invalid shared game link instead of a silent blank setup screen (v3.2.13, closes fb:feedback-1781190420890-5a155a1a). Attempted a live repro of the Con-Initiation crash via the session's Browser-pane tool — confirmed (not guessed) it cannot produce trustworthy signal here: the tab reports `document.visibilityState: 'hidden'` even when called "foregrounded," which stalls the same exit-animation class of issue already documented in CLAUDE.md TACTICAL. That item needs the maintainer's own real browser, not another automated attempt.
+- **Test suite:** full Golden-Rule coverage green — `npm test` 2765/2765 (189 files), `npm run test:ghost` 33/33 (10 files, ~14 min, all 3 bot batches at their win-rate floors, 0 hard failures).
 - **Build/typecheck:** both clean.
 
 ## Top 3 open items
-1. **G160 restore-picker + hover-highlight (v3.1.95)** — code-complete and deployed, just needs your own real-browser confirmation it feels right. Closes fb:feedback-1778327469678-d27a73d0.
-2. **D&D-reskin engagement data — still thin, revisit after another 2-3 weeks of traffic.** Current read: 4 of 9 real games since tracking went live never get a second player. Recommend keeping the reskin on hold, treating join/invite friction as the real blocker. Full detail: TODO.md.
-3. **Con-Initiation crash + next-action-button highlight — both still open, no telemetry can settle either.** Both need a direct real-play repro from you. The diagnostic capture mechanism for a future crash already exists (global error capture auto-attaches to any in-game "Report a bug" submission) — nothing left to build there, just needs someone to hit that button right when/after it happens. Full detail: TODO.md.
+1. **Con-Initiation "Determine Outcome" crash** — still needs a direct repro in a real, visibly-displayed browser. Confirmed this session the tool cannot do it; don't retry automated repro, it'll just reproduce the same false-positive-prone conditions again.
+2. **G160 restore-picker + hover-highlight (v3.1.95) + the new pick-by-name popup (v3.2.11)** — code-complete and will be live once this session's deploy lands; needs the maintainer's own real-browser confirmation it feels right.
+3. **D&D-reskin engagement-data question** — real signal still thin (9 real games in 13 days as of the last pull); current read points at join-friction over board theme. Revisit after another 2-3 weeks of traffic.
 
 ## Test failures to address
-None. Last real run was green throughout.
+None. Full suite green throughout.
 
 ## Decisions waiting on the user
-None new.
+None new this session.
+
+## Flip after deploy
+- fb:feedback-1781190420890-5a155a1a — fixed in v3.2.13 (the "Play on Perplexity" load-failure report); PATCH resolved once v3.2.13 is confirmed live.
 
 ## Suggested first move
-Nothing urgent — all three top items are "wait for confirmation/signal" states, not active code work. If you get a spare minute in a real browser, item 1 (G160) is the quickest to actually close out. Otherwise, worth a passing thought: today's `cloudflare-tunnel` outage (item flagged in TODO.md's "Reliability / plumbing" parking lot) sat undetected for 12+ days purely by luck — no rush, but a free external uptime check would catch the next one in minutes instead of by accident.
+Deploy v3.2.13 when convenient (`ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`), then flip fb:feedback-1781190420890-5a155a1a resolved on the dashboard. Otherwise: this session shipped 3 items off the backlog in one sitting under the new proactive-TODO pattern — worth telling me whether that pace/scope felt right, or whether you'd rather it stop sooner/go further per session.
 
 ## Suggested model for next session
-Sonnet 5 — nothing in the top-3 needs deep architectural judgment; it's confirmation/investigation work, standard territory.
+Sonnet 5 — nothing in the top-3 needs deep architectural judgment; it's real-browser confirmation work + normal backlog triage, standard territory.
 
 ## Reminders
 - Deploy runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Hand this to the maintainer — don't run it yourself (deploy-handoff rule).
-- **Never `taskkill /F /IM node.exe`** — kills all MCP servers too. Kill by PID from `netstat -ano`.
-- **This session's safety classifier hard-blocks live host-network/Docker-daemon changes on the remote Unraid host even with explicit in-chat permission.** Don't retry — hand the exact command to the user, verify read-only afterward. Confirmed again this session (same as the earlier `accept_ra=2` finding).
-- If a Docker daemon restart on Tower ever fails again, check `/var/log/docker.log` for the real reason — `rc.docker`'s own console output only says "Failed."
-- `idea.txt` at repo root is an untracked maintainer scratch file. Left alone.
+- `idea.txt` at repo root is an untracked maintainer scratch file (an old D&D-reskin system-prompt draft). Left alone, not part of any shipped work.
+- Local dev servers this session (Express + Vite) were both stopped cleanly before wrap-up — confirmed no GAME-SERVER node processes left running.
