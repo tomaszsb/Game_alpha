@@ -41,6 +41,25 @@ export const AVATAR_IMAGE_MAP: Record<string, string> = {
   '👩‍🏫': '/images/avatars/teacher_female.png',
 };
 
+// Maintainer report 2026-08-18: avatar circles showed only the colored ring
+// with no portrait for some players on the setup screen (2 filled in, 2
+// blank). Root cause: <img> renders that colored ring/background via the
+// PARENT span (PlayerAvatar.tsx) — that shows immediately — but the
+// portrait itself only appears once its own PNG finishes downloading. Adding
+// several players in quick succession fires several *different* first-time
+// image requests at once (each avatar is a distinct file), so on a real
+// network (not instant like a local dev server) a few can still be mid-load
+// when the player looks — a blank-but-ringed circle, not a missing avatar.
+// Firing one-shot preload requests for all 10 as soon as this module loads
+// (well before any player card exists) means they're already cached by the
+// time a real player card asks for one.
+if (typeof window !== 'undefined') {
+  Object.values(AVATAR_IMAGE_MAP).forEach(src => {
+    const img = new Image();
+    img.src = src;
+  });
+}
+
 /** Renders the portrait for a stored avatar string, or null for an unrecognized/empty value (callers fall back to their own placeholder). */
 export function AvatarIcon({ avatar, size = '1em', style, className }: AvatarIconProps & { avatar?: string }): JSX.Element | null {
   const src = avatar ? AVATAR_IMAGE_MAP[avatar] : undefined;

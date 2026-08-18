@@ -13,6 +13,7 @@ import { EndGameModal } from '../modals/EndGameModal';
 import { NegotiationModal } from '../modals/NegotiationModal';
 import { RulesModal } from '../modals/RulesModal';
 import { PlayerSetup } from '../setup/PlayerSetup';
+import { SpectatorWaitingScreen } from '../setup/SpectatorWaitingScreen';
 import { ClassroomBadge } from '../classroom/ClassroomBadge';
 import { PlayerPanelWrapper } from '../player/PlayerPanelWrapper';
 import { ProjectProgress } from '../game/ProjectProgress';
@@ -446,6 +447,18 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('playerId');
   });
+
+  // ?spectate=1 — set by PlayerSetup's "Just watching" picker choice
+  // (navigateToGame). While the target game is still in SETUP phase, show
+  // SpectatorWaitingScreen (read-only) instead of the full PlayerSetup form
+  // below — otherwise a spectator landed on the exact same editable setup
+  // screen as the host, with full player-editing and even Start Game
+  // access. Once gamePhase flips to PLAY, this stops mattering: the normal
+  // gamePhase === 'PLAY' branch takes over, same shared/spectator view as
+  // joining an already-started game.
+  const [isSpectating] = useState<boolean>(
+    () => new URLSearchParams(window.location.search).get('spectate') === '1'
+  );
 
   // fb:6e1e8ac4 — one-time tap gate when a player joins via QR on their
   // phone. The tap satisfies the browser's user-gesture requirement for
@@ -1388,7 +1401,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
 
       {/* Conditional rendering based on game phase */}
-      {gamePhase === 'SETUP' && (
+      {gamePhase === 'SETUP' && isSpectating && (
+        <SpectatorWaitingScreen players={players} />
+      )}
+      {gamePhase === 'SETUP' && !isSpectating && (
         <PlayerSetup
           viewPlayerId={effectiveViewPlayerId || undefined}
           onStartGame={async (players, settings) => {

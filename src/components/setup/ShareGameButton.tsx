@@ -20,7 +20,6 @@
 // button — fb:2c848b47 ("Share icon" / "Not seen on phone").
 
 import React, { useState } from 'react';
-import { colors } from '../../styles/theme';
 import { getServerURL } from '../../utils/networkDetection';
 
 export function ShareIcon(): JSX.Element {
@@ -103,15 +102,23 @@ export function ShareGameButton(): JSX.Element | null {
         aria-label="Share game link"
         title="Share a link so others can join this game"
         style={{
+          // Matches the version/Game Code header chips (PlayerSetup.styles.ts)
+          // — a frosted pill on the dark header, not the light form-control
+          // look this button used to have on its own. Explicit height +
+          // border-box (not padding-derived sizing) so it's pixel-identical
+          // to the other three header chips regardless of font/line-height
+          // quirks — see the comment above versionInfo in PlayerSetup.styles.ts.
           display: 'flex',
           alignItems: 'center',
           gap: '0.35rem',
-          background: 'rgba(255,255,255,0.85)',
-          color: colors.text.secondary,
-          border: `1px solid ${colors.secondary.border}`,
+          height: 36,
+          boxSizing: 'border-box',
+          background: 'rgba(255,255,255,0.15)',
+          color: 'white',
+          border: '1px solid rgba(255,255,255,0.35)',
           borderRadius: 8,
-          padding: '0.5rem 0.75rem',
-          fontSize: '0.85rem',
+          padding: '0 0.75rem',
+          fontSize: '0.8rem',
           fontWeight: 600,
           cursor: 'pointer',
         }}

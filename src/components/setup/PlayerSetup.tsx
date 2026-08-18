@@ -9,8 +9,11 @@ import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { useSyncedGameState } from '../../hooks/useSyncedGameState';
-import { isSmartTV } from '../../utils/deviceDetection';
+import { isSmartTV, isPhoneScreen } from '../../utils/deviceDetection';
 import { getStoredPreferredMode, resolveInitialMode } from '../../utils/modePreference';
+import { consumeResumeHint } from '../../utils/lastGameMemory';
+import { fetchJoinInfo, buildJoinGameUrl, JoinPickerPlayer } from '../../utils/joinGameFlow';
+import { AvatarIcon } from '../icons/AvatarIcons';
 import { DataEditor } from '../editor/DataEditor';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
 import { ClassroomSetup } from '../classroom/ClassroomSetup';
@@ -25,15 +28,21 @@ import { PhoneScreenWarning } from './PhoneScreenWarning';
 import { styles } from './PlayerSetup.styles';
 import { PlayerMobileView } from './PlayerMobileView';
 import { ModeToggle } from './ModeToggle';
-import { JoinByCodePanel } from './JoinByCodePanel';
 import { GameSettingsPanel } from './GameSettingsPanel';
 import { AdminToolsPanel } from './AdminToolsPanel';
-import { IconCheck, IconWarning, IconGear, IconPeople, IconPhone, IconPlay, IconClose, IconBug, IconHourglass } from '../icons/SetupIcons';
+import { IconCheck, IconWarning, IconGear, IconPeople, IconPhone, IconPlay, IconClose, IconBug, IconHourglass, IconEye } from '../icons/SetupIcons';
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
   /** When set, show a simplified mobile view for this player only */
   viewPlayerId?: string;
+}
+
+interface JoinPickerState {
+  gameId: string;
+  token: string;
+  instanceId?: string;
+  players: JoinPickerPlayer[];
 }
 
 /**
@@ -154,6 +163,159 @@ export function PlayerSetup({
     e.preventDefault();
   };
 
+  // Resume-your-last-game hint (App.tsx's bare-URL bootstrap): if this
+  // browser had a real game going before landing on this freshly
+  // auto-created blank one, consumeResumeHint() returns it exactly once.
+  // Read via a lazy useState initializer so the one-shot sessionStorage
+  // read/clear only happens on the very first render, not every re-render.
+  const [resumeHint] = useState(() => consumeResumeHint());
+
+  // "New game" / "Join" selector — a real segmented control (like the PC/TV
+  // toggle below), not two side-by-side boxes: exactly one side is ever the
+  // active choice. Defaults to Join when this device remembers a game
+  // (there's something to resume), New game otherwise. This — not a
+  // separate settings-drawer panel — is now the one and only way to join or
+  // resume a game on this screen.
+  const [entryMode, setEntryMode] = useState<'new' | 'join'>(() => resumeHint ? 'join' : 'new');
+  const [joinCode, setJoinCode] = useState(() => resumeHint?.gameId ?? '');
+  const [joinError, setJoinError] = useState('');
+  const [joinPicker, setJoinPicker] = useState<JoinPickerState | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
+
+  // True while the field still shows the untouched last-game code — drives
+  // the small "prefilled" checkmark and the Resume/Join label on the
+  // bottom action button. Any edit (including the clear-prefill checkmark)
+  // turns this off for good, same as typing a code from scratch.
+  const isPrefilled = !!resumeHint && joinCode === resumeHint.gameId;
+
+  const clearPrefill = (): void => {
+    setJoinCode('');
+    setJoinError('');
+    setJoinPicker(null);
+  };
+
+  /**
+   * Build the join URL and navigate (full reload so AppContent picks up the
+   * new gameId/playerId on mount). Shared by direct-join and the "which
+   * player are you?" picker below — `playerShortId` omitted means the
+   * shared/spectator view, same as today's behavior. URL-building itself is
+   * the pure buildJoinGameUrl() (joinGameFlow.ts), so its ?p=/?mode=/?i=
+   * logic is unit-tested directly rather than only through a full mount.
+   */
+  const navigateToGame = (gameId: string, token: string, instanceId?: string, playerShortId?: string, spectate?: boolean) => {
+    // assign() rather than `location.href = …` — same navigation, same history
+    // entry, but a method call instead of an assignment to a global, which is
+    // what react-hooks/immutability (correctly) objects to.
+    window.location.assign(buildJoinGameUrl({
+      currentUrl: window.location.href,
+      gameId,
+      token,
+      instanceId,
+      playerShortId,
+      tvMode: selectedMode === 'tv',
+      isPhoneScreen: isPhoneScreen(),
+      spectate,
+    }));
+  };
+
+  /**
+   * Fetch a code's join-info and either show the "which player are you?"
+   * picker (fb:feedback-1783819148816-bb72760f / fb:feedback-1783819238489-
+   * aaae63c0) or navigate straight in. Takes the code as a parameter rather
+   * than reading joinCode from closure so the same function serves both a
+   * manual Join click and the automatic hint lookup below. The fetch/parse
+   * itself is the pure fetchJoinInfo() (joinGameFlow.ts) — this is just the
+   * setState wiring around it.
+   */
+  const performJoinByCode = async (rawCode: string): Promise<void> => {
+    setJoinError('');
+    if (!rawCode.trim()) {
+      setJoinError('Enter a game code first.');
+      return;
+    }
+    setIsJoining(true);
+    try {
+      const result = await fetchJoinInfo(rawCode);
+      switch (result.status) {
+        case 'not-found':
+          setJoinError(`No game found with code ${result.gameId}. It may be mistyped, or the game may have ended — ask whoever's hosting for the current code.`);
+          break;
+        case 'server-error':
+          setJoinError(`Couldn't reach game ${result.gameId} right now (server returned ${result.httpStatus}). Try again in a moment.`);
+          break;
+        case 'network-error':
+          setJoinError('Could not connect to the server. Check your connection and try again.');
+          break;
+        case 'picker':
+          setJoinPicker({ gameId: result.gameId, token: result.token, instanceId: result.instanceId, players: result.players });
+          break;
+        case 'direct':
+          navigateToGame(result.gameId, result.token, result.instanceId);
+          break;
+      }
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleJoinByCode = (): void => { void performJoinByCode(joinCode); };
+
+  /**
+   * Picker choice: a specific player → their own actionable panel.
+   *
+   * Takeover warning (fb takeover-warning follow-up, 2026-07-12/13): if the
+   * picked player already has a live WebSocket connection elsewhere (another
+   * device actively playing as them), confirm before navigating — otherwise
+   * this silently boots them off their own seat. Not a hard block: accepting
+   * still proceeds, since a stale/zombie connection from a crashed tab is a
+   * common false positive and we don't want to lock a player out of their
+   * own seat.
+   *
+   * Only relevant on an actual phone screen: that's the only case where
+   * navigateToGame above assumes the player's ?p= identity (fb:3a5280d8).
+   * On PC/TV, picking a player doesn't take over their WebSocket
+   * connection, so there's nothing to warn about.
+   */
+  const handlePickPlayer = (player: { shortId?: string; name: string; connected?: boolean }): void => {
+    if (!joinPicker) return;
+    if (!player.shortId) return;
+    if (player.connected && isPhoneScreen()) {
+      const confirmed = window.confirm(
+        `${player.name} is currently connected on another device. Taking over may disrupt their game — continue anyway?`
+      );
+      if (!confirmed) return;
+    }
+    navigateToGame(joinPicker.gameId, joinPicker.token, joinPicker.instanceId, player.shortId);
+  };
+
+  /**
+   * Picker choice: spectate. Marked with ?spectate=1 (maintainer report
+   * 2026-08-18: a spectator landed on the exact same editable setup screen
+   * as the host, could rename/remove/re-color players, even press Start
+   * Game) — GameLayout shows a read-only SpectatorWaitingScreen instead of
+   * PlayerSetup while the target game is still in SETUP phase; once it
+   * starts, the flag is inert and the normal shared/spectator PLAY view
+   * takes over, same as today's behavior for an already-started game.
+   */
+  const handleJoinAsSpectator = (): void => {
+    if (!joinPicker) return;
+    navigateToGame(joinPicker.gameId, joinPicker.token, joinPicker.instanceId, undefined, true);
+  };
+
+  // Smart auto-lookup: when this device remembers a game (Join starts
+  // active), fetch its join-info immediately instead of waiting for a
+  // button click — so the "which player are you?" picker (or a ready-to-go
+  // Resume) is already there the moment the screen renders. Guarded to
+  // fire once: switching tabs back and forth afterward must not re-fetch.
+  const hasAutoFetchedJoinInfoRef = useRef(false);
+  useEffect(() => {
+    if (hasAutoFetchedJoinInfoRef.current) return;
+    if (!resumeHint) return;
+    hasAutoFetchedJoinInfoRef.current = true;
+    void performJoinByCode(resumeHint.gameId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeHint]);
+
   // Settings drawer: the right-column "game setup window" only appears when
   // the gear icon (top-right of header) is clicked. PC/TV toggle and Start
   // Game live in the main column so common actions stay one click away.
@@ -204,6 +366,26 @@ export function PlayerSetup({
       alert(`Failed to add player: ${error instanceof Error ? error.message : 'unexpected error'}`);
     }
   };
+
+  // Auto-add a first player so nobody has to click "+ Add Player" just to
+  // play solo — that button is only needed for player 2+. Safe to gate on
+  // players.length === 0 alone: AppContent's isLoading gate (App.tsx) means
+  // real server state has already loaded by the time PlayerSetup ever
+  // mounts, so this can't misfire on a resumed/joined game's still-loading
+  // roster — and canRemovePlayer's players.length > 1 floor means a game
+  // that already had one player can never drop back to zero through normal
+  // use, so this only ever fires once, on a genuinely brand-new game.
+  const hasAutoAddedFirstPlayerRef = useRef(false);
+  useEffect(() => {
+    if (hasAutoAddedFirstPlayerRef.current) return;
+    if (players.length > 0) return;
+    hasAutoAddedFirstPlayerRef.current = true;
+    try {
+      stateService.addPlayer('Player 1');
+    } catch (error) {
+      debugLog('Auto-add first player failed (non-fatal — "+ Add Player" still works):', error);
+    }
+  }, [players.length, stateService]);
 
   /**
    * Remove a player
@@ -413,36 +595,46 @@ export function PlayerSetup({
           <ClassroomBadge />
           {getCurrentGameId() && (
             <div style={styles.gameCodeBadge}>
-              <span style={styles.gameCodeLabel}>Game Code: </span>
+              <span style={styles.gameCodeLabel}>Game Code:</span>
               <span style={styles.gameCodeValue}>{getCurrentGameId()}</span>
             </div>
           )}
           {getCurrentGameId() && <ShareGameButton />}
-          {/* Gear icon — opens the right-column drawer (Join by Code, Game
-              Settings, Admin Tools). Visible in both PC and TV mode in
-              v3.0.16+; the mode toggle only forks the in-game UI, not the
-              setup screen. <!-- v3.0.16 setup unification --> */}
+          {/* Gear icon — opens the right-column drawer (Game Settings, Admin
+              Tools). Visible in both PC and TV mode in v3.0.16+; the mode
+              toggle only forks the in-game UI, not the setup screen.
+              Inactive state matches the version/Game Code/Share chips
+              (frosted pill, white text, thin white-ish border) so the whole
+              header-right cluster reads as one family; active (drawer open)
+              switches to a solid primary fill as a clear "this is toggled
+              on" state, same pattern GameSettingsPanel's own controls use.
+              <!-- v3.0.16 setup unification --> */}
           <button
             type="button"
             onClick={() => setIsSettingsOpen(o => !o)}
             aria-label={isSettingsOpen ? 'Close settings' : 'Open settings'}
             title={isSettingsOpen ? 'Close settings' : 'Open settings'}
             style={{
-              background: isSettingsOpen ? colors.primary.main : 'rgba(255,255,255,0.85)',
-              color: isSettingsOpen ? 'white' : colors.text.secondary,
-              border: `1px solid ${isSettingsOpen ? colors.primary.main : colors.secondary.border}`,
+              background: isSettingsOpen ? colors.primary.main : 'rgba(255,255,255,0.15)',
+              color: 'white',
+              border: `1px solid ${isSettingsOpen ? colors.primary.main : 'rgba(255,255,255,0.35)'}`,
               borderRadius: 8,
-              width: 38,
-              height: 38,
+              width: 36,
+              height: 36,
+              // Without this, the 1px border added on top of a content-box
+              // width/height of 36 made this button render at 38x38 —
+              // visibly bigger than the other three header chips even
+              // though they all "said" the same 36px height.
+              boxSizing: 'border-box',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              fontSize: '1.1rem',
+              fontSize: '1.05rem',
               transition: 'background 0.15s ease',
             }}
           >
-            <IconGear size="1.1em" />
+            <IconGear size="1.05em" />
           </button>
         </div>
       </header>
@@ -466,65 +658,329 @@ export function PlayerSetup({
               TV-mode controller view, which is *meant* to run on a phone. */}
           <PhoneScreenWarning />
 
+          {/* "New game" / "Join" — a real segmented selector (same visual
+              pattern as the PC/TV toggle below): exactly one side is ever
+              active, highlighted; the other reads as inactive/grayed. Join
+              starts active when this device remembers a game — see
+              entryMode's initializer above — with its join-info already
+              fetched (see hasAutoFetchedJoinInfoRef) so the "which player
+              are you?" picker or a ready Resume is already sitting there,
+              not one more click away. This is the one and only join/resume
+              control on the setup screen, always visible (not behind the
+              gear icon). The bottom action button (below the Players
+              section) does double duty as Start Game / Join depending on
+              which side is selected — no separate Join button needed. */}
+          <div style={{
+            marginBottom: selectedMode === 'tv' ? '0.3rem' : '1rem',
+            padding: selectedMode === 'tv' ? '0.3rem 0.6rem' : '0.75rem 0.85rem',
+            background: '#f8f9fa',
+            borderRadius: 10,
+            border: `2px solid ${colors.secondary.border}`,
+          }}>
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <button
+                type="button"
+                onClick={() => setEntryMode('new')}
+                aria-pressed={entryMode === 'new'}
+                style={{
+                  flex: 1,
+                  padding: '0.7rem 0.9rem',
+                  borderRadius: 8,
+                  border: `2px solid ${entryMode === 'new' ? colors.primary.main : colors.secondary.border}`,
+                  background: entryMode === 'new' ? colors.primary.main : 'white',
+                  color: entryMode === 'new' ? 'white' : colors.text.secondary,
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  lineHeight: 1.3,
+                }}
+              >
+                New game
+                <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
+                  Add players &amp; start
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEntryMode('join')}
+                aria-pressed={entryMode === 'join'}
+                style={{
+                  flex: 1,
+                  padding: '0.7rem 0.9rem',
+                  borderRadius: 8,
+                  border: `2px solid ${entryMode === 'join' ? colors.primary.main : colors.secondary.border}`,
+                  background: entryMode === 'join' ? colors.primary.main : 'white',
+                  color: entryMode === 'join' ? 'white' : colors.text.secondary,
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  lineHeight: 1.3,
+                }}
+              >
+                Join
+                <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
+                  {resumeHint ? 'Resume or enter a code' : 'Have a code?'}
+                </div>
+              </button>
+            </div>
+
+            {entryMode === 'join' && (
+              <div style={{ marginTop: '0.75rem' }}>
+                {joinPicker ? (
+                  <div>
+                    <p style={{ fontSize: '0.72rem', color: colors.text.secondary, margin: '0 0 0.5rem' }}>
+                      Game {joinPicker.gameId} already has players. Which one are you?
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {joinPicker.players.map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handlePickPlayer(p)}
+                          title={p.connected ? `${p.name} is currently connected on another device` : undefined}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.5rem 0.65rem',
+                            background: 'white',
+                            border: `2px solid ${p.color || colors.secondary.border}`,
+                            borderRadius: 8,
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            color: colors.text.primary,
+                            textAlign: 'left',
+                          }}
+                        >
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: '50%',
+                              background: p.color || colors.secondary.main,
+                              flexShrink: 0,
+                              display: 'inline-block',
+                            }}
+                          />
+                          {p.avatar && <span style={{ display: 'inline-flex' }}><AvatarIcon avatar={p.avatar} size="1.1rem" /></span>}
+                          <span>{p.name}</span>
+                          {p.connected && (
+                            <span
+                              style={{
+                                marginLeft: 'auto',
+                                fontSize: '0.65rem',
+                                fontWeight: 600,
+                                color: colors.text.secondary,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                              }}
+                            >
+                              <span
+                                aria-hidden="true"
+                                style={{
+                                  width: 7,
+                                  height: 7,
+                                  borderRadius: '50%',
+                                  background: colors.success.text,
+                                  display: 'inline-block',
+                                }}
+                              />
+                              already connected
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem' }}>
+                      <button
+                        type="button"
+                        onClick={handleJoinAsSpectator}
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem 0.65rem',
+                          background: colors.secondary.main,
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                        }}
+                        title="Watch the game without controlling a player."
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
+                          <IconEye size="1em" /> Just watching
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setJoinPicker(null)}
+                        style={{
+                          padding: '0.5rem 0.65rem',
+                          background: 'transparent',
+                          color: colors.text.secondary,
+                          border: `1px solid ${colors.secondary.border}`,
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="text"
+                        aria-label="Game code to join or resume"
+                        placeholder="e.g., G-A7F9-K3PX"
+                        value={joinCode}
+                        onChange={(e) => { setJoinCode(e.target.value.toUpperCase()); setJoinError(''); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleJoinByCode(); }}
+                        title={isPrefilled
+                          ? 'Prefilled with the last game this device had open. Press the button below to resume it, or clear the checkmark to type a different code.'
+                          : 'Anyone with the code can join — no login needed. This is also how to watch a game in progress without playing.'}
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          padding: isPrefilled ? '0.5rem 1.9rem 0.5rem 0.6rem' : '0.5rem 0.6rem',
+                          border: `1px solid ${joinError ? '#dc3545' : isPrefilled ? colors.primary.main : colors.secondary.border}`,
+                          borderRadius: 6,
+                          fontSize: '0.9rem',
+                          fontFamily: 'monospace',
+                          letterSpacing: '0.05em',
+                          textTransform: 'uppercase',
+                        }}
+                        maxLength={12}
+                        autoComplete="off"
+                        name="gamecode"
+                        data-lpignore="true"
+                        data-1p-ignore
+                      />
+                      {isPrefilled && (
+                        <button
+                          type="button"
+                          onClick={clearPrefill}
+                          aria-label="Clear prefilled code and type a different one"
+                          title="Prefilled with your last game — click to clear and type a different code"
+                          style={{
+                            position: 'absolute',
+                            right: 5,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            width: 20,
+                            height: 20,
+                            padding: 0,
+                            border: 'none',
+                            borderRadius: '50%',
+                            background: colors.primary.main,
+                            color: 'white',
+                            fontSize: '0.7rem',
+                            lineHeight: 1,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          ✓
+                        </button>
+                      )}
+                    </div>
+                    {isPrefilled && !joinError && (
+                      <p style={{ fontSize: '0.7rem', color: colors.text.secondary, margin: '0.35rem 0 0' }}>
+                        Prefilled with your last game on this device — press the button below to resume.
+                      </p>
+                    )}
+                    {joinError && (
+                      <p style={{ fontSize: '0.75rem', color: '#dc3545', margin: '0.35rem 0 0' }}>
+                        {joinError}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
           <ModeToggle selectedMode={selectedMode} onSelectMode={setSelectedMode} />
 
-          {/* TV mode: "👥 Players" heading + the count summary merged into
-              one compact line (instead of styles.sectionTitle's vh-based
-              heading + styles.playerCount's own vh-based paragraph below
-              it) — same information, one line of screen instead of two,
-              so 4 player tiles fit without scrolling. fb: TV real-hardware
-              feedback, 2026-07-15. */}
-          {selectedMode === 'tv' ? (
-            <p style={{
-              color: colors.success.text,
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              margin: '0 0 0.35rem 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4em',
-            }}>
-              <IconPeople size="1em" /> Players — {validation.getPlayerCountSummary()}
-            </p>
-          ) : (
+          {/* This "Players" section is about THIS blank game — while Join is
+              selected, we have no data yet on which game the player is
+              actually joining (the picker above shows the target game's
+              real roster once a code resolves), so showing this game's own
+              "Player 1" here would be showing the wrong game's data. Hidden
+              for the whole Join side, not just while the code field is
+              empty — a typed-but-not-yet-submitted code doesn't change what
+              we know either. */}
+          {entryMode === 'new' && (
             <>
-              <h3 style={{ ...styles.sectionTitle, display: 'flex', alignItems: 'center', gap: '0.4em' }}>
-                <IconPeople size="1em" /> Players
-              </h3>
-              <p style={styles.playerCount}>
-                {validation.getPlayerCountSummary()}
-              </p>
+              {/* TV mode: "👥 Players" heading + the count summary merged into
+                  one compact line (instead of styles.sectionTitle's vh-based
+                  heading + styles.playerCount's own vh-based paragraph below
+                  it) — same information, one line of screen instead of two,
+                  so 4 player tiles fit without scrolling. fb: TV real-hardware
+                  feedback, 2026-07-15. */}
+              {selectedMode === 'tv' ? (
+                <p style={{
+                  color: colors.success.text,
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  margin: '0 0 0.35rem 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4em',
+                }}>
+                  <IconPeople size="1em" /> Players — {validation.getPlayerCountSummary()}
+                </p>
+              ) : (
+                <>
+                  <h3 style={{ ...styles.sectionTitle, display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+                    <IconPeople size="1em" /> Players
+                  </h3>
+                  <p style={styles.playerCount}>
+                    {validation.getPlayerCountSummary()}
+                  </p>
+                </>
+              )}
+
+              {/* Scrollbar is forced always-visible ('scroll') only in TV mode —
+                  fb:fc65c217, a TV remote can't hover to reveal an 'auto'
+                  scrollbar. In PC mode 'auto' avoids showing a scrollbar/gutter
+                  when there's nothing to scroll (fb:feedback-1782833653490-5470235b
+                  — "why are there scroll bars? there is not much stuff here"). */}
+              <div
+                ref={playerListScrollRef}
+                tabIndex={selectedMode === 'tv' ? 0 : undefined}
+                onKeyDown={selectedMode === 'tv' ? handlePlayerListKeyDown : undefined}
+                aria-label={selectedMode === 'tv' ? 'Player list — use the arrow/page keys to scroll' : undefined}
+                style={{
+                  ...styles.playerListWrapper,
+                  ...(selectedMode === 'tv' ? { marginBottom: '0.35rem' } : {}),
+                  overflow: selectedMode === 'tv' ? 'scroll' : 'auto',
+                  scrollbarGutter: selectedMode === 'tv' ? 'stable' : 'auto',
+                }}
+              >
+                <PlayerList
+                  players={players}
+                  onUpdatePlayer={handleUpdatePlayer}
+                  onRemovePlayer={handleRemovePlayer}
+                  onCycleAvatar={handleCycleAvatar}
+                  canRemovePlayer={validation.canRemovePlayer}
+                  hideQR={false}
+                  qrRequired={selectedMode === 'tv'}
+                  compact={selectedMode === 'tv'}
+                />
+              </div>
             </>
           )}
-
-          {/* Scrollbar is forced always-visible ('scroll') only in TV mode —
-              fb:fc65c217, a TV remote can't hover to reveal an 'auto'
-              scrollbar. In PC mode 'auto' avoids showing a scrollbar/gutter
-              when there's nothing to scroll (fb:feedback-1782833653490-5470235b
-              — "why are there scroll bars? there is not much stuff here"). */}
-          <div
-            ref={playerListScrollRef}
-            tabIndex={selectedMode === 'tv' ? 0 : undefined}
-            onKeyDown={selectedMode === 'tv' ? handlePlayerListKeyDown : undefined}
-            aria-label={selectedMode === 'tv' ? 'Player list — use the arrow/page keys to scroll' : undefined}
-            style={{
-              ...styles.playerListWrapper,
-              ...(selectedMode === 'tv' ? { marginBottom: '0.35rem' } : {}),
-              overflow: selectedMode === 'tv' ? 'scroll' : 'auto',
-              scrollbarGutter: selectedMode === 'tv' ? 'stable' : 'auto',
-            }}
-          >
-            <PlayerList
-              players={players}
-              onUpdatePlayer={handleUpdatePlayer}
-              onRemovePlayer={handleRemovePlayer}
-              onCycleAvatar={handleCycleAvatar}
-              canRemovePlayer={validation.canRemovePlayer}
-              hideQR={false}
-              qrRequired={selectedMode === 'tv'}
-              compact={selectedMode === 'tv'}
-            />
-          </div>
 
           {/* TV mode: the start blocker must be VISIBLE, not a hover
               tooltip — real players stood at the TV complaining they
@@ -532,7 +988,7 @@ export function PlayerSetup({
               hadn't scanned in yet (maintainer report 2026-07-16). Lists
               the actual stragglers by name; aria-live so it's announced
               as phones connect. */}
-          {selectedMode === 'tv' && validation.waitingOnPhoneNames.length > 0 && (
+          {entryMode === 'new' && selectedMode === 'tv' && validation.waitingOnPhoneNames.length > 0 && (
             <div
               aria-live="polite"
               style={{
@@ -553,72 +1009,103 @@ export function PlayerSetup({
             </div>
           )}
 
-          {/* Add Player + Start Game side-by-side at the bottom. Both stay
-              visible whether or not the settings drawer is open, and in
-              both PC and TV mode (v3.0.16 unified the setup screen). Start
-              Game moved here from the right column so it doesn't disappear
-              when the drawer is closed. Win Condition + other game
-              settings live behind the gear icon for both modes. */}
-          <div style={{
-            display: 'flex',
-            gap: '0.6rem',
-            marginTop: 'auto',
-            alignItems: 'stretch',
-            flexWrap: 'wrap',
-          }}>
-            {validation.canAddPlayer && (
-              <div style={{ flex: '1 1 auto', minWidth: '180px' }}>
-                <PlayerForm
-                  onAddPlayer={handleAddPlayer}
-                  canAddPlayer={validation.canAddPlayer}
-                  validationResult={addPlayerValidation}
-                />
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={handleStartGame}
-              disabled={isStarting || !validation.validateGameStart().isValid}
-              style={{
-                flex: '0 0 auto',
-                background: (isStarting || !validation.validateGameStart().isValid)
-                  ? colors.secondary.main
-                  : `linear-gradient(45deg, ${colors.success.text}, ${colors.success.main})`,
-                color: 'white',
-                border: 'none',
-                borderRadius: '10px',
-                // TV mode: bigger tap/read target — this button is read from
-                // a couch, and while phones are missing it doubles as the
-                // status line (same maintainer report as the banner above).
-                padding: selectedMode === 'tv' ? '0.9rem 1.9rem' : '0.75rem 1.5rem',
-                fontSize: selectedMode === 'tv' ? '1.2rem' : '1rem',
-                fontWeight: 'bold',
-                cursor: (isStarting || !validation.validateGameStart().isValid) ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 12px rgba(44, 85, 48, 0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-              }}
-              title={!validation.validateGameStart().isValid
-                ? validation.validateGameStart().errorMessage || 'Add at least one player to start.'
-                : undefined}
-            >
-              {isStarting ? (
-                <><IconHourglass size="1em" /> Starting…</>
-              ) : (selectedMode === 'tv' && validation.waitingOnPhoneNames.length > 0) ? (
-                <><IconPhone size="1em" /> Waiting for phones…</>
-              ) : (
-                <><IconPlay size="1em" /> Start Game</>
+          {/* Add Player + the primary action button, side-by-side at the
+              bottom. Both stay visible whether or not the settings drawer
+              is open, and in both PC and TV mode (v3.0.16 unified the setup
+              screen). Win Condition + other game settings live behind the
+              gear icon for both modes.
+
+              The primary button does double duty as Start Game (New game
+              selected) or Join/Resume (Join selected) — one button, no
+              separate Join button to keep in sync with it. Hidden entirely
+              while the "which player are you?" picker is showing: the
+              picker's own per-player buttons are the actions at that point,
+              there's nothing generic left for this button to do. Add Player
+              only makes sense for the New game side (adding a player to
+              THIS blank game while about to abandon it for a different one
+              would be confusing), so it's hidden on the Join side too. */}
+          {!(entryMode === 'join' && joinPicker) && (
+            <div style={{
+              display: 'flex',
+              gap: '0.6rem',
+              marginTop: 'auto',
+              alignItems: 'stretch',
+              flexWrap: 'wrap',
+            }}>
+              {entryMode === 'new' && validation.canAddPlayer && (
+                <div style={{ flex: '1 1 auto', minWidth: '180px' }}>
+                  <PlayerForm
+                    onAddPlayer={handleAddPlayer}
+                    canAddPlayer={validation.canAddPlayer}
+                    validationResult={addPlayerValidation}
+                  />
+                </div>
               )}
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={entryMode === 'new' ? handleStartGame : handleJoinByCode}
+                disabled={entryMode === 'new'
+                  ? (isStarting || !validation.validateGameStart().isValid)
+                  : (isJoining || !joinCode.trim())}
+                style={{
+                  flex: '0 0 auto',
+                  background: (entryMode === 'new'
+                    ? (isStarting || !validation.validateGameStart().isValid)
+                    : (isJoining || !joinCode.trim()))
+                    ? colors.secondary.main
+                    : `linear-gradient(45deg, ${colors.success.text}, ${colors.success.main})`,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  // TV mode: bigger tap/read target — this button is read from
+                  // a couch, and while phones are missing it doubles as the
+                  // status line (same maintainer report as the banner above).
+                  padding: selectedMode === 'tv' ? '0.9rem 1.9rem' : '0.75rem 1.5rem',
+                  fontSize: selectedMode === 'tv' ? '1.2rem' : '1rem',
+                  fontWeight: 'bold',
+                  cursor: (entryMode === 'new'
+                    ? (isStarting || !validation.validateGameStart().isValid)
+                    : (isJoining || !joinCode.trim())) ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 12px rgba(44, 85, 48, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                }}
+                title={entryMode === 'new'
+                  ? (!validation.validateGameStart().isValid
+                    ? validation.validateGameStart().errorMessage || 'Add at least one player to start.'
+                    : undefined)
+                  : (!joinCode.trim()
+                    ? 'Enter a game code first.'
+                    : (isPrefilled ? 'Resume the last game this device had open.' : 'Joining will navigate away from this empty game.'))}
+              >
+                {entryMode === 'new' ? (
+                  isStarting ? (
+                    <><IconHourglass size="1em" /> Starting…</>
+                  ) : (selectedMode === 'tv' && validation.waitingOnPhoneNames.length > 0) ? (
+                    <><IconPhone size="1em" /> Waiting for phones…</>
+                  ) : (
+                    <><IconPlay size="1em" /> Start Game</>
+                  )
+                ) : (
+                  isJoining ? (
+                    <><IconHourglass size="1em" /> Joining…</>
+                  ) : (
+                    <><IconPlay size="1em" /> {isPrefilled ? 'Resume' : 'Join'}</>
+                  )
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Settings drawer: the "game setup window" — Join by Code, Game
-            Settings, Admin Tools (Space Data Editor, Board Layout Editor,
-            Browse Games). Visibility is gated on the gear icon in the
-            header (isSettingsOpen). v3.0.16+: visible in both PC and TV
-            mode since the setup screen no longer forks by mode. */}
+        {/* Settings drawer: the "game setup window" — Game Settings, Admin
+            Tools (Space Data Editor, Board Layout Editor, Browse Games).
+            Join by Code lives in the main column's New game/Join selector
+            instead (always visible, not worth hiding behind a click).
+            Visibility is gated on the gear icon in the header
+            (isSettingsOpen). v3.0.16+: visible in both PC and TV mode since
+            the setup screen no longer forks by mode. */}
         {isSettingsOpen && <div style={{
           ...styles.settingsColumn,
           position: 'relative',
@@ -650,8 +1137,6 @@ export function PlayerSetup({
           >
             <IconClose size="0.9em" />
           </button>
-          <JoinByCodePanel selectedMode={selectedMode} />
-
           <GameSettingsPanel
             gameSettings={gameSettings}
             onChangeGameSettings={setGameSettings}

@@ -9,7 +9,7 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { colors } from './styles/theme';
 import { getAppScreen, getURLParams } from './utils/getAppScreen';
 import { getCurrentGameId, getCurrentGameToken, getBackendURL } from './utils/networkDetection';
-import { getStoredLastGame, setStoredLastGame, clearStoredLastGame } from './utils/lastGameMemory';
+import { getStoredLastGame, setStoredLastGame, clearStoredLastGame, stashResumeHint } from './utils/lastGameMemory';
 import { detectDeviceType } from './utils/deviceDetection';
 import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dictionary';
 import { getTooltipService } from './services/TooltipService';
@@ -48,82 +48,6 @@ function LoadingScreen({ message }: { message?: string }): JSX.Element {
       <div>{message || 'Loading Game Data...'}</div>
       <div style={{ fontSize: '16px', color: colors.text.secondary, marginTop: '10px' }}>
         Please wait while we initialize the game
-      </div>
-    </div>
-  );
-}
-
-/**
- * Shown on a bare-URL visit (no ?g= at all) when this browser has a
- * still-live game in localStorage. A choice, not a redirect — see the
- * "Resume-your-last-game" note on the App() component above.
- */
-function ResumeGamePrompt({
-  gameId,
-  onResume,
-  onStartNew,
-}: {
-  gameId: string;
-  onResume: () => void;
-  onStartNew: () => void;
-}): JSX.Element {
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: colors.background.secondary,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        textAlign: 'center',
-      }}
-    >
-      <div style={{ marginBottom: '20px', fontSize: '48px' }}>🏗️</div>
-      <div style={{ fontSize: '22px', fontWeight: 600, color: colors.neutral.black, marginBottom: '8px' }}>
-        Resume your last game?
-      </div>
-      <div style={{ fontSize: '16px', color: colors.text.secondary, marginBottom: '28px' }}>
-        This browser still has a game in progress: <strong>{gameId}</strong>
-      </div>
-      <div style={{ display: 'flex', gap: '12px' }}>
-        <button
-          type="button"
-          onClick={onResume}
-          style={{
-            padding: '12px 24px',
-            fontSize: '16px',
-            fontWeight: 600,
-            color: '#fff',
-            background: colors.primary.main,
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-          }}
-        >
-          Resume {gameId}
-        </button>
-        <button
-          type="button"
-          onClick={onStartNew}
-          style={{
-            padding: '12px 24px',
-            fontSize: '16px',
-            fontWeight: 600,
-            color: colors.neutral.black,
-            background: 'transparent',
-            border: `1px solid ${colors.text.secondary}`,
-            borderRadius: '8px',
-            cursor: 'pointer',
-          }}
-        >
-          Start a new game
-        </button>
       </div>
     </div>
   );
@@ -446,7 +370,7 @@ function AppContent(): JSX.Element {
   );
 }
 
-type BootstrapPhase = 'checking-resume' | 'offer-resume' | 'auto-creating' | 'done';
+type BootstrapPhase = 'checking-resume' | 'auto-creating' | 'done';
 
 /**
  * Only queries the server when there's actually a stored game to check —
@@ -475,9 +399,13 @@ function getInitialBootstrapPhase(): BootstrapPhase {
  * stripped link, a bookmark to the root domain) used to silently start a
  * brand-new game, discarding any in-progress one this browser had. If
  * localStorage remembers a game, we verify it still exists server-side
- * (`/api/games/<id>/join-info`, same check JoinByCodePanel uses) and offer
- * a resume/start-new choice instead of guessing. Deliberately NOT an
- * auto-redirect — teachers/testers open the bare URL specifically to start
+ * (`/api/games/<id>/join-info`, same check JoinByCodePanel uses). Rather
+ * than a bespoke full-screen prompt (v3.2.12's original design), the
+ * verified gameId is handed to PlayerSetup's existing Join-by-Code box via
+ * stashResumeHint()/consumeResumeHint() — it prefills the code field and
+ * auto-opens the settings drawer, so "resume" is just "join by code" with
+ * the code already typed in. Deliberately still a choice, not an
+ * auto-redirect: teachers/testers open the bare URL specifically to start
  * fresh games too often for that to be safe.
  */
 export function App(): JSX.Element {
@@ -485,11 +413,13 @@ export function App(): JSX.Element {
   // ...)` doesn't react to URL changes after that (a redirect unmounts
   // everything anyway).
   const [phase, setPhase] = useState<BootstrapPhase>(getInitialBootstrapPhase);
-  const [resumeCandidate, setResumeCandidate] = useState<{ gameId: string; token?: string } | null>(null);
   const [autoCreateError, setAutoCreateError] = useState<string | null>(null);
 
-  // Verify a stored "last game" still exists before offering to resume it —
-  // a game that already auto-expired (~24-41h idle) shouldn't be offered.
+  // Verify a stored "last game" still exists before offering it as a
+  // Join-by-Code prefill — a game that already auto-expired (~24-41h idle)
+  // shouldn't be offered. Always proceeds to auto-creating either way: the
+  // choice now lives in the Join-by-Code box on the setup screen, not a
+  // blocking phase here.
   useEffect(() => {
     if (phase !== 'checking-resume') return;
     let cancelled = false;
@@ -506,12 +436,11 @@ export function App(): JSX.Element {
           return;
         }
         const data: { token?: string } = await response.json();
-        setResumeCandidate({ gameId: stored.gameId, token: data.token || stored.token });
-        setPhase('offer-resume');
+        stashResumeHint(stored.gameId, data.token || stored.token);
+        setPhase('auto-creating');
       } catch {
         // Server unreachable — fall through to the normal auto-create path
-        // rather than blocking the user on a resume prompt that can't be
-        // verified either way.
+        // rather than stashing a hint that can't be verified either way.
         if (!cancelled) setPhase('auto-creating');
       }
     })();
@@ -561,24 +490,6 @@ export function App(): JSX.Element {
 
   if (phase === 'checking-resume' || phase === 'auto-creating') {
     return <LoadingScreen message={phase === 'checking-resume' ? 'Checking for a game to resume…' : 'Setting up a new game…'} />;
-  }
-
-  if (phase === 'offer-resume' && resumeCandidate) {
-    return (
-      <ResumeGamePrompt
-        gameId={resumeCandidate.gameId}
-        onResume={() => {
-          const url = new URL(window.location.href);
-          url.searchParams.set('g', resumeCandidate.gameId);
-          if (resumeCandidate.token) url.searchParams.set('token', resumeCandidate.token);
-          window.location.href = url.toString();
-        }}
-        onStartNew={() => {
-          clearStoredLastGame();
-          setPhase('auto-creating');
-        }}
-      />
-    );
   }
 
   return (

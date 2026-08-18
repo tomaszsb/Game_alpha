@@ -71,17 +71,39 @@ export const styles: { [key: string]: React.CSSProperties } = {
     fontSize: 'clamp(0.7rem, 1.5vh, 1rem)',
     margin: 0,
   },
+  // Shared "header chip" family — version, Game Code, Share, and the
+  // settings gear all sit in the same header row and now use one consistent
+  // treatment (translucent frosted pill, white text, thin white-ish border,
+  // 8px radius, ~0.8rem text) instead of four different font/color/size
+  // combinations. Maintainer feedback 2026-08-18: they read as unrelated
+  // controls even though they're all header-level chrome. Share
+  // (ShareGameButton.tsx) and the gear icon (PlayerSetup.tsx, inline) match
+  // these values directly since they're separate components/elements.
+  //
+  // Height is pinned explicitly (36px + border-box) rather than left to
+  // padding-derived sizing — padding alone still left the chips a few px
+  // off from each other (maintainer follow-up, same date): versionInfo set
+  // its own font-size so `lineHeight:1` measured against 0.8rem, while
+  // gameCodeBadge had no font-size of its own (only its child spans did),
+  // so its line-height measured against the inherited ambient size instead
+  // — two different line-box heights from the "same" padding. An explicit
+  // height sidesteps that entirely.
   versionInfo: {
-    fontSize: 'clamp(0.65rem, 1.2vh, 0.78rem)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    height: '36px',
+    boxSizing: 'border-box' as const,
+    fontSize: '0.8rem',
     fontFamily: 'monospace',
-    color: 'rgba(255,255,255,0.85)',
-    padding: '0.3rem 0.6rem',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: '6px',
+    color: 'white',
+    padding: '0 0.75rem',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    border: '1px solid rgba(255,255,255,0.35)',
+    borderRadius: '8px',
     whiteSpace: 'nowrap' as const,
   },
   versionCommit: {
-    color: 'rgba(255,255,255,0.55)',
+    color: 'rgba(255,255,255,0.7)',
   },
   versionInSync: {
     color: '#22c55e',
@@ -92,20 +114,26 @@ export const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 'bold' as const,
   },
   gameCodeBadge: {
-    padding: 'clamp(0.4rem, 1vh, 0.75rem) clamp(0.8rem, 2vw, 1.5rem)',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.35rem',
+    height: '36px',
+    boxSizing: 'border-box' as const,
+    padding: '0 0.75rem',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    border: '1px solid rgba(255,255,255,0.35)',
     borderRadius: '8px',
   },
   gameCodeLabel: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 'clamp(0.7rem, 1.5vh, 0.9rem)',
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: '0.8rem',
   },
   gameCodeValue: {
     color: 'white',
-    fontSize: 'clamp(0.9rem, 2vh, 1.2rem)',
-    fontWeight: 'bold',
+    fontSize: '0.8rem',
+    fontWeight: 700,
     fontFamily: 'monospace',
-    letterSpacing: '2px',
+    letterSpacing: '0.04em',
   },
   main: {
     flex: 1,
