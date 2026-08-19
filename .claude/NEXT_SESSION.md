@@ -4,7 +4,7 @@
 - **Version:** v3.2.15 — pushed to origin/master, **not yet deployed**.
 - **Branch:** master, clean, pushed (only untracked scratch file `idea.txt` at repo root — a maintainer draft, not touched).
 - **Last shipped:** v3.2.14 (New game/Join selector, spectator waiting screen, header chip consistency) then v3.2.15 (Board Layout Editor connector naming/ordering/self-loops/hover-picker/color/shadow fixes, End Turn glow, expeditor glow, player-panel border removal, End Turn cost preview shows real results instead of going blank).
-- **Test suite:** 2798/2798 passing (`npm test`, 189 files). `npm run test:ghost` was still running at wrap-up — check this session's tail output or just re-run if you need current confirmation.
+- **Test suite:** full Golden-Rule coverage green — `npm test` 2798/2798 (189 files), `npm run test:ghost` 33/33 (10 files, ~14 min, all 3 bot batches at their win-rate floors, 0 hard failures — finished after the wrap-up commit, confirmed clean here).
 - **Build/typecheck:** both clean.
 
 ## Top 3 open items
