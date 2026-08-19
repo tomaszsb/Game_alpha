@@ -2,6 +2,10 @@
 
 ---
 
+## v3.2.16 — Tap your history to jump straight to it on the board (August 19, 2026)
+
+- **Your "What's happened" list now does something when you tap it.** Open your history, tap any turn, and the board jumps right to the space where that happened, with a quick highlight so it's easy to spot.
+
 ## v3.2.14–3.2.15 — A clearer way to start or rejoin a game, and the End Turn button finally tells you what actually happened (August 19, 2026)
 
 - **The setup screen now has one clear choice: "New game" or "Join."** Before, resuming a game you'd left and typing in someone else's code were two different, separately-hidden things. Now they're two buttons side by side — pick one, and if this device remembers a game you were just in, "Join" already has that game's code filled in for you, ready to go.
