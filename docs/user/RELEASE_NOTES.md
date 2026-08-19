@@ -2,6 +2,15 @@
 
 ---
 
+## v3.2.14–3.2.15 — A clearer way to start or rejoin a game, and the End Turn button finally tells you what actually happened (August 19, 2026)
+
+- **The setup screen now has one clear choice: "New game" or "Join."** Before, resuming a game you'd left and typing in someone else's code were two different, separately-hidden things. Now they're two buttons side by side — pick one, and if this device remembers a game you were just in, "Join" already has that game's code filled in for you, ready to go.
+- **Starting a game no longer makes you click "Add Player" just to add yourself.** The first player is already there when the screen loads — "Add Player" is only for the second, third, and fourth player now.
+- **Pressing End Turn now tells you exactly what happened, not just a blank line.** If you drew Work Packages or paid a fee this turn, the little preview that shows up when you tap End Turn used to go blank once that action was done. It now shows the real result — like "+1 Work Package (+$2,200,000)" or "$34,000 paid" — right up until you commit.
+- **The player panel takes up more of your screen, especially on phone.** It used to sit inside a boxed border with wasted space on the sides; that's gone now, so there's more room for what actually matters.
+- **If you're just watching a game that hasn't started yet, you'll now see a proper "waiting for the host" screen** instead of accidentally landing on the same editable setup screen the host uses.
+- **Behind the scenes:** most of the rest of this session was admin/teacher board-editing tooling — clearer names for overlapping connector lines, an easier way to restore a hidden one, and a few small drawing fixes — nothing that changes what you see as a player.
+
 ## v3.2.12–3.2.13 — A broken or expired game link now tells you what happened (August 17, 2026)
 
 - **If you open the game with no link at all and this browser still has a game in progress, you'll now be asked "Resume your last game?"** instead of it silently starting a brand-new one. You can still choose to start fresh if that's what you meant to do.
