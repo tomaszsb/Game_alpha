@@ -40,6 +40,7 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
   completedActions,
   tabRequest,
   onOpenGlossary,
+  onNavigateToSpace,
 }) => {
   const [mode, toggleMode] = usePanelMode();
 
@@ -101,6 +102,7 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
         onManualEffectResult={onManualEffectResult}
         completedActions={completedActions}
         tabRequest={tabRequest}
+        onNavigateToSpace={onNavigateToSpace}
       />
     </div>
   );

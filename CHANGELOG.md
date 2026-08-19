@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.16] - 2026-08-19
+
+### Feature: click a Chronicle entry to jump the board to where it happened
+Closes half of TODO's "Change-legibility P1 remaining" line (the other half, a TV-persistent feed via `NotificationService`, is still open — separate, larger follow-on). `PlayerChronicleV2` ("What's happened") rows were static text — no way to connect a logged change back to where it happened on the board.
+
+Clicking a log entry or its turn-block header now closes the modal and pans the board camera to that turn's space, giving it a brief blue pulse (reusing the same `computeFocusCenter`/`setCenter` React Flow primitive the TV auto-focus camera already uses — not a new camera system — and the same "component-scoped `<style>` + toggled class" pattern `PlayerPanelV2`'s first-visit hint glow uses). Individual log entries don't carry their own space id — only their turn block's `turn_start` entry does — so every entry in a block is attributed to that block's space, using the raw space id (not the shortened display label `shortName()` produces for the header). Pan-only at the current zoom (never re-fits), since jumping to history is a brief "look over there," not a new base framing; skipped in board-editor/admin mode, where dragging tiles takes priority. Blue rather than the existing green hint-glow or valid-move green, so "look here" doesn't read as "you can move here."
+
+`onNavigateToSpace` is threaded from `GameLayout` through `PlayerPanelWrapper`/`PlayerPanelV2` down to `PlayerChronicleV2`, and only wired on the desktop/shared-screen branch — the phone-controller view has no board on the same screen to pan, so its Chronicle stays plain text there. 3 new tests in `tests/components/player/PlayerChronicleV2.test.tsx` cover entry-click and header-click firing the callback with the correct raw space id and closing the modal, plus the no-op fallback when the prop is omitted. Verified: typecheck clean, full suite green, production build clean, `BoardCanvas`/`boardCommon`/`actionLogFormatting` test files still green (155/155 across the touched files). Live-verified via DOM/state inspection (this sandbox's browser pane can't reliably render animated camera pans — a known pre-existing limitation, see TODO's G160 notes) — confirmed clicking an entry calls the handler with the correct raw space id, applies and later clears the highlight class on the right board node, and re-triggers cleanly on a repeat click.
+
 ## [3.2.15] - 2026-08-19
 
 ### Fix: Board Layout Editor — connector naming, ordering, self-loops, hover picker, tile-shadow preview

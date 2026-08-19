@@ -89,6 +89,14 @@ interface BoardNodeData {
   phase: string;
   isCurrent: boolean;       // current player is on this space
   isValidMove: boolean;     // current player can move here
+  // Chronicle click-entry-to-replay-highlight (TODO P1 change-legibility) —
+  // true for a few seconds on the tile the player just jumped to from
+  // PlayerChronicleV2's "What's happened" log. Deliberately doesn't affect
+  // TileSizeInputs/computeTileVisualState's SIZE hierarchy (a small history
+  // tile shouldn't balloon just because it was clicked) — only the ring/glow
+  // treatment below and a small zIndex bump so the pulse isn't hidden under
+  // a neighboring hovered tile.
+  isHighlighted?: boolean;
   playerCount: number;      // how many players standing here
   playerColors: string[];   // for overlay tokens
   playerAvatars: string[];  // parallel to playerColors, same order
@@ -212,9 +220,16 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
 
   // (size, width, minHeight, zIndex, storyMax all come from computeTileVisualState above)
 
+  // Chronicle click-entry-to-replay-highlight — the pulse (applied via the
+  // `board-canvas-node--chronicle-highlight` class + keyframes defined once
+  // in BoardCanvasInner's returned JSX, not per-node) needs to sit above a
+  // merely-hovered neighbor (zIndex 20) but stays below the real "current"
+  // tile (25) so "you are here" still wins if they happen to coincide.
+  const effectiveZIndex = data.isHighlighted ? Math.max(zIndex, 22) : zIndex;
+
   return (
     <div
-      className="board-canvas-node"
+      className={`board-canvas-node${data.isHighlighted ? ' board-canvas-node--chronicle-highlight' : ''}`}
       style={{
         position: 'relative',
         width,
@@ -226,7 +241,7 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
         fontFamily: 'system-ui, sans-serif',
         transition: 'width 0.15s ease, min-height 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease',
         transform: `translate(${offsetX}px, ${offsetY}px)`,
-        zIndex,
+        zIndex: effectiveZIndex,
         ...ringStyle,
         ...(isPopover ? { boxShadow: '0 16px 36px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.06)' } : {}),
         cursor: data.isEditMode ? 'grab' : 'pointer',
@@ -968,6 +983,17 @@ interface BoardCanvasProps {
    *  NOT this device's own localStorage — the TV has no local preference
    *  of its own to read). */
   mode?: PanelMode;
+  /** Chronicle click-entry-to-replay-highlight (TODO P1 change-legibility) —
+   *  one-shot request from GameLayout (set when PlayerChronicleV2's
+   *  onNavigateToSpace fires) to pan the camera to an arbitrary space and
+   *  briefly pulse it. `token` must change on every request, even a repeat
+   *  click on the same spaceId, so the effect below re-fires instead of
+   *  seeing an unchanged dependency and doing nothing. Reuses the same
+   *  computeFocusCenter/setCenter primitive as the TV auto-focus effect
+   *  below — not a parallel camera system. Independent of centerOnCurrent
+   *  (fires in PC/desktop view, where the Chronicle and board share a
+   *  screen); ignored in admin/edit mode. */
+  focusRequest?: { spaceId: string; token: number } | null;
 }
 
 function BoardCanvasInner({
@@ -986,6 +1012,7 @@ function BoardCanvasInner({
   onPositionSaved,
   showBuffer = false,
   centerOnCurrent = false,
+  focusRequest,
   mode: modeProp,
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
@@ -1052,6 +1079,12 @@ function BoardCanvasInner({
   // cleanly without competing click handlers.
   const [hoveredSpace, setHoveredSpace] = useState<string | null>(null);
   const [expandedSpace, setExpandedSpace] = useState<string | null>(null);
+  // Chronicle click-entry-to-replay-highlight — which tile is currently
+  // pulsing in response to a `focusRequest`. Cleared by the effect below a
+  // few seconds after each request (see its comment for why the timeout,
+  // not a finite CSS iteration-count, is what actually stops re-clicks from
+  // being no-ops).
+  const [highlightedSpaceId, setHighlightedSpaceId] = useState<string | null>(null);
   const hoverTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 150ms hover delay to avoid flicker as the cursor moves across tiles.
@@ -1409,6 +1442,7 @@ function BoardCanvasInner({
           ...n.data,
           isCurrent,
           isValidMove: validMoves.includes(n.id),
+          isHighlighted: highlightedSpaceId === n.id,
           playerCount: playersHere.length,
           playerColors: playersHere.map(p => p.color || '#666'),
           playerAvatars: playersHere.map(p => p.avatar || ''),
@@ -1433,7 +1467,7 @@ function BoardCanvasInner({
         },
       };
     }));
-  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick, actionCounts, mode, dataService]);
+  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick, actionCounts, mode, dataService, highlightedSpaceId]);
 
   // TV mode auto-focus. Two-phase since fb:2b5b9f2a ("when I moved from one
   // space to another the zoom level changes — it should not"):
@@ -1496,6 +1530,33 @@ function BoardCanvasInner({
     }, 100);
     return () => window.clearTimeout(timer);
   }, [centerOnCurrent, isAdmin, focusSpace, validMoves, fitView, setCenter, getViewport, initialNodes]);
+
+  // Chronicle click-entry-to-replay-highlight (TODO P1 change-legibility) —
+  // pans to an arbitrary space on request from PlayerChronicleV2 (threaded
+  // through GameLayout as `focusRequest`) and briefly pulses it. Independent
+  // of centerOnCurrent/TV mode above: this fires in PC/desktop view, where
+  // the Chronicle and the board share the same screen (TVDisplay never
+  // renders a Chronicle, so `focusRequest` is always null there). Reuses
+  // computeFocusCenter + setCenter exactly like the TV auto-focus effect —
+  // NOT a new camera path. Pan-only at the CURRENT zoom (never fitView/
+  // re-zoom): jumping to a history space is a brief "look over there," not a
+  // new base framing the way the TV's per-turn refocus is. Skipped in admin
+  // mode — dragging tiles takes priority over an incoming nav request.
+  useEffect(() => {
+    if (!focusRequest || isAdmin) return;
+    const center = computeFocusCenter(initialNodes, [focusRequest.spaceId]);
+    if (!center) return; // unknown space id — nothing to pan to, fail quiet
+    const v = getViewport();
+    setCenter(center.x, center.y, { zoom: v.zoom, duration: 500 });
+    setHighlightedSpaceId(focusRequest.spaceId);
+    // Clears (not a finite CSS iteration-count) so a second click on the
+    // SAME space — the class never having been removed — still restarts the
+    // pulse: browsers don't restart an already-applied CSS animation just
+    // because the underlying request changed, only on a genuine class
+    // add/remove.
+    const timer = window.setTimeout(() => setHighlightedSpaceId(null), 3000);
+    return () => window.clearTimeout(timer);
+  }, [focusRequest, isAdmin, initialNodes, getViewport, setCenter]);
 
   // PC-mode initial camera: restore this device's saved viewport for this
   // exact board layout, or fall back to a tile-size-aware fit (see the
@@ -1621,6 +1682,27 @@ function BoardCanvasInner({
 
   return (
     <div ref={wrapperRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+      {/* Chronicle click-entry-to-replay-highlight pulse (TODO P1
+          change-legibility) — same "component-scoped <style> + toggled
+          class" pattern PlayerPanelV2 uses for its first-visit hint glow
+          (.uc-hint-glow), reused here instead of inventing a new animation
+          style. One block for the whole canvas (not per-tile — BoardNode
+          renders one instance per space) so it isn't duplicated N times.
+          Blue rather than the hint glow's green or the board's own
+          valid-move green, so "look here" doesn't read as "you can move
+          here." */}
+      <style>{`
+        @keyframes board-canvas-chronicle-highlight-kf {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+          50% { box-shadow: 0 0 0 6px rgba(59,130,246,0.55); }
+        }
+        .board-canvas-node--chronicle-highlight {
+          animation: board-canvas-chronicle-highlight-kf 1s ease-in-out infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .board-canvas-node--chronicle-highlight { animation: none; box-shadow: 0 0 0 4px rgba(59,130,246,0.6); }
+        }
+      `}</style>
       {saveStatus && (
         <div
           role="status"

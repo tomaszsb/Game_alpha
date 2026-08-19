@@ -77,6 +77,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   onRollDice,
   onManualEffectResult,
   completedActions = { manualActions: {} },
+  onNavigateToSpace,
 }) => {
   const p = panelPalettes[mode];
   const { openWithTerm } = useDictionaryPanel();
@@ -1200,6 +1201,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         playerId={playerId}
         gameServices={gameServices}
         mode={mode}
+        onNavigateToSpace={onNavigateToSpace}
       />
 
       {/* Detailed-card view (redesign §5) — opened from the influence zone. */}

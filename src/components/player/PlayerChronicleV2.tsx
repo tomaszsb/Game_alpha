@@ -17,8 +17,9 @@
 // drill-downs).
 //
 // First slice deliberately: this is the readable history. The fuller Project
-// Chronicle (inline deltas, click-an-entry-to-replay-its-highlight, a
-// TV-persistent feed via NotificationService) is a larger follow-on (TODO P1/P2).
+// Chronicle (inline deltas, a TV-persistent feed via NotificationService) is
+// a larger follow-on (TODO P1/P2) — click-entry-to-replay-highlight (below)
+// shipped as the first piece of that.
 
 import React, { useEffect, useState } from 'react';
 import { IServiceContainer } from '../../types/ServiceContracts';
@@ -36,12 +37,25 @@ export interface PlayerChronicleV2Props {
   gameServices: IServiceContainer;
   /** The panel's light/dark mode — body and ModalBase shell follow it. */
   mode?: PanelMode;
+  /** Click-entry-to-replay-highlight (TODO P1 change-legibility) — called
+   *  with the block's raw space id (the CSV space_name / React Flow node
+   *  id, NOT the shortName()-displayed label) when the player clicks a log
+   *  entry or its turn-block header. Rows render as plain, non-interactive
+   *  text when omitted (e.g. the phone/controller view, which has no board
+   *  on the same screen to pan). */
+  onNavigateToSpace?: (spaceId: string) => void;
 }
 
 interface TurnBlock {
   /** Global turn number from the turn_start entry; null for the pre-game block. */
   turnNumber: number | null;
   spaceName: string;
+  /** Raw space id (CSV space_name) the whole block happened at, or null if
+   *  no entry in this block carried one (shouldn't happen in practice, but
+   *  keeps the click handler honest rather than guessing). Every entry in
+   *  the block is attributed to this one space — individual entries don't
+   *  carry their own space id, only the block's turn_start does. */
+  spaceId: string | null;
   entries: ActionLogEntry[];
 }
 
@@ -51,6 +65,7 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
   playerId,
   gameServices,
   mode = 'light',
+  onNavigateToSpace,
 }) => {
   const p = panelPalettes[mode];
   const [entries, setEntries] = useState<ActionLogEntry[]>([]);
@@ -80,6 +95,7 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
       groups.push({
         turnNumber: entry.globalTurnNumber ?? null,
         spaceName: raw ? shortName(raw) : 'Setup',
+        spaceId: raw || null,
         entries: [],
       });
       continue;
@@ -88,7 +104,7 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
     if (!last) {
       // Entries before the first turn_start (game setup) get their own block.
       const raw = entry.details?.spaceName || entry.details?.space || '';
-      last = { turnNumber: null, spaceName: raw ? shortName(raw) : 'Setup', entries: [] };
+      last = { turnNumber: null, spaceName: raw ? shortName(raw) : 'Setup', spaceId: raw || null, entries: [] };
       groups.push(last);
     }
     last.entries.push(entry);
@@ -97,6 +113,26 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
   const fmtTime = (t: Date | string) => {
     const d = t instanceof Date ? t : new Date(t);
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Click-entry-to-replay-highlight (TODO P1 change-legibility). A block's
+  // header AND every row in it jump to the same space — the whole block
+  // happened at one space, individual entries don't carry their own.
+  // Non-interactive (no cursor/hover, no click) when the parent didn't wire
+  // a board to pan (phone/controller view) or a block genuinely has no
+  // space id (shouldn't happen, but don't pretend it's clickable if so).
+  const canNavigate = !!onNavigateToSpace;
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const jumpToSpace = (spaceId: string | null) => {
+    if (!spaceId || !onNavigateToSpace) return;
+    onNavigateToSpace(spaceId);
+    onClose();
+  };
+  const rowKeyDown = (e: React.KeyboardEvent, spaceId: string | null) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      jumpToSpace(spaceId);
+    }
   };
 
   const footer = (
@@ -137,44 +173,81 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
           </div>
         ) : (
           <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {groups.map((group, gi) => (
-              <div key={gi}>
-                {/* Turn divider — replaces the "Turn N started" row (fb:1eff7156). */}
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: p.accent,
-                    padding: '4px 0',
-                    borderBottom: `1px solid ${p.border}`,
-                    marginBottom: 4,
-                  }}
-                >
-                  {group.turnNumber != null ? `Turn ${group.turnNumber} · ` : ''}📍 {group.spaceName}
-                </div>
-                {group.entries.map((entry, ei) => (
+            {canNavigate && (
+              <div style={{ fontSize: 11, color: p.muted, padding: '0 2px 2px' }}>
+                Tap a turn to see it on the board.
+              </div>
+            )}
+            {groups.map((group, gi) => {
+              const clickable = canNavigate && !!group.spaceId;
+              const headerKey = `h${gi}`;
+              return (
+                <div key={gi}>
+                  {/* Turn divider — replaces the "Turn N started" row (fb:1eff7156).
+                      Doubles as the click-to-highlight target for the whole block
+                      when a space id is available. */}
                   <div
-                    key={ei}
+                    role={clickable ? 'button' : undefined}
+                    tabIndex={clickable ? 0 : undefined}
+                    onClick={clickable ? () => jumpToSpace(group.spaceId) : undefined}
+                    onKeyDown={clickable ? (e) => rowKeyDown(e, group.spaceId) : undefined}
+                    onMouseEnter={clickable ? () => setHoveredKey(headerKey) : undefined}
+                    onMouseLeave={clickable ? () => setHoveredKey(null) : undefined}
+                    aria-label={clickable ? `Go to ${group.spaceName} on the board` : undefined}
                     style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: p.accent,
+                      padding: '4px 4px',
+                      borderRadius: 5,
+                      borderBottom: `1px solid ${p.border}`,
+                      marginBottom: 4,
+                      cursor: clickable ? 'pointer' : undefined,
+                      background: clickable && hoveredKey === headerKey ? p.surf : undefined,
                       display: 'flex',
                       justifyContent: 'space-between',
-                      gap: 8,
-                      fontSize: 12.5,
-                      lineHeight: 1.45,
-                      padding: '5px 8px',
-                      background: p.surf,
-                      borderRadius: 7,
-                      marginBottom: 4,
+                      alignItems: 'center',
+                      gap: 6,
                     }}
                   >
-                    <span style={{ flex: 1 }}>{formatActionDescription(entry)}</span>
-                    <span style={{ color: p.muted, fontSize: 10, whiteSpace: 'nowrap' }}>
-                      {fmtTime(entry.timestamp)}
-                    </span>
+                    <span>{group.turnNumber != null ? `Turn ${group.turnNumber} · ` : ''}📍 {group.spaceName}</span>
+                    {clickable && <span aria-hidden="true" style={{ color: p.muted }}>›</span>}
                   </div>
-                ))}
-              </div>
-            ))}
+                  {group.entries.map((entry, ei) => {
+                    const rowKey = `${gi}-${ei}`;
+                    return (
+                      <div
+                        key={ei}
+                        role={clickable ? 'button' : undefined}
+                        tabIndex={clickable ? 0 : undefined}
+                        onClick={clickable ? () => jumpToSpace(group.spaceId) : undefined}
+                        onKeyDown={clickable ? (e) => rowKeyDown(e, group.spaceId) : undefined}
+                        onMouseEnter={clickable ? () => setHoveredKey(rowKey) : undefined}
+                        onMouseLeave={clickable ? () => setHoveredKey(null) : undefined}
+                        aria-label={clickable ? `${formatActionDescription(entry)} — go to ${group.spaceName} on the board` : undefined}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                          fontSize: 12.5,
+                          lineHeight: 1.45,
+                          padding: '5px 8px',
+                          background: clickable && hoveredKey === rowKey ? p.border : p.surf,
+                          borderRadius: 7,
+                          marginBottom: 4,
+                          cursor: clickable ? 'pointer' : undefined,
+                        }}
+                      >
+                        <span style={{ flex: 1 }}>{formatActionDescription(entry)}</span>
+                        <span style={{ color: p.muted, fontSize: 10, whiteSpace: 'nowrap' }}>
+                          {fmtTime(entry.timestamp)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

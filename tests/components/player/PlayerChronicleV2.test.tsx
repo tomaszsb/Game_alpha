@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PlayerChronicleV2 } from '../../../src/components/player/PlayerChronicleV2';
@@ -24,11 +24,21 @@ describe('PlayerChronicleV2 — history timeline', () => {
     description: 'Drew 2 work packages', details: { spaceName: 'OWNER-SCOPE-INITIATION' },
   };
 
-  const renderChronicle = (log: any[]) => {
+  const renderChronicle = (
+    log: any[],
+    opts?: { onNavigateToSpace?: (spaceId: string) => void; onClose?: () => void },
+  ) => {
     services.stateService.getGameState.mockReturnValue({ globalActionLog: log } as any);
     return render(
       <DictionaryProvider>
-        <PlayerChronicleV2 isOpen onClose={vi.fn()} playerId="player1" gameServices={services as any} mode="light" />
+        <PlayerChronicleV2
+          isOpen
+          onClose={opts?.onClose ?? vi.fn()}
+          playerId="player1"
+          gameServices={services as any}
+          mode="light"
+          onNavigateToSpace={opts?.onNavigateToSpace}
+        />
       </DictionaryProvider>,
     );
   };
@@ -108,6 +118,43 @@ describe('PlayerChronicleV2 — history timeline', () => {
       const { container } = renderChronicle([setupEntry, ...turnLog]);
       const text = container.textContent || '';
       expect(text.indexOf('Game started')).toBeLessThan(text.indexOf('Turn 5 ·'));
+    });
+  });
+
+  // Click-entry-to-replay-highlight (TODO P1 change-legibility) — clicking a
+  // log entry or its turn-block header closes the modal and hands the
+  // RAW space id (not the shortName()-displayed label) up to the parent so
+  // it can pan/highlight the board. Individual entries don't carry their own
+  // space id, so every row in a block is attributed to the block's one space.
+  describe('click-entry-to-replay-highlight (TODO P1 change-legibility)', () => {
+    it('clicking a log entry calls onNavigateToSpace with the raw space id and closes the modal', () => {
+      const onNavigateToSpace = vi.fn();
+      const onClose = vi.fn();
+      renderChronicle([committedEntry], { onNavigateToSpace, onClose });
+
+      const row = screen.getByRole('button', { name: /Drew 2 work packages/i });
+      fireEvent.click(row);
+
+      expect(onNavigateToSpace).toHaveBeenCalledWith('OWNER-SCOPE-INITIATION');
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('clicking the turn-block header calls onNavigateToSpace with the same raw space id', () => {
+      const onNavigateToSpace = vi.fn();
+      renderChronicle([committedEntry], { onNavigateToSpace });
+
+      // shortName('OWNER-SCOPE-INITIATION') strips the OWNER- prefix -> "Scope Initiation".
+      const header = screen.getByRole('button', { name: /^Go to Scope Initiation on the board$/i });
+      fireEvent.click(header);
+
+      expect(onNavigateToSpace).toHaveBeenCalledWith('OWNER-SCOPE-INITIATION');
+    });
+
+    it('renders plain, non-interactive rows when onNavigateToSpace is not provided (e.g. the phone/controller view)', () => {
+      renderChronicle([committedEntry]); // no onNavigateToSpace in opts
+      expect(screen.queryByRole('button', { name: /Drew 2 work packages/i })).not.toBeInTheDocument();
+      // The entry text itself still renders — just not as a clickable row.
+      expect(screen.getByText(/Drew 2 work packages/)).toBeInTheDocument();
     });
   });
 });

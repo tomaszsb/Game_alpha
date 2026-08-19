@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** August 19, 2026 — replaced the resume/join flow (v3.2.14), then a long live-playtesting-driven batch (v3.2.15): Board Layout Editor connector naming/ordering/self-loops/hover-picker/color/shadow fixes, End Turn glow, expeditor glow, player-panel border removal, and the End Turn cost preview now showing real results instead of going blank. Full detail: CHANGELOG v3.2.14–v3.2.15. This session's automated browser tooling confirmed (git-stash A/B test) that it renders zero React Flow board edges at all — a pre-existing environment limitation, not a regression — so every board-connector visual fix above was verified via unit tests + code review only, never seen live; see updated G160 item below.
-**Status:** Beta — repo at v3.2.15, pushed to origin/master, not yet deployed.
-**Current Version:** 3.2.15 (repo ahead of live deploy).
+**Last Updated:** August 19, 2026 — v3.2.16 (fixloop): Chronicle click-entry-to-replay-highlight — clicking a "What's happened" log entry now pans/pulses the board to where it happened, closing half of the Change-legibility P1 remaining line (TV-persistent feed still open). Full detail: CHANGELOG v3.2.16. Earlier same day: replaced the resume/join flow (v3.2.14), then a long live-playtesting-driven batch (v3.2.15). This session's automated browser tooling confirmed (git-stash A/B test) that it renders zero React Flow board edges at all — a pre-existing environment limitation, not a regression — so every board-connector visual fix above was verified via unit tests + code review only, never seen live; see updated G160 item below.
+**Status:** Beta — repo at v3.2.16, pushed to origin/master, not yet deployed.
+**Current Version:** 3.2.16 (repo ahead of live deploy).
 
 ---
 
@@ -74,7 +74,7 @@
 - [ ] **Next-action button highlight disappears — PROBABLE cause fixed v3.1.63, awaiting your confirmation in real play.** Both original guesses (time-based fade, mobile↔PC switch) were disproved live; the real find was `StateService.updateActionCounts()` skipping `notifyListeners()` entirely on an early return, which dropped both the UI refresh and the cross-device sync. Regression-tested (4 of 5 new tests fail against the old code). **Not closed** — the exact race couldn't be reproduced through the UI, so this is well-evidenced inference, not a confirmed repro. Next time you're mid-game and the highlight goes stale, that's the signal it wasn't this. See CHANGELOG v3.1.63. **2026-08-15 stats revisit: no telemetry exists for this (UI-only, no dedicated event) — post-dashboard-ship traffic didn't surface signal either way. Still awaiting real-play confirmation.** <!-- fb:feedback-1784464219688-ae480630 -->
 
 ### Change-legibility P1 — Project Chronicle (first slice shipped v3.0.86)
-- [~] **P1 remaining:** click-entry-to-replay-highlight, TV-persistent feed via `NotificationService` selective subscription. (Inline deltas per entry — work-change scope $ + expeditor-add count — shipped v3.1.16, which also fixed a real pre-existing bug: the icon-formatted card_draw branch never fired in production due to a field-name mismatch.) (P2–P5 parked below pending V2 reframe.)
+- [~] **P1 remaining:** TV-persistent feed via `NotificationService` selective subscription. (Inline deltas per entry — work-change scope $ + expeditor-add count — shipped v3.1.16, which also fixed a real pre-existing bug: the icon-formatted card_draw branch never fired in production due to a field-name mismatch. Click-entry-to-replay-highlight shipped v3.2.16, see CHANGELOG.) (P2–P5 parked below pending V2 reframe.)
 
 ## 🚀 Active — infra / deploy / data
 

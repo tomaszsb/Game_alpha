@@ -274,6 +274,24 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       }
     });
   }, [notificationService]);
+  // Chronicle click-entry-to-replay-highlight (TODO P1 change-legibility) —
+  // PlayerChronicleV2 (inside PlayerPanelWrapper below) calls this with the
+  // raw space id of the turn block the player clicked; BoardCanvas (a
+  // sibling in the desktop-view branch below) reads it back via
+  // `focusRequest` and pans/pulses that tile, reusing its existing
+  // setCenter/computeFocusCenter camera primitive — see the matching prop
+  // doc on BoardCanvasProps. `token` increments on every request (even a
+  // repeat click on the same space) so BoardCanvas's effect re-fires
+  // instead of seeing an unchanged dependency and doing nothing. Only
+  // wired to the desktop branch's PlayerPanelWrapper below — the
+  // phone/controller view (mobile branch) has no BoardCanvas on the same
+  // screen to pan, so its Chronicle entries stay plain, non-interactive text.
+  const focusRequestTokenRef = useRef(0);
+  const [boardFocusRequest, setBoardFocusRequest] = useState<{ spaceId: string; token: number } | null>(null);
+  const handleNavigateToSpace = useCallback((spaceId: string) => {
+    focusRequestTokenRef.current += 1;
+    setBoardFocusRequest({ spaceId, token: focusRequestTokenRef.current });
+  }, []);
   const [isNegotiationModalOpen, setIsNegotiationModalOpen] = useState<boolean>(false);
   const [negotiationPartnerId, setNegotiationPartnerId] = useState<string | null>(null);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState<boolean>(false);
@@ -1335,6 +1353,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                           }}
                           completedActions={completedActions}
                           tabRequest={tabRequest}
+                          onNavigateToSpace={handleNavigateToSpace}
                         />
                       </div>
                     );
@@ -1372,6 +1391,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 edgeAnchors={edgeAnchors}
                 onSetEdgeAnchor={onSetEdgeAnchor}
                 onClearEdgeAnchor={onClearEdgeAnchor}
+                focusRequest={boardFocusRequest}
               />
             </div>
           )}

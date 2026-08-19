@@ -39,4 +39,12 @@ export interface PlayerPanelProps {
   };
   /** Parent-initiated one-shot tab switch (see TabRequest doc). */
   tabRequest?: TabRequest | null;
+  /** Chronicle click-entry-to-replay-highlight (TODO P1 change-legibility) —
+   *  called with the raw space id (not the shortName()-displayed label) when
+   *  the player clicks a "What's happened" log entry or its turn-block
+   *  header in PlayerChronicleV2. The parent (GameLayout) pans/highlights
+   *  BoardCanvas to that space. Only meaningful where the board and this
+   *  panel share the same screen (GameLayout's desktop view) — omitted on
+   *  the phone/controller view, which has no board to pan. */
+  onNavigateToSpace?: (spaceId: string) => void;
 }
