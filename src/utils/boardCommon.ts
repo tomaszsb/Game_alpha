@@ -24,6 +24,8 @@
 //  - parseCSVLine / parseCSV — DataService has its own CSV parser; the
 //    walker's standalone copy went with it.
 
+import { getNpcCharacterInfo } from '../constants/characters';
+
 // SPECIAL_NAMES lets us override a space's auto-generated short label. Used
 // when the prefix-stripped form is ambiguous, awkward, or has historical
 // product naming we want to preserve.
@@ -91,6 +93,23 @@ export function shortName(s: string): string {
 }
 
 /**
+ * A single space's restore-list display label: its discipline (if it has
+ * one) plus its short name, e.g. "Architect: Fee Review". Two different
+ * spaces can share the same shortName once their NPC prefix is stripped
+ * (ARCH-FEE-REVIEW and ENG-FEE-REVIEW both become "Fee Review") — phase
+ * alone doesn't disambiguate them either, since Architect and Engineer work
+ * are both in the DESIGN phase. Discipline is the field that's actually
+ * unique (maintainer feedback 2026-08-18). Spaces with no NPC (PM-voiced,
+ * Bank/Lender/Investor-adjacent CHEAT- spaces, Finish) get no prefix — they
+ * don't collide with anything, so the bare shortName is unambiguous already.
+ */
+function disambiguatedSpaceLabel(spaceId: string): string {
+  const info = getNpcCharacterInfo(spaceId);
+  const base = shortName(spaceId);
+  return info ? `${info.shortLabel}: ${base}` : base;
+}
+
+/**
  * A human-readable label for an edge id (`${source}__${target}`), for
  * restore-list UIs (2026-08-04) where an admin needs to pick a SPECIFIC
  * hidden/redirected connector rather than restore everything at once.
@@ -99,7 +118,7 @@ export function shortName(s: string): string {
 export function formatEdgeLabel(edgeId: string): string {
   const parts = edgeId.split('__');
   if (parts.length !== 2 || !parts[0] || !parts[1]) return edgeId;
-  return `${shortName(parts[0])} → ${shortName(parts[1])}`;
+  return `${disambiguatedSpaceLabel(parts[0])} → ${disambiguatedSpaceLabel(parts[1])}`;
 }
 
 /**
@@ -683,7 +702,17 @@ export function uniqueDiceDestinations(
 ): string[] {
   if (!outcome) return [];
   const rolls = [outcome.roll_1, outcome.roll_2, outcome.roll_3, outcome.roll_4, outcome.roll_5, outcome.roll_6];
-  return Array.from(new Set(rolls.filter((d): d is string => !!d && d.trim().length > 0)));
+  // Some rows pack several alternatives into one cell as "A or B or C"
+  // (MovementService.ts already splits on ' or ' for real gameplay
+  // movement — this display path didn't, so a compound roll produced one
+  // garbage edge id pointing at a nonexistent node instead of several real
+  // ones, e.g. REG-FDNY-PLAN-EXAM losing its board line to PM-DECISION-CHECK
+  // among others). Found investigating a "missing connector" report
+  // 2026-08-18.
+  const flattened = rolls
+    .filter((d): d is string => !!d && d.trim().length > 0)
+    .flatMap(d => d.split(' or ').map(part => part.trim()).filter(Boolean));
+  return Array.from(new Set(flattened));
 }
 
 // ===================================================================

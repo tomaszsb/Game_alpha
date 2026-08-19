@@ -455,14 +455,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           : { color: mode === 'dark' ? '#4ade80' : '#1e7e34' };
 
   // --- styles -------------------------------------------------------------
+  // No maxWidth/margin/border/radius here on purpose (maintainer feedback
+  // 2026-08-18: a visible frame + capped width wasted real screen space,
+  // especially on phone — "there should be no border we need the space").
+  // Fills whatever width the parent (GameLayout's grid, or the phone
+  // full-bleed layout) actually gives it instead of imposing its own gutter.
   const cardStyle: React.CSSProperties = {
     width: '100%',
-    maxWidth: 360,
-    margin: '0 auto',
     background: p.bg,
     color: p.text,
-    border: `0.5px solid ${p.border}`,
-    borderRadius: 18,
     overflow: 'hidden',
     position: 'relative', // anchors the between-turns move overlay
     fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -985,6 +986,14 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                   onClick={() => handlePlayExpeditor(id)}
                   disabled={playingCardId !== null}
                   aria-label={`Activate ${card.card_name}`}
+                  // Matches the parent "What's affecting you" toggle's own
+                  // glow condition just above (also gated on
+                  // playableExpeditors.length > 0, not firstVisitHint) —
+                  // the actual choose-this-one action deserves the same cue
+                  // as the section that led here. Maintainer feedback
+                  // 2026-08-18: choosing an expeditor had no obvious "choose
+                  // this one" affordance.
+                  className={playableExpeditors.length > 0 && playingCardId === null ? 'uc-hint-glow' : undefined}
                   style={{
                     flex: '0 0 auto',
                     border: `1px solid ${p.accent}`,
@@ -1126,6 +1135,13 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           <button
             onClick={commit.onClick}
             disabled={!commit.ready}
+            // Only reachable here because there's no Try Again option for
+            // this space — a single-choice screen, so highlighting End Turn
+            // as the next-move hint doesn't carry the "pick this one over
+            // that one" ambiguity it would inside TurnCommitControl's two-
+            // tab control above (maintainer feedback 2026-08-18: glow End
+            // Turn "only when negotiate button is not shown").
+            className={firstVisitHint && commit.ready ? 'uc-hint-glow' : undefined}
             style={{
               width: '100%',
               border: 'none',

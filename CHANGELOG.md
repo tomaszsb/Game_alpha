@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.15] - 2026-08-19
+
+### Fix: Board Layout Editor — connector naming, ordering, self-loops, hover picker, tile-shadow preview
+Live-testing feedback on the G160 arc: two different connectors could both render as "Fee Review → Scope Check" (ARCH-FEE-REVIEW/ARCH-SCOPE-CHECK and ENG-FEE-REVIEW/ENG-SCOPE-CHECK strip to the same shortName — phase alone doesn't disambiguate either, since Architect and Engineer are both DESIGN phase). Edge labels (`formatEdgeLabel`, `boardCommon.ts`) now prefix each side with its NPC discipline via `getNpcCharacterInfo` — "Architect: Fee Review → Architect: Scope Check" vs "Engineer: Fee Review → Engineer: Scope Check". The restore-picker list (`RestorablePillDropdown`) was ordered by hide/redirect insertion order, which read as random — now alphabetized by display label.
+
+Self-loop connectors (a dice space genuinely rolling "stay here," e.g. an unresolved plan exam) are no longer drawn — there's nothing for a line to depict when source and target are the same tile. Hovering a handle with only one *visible* line could still open the "N connectors land here" picker, because a currently-hidden sibling edge still counted toward the group; hidden edges are now excluded from that sibling check. Connector lines take their source space's phase color instead of a flat gray. The editor's spacing-guide "ghost" (previews how much room a tile will need in real play) now carries the same drop-shadow the real "current" tile gets — the flat, shadow-less ghost let two tiles look cleanly separated in the editor while the real shadow visually crowded them once one lit up as current.
+
+Investigated a "missing connector" report (no line from PM Check to Engineer Initiation or DOB Fee Review): confirmed via this repo's full git history and prior code snapshots in `D:\Unravel\Projects\Game_Archive` that no direct connection has ever existed in any version — it's a real, unchanged 2-hop path through a hidden "Bypass" dice space. Found and fixed a related bug while investigating: a compound dice outcome like `"A or B or C"` wasn't being split for the board display (real gameplay movement already split on `' or '`), silently dropping several of REG-FDNY-PLAN-EXAM's lines, including one back to PM-DECISION-CHECK.
+
+### Fix: End Turn glow, expeditor "choose" affordance, player panel border
+The first-visit pulsing hint now reaches End Turn too, but only on spaces with no Negotiate option — pulsing one side of the two-tab End Turn/Negotiate control would read as "pick this one," so it stays off there. The expeditor "Activate" button now carries the same hint as its parent "What's affecting you" section, since choosing which expeditor to deploy had no obvious "choose this one" cue of its own.
+
+The live in-game player panel (`PlayerPanelV2`) had its own border, corner radius, and a 360px width cap — wasted space, especially on phone, where it left gutters even though the surrounding layout already goes edge-to-edge. Removed; the panel now fills whatever width its parent actually gives it. Verified live: phone view is now literally edge-to-edge (0 to 375px, was capped and centered before).
+
+### Feature: End Turn cost preview shows the real result instead of going blank
+The five-row preview (Labor/Work/Expediting/Money/Time) dropped a row to "—" the moment its action completed, even when the actual outcome was known and worth showing. Now: a fixed-count draw (e.g. "Hire 3 Expeditors") keeps its already-known number instead of vanishing; a dice-driven draw (e.g. "Get Work Packages") switches from "Varies" to the real result once rolled — "+1 Work Package (+$2,200,000)" — read from the same action log the History panel already uses; a flat (non-dice) fee now shows the real amount paid, matching the dice-fee case that already worked.
+
+Two real bugs found building this, both by live-testing rather than assumed away: (1) a card drawn earlier the same turn is `isCommitted: false` in the log — correct, since it's not locked into real history until End Turn resolves it — so the Chronicle's own `isCommitted`-filtering helper silently found nothing for the one turn this preview needs to see; read the raw log instead. (2) On a game's first turn, `globalTurnCount` is still `0` (not yet incremented), but `LoggingService` stamps that turn's entries with turn number `1` (its own `|| 1` fallback) — a naive equality match missed every first-turn draw.
+
+Verified live end-to-end: rolled for Work Packages, confirmed the preview updated from "Varies" to the exact real number and dollar delta. Verified: typecheck clean, full suite 2798/2798 (189/189 files), production build clean.
+
 ## [3.2.14] - 2026-08-18
 
 ### Feature: "New game" / "Join" selector replaces the full-screen resume prompt and hidden Join-by-Code panel

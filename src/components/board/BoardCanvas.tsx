@@ -246,7 +246,16 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
           long story/action renders taller than the 130 floor and would overlap
           a flush neighbor, so the ghost grows downward to its estimated
           worst-case in-grid height. Top stays anchored to the currentBig
-          centering (content grows down from there). */}
+          centering (content grows down from there).
+
+          Shares the real "current" tile's drop shadow (ringStyle above,
+          `0 8px 22px rgba(0,0,0,0.30)`) — box-shadow bleeds outside the box
+          without affecting layout, so two tiles could look cleanly separated
+          in the editor's flat-border-only ghost and still visually crowd
+          each other in real gameplay once one of them lights up as current.
+          Maintainer feedback 2026-08-18: "boxes do not seem to show the
+          largest layout shadow... in the design view they seem to be not
+          touching but... overlaps neighbors" in the real game. */}
       {data.showBuffer && data.isEditMode && (
         <div
           aria-hidden
@@ -264,6 +273,7 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
             border: isDark ? `1.5px dashed ${dp.border}` : '1.5px dashed #adb5bd',
             borderRadius: 10,
             background: isDark ? 'rgba(51,65,85,0.16)' : 'rgba(173,181,189,0.06)',
+            boxShadow: '0 8px 22px rgba(0,0,0,0.30)',
             pointerEvents: 'none',
             zIndex: 0,
           }}
@@ -1105,6 +1115,9 @@ function BoardCanvasInner({
       cfg => cfg.space_name !== 'START-QUICK-PLAY-GUIDE'
     );
     const movements = dataService.getAllMovements();
+    // For edges' default stroke color — "the line should take the color of
+    // the box it's leaving" (maintainer feedback 2026-08-18).
+    const phaseBySpace = new Map(configs.map(cfg => [cfg.space_name, cfg.phase || '']));
 
     const nodes: Node<BoardNodeData>[] = configs.map(cfg => {
       const pos = dataService.getPosition(cfg.space_name) || { x: 0, y: 0 };
@@ -1172,13 +1185,21 @@ function BoardCanvasInner({
       }
 
       for (const dest of dests) {
+        // A dice space can genuinely roll "stay here" (e.g. an exam that
+        // isn't resolved this turn) — real data, not corrupted, but there's
+        // nothing for a connector line to depict when source and target are
+        // the same tile. Skip drawing it as an edge (maintainer feedback
+        // 2026-08-18: "some lines that go from same space to same space").
+        if (dest === mov.space_name) continue;
+        const sourcePhase = phaseBySpace.get(mov.space_name) || '';
+        const strokeColor = PHASE_COLORS[sourcePhase]?.border || '#adb5bd';
         edges.push({
           id: `${mov.space_name}__${dest}`,
           source: mov.space_name,
           target: dest,
           type: 'smart',
           markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-          style: { stroke: '#adb5bd', strokeWidth: 1.5 },
+          style: { stroke: strokeColor, strokeWidth: 1.5 },
         });
       }
     }
@@ -1200,12 +1221,20 @@ function BoardCanvasInner({
   // Every edge's source/target NODE ids (not coordinates) — lets the
   // anchor-snapping system (2026-08-04) tell whether two DIFFERENT edges
   // are pinned to the same side of the same node, without needing to
-  // resolve or compare screen coordinates.
+  // resolve or compare screen coordinates. Hidden edges are excluded —
+  // without this, hovering a handle that looked like the only line there
+  // still opened the "N connectors land here" picker because a currently
+  // invisible sibling still counted, with no way to tell why (maintainer
+  // feedback 2026-08-18: "when I click a node with only one line I see
+  // choices for multiple lines").
   const edgeEndpoints = useMemo(() => {
     const map: Record<string, { source: string; target: string }> = {};
-    for (const e of edges) map[e.id] = { source: e.source, target: e.target };
+    for (const e of edges) {
+      if (hiddenEdgeIds && hiddenEdgeIds.has(e.id)) continue;
+      map[e.id] = { source: e.source, target: e.target };
+    }
     return map;
-  }, [edges]);
+  }, [edges, hiddenEdgeIds]);
 
   // Apply visibility filters from parent. Edges hidden by:
   //   - Global toggle (edgesVisible=false) → hide all

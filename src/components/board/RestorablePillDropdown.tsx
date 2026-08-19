@@ -85,7 +85,11 @@ export function RestorablePillDropdown({
           }}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          {itemIds.map(id => (
+          {/* Alphabetized by display label — itemIds itself arrives in
+              hide/redirect order (insertion order of a Set/object), which
+              read as random to an admin scanning for a specific connector
+              (maintainer feedback 2026-08-18). */}
+          {[...itemIds].sort((a, b) => formatEdgeLabel(a).localeCompare(formatEdgeLabel(b))).map(id => (
             <div
               key={id}
               style={{

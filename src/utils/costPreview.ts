@@ -229,6 +229,67 @@ function classifyFeeEffect(
   return 'Varies';
 }
 
+const DICE_DRAW_CARD_TYPE: Record<string, string> = {
+  'w cards': 'W', 'w card': 'W',
+  'e cards': 'E', 'e card': 'E',
+  'i cards': 'I', 'i card': 'I',
+  'b cards': 'B', 'b card': 'B',
+};
+
+/**
+ * Real outcome of a dice-triggered card draw, once it's actually happened
+ * this turn — read from the action log, the only place the real drawn
+ * count (and, for Work Packages, the scope delta) live; TurnCostLedger only
+ * tracks outflows, not draws. Mirrors formatActionDescription's card_draw
+ * case (actionLogFormatting.ts) so the two surfaces never disagree about
+ * what a draw is worth. Returns null if the roll hasn't resolved yet or the
+ * dice category isn't a recognized card-draw kind.
+ *
+ * Deliberately does NOT use getDisplayableLogEntries — its isCommitted
+ * filter is right for the post-hoc Chronicle/Log (only show finalized
+ * history) but wrong here: a card drawn earlier THIS turn is still
+ * uncommitted TEMP state (only promoted to real/committed history once End
+ * Turn actually resolves it), so requiring isCommitted would always find
+ * nothing for the one turn this function needs to see. Confirmed live
+ * 2026-08-19: a real drawn card's log entry had isCommitted: false.
+ */
+function findTurnCardDrawFragment(
+  gameServices: IServiceContainer,
+  playerId: string,
+  diceCategory: string,
+): string | null {
+  const cardType = DICE_DRAW_CARD_TYPE[diceCategory.trim().toLowerCase()];
+  if (!cardType) return null;
+  const state = gameServices.stateService.getGameState();
+  // LoggingService stamps globalTurnNumber as `globalTurnCount || 1` — on
+  // the game's very first turn globalTurnCount is still 0 (not yet
+  // incremented by advanceTurn), so entries logged this turn carry
+  // globalTurnNumber 1, not 0. Match that same fallback here or every
+  // first-turn draw silently misses (confirmed live 2026-08-19).
+  const currentTurn = state.globalTurnCount || 1;
+  const entries = (state.globalActionLog || []).filter(
+    (e) =>
+      e.type === 'card_draw' &&
+      e.playerId === playerId &&
+      e.visibility === 'player' &&
+      e.globalTurnNumber === currentTurn &&
+      e.details?.cardType === cardType,
+  );
+  if (entries.length === 0) return null;
+
+  let count = 0;
+  let scopeDelta = 0;
+  for (const e of entries) {
+    count += Number(e.details?.count ?? e.details?.cardCount ?? 0);
+    scopeDelta += Number(e.details?.scopeDelta ?? 0);
+  }
+  if (count <= 0) return null;
+
+  let fragment = `+${count} ${cardNoun(cardType, count)}`;
+  if (cardType === 'W' && scopeDelta > 0) fragment += ` (+$${scopeDelta.toLocaleString()})`;
+  return fragment;
+}
+
 function pushFragment(buckets: Partial<Record<CostPreviewRowKey, string[]>>, bucket: CostPreviewRowKey, fragment: string | null): void {
   if (!fragment) return;
   (buckets[bucket] ??= []).push(fragment);
@@ -289,19 +350,43 @@ export function getEndTurnCostPreview(
     // remaining cost of pressing End Turn — the CSV row is a static
     // per-visit declaration, not a per-turn one, so without this check it
     // would keep showing "Varies" for something that already happened
-    // (fb:feedback-1783922070233-49395e17).
+    // (fb:feedback-1783922070233-49395e17). But going blank ("—") once it's
+    // done isn't right either (maintainer feedback 2026-08-18): show what
+    // actually happened instead — "+3 Work Packages", "-$34,000", etc. —
+    // not nothing.
     if (effect.trigger_type === 'manual' && isManualEffectCompleted(effect, completedActions)) {
-      // A completed DICE-determined fee is a special case: unlike a
-      // completed card draw (nothing more to say, the card's already
-      // dealt), rolling turns "Varies" into a concrete, known dollar
-      // figure — and a button literally labeled "Pay the fee" is about to
-      // lock it in. Silently dropping the row here would hide the one
-      // number the player most needs right before committing, so surface
-      // what was actually charged (via this turn's outflow ledger) instead
-      // of just skipping. Only the dice/fee case gets this treatment —
-      // other completed effect types have no "resolved amount" to show in
-      // its place, so they stay silently skipped as before.
-      if (effect.effect_type === 'dice' && classifyDiceEffect(effect)?.kind === 'fee') {
+      if (effect.effect_type === 'cards') {
+        // A fixed-count CSV row (not a dice roll) — the "pre-action"
+        // fragment already IS the real outcome, since the count was never
+        // random. Keep showing it rather than dropping it once it's done.
+        const result = classifyCardEffect(effect);
+        if (result) pushFragment(buckets, result.bucket, result.fragment);
+      } else if (effect.effect_type === 'dice') {
+        const classified = classifyDiceEffect(effect);
+        if (classified?.kind === 'fee') {
+          // Rolling turns "Varies" into a concrete, known dollar figure —
+          // and a button literally labeled "Pay the fee" is about to lock
+          // it in. Surface what was actually charged (this turn's outflow
+          // ledger) instead of just skipping.
+          const ledger = gameServices.stateService.getTurnOutflow(playerId);
+          if (ledger.moneySpent > 0) {
+            pushFragment(buckets, 'money', `${FormatUtils.formatMoney(ledger.moneySpent, { compact: false })} paid`);
+          }
+        } else if (classified?.kind === 'draw') {
+          // The card type/count wasn't knowable before the roll; now it's
+          // in the action log — read the real result from there instead of
+          // leaving "Varies" or dropping the row. Only recognizes W/E/I/B
+          // card-draw categories (findTurnCardDrawFragment returns null for
+          // anything else); 'quality'/'multiplier' (labor) and 'time
+          // outcomes' dice kinds have no card-draw or ledger-backed real
+          // outcome available here yet, so they still drop to "—" rather
+          // than guess.
+          const drawn = findTurnCardDrawFragment(gameServices, playerId, String(effect.effect_value || ''));
+          if (drawn) pushFragment(buckets, classified.bucket, drawn);
+        }
+      } else if (effect.effect_type === 'fee' && effect.effect_action === 'deduct') {
+        // Same reasoning as the dice-fee case above, generalized to a flat
+        // (non-dice) fee — it's paid the moment it completes either way.
         const ledger = gameServices.stateService.getTurnOutflow(playerId);
         if (ledger.moneySpent > 0) {
           pushFragment(buckets, 'money', `${FormatUtils.formatMoney(ledger.moneySpent, { compact: false })} paid`);

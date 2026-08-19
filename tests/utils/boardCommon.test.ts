@@ -127,12 +127,31 @@ describe('shortName fallback (used by ActionCenterPanel space header)', () => {
 });
 
 describe('formatEdgeLabel (restore-list UIs, 2026-08-04)', () => {
-  it('formats a real edge id as "Source → Target" using shortName on each side', () => {
-    expect(formatEdgeLabel('OWNER-SCOPE-INITIATION__OWNER-FUND-INITIATION')).toBe('Scope Initiation → Fund Initiation');
+  it('formats a real edge id as "Discipline: Source → Discipline: Target" using shortName + NPC discipline on each side', () => {
+    expect(formatEdgeLabel('OWNER-SCOPE-INITIATION__OWNER-FUND-INITIATION')).toBe('Owner: Scope Initiation → Owner: Fund Initiation');
   });
 
-  it('applies SPECIAL_NAMES overrides on either side', () => {
-    expect(formatEdgeLabel('PM-DECISION-CHECK__BANK-FUND-REVIEW')).toBe('PM Check → Bank Review');
+  it('applies SPECIAL_NAMES overrides on either side, still prefixed with discipline when the space has an NPC', () => {
+    expect(formatEdgeLabel('PM-DECISION-CHECK__BANK-FUND-REVIEW')).toBe('PM Check → Bank: Bank Review');
+  });
+
+  // 2026-08-18: two different edges could both render as the bare
+  // "Fee Review → Scope Check" (ARCH-FEE-REVIEW/ARCH-SCOPE-CHECK and
+  // ENG-FEE-REVIEW/ENG-SCOPE-CHECK both strip to the same shortName) —
+  // indistinguishable in the restore-list picker. Phase alone doesn't fix
+  // it either, since Architect and Engineer work are both DESIGN phase;
+  // discipline (from getNpcCharacterInfo) is the field that's actually
+  // unique.
+  it('disambiguates same-shortName edges from different disciplines', () => {
+    const archEdge = formatEdgeLabel('ARCH-FEE-REVIEW__ARCH-SCOPE-CHECK');
+    const engEdge = formatEdgeLabel('ENG-FEE-REVIEW__ENG-SCOPE-CHECK');
+    expect(archEdge).toBe('Architect: Fee Review → Architect: Scope Check');
+    expect(engEdge).toBe('Engineer: Fee Review → Engineer: Scope Check');
+    expect(archEdge).not.toBe(engEdge);
+  });
+
+  it('omits the discipline prefix for a space with no NPC (e.g. PM-voiced)', () => {
+    expect(formatEdgeLabel('PM-DECISION-CHECK__LEND-SCOPE-CHECK')).toBe('PM Check → Lender: Scope Check');
   });
 
   it('falls back to the raw id when it does not look like a real edge id', () => {

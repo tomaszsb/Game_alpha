@@ -96,7 +96,31 @@ describe('BoardToggle — G160 board-control access', () => {
     // Nothing shown until the pill is clicked.
     expect(screen.queryByText(/Scope Initiation/)).not.toBeInTheDocument();
     fireEvent.click(pill);
-    expect(screen.getByText(/Scope Initiation → Fund Initiation/)).toBeInTheDocument();
+    expect(screen.getByText(/Owner: Scope Initiation → Owner: Fund Initiation/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Restore all 1/ })).toBeInTheDocument();
+  });
+
+  // 2026-08-18: itemIds arrives in hide-order (insertion order), which read
+  // as random to an admin scanning for a specific connector to restore.
+  it('lists multiple hidden connectors alphabetized by display label, not hide order', () => {
+    sessionStorage.setItem('admin_authenticated', 'true');
+    renderToggle({
+      // Hidden in this order: Owner edge, then Architect edge, then Bank
+      // edge — display order should come out Architect, Bank, Owner.
+      hiddenEdgeIds: [
+        'OWNER-SCOPE-INITIATION__OWNER-FUND-INITIATION',
+        'ARCH-FEE-REVIEW__ARCH-SCOPE-CHECK',
+        'PM-DECISION-CHECK__BANK-FUND-REVIEW',
+      ],
+      onClearHiddenEdges: () => {},
+      onRestoreOneHiddenEdge: () => {},
+    });
+    fireEvent.click(screen.getByRole('button', { name: /3 hidden · restore/ }));
+    const labels = screen.getAllByText(/→/).map(el => el.textContent);
+    expect(labels).toEqual([
+      'Architect: Fee Review → Architect: Scope Check',
+      'Owner: Scope Initiation → Owner: Fund Initiation',
+      'PM Check → Bank: Bank Review',
+    ]);
   });
 });
