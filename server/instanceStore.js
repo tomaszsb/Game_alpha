@@ -656,6 +656,102 @@ export function updateTeacherCopy(config, copyId, overrides) {
 }
 
 /**
+ * The card a slot is PLAYING, when it belongs to the given tier.
+ *
+ * Single-pointer lookup, the same one the bake uses — a slot holds one card
+ * id and there is no fallback chain (CARD_LIBRARY_DESIGN.md, "The finding
+ * that makes tiers cheap"). This is what makes the content editor's save an
+ * UPSERT: saving twice must update the card the slot already plays, never
+ * stack a second one behind it.
+ *
+ * Deliberately NOT a search of the whole deck for a matching slot+tier. Once
+ * stage 2 makes editing branch, a slot will have several cards to its name and
+ * only one of them is in play; "the official card for this slot" would then be
+ * ambiguous, but "the card this slot plays, if it is official" never is.
+ * @param {InstanceConfig} config
+ * @param {string} slotName
+ * @param {'official'|'group'|'individual'} [tier] omit to accept any tier
+ * @returns {string|null} the copy id, or null
+ */
+export function findCardForSlot(config, slotName, tier) {
+  const copyId = (config.slots || {})[slotName]?.card;
+  if (!copyId) return null;
+  const copy = (config.teacherCopies || {})[copyId];
+  if (!copy) return null;
+  if (tier && copy.owner?.tier !== tier) return null;
+  return copyId;
+}
+
+/**
+ * Replace a card's content wholesale (Card Library stage 1, the content
+ * editor's save path). Its identity — id, slot, owner, createdAt, the slot
+ * pointer — is untouched; only what the card SAYS changes.
+ *
+ * Not `updateTeacherCopy`: that merges a few fields onto existing rows, which
+ * is right for the Classroom Setup field editor and wrong here. The content
+ * editor sends the whole space back, so a field the maintainer CLEARED must
+ * end up cleared, and a visit row he removed must be gone — a merge would
+ * quietly keep both.
+ *
+ * @param {InstanceConfig} config
+ * @param {string} copyId
+ * @param {{ rows: Array<Object<string, string>>,
+ *   diceRows?: Array<Object<string, string>>,
+ *   modalRows?: Array<Object<string, string>>, stockVersion?: string }} content
+ *   Row ARRAYS as parsed from the submitted CSVs (createTeacherCopy's shape),
+ *   not the by-visit_type map they are stored as.
+ */
+export function replaceCardContent(config, copyId, { rows, diceRows, modalRows, stockVersion }) {
+  const copy = (config.teacherCopies || {})[copyId];
+  if (!copy) throw new Error(`No such copy: "${copyId}"`);
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error(`No rows given for "${copyId}" — a card must hold at least one row`);
+  }
+  const next = {};
+  for (const row of rows) {
+    next[row.visit_type || ''] = {
+      ...row,
+      space_name: copy.slot, // slot names are the only space identifiers
+    };
+  }
+  copy.rows = next;
+  // diceRows / modalRows follow createTeacherCopy's ABSENT-never-[] rule: no
+  // rows means delete the key, because absent is what the bake reads as "this
+  // card does not own its slot's dice/modal copy — use stock's".
+  //
+  // KNOWN LIMIT, recorded rather than papered over: that makes "the
+  // maintainer deleted every dice row for this space" indistinguishable from
+  // "this card never owned its dice", so the space keeps stock's dice. A card
+  // has no way to say "no dice at all" today — the resolver's
+  // copyDiceRowsBySpace skips empty arrays exactly like missing ones. Giving
+  // it one is a change to stage 1b's storage rule, not something to smuggle in
+  // here.
+  if (Array.isArray(diceRows) && diceRows.length > 0) {
+    copy.diceRows = diceRows.map(diceRow => ({ ...diceRow, space_name: copy.slot }));
+  } else {
+    delete copy.diceRows;
+  }
+  if (Array.isArray(modalRows) && modalRows.length > 0) {
+    copy.modalRows = modalRows.map(modalRow => ({ ...modalRow, space_name: copy.slot }));
+  } else {
+    delete copy.modalRows;
+  }
+  // `logicRows` is deliberately NOT touched. The content editor has no
+  // logic-question fields, so a save says nothing about them; blanking them
+  // would drop wording a card already owns, and writing them would freeze
+  // today's stock questions onto the card and cut it off from later
+  // corrections (the same reason loadInstance refuses to backfill them).
+  if (stockVersion) {
+    // This edit was made against the stock the maintainer was just looking at,
+    // so the card is current as of that version — clearing the stale
+    // COPY_STOCK_UPDATED "the original changed, worth a review" flag is the
+    // honest outcome, not a lost warning.
+    copy.copiedFromStockVersion = stockVersion;
+  }
+  copy.updatedAt = new Date().toISOString();
+}
+
+/**
  * Delete a copy. If the slot is playing it, the slot reverts to the stock
  * card (the original was never gone — that is the whole point).
  * @param {InstanceConfig} config

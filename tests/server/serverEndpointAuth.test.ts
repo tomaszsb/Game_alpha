@@ -227,6 +227,72 @@ describe('server.js endpoint auth wiring', () => {
     expect(store).toContain("tier = 'individual'");
   });
 
+  // ===== Card Library stage 1: the Space Data Editor's save path =====
+
+  function contentRouteBody(): string {
+    const start = source.indexOf("app.post('/api/instances/:id/content',");
+    expect(start, 'POST /api/instances/:id/content not found in server.js').toBeGreaterThan(-1);
+    const end = source.indexOf('\napp.', start + 1);
+    expect(end).toBeGreaterThan(start);
+    return source.slice(start, end);
+  }
+
+  it('POST /api/instances/:id/content requires ADMIN auth (it mints official cards)', () => {
+    // Same privilege boundary POST /copies draws for tier:'official', for the
+    // same reason. handleInstanceMutation's own check also passes on the
+    // instance write token or a classroom-owning teacher session, neither of
+    // which is admin.
+    const body = contentRouteBody();
+    expect(body).toContain('checkAdminPassword(');
+    expect(body).toContain('CONFIG.ADMIN_PASSWORD_HASH');
+    expect(body).toContain('res.status(403)');
+  });
+
+  it('the content-save admin check runs BEFORE the mutation flow (a refusal must not touch the config)', () => {
+    const body = contentRouteBody();
+    const denial = body.indexOf('res.status(403)');
+    const mutation = body.indexOf('handleInstanceMutation(req, res');
+    // Guard against a vacuous pass: indexOf returns -1 for a missing needle.
+    expect(denial).toBeGreaterThan(-1);
+    expect(mutation).toBeGreaterThan(-1);
+    expect(denial).toBeLessThan(mutation);
+  });
+
+  it('POST /api/instances/:id/content routes through the guarded mutation flow', () => {
+    // Validate + bake + 422-on-error come from the shared flow, so a bad edit
+    // is rejected with the usual report and never half-applied.
+    expect(contentRouteBody()).toContain('handleInstanceMutation(req, res');
+  });
+
+  it("content saves mint cards at the 'official' tier and upsert rather than duplicate", () => {
+    const body = contentRouteBody();
+    expect(body).toContain("tier: 'official'");
+    expect(body).toContain("findCardForSlot(config, change.slot, 'official')");
+    expect(body).toContain('replaceCardContent(');
+  });
+
+  it('the editor posts to the classroom content route, not to save-source-files', () => {
+    // The whole point of the slice: /api/admin/save-source-files writes the
+    // writable stock, which initWritableData re-seeds on boot — so edits saved
+    // there are reverted by the next restart.
+    const editor = fs.readFileSync(
+      path.resolve(__dirname, '../../src/components/editor/DataEditor.tsx'),
+      'utf8'
+    );
+    expect(editor).toContain('/content`');
+    // The old target may still be NAMED in a comment explaining the change —
+    // what must be gone is the request to it.
+    expect(editor).not.toContain('backendURL}/api/admin/save-source-files');
+  });
+
+  it('/api/admin/save-source-files still exists and still guards itself', () => {
+    // Left in place deliberately (other callers may reach it); retiring it is
+    // not this slice's job.
+    const head = handlerHead('post', '/api/admin/save-source-files');
+    expect(head).toContain('checkAdminRateLimit(req, res)');
+    expect(head).toContain('requireAdmin(req, res)');
+  });
+
   it('handleInstanceMutation enforces optimistic concurrency (409 on stale configVersion)', () => {
     const start = source.indexOf('function handleInstanceMutation');
     const body = source.slice(start, start + 1600);

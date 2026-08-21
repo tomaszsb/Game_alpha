@@ -46,9 +46,23 @@ export function extractSpaceTokens(text, knownSpaces) {
  * @returns {Map<string, Set<string>>}
  */
 export function buildDiceDests(diceCsv, knownSpaces) {
+  if (!diceCsv) return new Map();
+  return diceDestsFromRows(parseCsvWithHeaders(diceCsv), knownSpaces);
+}
+
+/**
+ * Same question, asked of dice rows that are already parsed rather than of a
+ * CSV. Split out for Card Library stage 1: a card can now carry its slot's
+ * dice rows, and the catalog has to ask "is this a dice space?" of the card's
+ * rows instead of stock's (instanceCatalog.js). One implementation, two
+ * inputs — the alternative is a second copy of the `Next Step` rule, which is
+ * exactly the parallel-systems drift the note above warns about.
+ * @param {Array<Object<string, string>>} diceRows
+ * @returns {Map<string, Set<string>>}
+ */
+export function diceDestsFromRows(diceRows, knownSpaces) {
   const map = new Map();
-  if (!diceCsv) return map;
-  for (const row of parseCsvWithHeaders(diceCsv)) {
+  for (const row of diceRows || []) {
     if ((row.die_roll || '').trim() !== 'Next Step') continue;
     const name = (row.space_name || '').trim();
     if (!name) continue;
@@ -436,6 +450,15 @@ export function validateConfig({ config, stockSpacesCsv, pathChoiceCsv, diceCsv,
   errors.push(...resolution.errors);
 
   // Teacher-authored insertions (Phase 4a fixed/choice edges + 4b dice edges).
+  // KNOWN GAP, recorded on purpose (Card Library stage 1): these dice
+  // destinations are STOCK's. instanceCatalog now overlays the played card's
+  // own dice rows onto the same question, so a card that adds or removes a
+  // `Next Step` row can make the editor's edge dropdown and this validator
+  // disagree about whether a space routes by dice. Not closed here because
+  // instanceResolver's copyDiceRowsBySpace cannot be imported into this module
+  // — instanceResolver already imports THIS one, and the cycle is the real
+  // constraint. Closing it means lifting that helper somewhere both can reach.
+  // Latent today: nothing in stock data changes a space's dice-movement rows.
   errors.push(...validateInsertions({
     config, names, rowsByName,
     off: inactiveSpaces(config),

@@ -46,7 +46,10 @@ import {
   clearEdgeAnchor,
   clearAllEdgeAnchors,
   VALID_OWNER_TIERS,
+  findCardForSlot,
+  replaceCardContent,
 } from './instanceStore.js';
+import { diffSubmittedContent } from './instanceContentDiff.js';
 import { validateConfig } from './instanceValidation.js';
 import { buildCatalog } from './instanceCatalog.js';
 import { parseCsvWithHeaders } from './processGameData.js';
@@ -966,7 +969,19 @@ app.post('/api/admin/verify', (req, res) => {
 });
 
 // ===== ADMIN: SAVE SOURCE FILES & REGENERATE =====
-
+//
+// NO LONGER THE SPACE DATA EDITOR'S SAVE PATH (Card Library stage 1,
+// CARD_LIBRARY_DESIGN.md). This route writes the writable STOCK, and
+// initWritableData() re-seeds stock from the shipped image whenever a content
+// hash differs — which writing here is exactly what makes it do. So edits
+// saved through this route are reverted by the next restart or deploy, which
+// was the maintainer's original complaint. The editor now posts the same three
+// CSVs to POST /api/instances/:id/content, which turns the changed spaces into
+// classroom cards that survive by construction.
+//
+// Kept, working and unchanged, because other callers may still reach it and
+// retiring it is not that slice's job. If you are adding a new save path,
+// this is not the one to copy.
 app.post('/api/admin/save-source-files', (req, res) => {
   if (!checkAdminRateLimit(req, res)) return;
   if (!requireAdmin(req, res)) {
@@ -1457,6 +1472,97 @@ app.delete('/api/instances/:id/copies/:copyId', (req, res) => {
     }
     deleteTeacherCopy(config, req.params.copyId);
     return { copyId: req.params.copyId, deleted: true };
+  });
+});
+
+// ===== Card Library stage 1: the Space Data Editor's save path =====
+//
+// THE DURABILITY FIX (CARD_LIBRARY_DESIGN.md "The problem this kills", item 2).
+// The editor used to POST these same three CSVs to
+// /api/admin/save-source-files, which writes the writable STOCK — and
+// initWritableData() re-seeds stock from the shipped image whenever a content
+// hash differs, which saving is precisely what makes it do. So every edit was
+// reverted by the next restart or deploy. Classroom config is the opposite:
+// deploy.sh is explicitly instructed never to touch game-data/instances, so a
+// card written here survives by construction.
+//
+// The editor still sends whole files — its data model is untouched. The diff
+// happens HERE, where it is a pure function a unit test can reach
+// (instanceContentDiff.js): every space whose rows differ from stock becomes
+// an `official` card, and spaces that match stock are left alone so a save
+// mints nothing for the 26 spaces the maintainer didn't open.
+app.post('/api/instances/:id/content', (req, res) => {
+  const { spacesCSV, diceRollCSV, modalConfigCSV } = req.body || {};
+  if (!spacesCSV || !diceRollCSV) {
+    return res.status(400).json({ success: false, error: 'spacesCSV and diceRollCSV are required' });
+  }
+  // PRIVILEGE BOUNDARY — the same one POST /copies draws for `tier:'official'`,
+  // for the same reason: this route MINTS official cards, the curated deck
+  // every classroom gets, so it is an admin act rather than something
+  // classroom write access grants. handleInstanceMutation authorizes through
+  // checkInstanceWriteAccess, which also passes on the instance write token or
+  // a classroom-owning teacher session — not enough here. Checked BEFORE
+  // handleInstanceMutation runs, so a refused save never loads, mutates,
+  // saves or re-bakes the classroom. It deliberately does not gate on
+  // checkInstanceWriteAccess's `via`: that helper short-circuits on the write
+  // token first, so an admin who also carries a token reports via:'token' and
+  // would be wrongly refused.
+  const admin = checkAdminPassword(
+    req.headers['x-admin-password'] || (req.body && req.body.password),
+    CONFIG.ADMIN_PASSWORD_HASH
+  );
+  if (!admin.ok) {
+    logVisitor(req, 'CONTENT_SAVE_DENIED', { instanceId: req.params.id });
+    return res.status(403).json({
+      success: false,
+      error: 'Saving space content requires admin authentication',
+    });
+  }
+  handleInstanceMutation(req, res, (config) => {
+    const { stockSpacesCsv, diceCsv, modalCsv, stockVersion } = readStockForValidation();
+    const diff = diffSubmittedContent({
+      submittedSpacesCsv: spacesCSV,
+      submittedDiceCsv: diceRollCSV,
+      submittedModalCsv: modalConfigCSV,
+      stockSpacesCsv,
+      stockDiceCsv: diceCsv,
+      stockModalCsv: modalCsv,
+    });
+    const created = [];
+    const updated = [];
+    for (const change of diff.changed) {
+      // UPSERT, never accumulate: saving twice must update the card the slot
+      // already plays. Stage 2 is what turns editing into branching, with a
+      // picker to choose between versions; until that exists a second save
+      // stacking an unreachable duplicate would just be litter.
+      const existing = findCardForSlot(config, change.slot, 'official');
+      if (existing) {
+        replaceCardContent(config, existing, {
+          rows: change.rows,
+          diceRows: change.diceRows,
+          modalRows: change.modalRows,
+          stockVersion,
+        });
+        updated.push(change.slot);
+      } else {
+        // createTeacherCopy's `stockRows` is "the rows this card starts life
+        // holding" — here that is the maintainer's edited rows, with no
+        // separate overrides layer. stockLogicRows is deliberately omitted:
+        // this editor has no logic-question fields, so the card should not
+        // claim ownership of wording nobody edited (absent keeps stock's
+        // corrections flowing to it — see loadInstance's no-backfill note).
+        createTeacherCopy(config, {
+          slotName: change.slot,
+          stockRows: change.rows,
+          stockDiceRows: change.diceRows,
+          stockModalRows: change.modalRows,
+          stockVersion,
+          tier: 'official',
+        });
+        created.push(change.slot);
+      }
+    }
+    return { created, updated, unchanged: diff.unchanged.length, skipped: diff.unknown };
   });
 });
 

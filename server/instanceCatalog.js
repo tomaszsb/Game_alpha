@@ -17,7 +17,8 @@
 
 import { parseCsvWithHeaders } from './processGameData.js';
 import { computeProtection } from './spaceProtection.js';
-import { inactiveSpaces, buildDiceDests } from './instanceValidation.js';
+import { inactiveSpaces, buildDiceDests, diceDestsFromRows } from './instanceValidation.js';
+import { copyDiceRowsBySpace } from './instanceResolver.js';
 
 // The safe field subset the catalog editor exposes (spec: UI starts with
 // title, narrative text, and fees; the data model stores full copies
@@ -63,6 +64,24 @@ export function buildCatalog({ stockSpacesCsv, pathChoiceCsv, diceCsv, config, s
   // re-validates every save regardless.
   const known = new Set(byName.keys());
   const diceDests = buildDiceDests(diceCsv, known);
+  // A CARD can own its slot's dice now (CARD_LIBRARY_DESIGN.md stage 1b), so
+  // stock is no longer the authority on what a space rolls. Reserved as a
+  // breadcrumb when the dice slice landed and due as of stage 1's editor
+  // swap: with an editing path in place, a card that adds or removes a
+  // `Next Step` row would otherwise leave this map still reporting stock's
+  // answer to "is this a dice space?" — which drives the editor's own "pick
+  // an edge" dropdown. That is the 2026-06-20 `requires_dice_roll`-vs-`Next
+  // Step` shape exactly: one conceptual question answered in several places,
+  // some of them stale. So the played card's rows REPLACE stock's answer for
+  // its space (the same wholesale substitution applyConfigToDiceCsv makes at
+  // bake time), and a card with no dice of its own leaves stock's answer
+  // alone. Deleting is as important as setting: a card whose dice are all
+  // EFFECT rolls genuinely is not a dice-movement space, whatever stock said.
+  for (const [name, cardRows] of copyDiceRowsBySpace(config)) {
+    const own = diceDestsFromRows(cardRows, known).get(name);
+    if (own) diceDests.set(name, own);
+    else diceDests.delete(name);
+  }
   // A space routes by dice only if the dice table has a Next Step (movement)
   // row for it — same key the engine + validateInsertions use. A
   // requires_dice_roll=Yes space whose only roll is an effect (W Cards / Time /

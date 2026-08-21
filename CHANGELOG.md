@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.22] - 2026-08-21
+
+### Space Data Editor saves now survive a restart — the original complaint, fixed
+Completes card library stage 1. The maintainer's report was that his content edits silently disappear. The cause was mechanical: the editor POSTed three whole CSVs to `/api/admin/save-source-files`, which writes the *writable stock*, and `initWritableData()` re-seeds stock from the shipped image whenever a content hash differs — saving is precisely what makes it differ. So every edit was reverted by the next restart or deploy.
+
+**The editor's data model is untouched.** It still sends the same three CSVs; only the target changed. The diff happens server-side in a new pure module (`instanceContentDiff.js`), where a unit test can reach it: every space whose rows differ from stock becomes an `official` card, and spaces matching stock are left alone. Comparison is field-by-field on parsed rows, never text — the editor writes its own column order and quoting, so a text compare would call all 27 spaces changed on a save that touched nothing. That risk is pinned by a test running the *shipped* CSVs through the editor's own exporter and asserting the diff finds zero changes.
+
+The diff deliberately covers a space's **spaces, dice and modal** rows, not just `Spaces.csv` as originally scoped — dice outcomes are edited inline in the same panel, and a dice-only edit was exactly the kind that used to evaporate.
+
+Saving twice updates the existing card rather than accumulating duplicates (`findCardForSlot` + `replaceCardContent` — a wholesale replace, not a merge, so a field the maintainer clears stays cleared). A space edited back to matching stock keeps its card rather than being deleted: stage 2 introduces branching and a picker, and this slice must not add a destroy path. `POST /api/instances/:id/content` is admin-only, drawing the same privilege boundary as `tier: 'official'` on `/copies` and for the same reason, checked before any mutation and deliberately not gated on `checkInstanceWriteAccess`'s `via`. `/api/admin/save-source-files` is left in place and working, with a comment explaining it is no longer the editor's path.
+
+Also closes the `instanceCatalog` breadcrumb recorded during the dice slice: `entry.dice` was computed from stock, so a card carrying different dice would have left the editor's own "pick an edge" dropdown reading stock's answer. It now overlays the played card's dice. One related gap remains recorded rather than silently left: `validateInsertions` still answers the same question from stock, and closing it the same way would create an import cycle — latent today, noted at the call site.
+
+**Verified end to end, independently of the implementing agent.** Posted an edit carrying a sentinel string, confirmed it served, stopped the server, started it again, and confirmed it was *still* served. The mechanism checks out precisely: the sentinel appears in the classroom card and **not** in writable stock, so the boot-time re-seed has nothing to wipe — and the boot log confirms no stock refresh occurred. A save of 1 changed space correctly reported `created: 1, unchanged: 26`. Local test data restored afterwards and verified clean. Typecheck clean, production build clean, full suite 2892/2892 (191 files).
+
 ## [3.2.21] - 2026-08-21
 
 ### Card library stage 1b part ii: a card carries its modal copy and its logic-question wording

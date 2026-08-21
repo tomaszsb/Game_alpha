@@ -7,7 +7,10 @@ import { GameContext } from '../../../src/context/GameContext';
 vi.mock('../../../src/utils/adminAuth', () => ({
   isAdminAuthenticated: () => true,
   verifyAdminPassword: vi.fn().mockResolvedValue(true),
-  clearAdminAuth: vi.fn()
+  clearAdminAuth: vi.fn(),
+  // Save reads the stored admin password to send as the x-admin-password
+  // header; without this the module mock leaves it undefined and Save throws.
+  getAdminPassword: () => 'test-admin-password'
 }));
 
 // Mock fetch for loading CSV files — must match actual Spaces.csv column order (30 columns):
@@ -499,6 +502,94 @@ describe('DataEditor', () => {
         expect.stringContaining('(C) Actions'),
         expect.stringContaining('Movement Destinations'),
       ]));
+    });
+  });
+
+  // ===== Card Library stage 1: saves go to the classroom, not the master CSVs
+  describe('Save target (Card Library stage 1)', () => {
+    // The maintainer's original complaint: edits saved here were reverted on
+    // every restart, because the old target wrote the writable STOCK and the
+    // server re-seeds stock from the shipped copy on boot. The classroom
+    // content route stores the changed spaces as cards instead, and classroom
+    // data survives restarts and deploys by construction.
+    const clickSave = async () => {
+      renderEditor();
+      await waitFor(() => expect(screen.getByText('TEST-SPACE-1')).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: /save/i }));
+    };
+
+    const saveCalls = () =>
+      (global.fetch as any).mock.calls.filter((c: any[]) => String(c[0]).includes('/api/'));
+
+    it('posts the three CSVs to the classroom content route, not save-source-files', async () => {
+      (global.fetch as any).mockImplementation((url: string, init?: RequestInit) => {
+        if (String(url).includes('/api/')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true, created: ['TEST-SPACE-1'], updated: [], unchanged: 2 }),
+          } as Response);
+        }
+        if (String(url).includes('Spaces.csv')) return Promise.resolve({ ok: true, text: () => Promise.resolve(mockSpacesCSV) } as Response);
+        if (String(url).includes('DiceRoll')) return Promise.resolve({ ok: true, text: () => Promise.resolve(mockDiceRollCSV) } as Response);
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('space_name,visit_type\n') } as Response);
+      });
+
+      await clickSave();
+      await waitFor(() => expect(saveCalls().length).toBe(1));
+
+      const [url, init] = saveCalls()[0];
+      expect(url).toContain('/api/instances/classroom-1/content');
+      expect(url).not.toContain('save-source-files');
+      expect(init.method).toBe('POST');
+      expect(init.headers['x-admin-password']).toBe('test-admin-password');
+      // Same three-CSV payload the editor has always sent.
+      const body = JSON.parse(init.body);
+      expect(Object.keys(body).sort()).toEqual(['diceRollCSV', 'modalConfigCSV', 'spacesCSV']);
+      expect(body.spacesCSV).toContain('TEST-SPACE-1');
+    });
+
+    it('reports what was saved in plain language, not "N files regenerated"', async () => {
+      (global.fetch as any).mockImplementation((url: string) => {
+        if (String(url).includes('/api/')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true, created: ['TEST-SPACE-1'], updated: ['TEST-SPACE-2'], unchanged: 1 }),
+          } as Response);
+        }
+        if (String(url).includes('Spaces.csv')) return Promise.resolve({ ok: true, text: () => Promise.resolve(mockSpacesCSV) } as Response);
+        if (String(url).includes('DiceRoll')) return Promise.resolve({ ok: true, text: () => Promise.resolve(mockDiceRollCSV) } as Response);
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('space_name,visit_type\n') } as Response);
+      });
+
+      await clickSave();
+      await waitFor(() => {
+        expect(screen.getByText(/2 spaces are stored in the classroom/i)).toBeInTheDocument();
+      });
+      expect(screen.getByText(/restarts and updates/i)).toBeInTheDocument();
+    });
+
+    it('surfaces a rejected save, including a validation report with no error field', async () => {
+      // 422 from the shared mutation flow carries the report rather than an
+      // `error` string; the step/detail path stays working for 500s.
+      (global.fetch as any).mockImplementation((url: string) => {
+        if (String(url).includes('/api/')) {
+          return Promise.resolve({
+            ok: false,
+            json: () => Promise.resolve({
+              success: false,
+              report: { ok: false, errors: [{ code: 'COPY_BAD_DICE_GROUP', message: 'Rows sharing one roll fill different faces' }] },
+            }),
+          } as Response);
+        }
+        if (String(url).includes('Spaces.csv')) return Promise.resolve({ ok: true, text: () => Promise.resolve(mockSpacesCSV) } as Response);
+        if (String(url).includes('DiceRoll')) return Promise.resolve({ ok: true, text: () => Promise.resolve(mockDiceRollCSV) } as Response);
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('space_name,visit_type\n') } as Response);
+      });
+
+      await clickSave();
+      await waitFor(() => {
+        expect(screen.getByText(/Rows sharing one roll fill different faces/i)).toBeInTheDocument();
+      });
     });
   });
 

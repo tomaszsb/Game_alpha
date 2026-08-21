@@ -24,6 +24,8 @@ import {
   createTeacherCopy,
   updateTeacherCopy,
   deleteTeacherCopy,
+  findCardForSlot,
+  replaceCardContent,
   addInsertion,
   updateInsertion,
   removeInsertion,
@@ -488,6 +490,130 @@ describe('teacher copy tiers (Card Library stage 1 slice 2)', () => {
     expect(() => createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: null as any })).toThrow(/Invalid tier/);
     // A rejected tier must not leave a half-written copy behind.
     expect(JSON.stringify(config)).toBe(before);
+  });
+});
+
+describe('findCardForSlot / replaceCardContent (Card Library stage 1, the content editor upsert)', () => {
+  const stockRows = [
+    { space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review', Fee: '100' },
+    { space_name: 'FEE-REVIEW', visit_type: 'Subsequent', Title: 'Fee review', Fee: '50' },
+  ];
+  const diceRows = [
+    { space_name: 'FEE-REVIEW', die_roll: 'Next Step', visit_type: 'First',
+      '1': 'A', '2': 'A', '3': 'A', '4': 'B', '5': 'B', '6': 'B', button_label: '', roll_group: '' },
+  ];
+  const modalRows = [
+    { space_name: 'FEE-REVIEW', visit_type: 'First', effect_action: 'pay',
+      modal_title: 'Pay up', modal_description: 'Fees due.', modal_button_label: 'Pay', modal_summary: 'Paid' },
+  ];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const withOfficialCard = (): { config: any; copyId: string } => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, {
+      slotName: 'FEE-REVIEW', stockRows, stockDiceRows: diceRows, stockModalRows: modalRows, tier: 'official',
+    });
+    return { config, copyId };
+  };
+
+  it('finds the card a slot is PLAYING, filtered by tier', () => {
+    const { config, copyId } = withOfficialCard();
+    expect(findCardForSlot(config, 'FEE-REVIEW', 'official')).toBe(copyId);
+    expect(findCardForSlot(config, 'FEE-REVIEW')).toBe(copyId);
+    // A different tier is a different deck — not this card.
+    expect(findCardForSlot(config, 'FEE-REVIEW', 'individual')).toBeNull();
+    expect(findCardForSlot(config, 'NO-SUCH-SLOT', 'official')).toBeNull();
+  });
+
+  it('returns null for a slot playing stock, and for a dangling card pointer', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    config.slots['FEE-REVIEW'] = { used: true };
+    expect(findCardForSlot(config, 'FEE-REVIEW', 'official')).toBeNull();
+    config.slots['FEE-REVIEW'] = { used: true, card: 'ghost_copy_1' };
+    expect(findCardForSlot(config, 'FEE-REVIEW', 'official')).toBeNull();
+  });
+
+  it('replaces content in place — same card id, same slot pointer, same owner', () => {
+    const { config, copyId } = withOfficialCard();
+    const createdAt = config.teacherCopies[copyId].createdAt;
+    replaceCardContent(config, copyId, {
+      rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Rewritten', Fee: '999' }],
+      diceRows: [],
+      modalRows: [],
+      stockVersion: 'v2',
+    });
+    // One card, still the one in play.
+    expect(Object.keys(config.teacherCopies)).toEqual([copyId]);
+    expect(config.slots['FEE-REVIEW'].card).toBe(copyId);
+    expect(config.teacherCopies[copyId].owner).toEqual({ tier: 'official', id: null });
+    expect(config.teacherCopies[copyId].createdAt).toBe(createdAt);
+    expect(config.teacherCopies[copyId].copiedFromStockVersion).toBe('v2');
+  });
+
+  it('replaces WHOLESALE: a removed visit row goes away and a cleared field stays cleared', () => {
+    // updateTeacherCopy merges, which is right for the field editor and wrong
+    // here — the content editor sends the whole space back.
+    const { config, copyId } = withOfficialCard();
+    replaceCardContent(config, copyId, {
+      rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Only first', Fee: '' }],
+    });
+    const copy = config.teacherCopies[copyId];
+    expect(Object.keys(copy.rows)).toEqual(['First']);
+    expect(copy.rows.First.Fee).toBe('');
+    expect(copy.rows.First.Title).toBe('Only first');
+  });
+
+  it('forces space_name to the slot — a card can never rename its space', () => {
+    const { config, copyId } = withOfficialCard();
+    replaceCardContent(config, copyId, {
+      rows: [{ space_name: 'SOMETHING-ELSE', visit_type: 'First', Title: 'x' }],
+      diceRows: [{ space_name: 'SOMETHING-ELSE', die_roll: 'Next Step', visit_type: 'First', '1': 'A' }],
+      modalRows: [{ space_name: 'SOMETHING-ELSE', visit_type: 'First', modal_title: 'm' }],
+    });
+    const copy = config.teacherCopies[copyId];
+    expect(copy.rows.First.space_name).toBe('FEE-REVIEW');
+    expect(copy.diceRows[0].space_name).toBe('FEE-REVIEW');
+    expect(copy.modalRows[0].space_name).toBe('FEE-REVIEW');
+  });
+
+  it('drops the diceRows/modalRows KEYS when the new content has none (absent, never [])', () => {
+    // Absent is what the bake reads as "fall back to stock" — writing [] would
+    // be a third state the resolver does not distinguish.
+    const { config, copyId } = withOfficialCard();
+    expect(config.teacherCopies[copyId].diceRows).toHaveLength(1);
+    replaceCardContent(config, copyId, {
+      rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'x' }],
+      diceRows: [],
+      modalRows: [],
+    });
+    expect('diceRows' in config.teacherCopies[copyId]).toBe(false);
+    expect('modalRows' in config.teacherCopies[copyId]).toBe(false);
+  });
+
+  it('never touches logicRows — the content editor has no logic-question fields', () => {
+    const { config, copyId } = withOfficialCard();
+    config.teacherCopies[copyId].logicRows = [
+      { visit_type: 'First', question_id: 'Q1', question_text: 'Did the scope change?', yes_reason: 'y', no_reason: 'n' },
+    ];
+    replaceCardContent(config, copyId, {
+      rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'x' }],
+    });
+    expect(config.teacherCopies[copyId].logicRows).toHaveLength(1);
+  });
+
+  it('refuses an empty row set rather than writing a card that says nothing', () => {
+    const { config, copyId } = withOfficialCard();
+    const before = JSON.stringify(config);
+    expect(() => replaceCardContent(config, copyId, { rows: [] })).toThrow(/must hold at least one row/);
+    expect(() => replaceCardContent(config, 'no_such_copy', { rows: stockRows })).toThrow(/No such copy/);
+    expect(JSON.stringify(config)).toBe(before);
+  });
+
+  it('leaves copiedFromStockVersion alone when no stockVersion is given', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, stockVersion: 'v1', tier: 'official' });
+    replaceCardContent(config, copyId, { rows: stockRows });
+    expect(config.teacherCopies[copyId].copiedFromStockVersion).toBe('v1');
   });
 });
 

@@ -117,6 +117,95 @@ describe('buildCatalog', () => {
     expect(catalog.edges.some((e: any) => e.from === 'P-LOCK')).toBe(false);
   });
 
+  // ===== Card Library stage 1: entry.dice must follow the PLAYED CARD =====
+  // The breadcrumb from the dice slice, now due. entry.dice used to be
+  // computed from the STOCK dice table alone, so once a card could carry its
+  // own dice rows the catalog kept reporting stock's answer to "is this a
+  // dice space?" — the same parallel-systems drift as the 2026-06-20
+  // requires_dice_roll-vs-Next Step bug. It drives the editor's own "pick an
+  // edge" dropdown, so a stale answer offers edges that do not exist.
+  describe("entry.dice consults the played card's dice, not stock's", () => {
+    const CARD_HEADER =
+      'space_name,phase,visit_type,Title,Event,Action,Outcome,Time,Fee,space_1,space_2,' +
+      'requires_dice_roll,is_path_choice_lock_point';
+    const CARD_STOCK = [
+      CARD_HEADER,
+      'P-ROLL,REVIEW,First,Roll,Roll it,Go,Done,0,0,,,Yes,No',
+      'P-FIXED,REVIEW,First,Fixed,Walk,Go,Done,0,0,P-LEFT,,No,No',
+      'P-LEFT,REVIEW,First,Left,L,Go,Done,0,0,P-END,,No,No',
+      'P-RIGHT,REVIEW,First,Right,R,Go,Done,0,0,P-END,,No,No',
+      'P-END,DONE,First,End,Fin,Go,Done,0,0,,,No,No',
+    ].join('\n') + '\n';
+    const CARD_DICE =
+      'space_name,die_roll,visit_type,1,2,3,4,5,6\n' +
+      'P-ROLL,Next Step,First,P-LEFT,P-LEFT,P-LEFT,P-LEFT,P-LEFT,P-LEFT\n';
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const playing = (slot: string, diceRows: any[]): any => {
+      const config = baseConfig();
+      config.teacherCopies['card_1'] = {
+        slot, rows: {}, owner: { tier: 'official', id: null }, diceRows,
+      };
+      config.slots[slot] = { used: true, card: 'card_1' };
+      return config;
+    };
+
+    it("uses the card's destinations where stock's would have been wrong", () => {
+      const config = playing('P-ROLL', [
+        { space_name: 'P-ROLL', die_roll: 'Next Step', visit_type: 'First',
+          '1': 'P-RIGHT', '2': 'P-RIGHT', '3': 'P-RIGHT', '4': 'P-RIGHT', '5': 'P-RIGHT', '6': 'P-RIGHT' },
+      ]);
+      const catalog = buildCatalog({ stockSpacesCsv: CARD_STOCK, diceCsv: CARD_DICE, config }) as any;
+      expect(catalog.edges).toContainEqual({ from: 'P-ROLL', to: 'P-RIGHT', dice: true });
+      // Stock's destination is gone — the card replaced it wholesale, exactly
+      // as applyConfigToDiceCsv does at bake time.
+      expect(catalog.edges.some((e: any) => e.from === 'P-ROLL' && e.to === 'P-LEFT')).toBe(false);
+    });
+
+    it('a card whose rolls are all EFFECTS makes the space NOT a dice space', () => {
+      // Stock says P-ROLL routes by dice. The card's only roll is a fee, so it
+      // does not — and with no dice movement it falls back to its fixed
+      // space_N cells (empty here), which is the honest answer.
+      const config = playing('P-ROLL', [
+        { space_name: 'P-ROLL', die_roll: 'Fees Paid', visit_type: 'First',
+          '1': '$1', '2': '$1', '3': '$2', '4': '$2', '5': '$3', '6': '$3' },
+      ]);
+      const catalog = buildCatalog({ stockSpacesCsv: CARD_STOCK, diceCsv: CARD_DICE, config }) as any;
+      expect(catalog.edges.some((e: any) => e.from === 'P-ROLL')).toBe(false);
+    });
+
+    it('a card can ADD dice movement to a space stock routes with a fixed edge', () => {
+      const config = playing('P-FIXED', [
+        { space_name: 'P-FIXED', die_roll: 'Next Step', visit_type: 'First',
+          '1': 'P-LEFT', '2': 'P-LEFT', '3': 'P-LEFT', '4': 'P-RIGHT', '5': 'P-RIGHT', '6': 'P-RIGHT' },
+      ]);
+      const catalog = buildCatalog({ stockSpacesCsv: CARD_STOCK, diceCsv: CARD_DICE, config }) as any;
+      expect(catalog.edges).toContainEqual({ from: 'P-FIXED', to: 'P-LEFT', dice: true });
+      expect(catalog.edges).toContainEqual({ from: 'P-FIXED', to: 'P-RIGHT', dice: true });
+    });
+
+    it('a card WITHOUT dice rows of its own leaves stock’s answer alone', () => {
+      const config = baseConfig();
+      config.teacherCopies['card_1'] = { slot: 'P-ROLL', rows: {}, owner: { tier: 'official', id: null } };
+      config.slots['P-ROLL'] = { used: true, card: 'card_1' };
+      const catalog = buildCatalog({ stockSpacesCsv: CARD_STOCK, diceCsv: CARD_DICE, config }) as any;
+      expect(catalog.edges).toContainEqual({ from: 'P-ROLL', to: 'P-LEFT', dice: true });
+    });
+
+    it('an UNPLAYED card never affects the answer (single-pointer lookup)', () => {
+      const config = baseConfig();
+      config.teacherCopies['card_1'] = {
+        slot: 'P-ROLL', rows: {}, owner: { tier: 'official', id: null },
+        diceRows: [{ space_name: 'P-ROLL', die_roll: 'Next Step', visit_type: 'First',
+          '1': 'P-RIGHT', '2': 'P-RIGHT', '3': 'P-RIGHT', '4': 'P-RIGHT', '5': 'P-RIGHT', '6': 'P-RIGHT' }],
+      };
+      // The slot exists but does NOT point at the card.
+      config.slots['P-ROLL'] = { used: true };
+      const catalog = buildCatalog({ stockSpacesCsv: CARD_STOCK, diceCsv: CARD_DICE, config }) as any;
+      expect(catalog.edges).toContainEqual({ from: 'P-ROLL', to: 'P-LEFT', dice: true });
+    });
+  });
+
   it('reports which slot plays a teacher copy (and ignores dangling card refs)', () => {
     const config = baseConfig();
     config.teacherCopies['beta_middle_copy_1'] = { slot: 'BETA-MIDDLE', rows: {} };

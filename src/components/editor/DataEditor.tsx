@@ -7,6 +7,7 @@ import { SpaceEditor } from './SpaceEditor';
 import { PlayerPreviewPanel } from './PlayerPreviewPanel';
 import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
 import { exportSpacesCSV, exportDiceRollCSV, exportModalConfigCSV, parseModalConfigCSV, parseSpacesCSV, parseDiceRollCSV } from './utils/csvExport';
+import { DEFAULT_INSTANCE_ID } from '../board/saveBoardPosition';
 import { colors } from '../../styles/theme';
 
 interface DataEditorProps {
@@ -268,7 +269,14 @@ function DataEditorContent({ onClose }: DataEditorProps): JSX.Element {
       const diceRollCSV = exportDiceRollCSV(diceRollData);
       const modalConfigCSV = exportModalConfigCSV(modalConfigData);
 
-      const response = await fetch(`${backendURL}/api/admin/save-source-files`, {
+      // Saves go to the CLASSROOM, not to the master CSVs (Card Library
+      // stage 1, docs/core/CARD_LIBRARY_DESIGN.md). The old target,
+      // /api/admin/save-source-files, wrote the writable stock — which the
+      // server re-seeds from the shipped copy on every restart, so every edit
+      // saved here quietly went away. Same three CSVs, same password header:
+      // the server works out which spaces actually changed and stores just
+      // those as cards, which survive restarts and deploys by construction.
+      const response = await fetch(`${backendURL}/api/instances/${DEFAULT_INSTANCE_ID}/content`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
         body: JSON.stringify({ spacesCSV, diceRollCSV, modalConfigCSV })
@@ -287,11 +295,26 @@ function DataEditorContent({ onClose }: DataEditorProps): JSX.Element {
         } catch (reloadErr) {
           console.warn('[DataEditor] Save succeeded but in-memory reload failed:', reloadErr);
         }
-        setSaveStatus({ type: 'success', message: `Saved! ${data.files.length} files regenerated.` });
+        // Say what actually happened, in plain language. The old message
+        // ("N files regenerated") described machinery, and described it
+        // wrongly now — nothing is regenerated, the changed spaces are saved
+        // into the classroom. The counts come from the server's own diff.
+        const saved = (data.created?.length ?? 0) + (data.updated?.length ?? 0);
+        setSaveStatus({
+          type: 'success',
+          message: saved === 0
+            ? 'Saved. Nothing had changed, so nothing needed storing.'
+            : `Saved! ${saved} ${saved === 1 ? 'space is' : 'spaces are'} stored in the classroom — `
+              + 'these stay put through restarts and updates.',
+        });
         // Auto-clear success message after 4 seconds
         setTimeout(() => setSaveStatus(prev => prev?.type === 'success' ? null : prev), 4000);
       } else {
-        const base = data.error || 'Save failed';
+        // A rejected save comes back one of two ways: the per-step diagnostic
+        // (step + detail) this has always shown, or — new with the classroom
+        // save path — a 422 carrying the validation report, whose first error
+        // says in words what is wrong with the edit. Both are surfaced.
+        const base = data.error || data.report?.errors?.[0]?.message || 'Save failed';
         const detail = data.detail ? ` (${data.step || 'unknown'}: ${data.detail})` : '';
         setSaveStatus({ type: 'error', message: base + detail });
       }
