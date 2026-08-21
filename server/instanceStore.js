@@ -237,18 +237,21 @@ export function loadInstance(instancesRoot, id) {
       copy.owner = { tier: 'individual', id: parsed.meta?.owner || null };
     }
   }
-  // DELIBERATELY NOT BACKFILLED: `diceRows` (Card Library stage 1b).
+  // DELIBERATELY NOT BACKFILLED: `diceRows` / `modalRows` / `logicRows`
+  // (Card Library stage 1b, parts i and ii).
   //
   // `owner` above is backfilled because a card without one has no defensible
   // meaning — every card has an owner, the field just didn't exist yet.
-  // `diceRows` is the opposite: ABSENT is a meaning, and it is the meaning
-  // that keeps this whole slice inert. The bake reads absent as "this card
-  // does not own its slot's dice — use stock's rows", which is exactly what
-  // every card written before stage 1b was playing. Backfilling from current
-  // stock would freeze today's dice onto old cards, so a later stock dice fix
-  // would silently stop reaching them — the opposite of the drift rule
-  // (system corrections keep flowing until the teacher edits that thing).
-  // Absent must keep meaning "fall back to stock" forever. Do not add one.
+  // These three fields are the opposite: ABSENT is a meaning, and it is the
+  // meaning that keeps this whole slice inert. The bake reads absent as
+  // "this card does not own its slot's dice/modal copy/logic wording — use
+  // stock's", which is exactly what every card written before stage 1b was
+  // playing. Backfilling from current stock would freeze today's content onto
+  // old cards, so a later stock correction (a dice fix, a reworded modal
+  // button, a clarified logic question) would silently stop reaching them —
+  // the opposite of the drift rule (system corrections keep flowing until the
+  // teacher edits that thing themselves). Absent must keep meaning "fall back
+  // to stock" forever. Do not add a backfill for any of the three.
   return parsed;
 }
 
@@ -515,12 +518,21 @@ export function setSlotUsed(config, spaceName, used, detour) {
  * @param {InstanceConfig} config
  * @param {{ slotName: string, stockRows: Array<Object<string, string>>,
  *   stockDiceRows?: Array<Object<string, string>>,
+ *   stockModalRows?: Array<Object<string, string>>,
+ *   stockLogicRows?: Array<Object<string, string>>,
  *   overrides?: Object<string, Object<string, string>>, stockVersion?: string,
  *   tier?: 'official'|'group'|'individual' }} args
  *   overrides is keyed by visit_type ("First"/"Subsequent").
  *   stockDiceRows is the slot's rows from DiceRoll Info.csv, already parsed
  *   and filtered by the caller (mirrors stockRows, and keeps this module free
  *   of a CSV parser). Stored VERBATIM on the card — see below.
+ *   stockModalRows is the slot's rows from ModalConfig.csv, same parsed/
+ *   filtered-by-caller shape as stockDiceRows. Stored VERBATIM — ModalConfig
+ *   carries no routing (CARD_LIBRARY_DESIGN.md "What a card owns"), so a
+ *   straight copy is safe.
+ *   stockLogicRows is the slot's rows from LOGIC_QUESTIONS.csv, same shape
+ *   again. Only WORDING is retained — see the storage block below; this is
+ *   never a verbatim copy like the other two.
  *   tier is the new card's ownership tier, defaulting to 'individual' (a
  *   classroom's own override — what every caller before Card Library stage 1
  *   meant). The maintainer's own content edits are written 'official': he is
@@ -529,7 +541,10 @@ export function setSlotUsed(config, spaceName, used, detour) {
  *   ADMIN act — the caller enforces that, this function only records it.
  * @returns {string} the new copy id
  */
-export function createTeacherCopy(config, { slotName, stockRows, stockDiceRows, overrides = {}, stockVersion, tier = 'individual' }) {
+export function createTeacherCopy(config, {
+  slotName, stockRows, stockDiceRows, stockModalRows, stockLogicRows,
+  overrides = {}, stockVersion, tier = 'individual',
+}) {
   if (!VALID_OWNER_TIERS.has(tier)) {
     throw new Error(`Invalid tier "${tier}": must be one of ${[...VALID_OWNER_TIERS].join(', ')}`);
   }
@@ -579,6 +594,41 @@ export function createTeacherCopy(config, { slotName, stockRows, stockDiceRows, 
     config.teacherCopies[copyId].diceRows = stockDiceRows.map(diceRow => ({
       ...diceRow,
       space_name: slotName, // slot names are the only space identifiers
+    }));
+  }
+  // A card also owns its slot's modal copy (CARD_LIBRARY_DESIGN.md stage 1b
+  // part ii): the space's ModalConfig rows, VERBATIM — same treatment as
+  // diceRows above. ModalConfig carries no routing (see "What a card owns"),
+  // so a straight verbatim copy is safe.
+  //
+  // ABSENT, never []. Same rationale as diceRows: a space with no modal rows
+  // gets no modalRows key at all, and absent is what the bake reads as "fall
+  // back to stock".
+  if (Array.isArray(stockModalRows) && stockModalRows.length > 0) {
+    config.teacherCopies[copyId].modalRows = stockModalRows.map(modalRow => ({
+      ...modalRow,
+      space_name: slotName, // slot names are the only space identifiers
+    }));
+  }
+  // A card owns its slot's logic-question WORDING (CARD_LIBRARY_DESIGN.md
+  // stage 1b part ii, "Logic questions: wording, not routing") — never the
+  // routing. Only the two key fields needed to match a stock row at bake time
+  // (visit_type, question_id) plus the three wording fields are stored.
+  // question_id/yes_target/no_target/auto_answer_from are NOT copied here —
+  // deliberately, not just by convention: a card built from this shape
+  // literally cannot express a routing change, so no validation rule is ever
+  // needed to forbid one. (No space_name either, unlike diceRows/modalRows —
+  // matching at bake time is by slot + (visit_type, question_id), which is
+  // all a wording-only override needs.)
+  //
+  // ABSENT, never []. Same rationale as diceRows/modalRows.
+  if (Array.isArray(stockLogicRows) && stockLogicRows.length > 0) {
+    config.teacherCopies[copyId].logicRows = stockLogicRows.map(logicRow => ({
+      visit_type: logicRow.visit_type || '',
+      question_id: logicRow.question_id || '',
+      question_text: logicRow.question_text || '',
+      yes_reason: logicRow.yes_reason || '',
+      no_reason: logicRow.no_reason || '',
     }));
   }
   config.slots[slotName] = { used: true, ...config.slots[slotName], card: copyId };

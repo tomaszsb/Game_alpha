@@ -592,6 +592,115 @@ describe('card-owned dice (Card Library stage 1b)', () => {
   });
 });
 
+describe('card-owned modal copy + logic wording (Card Library stage 1b part ii)', () => {
+  const feeReviewStockRows = [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review' }];
+
+  it('stores the slot’s ModalConfig rows VERBATIM on the card', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const stockModalRows = [
+      { space_name: 'FEE-REVIEW', visit_type: 'First', effect_action: 'draw_B',
+        modal_title: '', modal_description: '', modal_button_label: 'Accept Bank Loan',
+        modal_summary: '', dice_value: '' },
+    ];
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows: feeReviewStockRows, stockModalRows });
+    const copy = config.teacherCopies[copyId];
+    expect(copy.modalRows).toHaveLength(1);
+    // Every column survives, untouched — no interpretation, no reshaping.
+    expect(copy.modalRows[0]).toEqual(stockModalRows[0]);
+    // Stored, not aliased.
+    copy.modalRows[0].modal_button_label = 'CHANGED';
+    expect(stockModalRows[0].modal_button_label).toBe('Accept Bank Loan');
+  });
+
+  it('a space with no ModalConfig rows gets NO modalRows key at all — absent, not []', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    for (const arg of [undefined, [] as unknown[]]) {
+      const copyId = createTeacherCopy(config, {
+        slotName: 'FEE-REVIEW', stockRows: feeReviewStockRows, stockModalRows: arg as never,
+      });
+      const copy = config.teacherCopies[copyId];
+      expect(copy.modalRows).toBeUndefined();
+      expect(Object.prototype.hasOwnProperty.call(copy, 'modalRows')).toBe(false);
+    }
+  });
+
+  it('pins space_name on modal rows to the slot, like dice rows', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, {
+      slotName: 'FEE-REVIEW',
+      stockRows: feeReviewStockRows,
+      stockModalRows: [{ space_name: 'sneaky_rename', visit_type: 'First' }],
+    });
+    expect(config.teacherCopies[copyId].modalRows[0].space_name).toBe('FEE-REVIEW');
+  });
+
+  it('stores ONLY wording fields from LOGIC_QUESTIONS rows, never routing', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const stockLogicRows = [
+      { space_name: 'FEE-REVIEW', visit_type: 'First', question_id: 'Q1',
+        question_text: 'Did you pass before?', yes_target: 'Q2', no_target: 'Q3',
+        auto_answer_from: 'approved_before', yes_reason: 'Because yes.', no_reason: 'Because no.' },
+    ];
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows: feeReviewStockRows, stockLogicRows });
+    const copy = config.teacherCopies[copyId];
+    expect(copy.logicRows).toEqual([
+      { visit_type: 'First', question_id: 'Q1', question_text: 'Did you pass before?',
+        yes_reason: 'Because yes.', no_reason: 'Because no.' },
+    ]);
+    // Structural to the field set, not just to this fixture's values: routing
+    // columns literally never make it onto the stored object.
+    expect(copy.logicRows[0]).not.toHaveProperty('yes_target');
+    expect(copy.logicRows[0]).not.toHaveProperty('no_target');
+    expect(copy.logicRows[0]).not.toHaveProperty('auto_answer_from');
+    expect(copy.logicRows[0]).not.toHaveProperty('space_name');
+  });
+
+  it('a space with no LOGIC_QUESTIONS rows gets NO logicRows key at all — absent, not []', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    for (const arg of [undefined, [] as unknown[]]) {
+      const copyId = createTeacherCopy(config, {
+        slotName: 'FEE-REVIEW', stockRows: feeReviewStockRows, stockLogicRows: arg as never,
+      });
+      const copy = config.teacherCopies[copyId];
+      expect(copy.logicRows).toBeUndefined();
+      expect(Object.prototype.hasOwnProperty.call(copy, 'logicRows')).toBe(false);
+    }
+  });
+
+  it('loadInstance does NOT backfill modalRows/logicRows — absent must keep meaning "fall back to stock"', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows: feeReviewStockRows });
+    const copyId = Object.keys(config.teacherCopies)[0];
+    saveInstance(root, config);
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.teacherCopies[copyId].modalRows).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(loaded.teacherCopies[copyId], 'modalRows')).toBe(false);
+    expect(loaded.teacherCopies[copyId].logicRows).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(loaded.teacherCopies[copyId], 'logicRows')).toBe(false);
+  });
+
+  it('round-trips modalRows and logicRows through save/load', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const modalRow = { space_name: 'FEE-REVIEW', visit_type: 'First', effect_action: 'draw_B',
+      modal_title: '', modal_description: '', modal_button_label: 'Accept', modal_summary: '', dice_value: '' };
+    const logicRow = { space_name: 'FEE-REVIEW', visit_type: 'First', question_id: 'Q1',
+      question_text: 'Q?', yes_target: 'Q2', no_target: 'Q3', auto_answer_from: '',
+      yes_reason: 'Y', no_reason: 'N' };
+    const copyId = createTeacherCopy(config, {
+      slotName: 'FEE-REVIEW',
+      stockRows: feeReviewStockRows,
+      stockModalRows: [modalRow],
+      stockLogicRows: [logicRow],
+    });
+    saveInstance(root, config);
+    const loaded = loadInstance(root, 'classroom-1')!.teacherCopies[copyId];
+    expect(loaded.modalRows).toEqual([modalRow]);
+    expect(loaded.logicRows).toEqual([
+      { visit_type: 'First', question_id: 'Q1', question_text: 'Q?', yes_reason: 'Y', no_reason: 'N' },
+    ]);
+  });
+});
+
 describe('card ownership (Card Library stage 1, 2026-08-21)', () => {
   it('loadInstance backfills owner on a copy saved before the field existed', () => {
     const config = createInstance(root, { id: 'classroom-1' });

@@ -15,6 +15,10 @@ import {
   applyConfigToDiceCsv,
   applyCopyDiceToOutcomesCsv,
   copyDiceRowsBySpace,
+  applyConfigToModalCsv,
+  copyModalRowsBySpace,
+  applyCopyLogicToQuestionsCsv,
+  copyLogicRowsBySpace,
   scrubSpaceReferences,
   bakeInstance,
   ensureFreshBake,
@@ -819,5 +823,175 @@ describe('Stage 1b bake: card-owned dice outcomes', () => {
   it('is a pure pass-through when no card in the classroom owns dice', () => {
     const config: any = { slots: {}, teacherCopies: {}, detours: {} };
     expect(applyCopyDiceToOutcomesCsv(P2_DICE_OUTCOMES, config)).toBe(P2_DICE_OUTCOMES);
+  });
+});
+
+// ===== Stage 1b part ii: card-owned modal copy + logic-question wording =====
+
+const P2_MODAL =
+  'space_name,visit_type,effect_action,modal_title,modal_description,modal_button_label,modal_summary,dice_value\n' +
+  'BETA-MIDDLE,First,draw_B,,,Accept Bank Loan,,\n' +
+  'BETA-MIDDLE,Subsequent,draw_B,,,Accept Bank Loan,,\n';
+
+const P2_LOGIC =
+  'space_name,visit_type,question_id,question_text,yes_target,no_target,auto_answer_from,yes_reason,no_reason\n' +
+  'GAMMA-FORK,First,Q1,Did you pass before?,DELTA-LEFT,EPSILON-RIGHT,approved_before,Yes reason (stock).,No reason (stock).\n';
+
+function setupPhase2StockWithModalLogic() {
+  setupPhase2Stock();
+  fs.writeFileSync(path.join(stockDir, 'SOURCE_FILES', 'ModalConfig.csv'), P2_MODAL);
+  fs.writeFileSync(path.join(stockDir, 'CLEAN_FILES', 'LOGIC_QUESTIONS.csv'), P2_LOGIC);
+}
+
+describe('Stage 1b part ii bake: card-owned modal copy', () => {
+  it('a card with modalRows overrides stock at bake', () => {
+    setupPhase2StockWithModalLogic();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    const stockVersion = computeStockVersion(stockDir);
+
+    const copyId = createTeacherCopy(config, {
+      slotName: 'BETA-MIDDLE',
+      stockRows: [{ space_name: 'BETA-MIDDLE', visit_type: 'First', Title: 'Middle' }],
+      stockModalRows: parseCsvWithHeaders(P2_MODAL).filter(r => r.space_name === 'BETA-MIDDLE'),
+      stockVersion,
+    });
+    config.teacherCopies[copyId].modalRows = config.teacherCopies[copyId].modalRows.map(
+      (row: Record<string, string>) => ({ ...row, modal_button_label: 'Take the Loan' })
+    );
+
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    const modal = parseCsvWithHeaders(readResolved('SOURCE_FILES/ModalConfig.csv'));
+    const beta = modal.filter(r => r.space_name === 'BETA-MIDDLE');
+    expect(beta).toHaveLength(2);
+    expect(beta.every(r => r.modal_button_label === 'Take the Loan')).toBe(true);
+
+    // Slot names stay the only identifiers.
+    expect(readResolved('SOURCE_FILES/ModalConfig.csv')).not.toContain(copyId);
+  });
+
+  it('a card WITHOUT modalRows or logicRows changes nothing — byte-identical to a bake with no copy at all', () => {
+    setupPhase2StockWithModalLogic();
+    const stockVersion = computeStockVersion(stockDir);
+
+    const plain = createInstance(instancesRoot, { id: 'classroom-1' });
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config: plain, stockVersion });
+    const baselineModal = readResolved('SOURCE_FILES/ModalConfig.csv');
+    const baselineLogic = readResolved('CLEAN_FILES/LOGIC_QUESTIONS.csv');
+
+    const config = createInstance(instancesRoot, { id: 'classroom-2' });
+    createTeacherCopy(config, {
+      slotName: 'GAMMA-FORK',
+      stockRows: [{ space_name: 'GAMMA-FORK', visit_type: 'First', Title: 'Fork' }],
+      overrides: { First: { Title: 'Reworded fork' } },
+      stockVersion,
+    });
+    expect(config.teacherCopies['gamma_fork_copy_1'].modalRows).toBeUndefined();
+    expect(config.teacherCopies['gamma_fork_copy_1'].logicRows).toBeUndefined();
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    const withCopy = (rel: string) =>
+      fs.readFileSync(path.join(resolvedDir(instancesRoot, 'classroom-2'), rel), 'utf-8');
+    expect(withCopy('SOURCE_FILES/ModalConfig.csv')).toBe(baselineModal);
+    expect(withCopy('CLEAN_FILES/LOGIC_QUESTIONS.csv')).toBe(baselineLogic);
+    // The Spaces.csv override still landed — the copy is doing its old job.
+    expect(withCopy('SOURCE_FILES/Spaces.csv')).toContain('Reworded fork');
+  });
+
+  it('applyConfigToModalCsv is a pure pass-through when no card in the classroom owns modal copy', () => {
+    const config: any = { slots: {}, teacherCopies: {}, detours: {} };
+    expect(applyConfigToModalCsv(P2_MODAL, config)).toBe(P2_MODAL);
+  });
+
+  it('applyConfigToModalCsv: only the card the slot is PLAYING owns modal copy; an unplayed copy is ignored', () => {
+    const config: any = {
+      slots: { 'BETA-MIDDLE': { used: true, card: 'played' } },
+      teacherCopies: {
+        played: { slot: 'BETA-MIDDLE', rows: {} },
+        shelved: { slot: 'BETA-MIDDLE', rows: {}, modalRows: [{ space_name: 'BETA-MIDDLE', visit_type: 'First', modal_button_label: 'NOPE' }] },
+      },
+    };
+    expect(copyModalRowsBySpace(config).size).toBe(0);
+    expect(applyConfigToModalCsv(P2_MODAL, config)).toBe(P2_MODAL);
+  });
+});
+
+describe('Stage 1b part ii bake: card-owned logic-question wording (routing stays fixed)', () => {
+  it('a card with logicRows changes wording but provably leaves yes_target/no_target at stock values', () => {
+    setupPhase2StockWithModalLogic();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    const stockVersion = computeStockVersion(stockDir);
+
+    const stockLogicRows = parseCsvWithHeaders(P2_LOGIC).filter(r => r.space_name === 'GAMMA-FORK');
+    const copyId = createTeacherCopy(config, {
+      slotName: 'GAMMA-FORK',
+      stockRows: [{ space_name: 'GAMMA-FORK', visit_type: 'First', Title: 'Fork' }],
+      stockLogicRows,
+      stockVersion,
+    });
+    // The teacher rewords the question and both reasons for their classroom.
+    config.teacherCopies[copyId].logicRows = [
+      { visit_type: 'First', question_id: 'Q1', question_text: 'Did you pass FDNY before, teacher edit?',
+        yes_reason: 'Yes reason (teacher).', no_reason: 'No reason (teacher).' },
+    ];
+
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    const questions = parseCsvWithHeaders(readResolved('CLEAN_FILES/LOGIC_QUESTIONS.csv'));
+    const q1 = questions.find(r => r.space_name === 'GAMMA-FORK' && r.question_id === 'Q1');
+    expect(q1).toBeDefined();
+    // Wording changed.
+    expect(q1!.question_text).toBe('Did you pass FDNY before, teacher edit?');
+    expect(q1!.yes_reason).toBe('Yes reason (teacher).');
+    expect(q1!.no_reason).toBe('No reason (teacher).');
+    // Routing did NOT — a card cannot express a routing change, structurally.
+    expect(q1!.yes_target).toBe('DELTA-LEFT');
+    expect(q1!.no_target).toBe('EPSILON-RIGHT');
+    expect(q1!.auto_answer_from).toBe('approved_before');
+
+    // Slot names stay the only identifiers.
+    expect(readResolved('CLEAN_FILES/LOGIC_QUESTIONS.csv')).not.toContain(copyId);
+  });
+
+  it('a card logicRows entry with no matching stock row is ignored — no row invented', () => {
+    const config: any = {
+      slots: { 'GAMMA-FORK': { used: true, card: 'c1' } },
+      teacherCopies: {
+        c1: {
+          slot: 'GAMMA-FORK',
+          rows: {},
+          logicRows: [
+            // Matches the real stock Q1.
+            { visit_type: 'First', question_id: 'Q1', question_text: 'Reworded.', yes_reason: 'Y', no_reason: 'N' },
+            // No such stock question — must be silently ignored, not appended.
+            { visit_type: 'First', question_id: 'Q99', question_text: 'Invented question', yes_reason: 'Y', no_reason: 'N' },
+          ],
+        },
+      },
+    };
+    const out = parseCsvWithHeaders(applyCopyLogicToQuestionsCsv(P2_LOGIC, config));
+    expect(out).toHaveLength(1); // still just the one stock row — nothing invented
+    expect(out[0].question_text).toBe('Reworded.');
+    expect(out.find(r => r.question_id === 'Q99')).toBeUndefined();
+  });
+
+  it('applyCopyLogicToQuestionsCsv is a pure pass-through when no card in the classroom owns logic wording', () => {
+    const config: any = { slots: {}, teacherCopies: {} };
+    expect(applyCopyLogicToQuestionsCsv(P2_LOGIC, config)).toBe(P2_LOGIC);
+  });
+
+  it('applyCopyLogicToQuestionsCsv: only the card the slot is PLAYING owns logic wording; an unplayed copy is ignored', () => {
+    const config: any = {
+      slots: { 'GAMMA-FORK': { used: true, card: 'played' } },
+      teacherCopies: {
+        played: { slot: 'GAMMA-FORK', rows: {} },
+        shelved: {
+          slot: 'GAMMA-FORK', rows: {},
+          logicRows: [{ visit_type: 'First', question_id: 'Q1', question_text: 'NOPE', yes_reason: '', no_reason: '' }],
+        },
+      },
+    };
+    expect(copyLogicRowsBySpace(config).size).toBe(0);
+    expect(applyCopyLogicToQuestionsCsv(P2_LOGIC, config)).toBe(P2_LOGIC);
   });
 });

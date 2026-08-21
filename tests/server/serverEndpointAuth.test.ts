@@ -215,7 +215,11 @@ describe('server.js endpoint auth wiring', () => {
   it('an omitted tier still reaches createTeacherCopy unchanged (Classroom Setup untouched)', () => {
     // The tier is passed straight through; instanceStore defaults it to
     // 'individual', which is exactly what every pre-stage-1 caller meant.
-    expect(copiesRouteBody()).toContain('stockVersion, tier }');
+    // (Formatting shifted to multi-line when stage 1b part ii added
+    // stockModalRows/stockLogicRows alongside it — the substring below still
+    // pins "tier" as its own unmodified shorthand property, just with the
+    // trailing comma a multi-line arg list gets instead of the closing brace.)
+    expect(copiesRouteBody()).toContain('stockVersion, tier,');
     const store = fs.readFileSync(
       path.resolve(__dirname, '../../server/instanceStore.js'),
       'utf8'

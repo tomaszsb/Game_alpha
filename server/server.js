@@ -1259,7 +1259,16 @@ function readStockForValidation() {
   // Dice table feeds 4b dice-edge validation + the catalog's dice-edge list.
   const dicePath = path.join(writableSourceDir, 'DiceRoll Info.csv');
   const diceCsv = fs.existsSync(dicePath) ? fs.readFileSync(dicePath, 'utf-8') : null;
-  return { stockSpacesCsv, pathChoiceCsv, diceCsv, stockVersion: computeStockVersion(writableDataDir) };
+  // Card Library stage 1b part ii: a teacher copy also captures its slot's
+  // ModalConfig and LOGIC_QUESTIONS rows (see the /copies handler below).
+  const modalPath = path.join(writableSourceDir, 'ModalConfig.csv');
+  const modalCsv = fs.existsSync(modalPath) ? fs.readFileSync(modalPath, 'utf-8') : null;
+  const logicPath = path.join(writableCleanDir, 'LOGIC_QUESTIONS.csv');
+  const logicCsv = fs.existsSync(logicPath) ? fs.readFileSync(logicPath, 'utf-8') : null;
+  return {
+    stockSpacesCsv, pathChoiceCsv, diceCsv, modalCsv, logicCsv,
+    stockVersion: computeStockVersion(writableDataDir),
+  };
 }
 
 // Shared flow for catalog mutations: auth → mutate the loaded config →
@@ -1392,7 +1401,7 @@ app.post('/api/instances/:id/copies', (req, res) => {
     }
   }
   handleInstanceMutation(req, res, (config) => {
-    const { stockSpacesCsv, diceCsv, stockVersion } = readStockForValidation();
+    const { stockSpacesCsv, diceCsv, modalCsv, logicCsv, stockVersion } = readStockForValidation();
     const stockRows = parseCsvWithHeaders(stockSpacesCsv).filter(r => r.space_name === slot);
     if (stockRows.length === 0) {
       const err = new Error(`No such space in stock: "${slot}"`);
@@ -1406,7 +1415,19 @@ app.post('/api/instances/:id/copies', (req, res) => {
     const stockDiceRows = diceCsv
       ? parseCsvWithHeaders(diceCsv).filter(r => r.space_name === slot)
       : [];
-    const copyId = createTeacherCopy(config, { slotName: slot, stockRows, stockDiceRows, overrides, stockVersion, tier });
+    // Same treatment for modal copy and logic-question wording (stage 1b
+    // part ii). Empty filters yield [] → createTeacherCopy writes no key at
+    // all for either, same absent-means-stock rule.
+    const stockModalRows = modalCsv
+      ? parseCsvWithHeaders(modalCsv).filter(r => r.space_name === slot)
+      : [];
+    const stockLogicRows = logicCsv
+      ? parseCsvWithHeaders(logicCsv).filter(r => r.space_name === slot)
+      : [];
+    const copyId = createTeacherCopy(config, {
+      slotName: slot, stockRows, stockDiceRows, stockModalRows, stockLogicRows,
+      overrides, stockVersion, tier,
+    });
     return { copyId, slot, tier: config.teacherCopies[copyId].owner.tier };
   });
 });

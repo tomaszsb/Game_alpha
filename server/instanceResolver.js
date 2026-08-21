@@ -26,6 +26,7 @@ const STAMP_FILE = 'bake-stamp.json';
 const SPACES_CSV = 'Spaces.csv';
 const DICE_CSV = 'DiceRoll Info.csv';
 const MODAL_CSV = 'ModalConfig.csv';
+const LOGIC_CSV = 'LOGIC_QUESTIONS.csv';
 
 /**
  * Deterministic identity of the stock deck: hash of every file under
@@ -459,6 +460,128 @@ export function applyCopyDiceToOutcomesCsv(outcomesCsv, config) {
 }
 
 /**
+ * Cards that own their slot's modal copy (CARD_LIBRARY_DESIGN.md stage 1b
+ * part ii). Same single-pointer lookup as copyDiceRowsBySpace: only the card
+ * a slot is actually PLAYING counts, and only when it carries a `modalRows`
+ * array. Absent (every card written before this slice) means "no modal copy
+ * of its own — fall back to stock".
+ * @param {import('./instanceStore.js').InstanceConfig} config
+ * @returns {Map<string, Array<Object<string, string>>>} space name → modal rows
+ */
+export function copyModalRowsBySpace(config) {
+  const byName = new Map();
+  const slots = config.slots || {};
+  const copies = config.teacherCopies || {};
+  for (const [name, slot] of Object.entries(slots)) {
+    const copy = slot?.card ? copies[slot.card] : null;
+    if (!copy || !Array.isArray(copy.modalRows) || copy.modalRows.length === 0) continue;
+    // Slot name is forced, exactly as copyDiceRowsBySpace does: copy ids
+    // never leak into resolved files.
+    byName.set(name, copy.modalRows.map(row => ({ ...row, space_name: name })));
+  }
+  return byName;
+}
+
+/**
+ * Classroom overlay for ModalConfig.csv: card-owned modal copy replaces
+ * stock's rows for that space, whole-row, exactly analogous to
+ * applyConfigToDiceCsv's card case. Safe as a straight replacement because
+ * ModalConfig carries no routing (CARD_LIBRARY_DESIGN.md "What a card
+ * owns") — unlike the LOGIC_QUESTIONS merge below, there is no per-field
+ * split to make. A card without `modalRows` (every card written before this
+ * slice) leaves its space's stock rows untouched.
+ * @param {string} modalCsv
+ * @param {import('./instanceStore.js').InstanceConfig} config
+ * @returns {string}
+ */
+export function applyConfigToModalCsv(modalCsv, config) {
+  const cardModal = copyModalRowsBySpace(config);
+  if (cardModal.size === 0) return modalCsv;
+  const { headers, rows } = parseWithHeaderLine(modalCsv);
+
+  const out = [];
+  const substituted = new Set();
+  for (const row of rows) {
+    const owned = cardModal.get(row.space_name);
+    if (owned) {
+      if (substituted.has(row.space_name)) continue; // stock rows already replaced
+      substituted.add(row.space_name);
+      out.push(...owned);
+      continue;
+    }
+    out.push(row);
+  }
+  // A card may own modal copy for a space stock has no ModalConfig rows for
+  // at all (stock gained the space after the card, or the card was authored
+  // with a modal stock never had). Those rows land at the end.
+  for (const [name, owned] of cardModal) {
+    if (substituted.has(name)) continue;
+    out.push(...owned);
+  }
+  return toCsv(out, headers);
+}
+
+/**
+ * Cards that own their slot's logic-question WORDING (CARD_LIBRARY_DESIGN.md
+ * stage 1b part ii, "Logic questions: wording, not routing"). Same
+ * single-pointer lookup as copyDiceRowsBySpace/copyModalRowsBySpace: only the
+ * card a slot is actually PLAYING counts, and only when it carries a
+ * `logicRows` array.
+ *
+ * Unlike diceRows/modalRows, entries here carry no space_name — matching at
+ * bake time is by slot (this map's own key) plus (visit_type, question_id),
+ * which is all a wording-only override needs. createTeacherCopy never stores
+ * anything else on a logicRows entry (no yes_target/no_target/
+ * auto_answer_from), so there is nothing here that could express a routing
+ * change even by accident.
+ * @param {import('./instanceStore.js').InstanceConfig} config
+ * @returns {Map<string, Array<{visit_type: string, question_id: string, question_text: string, yes_reason: string, no_reason: string}>>}
+ */
+export function copyLogicRowsBySpace(config) {
+  const byName = new Map();
+  const slots = config.slots || {};
+  const copies = config.teacherCopies || {};
+  for (const [name, slot] of Object.entries(slots)) {
+    const copy = slot?.card ? copies[slot.card] : null;
+    if (!copy || !Array.isArray(copy.logicRows) || copy.logicRows.length === 0) continue;
+    byName.set(name, copy.logicRows);
+  }
+  return byName;
+}
+
+/**
+ * Classroom overlay for LOGIC_QUESTIONS.csv: a per-FIELD overlay, not a row
+ * replacement — the opposite shape from applyConfigToDiceCsv/
+ * applyConfigToModalCsv's whole-row substitution. For each stock row, if the
+ * played card has a logicRows entry matching on (visit_type, question_id),
+ * ONLY question_text/yes_reason/no_reason are replaced; every other column —
+ * crucially yes_target/no_target/auto_answer_from — keeps its stock value,
+ * because the card never stored anything else to begin with (see
+ * copyLogicRowsBySpace). A card entry matching no stock row is ignored: stock's
+ * structure governs which questions exist, a card cannot invent one. A pure
+ * pass-through when no card in this classroom owns logic wording.
+ * @param {string} questionsCsv
+ * @param {import('./instanceStore.js').InstanceConfig} config
+ * @returns {string}
+ */
+export function applyCopyLogicToQuestionsCsv(questionsCsv, config) {
+  const cardLogic = copyLogicRowsBySpace(config);
+  if (cardLogic.size === 0) return questionsCsv;
+  const { headers, rows } = parseWithHeaderLine(questionsCsv);
+
+  const out = rows.map(row => {
+    const owned = cardLogic.get(row.space_name);
+    if (!owned) return row;
+    const match = owned.find(r =>
+      (r.visit_type || '') === (row.visit_type || '') && r.question_id === row.question_id
+    );
+    if (!match) return row;
+    return { ...row, question_text: match.question_text, yes_reason: match.yes_reason, no_reason: match.no_reason };
+  });
+  return toCsv(out, headers);
+}
+
+/**
  * Apply teacher-authored insertions to a curated CLEAN file that processGameData
  * does NOT regenerate (DICE_OUTCOMES.csv above all — the client reads it directly
  * for every dice destination). Unlike a detour (a global token swap), an insertion
@@ -640,8 +763,20 @@ export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion
     //    space in ANY file.
     copyDirFiles(stockCleanDir, newCleanDir);
     const modalPath = path.join(stockSourceDir, MODAL_CSV);
-    const modalCsv = fs.existsSync(modalPath) ? fs.readFileSync(modalPath, 'utf-8') : null;
-    processGameData(effectiveSpacesCsv, effectiveDiceCsv, newCleanDir, modalCsv);
+    const stockModalCsv = fs.existsSync(modalPath) ? fs.readFileSync(modalPath, 'utf-8') : null;
+    // Stage 1b part ii: a card that owns its slot's modal copy must replace
+    // stock's ModalConfig rows before the CSV reaches processGameData (which
+    // only ever consumes it as a lookup — see loadModalConfig — never
+    // regenerates it). Mirrors the Spaces/dice overlays above: written into
+    // the resolved SOURCE_FILES copy too, not just handed to processGameData,
+    // so the resolved output is consistent either way you inspect it. No-op
+    // (same reference back out) when no card in this classroom owns modal
+    // copy, which is every card written before this slice.
+    const effectiveModalCsv = stockModalCsv != null ? applyConfigToModalCsv(stockModalCsv, config) : null;
+    if (effectiveModalCsv != null) {
+      fs.writeFileSync(path.join(newSourceDir, MODAL_CSV), effectiveModalCsv, 'utf-8');
+    }
+    processGameData(effectiveSpacesCsv, effectiveDiceCsv, newCleanDir, effectiveModalCsv);
     // Stage 1b: a card that owns its slot's dice must rewrite the curated
     // DICE_OUTCOMES.csv too, not only the SOURCE table above — processGameData
     // does not generate it and the client reads it directly for destinations.
@@ -657,6 +792,23 @@ export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion
         if (rewritten !== stockOutcomes) fs.writeFileSync(outcomesPath, rewritten, 'utf-8');
       }
     }
+    // Stage 1b part ii: a card that owns its slot's logic-question WORDING
+    // must rewrite the curated LOGIC_QUESTIONS.csv too — also curated (not
+    // generated by processGameData), also only copied through otherwise.
+    // Runs alongside the DICE_OUTCOMES overlay above, before the detour/
+    // insertion scrub pass below. Unlike dice, ordering relative to that scrub
+    // is not load-bearing here: the overlay only ever touches question_text/
+    // yes_reason/no_reason, never the yes_target/no_target destination
+    // columns the scrub rewrites — kept alongside purely for consistency with
+    // the dice case. No-op when no card in this classroom owns logic wording.
+    {
+      const questionsPath = path.join(newCleanDir, LOGIC_CSV);
+      if (fs.existsSync(questionsPath)) {
+        const stockQuestions = fs.readFileSync(questionsPath, 'utf-8');
+        const rewritten = applyCopyLogicToQuestionsCsv(stockQuestions, config);
+        if (rewritten !== stockQuestions) fs.writeFileSync(questionsPath, rewritten, 'utf-8');
+      }
+    }
     // Curated CLEAN files (NOT regenerated above) need two scoped rewrites:
     // detours for switched-off spaces, and insertions for spliced dice edges.
     // DICE_OUTCOMES.csv is the load-bearing one — the client reads it directly
@@ -665,7 +817,7 @@ export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion
     const insertions = config.insertions || {};
     const hasInsertions = Object.keys(insertions).length > 0;
     if (off.size > 0 || hasInsertions) {
-      for (const curated of ['DICE_OUTCOMES.csv', 'DICE_ROLL_INFO.csv', 'LOGIC_QUESTIONS.csv', 'ACTION_TOOLTIPS.csv']) {
+      for (const curated of ['DICE_OUTCOMES.csv', 'DICE_ROLL_INFO.csv', LOGIC_CSV, 'ACTION_TOOLTIPS.csv']) {
         const curatedPath = path.join(newCleanDir, curated);
         if (!fs.existsSync(curatedPath)) continue;
         let text = fs.readFileSync(curatedPath, 'utf-8');

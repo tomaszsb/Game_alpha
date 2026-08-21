@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.21] - 2026-08-21
+
+### Card library stage 1b part ii: a card carries its modal copy and its logic-question wording
+Completes stage 1b. With dice landed in v3.2.20, this brings the last two files the ownership rule assigns to a card — so a card is now complete, holding every piece of authored content keyed to its own space.
+
+`ModalConfig.csv` rows are stored verbatim, like dice: that file carries no routing, so there is nothing to constrain. It is tiny in current data — 2 rows in the whole file, both on `BANK-FUND-REVIEW`.
+
+**Logic-question wording is constrained structurally rather than by policy.** The maintainer's decision was that a card owns what a question *says*, never where yes and no *lead* — a teacher should be able to rewrite a question into their classroom's language without being able to strand a player mid-board. Rather than storing whole rows and adding a validation rule forbidding routing changes, a card stores only `{ visit_type, question_id, question_text, yes_reason, no_reason }`: the two fields needed to match a stock row plus the three wording fields. `yes_target`, `no_target` and `auto_answer_from` are never read from the input at all, so a card cannot express a routing change even if its config were hand-edited. No rule to enforce, nothing to remember, nothing to drift.
+
+The merge follows suit: modal rows substitute whole (mirroring the dice case) and land before `processGameData` consumes the file, while logic questions are a **per-field overlay** — only the three wording fields are replaced on a matching stock row, every other column keeps its stock value, and a card entry matching no stock row is ignored rather than inventing a question. Stock's structure governs which questions exist; the card only changes how they read.
+
+Neither field is backfilled onto existing cards, for the same reason `diceRows` isn't: absent has to keep meaning "fall back to stock" permanently, or a later stock correction — a reworded button, a clarified question — would silently stop reaching older cards. That is the drift rule this whole design rests on, and the comment in `loadInstance` now covers all three fields.
+
+Verified inert the same way, and more strictly than last time: the real `classroom-1` config baked into a scratch instance root under the pre-change code (via `git stash`) and under the new code, compared per-file by sha256 across all 22 resolved files — only `bake-stamp.json`'s `bakedAt` differs, confirmed as wall-clock noise by a second same-code bake. Typecheck clean, production build clean, server suite 406/406 (+15), full suite 2857/2857 (190 files).
+
+### Ops
+`fb:feedback-1781190420890-5a155a1a` flipped resolved — fixed back in v3.2.13 and held pending deploy confirmation across several handoffs. `/health` now reports `ade6983`, so it is definitively live. Dashboard open reports 7 → 6.
+
 ## [3.2.20] - 2026-08-21
 
 ### Card library stage 1b: a card carries its slot's dice outcomes
