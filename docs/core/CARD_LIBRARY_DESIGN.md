@@ -62,8 +62,31 @@ It also softens an earlier reservation honestly recorded here: when tiers were f
 3. **Editing produces a new card.** Nothing is overwritten; the previous version stays reachable. *"One can always just go back to the previous version of the card."*
 4. **Drift: flag it, keep playing theirs.** When a system correction changes the official card a copy was made from, the copy keeps playing and is marked for review. Rejected: auto-replacing the teacher's card.
 5. **The maintainer's overrides are king** while there are no teachers — and his edits must stop evaporating, which is what makes that true rather than aspirational.
-6. **Build the tiers; defer the approval queue.** All three decks exist and work; promoting a card upward is a manual operation for now. Rationale: the queue is the piece most likely to be designed wrong with zero teachers to observe, and it is the cheapest to add later once cards already know their owner.
-7. **One editing surface.** The two screens merge. *"We are editing the same thing."*
+6. **A card owns its slot's dice outcomes** — stored verbatim as rows, carrying `visit_type` and `roll_group` so first/return differences, one-roll-many-effects, and multiple rolls all come along without new modeling. See the section above.
+7. **Build the tiers; defer the approval queue.** All three decks exist and work; promoting a card upward is a manual operation for now. Rationale: the queue is the piece most likely to be designed wrong with zero teachers to observe, and it is the cheapest to add later once cards already know their owner.
+8. **One editing surface.** The two screens merge. *"We are editing the same thing."*
+
+## A card owns its dice outcomes
+
+**Decision (maintainer, 2026-08-21):** yes — a card owns the dice outcomes of its slot. Raised with three complications: first-visit vs return-visit differences, a roll that does more than one thing, and rolling more than once at a space.
+
+**None of the three needs new modeling.** `DiceRoll Info.csv` is keyed `space_name, die_roll, visit_type, 1..6, button_label, roll_group`, and each complication is already a column:
+
+- **First vs return** — `visit_type`, exactly the key a card already stores its space rows under. A card gains dice rows under the same two buckets it already has.
+- **One roll doing several things** — several rows for the same space and visit sharing a `roll_group` (blank counts as one shared group). This is in live use: **7 spaces** have more than two dice rows today. `CHEAT-BYPASS` is the clearest — 6 rows, being 3 jobs (`Time outcomes`, `Fees Paid`, `Next Step`) across 2 visit types, so a single roll simultaneously costs days, costs money, and decides where the player goes.
+- **Rolling more than once** — two rows with *different* non-blank `roll_group` values are two separate rolls. The engine already groups on this, and the editor already exposes the field (`InlineDiceRollEditor`). **No space in current data sets a non-blank `roll_group` at all** — so this is a capability sitting unused, not something to build. Carrying `roll_group` on the card is what lets a teacher be the first to use it.
+
+So the model extension is simply: **a card stores its space's dice rows verbatim, the same way it already stores its space rows** — no interpretation, no new shape. What changes is the bake, not the card's meaning.
+
+### What this costs at bake time
+
+- **The merge point already exists.** `applyConfigToDiceCsv` ([instanceResolver.js:268](../../server/instanceResolver.js)) already overlays dice rows for switched-off spaces and authored insertions. Copy-owned rows are a third case in a function that does this twice already — an extension, not a new mechanism.
+- **`DICE_OUTCOMES.csv` is the load-bearing one.** It is curated and `processGameData` does **not** regenerate it, and the client reads it directly for destinations. A bake that rewrites only the SOURCE dice table produces a board that renders correctly and routes wrongly — the space is functionally dead. This trap is already documented in CLAUDE.md from the Phase 4b authored-space work; any dice-carrying card must rewrite both.
+- **Column consistency matters more once teachers can edit.** Rows sharing one roll must populate all six faces, or a roll silently does nothing for one of its jobs. `DataService.validateDiceEffectGroups` already warns on this at load; with teacher-authored dice it should be a save-time validation error, not a console warning nobody sees.
+
+### Still open: ModalConfig
+
+The Space Data Editor saves a third file, `ModalConfig.csv`, which likewise has no card representation. Smaller and less entangled than dice — deliberately not decided here. Answer it before the editor's save path is swapped over, so that swap happens once rather than twice.
 
 ## What exists vs. what is new
 
@@ -96,7 +119,10 @@ game-data/cards/<cardId>.json
   role:      "Shorter version for a 45-minute period"
   derivedFrom: <cardId|null>          # the card this was branched from
   copiedFromStockVersion: <hash|null> # unchanged; drives the drift flag
-  rows:      { First: {...}, Subsequent: {...} }
+  rows:      { First: {...}, Subsequent: {...} }   # Spaces.csv rows
+  diceRows:  [ {die_roll, visit_type, '1'..'6', button_label, roll_group}, … ]
+             # this space's DiceRoll Info rows, verbatim. Absent on a card for
+             # a space that never rolls; absent on cards written before this.
   createdAt / updatedAt / supersededBy
 ```
 
@@ -109,6 +135,8 @@ The classroom config keeps only the *choice*: `slots[name].card = <cardId>`. Res
 **Stage 1 — stop losing work.** Route Space Data Editor saves into cards instead of the master CSVs, so the maintainer's edits survive a restart. Cards start carrying an owner here.
 
 > **Clarified 2026-08-21, during slice 2.** An earlier draft of this line said "into the card library," which is ahead of itself — the shared library does not exist until the storage move, and the durability fix does not need it. Cards live in the classroom config today, and that config already survives every deploy by construction, so writing there is sufficient and correct for stage 1. Admin edits are written at `owner.tier: 'official'`: the maintainer is the curator, so when the shared library is later extracted, **the official-tier cards are exactly the set that migrates into it** — which is what makes the deferral safe rather than a debt. Correct the Board Layout Editor's on-screen help, which currently claims each drop is *"written to `Spaces.csv`"* — it posts to `/api/instances/:id/positions` ([saveBoardPosition.ts:64](../../src/components/board/saveBoardPosition.ts)) and the in-game tooltip already says so correctly. *(The related "board draggable with no way to turn it off" bug was fixed ahead of this stage on 2026-08-21 — see CHANGELOG.)*
+
+**Stage 1b — a card carries its dice rows.** Extend the card to hold its space's `DiceRoll Info` rows and merge them at bake through `applyConfigToDiceCsv`, rewriting the curated `DICE_OUTCOMES.csv` as well as the SOURCE table (see the cost notes above — missing the curated file yields a board that renders right and routes wrong). Promote the shared-roll column-consistency check from a load-time console warning to a save-time error. This must land before the Space Data Editor's save path is swapped, or that screen would persist some edits and silently drop others.
 
 **Stage 2 — make it a rolodex.** Edit branches; remove unselects; per-slot card picker showing every visible card with its tier and role note; the drift flag moves onto the card it concerns instead of the page-level banner.
 
