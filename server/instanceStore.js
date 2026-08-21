@@ -464,6 +464,17 @@ export function clearAllEdgeAnchors(config) {
 // ===== Phase 2: switch-off + teacher copies =====
 
 /**
+ * Card ownership tiers (CARD_LIBRARY_DESIGN.md "the model"): `official`
+ * (curated, ships with the game), `group` (shared across one organization),
+ * `individual` (one person's own). Stored STRUCTURALLY — never the skin's
+ * display word ("School"/"Teacher", "Club"/"Master") — so a reskin renames
+ * decks through the UI_STRINGS vocabulary swap instead of a data migration.
+ * Canonical here because this module writes the field; instanceValidation
+ * imports it rather than keeping a second copy that can drift.
+ */
+export const VALID_OWNER_TIERS = new Set(['official', 'group', 'individual']);
+
+/**
  * Switch a slot on or off. `detour` (only meaningful when switching off)
  * is the teacher's chosen destination from the hybrid confirm flow; omit
  * it to rely on the computed pass-through. Switching back on clears any
@@ -491,11 +502,21 @@ export function setSlotUsed(config, spaceName, used, detour) {
  * original stays untouched in the library.
  * @param {InstanceConfig} config
  * @param {{ slotName: string, stockRows: Array<Object<string, string>>,
- *   overrides?: Object<string, Object<string, string>>, stockVersion?: string }} args
+ *   overrides?: Object<string, Object<string, string>>, stockVersion?: string,
+ *   tier?: 'official'|'group'|'individual' }} args
  *   overrides is keyed by visit_type ("First"/"Subsequent").
+ *   tier is the new card's ownership tier, defaulting to 'individual' (a
+ *   classroom's own override — what every caller before Card Library stage 1
+ *   meant). The maintainer's own content edits are written 'official': he is
+ *   the curator, so those are exactly the cards that migrate into the shared
+ *   library when it is later extracted. Minting an 'official' card is an
+ *   ADMIN act — the caller enforces that, this function only records it.
  * @returns {string} the new copy id
  */
-export function createTeacherCopy(config, { slotName, stockRows, overrides = {}, stockVersion }) {
+export function createTeacherCopy(config, { slotName, stockRows, overrides = {}, stockVersion, tier = 'individual' }) {
+  if (!VALID_OWNER_TIERS.has(tier)) {
+    throw new Error(`Invalid tier "${tier}": must be one of ${[...VALID_OWNER_TIERS].join(', ')}`);
+  }
   if (!stockRows || stockRows.length === 0) {
     throw new Error(`No stock rows for "${slotName}" — cannot copy a card that does not exist`);
   }
@@ -519,11 +540,13 @@ export function createTeacherCopy(config, { slotName, stockRows, overrides = {},
     createdAt: now,
     updatedAt: now,
     copiedFromStockVersion: stockVersion || null,
-    // Card ownership tier (CARD_LIBRARY_DESIGN.md stage 1). A teacher copy is
-    // always this classroom's own override — 'individual', never 'official'
-    // (that tier is reserved for the curated stock library) — owned by
-    // whoever owns the classroom right now (nullable: no owner bound yet).
-    owner: { tier: 'individual', id: config.meta?.owner || null },
+    // Card ownership tier (CARD_LIBRARY_DESIGN.md stage 1). Defaults to
+    // 'individual' — this classroom's own override — which is what a teacher
+    // copy has always been; 'official' is the curated deck everyone gets and
+    // only an admin-authenticated caller may ask for it. `id` keeps its
+    // meaning either way: whoever owns the classroom right now, nullable
+    // when no account is bound yet (an official card has no owner account).
+    owner: { tier, id: config.meta?.owner || null },
     rows,
   };
   config.slots[slotName] = { used: true, ...config.slots[slotName], card: copyId };

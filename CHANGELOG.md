@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.19] - 2026-08-21
+
+### Card library stage 1, slice 2: cards can be minted at any owner tier, and `official` is admin-only
+Second build slice off [CARD_LIBRARY_DESIGN.md](docs/core/CARD_LIBRARY_DESIGN.md), building the server-side mechanism the Space Data Editor will save through. `createTeacherCopy` now takes an optional tier defaulting to `individual`, so every existing caller keeps today's behavior exactly; `POST /api/instances/:id/copies` passes it through.
+
+**The privilege boundary is the point of this slice.** An `official` card belongs to the curated library everyone gets, so minting one is an admin act — not something classroom write access grants. `handleInstanceMutation` authorizes through `checkInstanceWriteAccess`, which also passes on the per-instance write token or a logged-in teacher who owns the classroom: exactly right for an `individual` copy and exactly wrong for an `official` one. The route now requires the admin password itself, checked *before* `handleInstanceMutation` runs, so a refused attempt never loads, mutates, saves or re-bakes the classroom. Omitted or `individual` tiers skip the check entirely, leaving Classroom Setup untouched.
+
+Notably it does **not** gate on `checkInstanceWriteAccess`'s own `via` field, which would have looked like the obvious fix: that helper short-circuits on the write token first, so a request carrying both a valid token and a valid admin password reports `via: 'token'` and a legitimate admin would have been refused. The route calls `checkAdminPassword` directly against the same credential sources instead.
+
+An unknown tier is now a 400 at the route rather than reaching the store's throw and surfacing as a 500 — bad input should not read as a server error. The store's own throw stays as defense in depth for direct callers. `VALID_OWNER_TIERS` moved into `instanceStore.js` (the module that *writes* the field) and `instanceValidation.js` imports it, rather than two copies of the tier list free to drift.
+
+Verified live against a running server, not only by tests — this matters because the endpoint suite pins authorization by source fingerprint, which cannot catch a route referencing an out-of-scope identifier (a trap this repo has hit twice in plain-JS server code). Confirmed by real HTTP: `official` with no admin password → **403**, config byte-identical afterward; an invalid tier → **400**; `official` *with* the password → the card lands on disk carrying `owner: { tier: 'official', id: null }`. That last request then returned 500 at the bake step on `EPERM ... rename resolved -> resolved.stale-*` — the already-documented Windows-dev-only limitation (the atomic directory swap cannot run while the dev server holds the folder open; Linux/production renames open directories fine), not a fault in this change. Typecheck clean, production build clean, server suite 376/376 (16 files, +11).
+
 ## [3.2.18] - 2026-08-21
 
 ### Card library stage 1, slice 1: every card now records who owns it

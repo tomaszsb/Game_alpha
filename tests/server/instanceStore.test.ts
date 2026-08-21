@@ -35,6 +35,7 @@ import {
   instanceDir,
   DEFAULT_INSTANCE_ID,
 } from '../../server/instanceStore.js';
+import { checkAdminPassword } from '../../server/authGuards.js';
 
 const ADMIN_PASSWORD = 'hunter2';
 const ADMIN_HASH = crypto.createHash('sha256').update(ADMIN_PASSWORD).digest('hex');
@@ -408,6 +409,111 @@ describe('teacher copies', () => {
     setInstanceOwner(config, 'teacher-aaa');
     const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
     expect(config.teacherCopies[copyId].owner).toEqual({ tier: 'individual', id: 'teacher-aaa' });
+  });
+});
+
+describe('teacher copy tiers (Card Library stage 1 slice 2)', () => {
+  const stockRows = [
+    { space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review', Fee: '100' },
+    { space_name: 'FEE-REVIEW', visit_type: 'Subsequent', Title: 'Fee review', Fee: '50' },
+  ];
+
+  it("defaults to 'individual' when no tier is given (every pre-slice-2 caller)", () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    expect(config.teacherCopies[copyId].owner.tier).toBe('individual');
+  });
+
+  it('honors an explicit tier (Card Library stage 1 slice 2)', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setInstanceOwner(config, 'teacher-aaa');
+    const official = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'official' });
+    expect(config.teacherCopies[official].owner).toEqual({ tier: 'official', id: 'teacher-aaa' });
+    const group = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'group' });
+    expect(config.teacherCopies[group].owner.tier).toBe('group');
+    // Explicit 'individual' is identical to omitting it.
+    const individual = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'individual' });
+    expect(config.teacherCopies[individual].owner).toEqual({ tier: 'individual', id: 'teacher-aaa' });
+  });
+
+  it('rejects a tier outside the three the model defines, without touching the config', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const before = JSON.stringify(config);
+    expect(() => createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'school' as any }))
+      .toThrow(/Invalid tier "school": must be one of official, group, individual/);
+    expect(() => createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: '' as any })).toThrow(/Invalid tier/);
+    expect(() => createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: null as any })).toThrow(/Invalid tier/);
+    // A rejected tier must not leave a half-written copy behind.
+    expect(JSON.stringify(config)).toBe(before);
+  });
+});
+
+describe("the 'official' tier privilege boundary (Card Library stage 1 slice 2)", () => {
+  const stockRows = [
+    { space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review', Fee: '100' },
+  ];
+
+  // POST /api/instances/:id/copies authorizes through handleInstanceMutation
+  // -> checkInstanceWriteAccess, which passes on THREE different credentials.
+  // Two of them (the instance write token, a classroom-owning teacher
+  // session) are emphatically not admin, so the route needs its own admin
+  // check before it will stamp `official`. These tests pin that the two
+  // privileges are genuinely different rather than accidentally equivalent —
+  // if checkInstanceWriteAccess ever started reporting via:'admin' for a
+  // teacher session, the route's guard would become decorative.
+  it('a classroom-owning teacher session has write access but is NOT admin', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setInstanceOwner(config, 'teacher-aaa');
+    // Write access: yes — this is their own classroom.
+    expect(checkInstanceWriteAccess(config, { accountId: 'teacher-aaa', adminPasswordHash: ADMIN_HASH }))
+      .toEqual({ ok: true, via: 'owner' });
+    // Admin: no — the same request carries no admin password.
+    expect(checkAdminPassword(undefined, ADMIN_HASH).ok).toBe(false);
+  });
+
+  it("a co-teacher and the instance write token are write access, not admin either", () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    config.meta.coTeachers = ['teacher-bbb'];
+    expect(checkInstanceWriteAccess(config, { accountId: 'teacher-bbb', adminPasswordHash: ADMIN_HASH }))
+      .toEqual({ ok: true, via: 'coteacher' });
+    expect(checkInstanceWriteAccess(config, { token: config.meta.writeToken, adminPasswordHash: ADMIN_HASH }))
+      .toEqual({ ok: true, via: 'token' });
+    // Neither credential is the admin password, and the write token is not
+    // accepted as one (a teacher must not be able to substitute it).
+    expect(checkAdminPassword(config.meta.writeToken, ADMIN_HASH).ok).toBe(false);
+  });
+
+  it('only the real admin password satisfies the official-card check', () => {
+    expect(checkAdminPassword(ADMIN_PASSWORD, ADMIN_HASH)).toEqual({ ok: true });
+    expect(checkAdminPassword('wrong', ADMIN_HASH).ok).toBe(false);
+    // Fail-closed: an unconfigured deploy cannot mint official cards either.
+    expect(checkAdminPassword(ADMIN_PASSWORD, '')).toMatchObject({ ok: false, status: 503 });
+  });
+
+  it('a refused official request leaves the config byte-identical (nothing is written before the check)', () => {
+    // The route returns 403 BEFORE handleInstanceMutation runs, and
+    // handleInstanceMutation is the only path that loads/mutates/saves/bakes
+    // (pinned by serverEndpointAuth.test.ts). This pins the other half: the
+    // on-disk config is untouched by anything the refusal path can reach.
+    const config = createInstance(root, { id: 'classroom-1' });
+    const onDiskBefore = fs.readFileSync(configPath(root, 'classroom-1'), 'utf8');
+    const denied = checkAdminPassword('not-the-admin-password', ADMIN_HASH);
+    expect(denied.ok).toBe(false);
+    // Nothing else happens on that branch — no createTeacherCopy, no save.
+    expect(fs.readFileSync(configPath(root, 'classroom-1'), 'utf8')).toBe(onDiskBefore);
+    const reloaded = loadInstance(root, 'classroom-1')!;
+    expect(reloaded.teacherCopies).toEqual({});
+    expect(reloaded.configVersion).toBe(config.configVersion);
+  });
+
+  it('an admin-authorized official request produces an official-tier card', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    expect(checkAdminPassword(ADMIN_PASSWORD, ADMIN_HASH).ok).toBe(true);
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'official' });
+    saveInstance(root, config);
+    const reloaded = loadInstance(root, 'classroom-1')!;
+    expect(reloaded.teacherCopies[copyId].owner.tier).toBe('official');
+    expect(reloaded.slots['FEE-REVIEW'].card).toBe(copyId);
   });
 });
 

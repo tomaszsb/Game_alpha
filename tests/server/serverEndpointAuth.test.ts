@@ -154,7 +154,6 @@ describe('server.js endpoint auth wiring', () => {
 
   it.each([
     ['post', '/api/instances/:id/board'],
-    ['post', '/api/instances/:id/copies'],
     ['patch', '/api/instances/:id/copies/:copyId'],
     ['delete', '/api/instances/:id/copies/:copyId'],
     ['post', '/api/instances/:id/insertions'],
@@ -162,6 +161,66 @@ describe('server.js endpoint auth wiring', () => {
     ['delete', '/api/instances/:id/insertions/:insertionId'],
   ])('%s %s routes through the guarded mutation flow', (method, route) => {
     expect(handlerHead(method, route, 1200)).toContain('handleInstanceMutation(req, res');
+  });
+
+  // POST /copies needs its own slice: the tier privilege boundary below sits
+  // between the route's opening line and the mutation call, past the shared
+  // 1200-char window. Slice to the NEXT route registration rather than a
+  // bigger fixed window, so an assertion can never be satisfied by code
+  // belonging to the following route.
+  function copiesRouteBody(): string {
+    const start = source.indexOf("app.post('/api/instances/:id/copies',");
+    expect(start, 'POST /api/instances/:id/copies not found in server.js').toBeGreaterThan(-1);
+    // A route registration always starts at column 0, so the next "\napp."
+    // is the end of this one.
+    const end = source.indexOf('\napp.', start + 1);
+    expect(end).toBeGreaterThan(start);
+    return source.slice(start, end);
+  }
+
+  it('POST /api/instances/:id/copies routes through the guarded mutation flow', () => {
+    expect(copiesRouteBody()).toContain('handleInstanceMutation(req, res');
+  });
+
+  // ===== Card Library stage 1: the `official` tier is admin-only =====
+
+  it('POST /api/instances/:id/copies requires ADMIN auth to mint an official card', () => {
+    // CARD_LIBRARY_DESIGN.md stage 1: `official` is the curated deck every
+    // classroom gets, so creating one is an admin act. handleInstanceMutation's
+    // own check (checkInstanceWriteAccess) also passes on the instance write
+    // token or a classroom-owning teacher session, which must NOT be enough
+    // here — so the route adds its own narrow admin check.
+    const body = copiesRouteBody();
+    expect(body).toContain("tier === 'official'");
+    expect(body).toContain('checkAdminPassword(');
+    expect(body).toContain('CONFIG.ADMIN_PASSWORD_HASH');
+    expect(body).toContain('res.status(403)');
+  });
+
+  it('the official-tier admin check runs BEFORE the mutation flow (a refusal must not touch the config)', () => {
+    // Ordering is the whole guarantee: handleInstanceMutation loads, mutates,
+    // validates, saves and re-bakes the classroom. A refused `official`
+    // request must never reach any of that.
+    const body = copiesRouteBody();
+    const denial = body.indexOf('res.status(403)');
+    const mutation = body.indexOf('handleInstanceMutation(req, res');
+    // Guard against a vacuous pass: indexOf returns -1 for a missing needle,
+    // which would satisfy "less than" all on its own.
+    expect(body.indexOf("tier === 'official'")).toBeGreaterThan(-1);
+    expect(denial).toBeGreaterThan(-1);
+    expect(mutation).toBeGreaterThan(-1);
+    expect(denial).toBeLessThan(mutation);
+  });
+
+  it('an omitted tier still reaches createTeacherCopy unchanged (Classroom Setup untouched)', () => {
+    // The tier is passed straight through; instanceStore defaults it to
+    // 'individual', which is exactly what every pre-stage-1 caller meant.
+    expect(copiesRouteBody()).toContain('stockVersion, tier }');
+    const store = fs.readFileSync(
+      path.resolve(__dirname, '../../server/instanceStore.js'),
+      'utf8'
+    );
+    expect(store).toContain("tier = 'individual'");
   });
 
   it('handleInstanceMutation enforces optimistic concurrency (409 on stale configVersion)', () => {

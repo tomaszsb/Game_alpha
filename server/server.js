@@ -45,6 +45,7 @@ import {
   setEdgeAnchor,
   clearEdgeAnchor,
   clearAllEdgeAnchors,
+  VALID_OWNER_TIERS,
 } from './instanceStore.js';
 import { validateConfig } from './instanceValidation.js';
 import { buildCatalog } from './instanceCatalog.js';
@@ -1356,9 +1357,39 @@ app.post('/api/instances/:id/board', (req, res) => {
 // Teacher copies: full copies of the current stock card under a stable id;
 // the slot plays the copy, the stock original stays in the library.
 app.post('/api/instances/:id/copies', (req, res) => {
-  const { slot, overrides } = req.body || {};
+  const { slot, overrides, tier } = req.body || {};
   if (!slot || typeof slot !== 'string') {
     return res.status(400).json({ success: false, error: 'slot (space name) is required' });
+  }
+  if (tier !== undefined && !VALID_OWNER_TIERS.has(tier)) {
+    return res.status(400).json({
+      success: false,
+      error: `tier must be one of ${[...VALID_OWNER_TIERS].join(', ')}`,
+    });
+  }
+  // PRIVILEGE BOUNDARY (CARD_LIBRARY_DESIGN.md stage 1). `official` means
+  // "this card belongs to the curated library everyone gets", so minting one
+  // is an ADMIN act, not something classroom write access grants.
+  // handleInstanceMutation authorizes via checkInstanceWriteAccess, which
+  // ALSO passes on the instance write token or a logged-in teacher who owns
+  // the classroom — exactly right for an `individual` copy and exactly wrong
+  // for an `official` one. Narrowest fix rather than reworking that shared
+  // helper: require the admin password here, and do it BEFORE
+  // handleInstanceMutation runs, so a refused attempt never loads, mutates,
+  // saves or re-bakes the classroom. Omitted / `individual` tiers skip this
+  // entirely, so Classroom Setup's behavior is unchanged.
+  if (tier === 'official') {
+    const admin = checkAdminPassword(
+      req.headers['x-admin-password'] || (req.body && req.body.password),
+      CONFIG.ADMIN_PASSWORD_HASH
+    );
+    if (!admin.ok) {
+      logVisitor(req, 'OFFICIAL_CARD_DENIED', { instanceId: req.params.id, slot });
+      return res.status(403).json({
+        success: false,
+        error: 'Creating an official card requires admin authentication',
+      });
+    }
   }
   handleInstanceMutation(req, res, (config) => {
     const { stockSpacesCsv, stockVersion } = readStockForValidation();
@@ -1368,8 +1399,8 @@ app.post('/api/instances/:id/copies', (req, res) => {
       err.statusCode = 404;
       throw err;
     }
-    const copyId = createTeacherCopy(config, { slotName: slot, stockRows, overrides, stockVersion });
-    return { copyId, slot };
+    const copyId = createTeacherCopy(config, { slotName: slot, stockRows, overrides, stockVersion, tier });
+    return { copyId, slot, tier: config.teacherCopies[copyId].owner.tier };
   });
 });
 

@@ -200,10 +200,19 @@ export function postBoardChange(
   return mutate(`/api/instances/${instanceId}/board`, 'POST', body, deps);
 }
 
-/** Create a full copy of the current stock card, with optional overrides. */
+/**
+ * Create a full copy of the current stock card, with optional overrides.
+ *
+ * `tier` (CARD_LIBRARY_DESIGN.md stage 1) is the new card's ownership tier,
+ * typed against the same three structural values the server stores. Omit it
+ * for today's behavior: the server defaults to `individual` — this
+ * classroom's own override, which is what a teacher copy has always been.
+ * `official` (the curated deck every classroom gets) is ADMIN-only and the
+ * server answers 403 without touching the classroom if the caller isn't.
+ */
 export function createCopy(
   instanceId: string,
-  args: { slot: string; overrides?: Record<string, Record<string, string>> },
+  args: { slot: string; overrides?: Record<string, Record<string, string>>; tier?: CardOwner['tier'] },
   deps: ClassroomApiDeps = {}
 ): Promise<MutationResult> {
   return mutate(`/api/instances/${instanceId}/copies`, 'POST', args, deps);

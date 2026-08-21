@@ -13,6 +13,10 @@
 
 import { parseCsvWithHeaders } from './processGameData.js';
 import { computeProtection } from './spaceProtection.js';
+// Card ownership tiers (CARD_LIBRARY_DESIGN.md "the model") are canonical in
+// instanceStore — the module that WRITES the field — so this validator can
+// never drift from what createTeacherCopy is willing to stamp.
+import { VALID_OWNER_TIERS } from './instanceStore.js';
 
 // Same token shape processGameData's isValidSpaceName accepts — destination
 // cells can be free text (logic conditions, "A or B") with embedded names.
@@ -288,9 +292,6 @@ const CARD_DECKS = new Set(['W', 'B', 'I', 'L', 'E']);
 const MAX_CARD_DRAW = 9;
 /** A die has six faces — an authored dice space must assign all of them. */
 const DIE_FACES = 6;
-/** Card ownership tiers (CARD_LIBRARY_DESIGN.md "the model") — stored
- *  structurally, never the skin's display word. */
-const VALID_OWNER_TIERS = new Set(['official', 'group', 'individual']);
 
 /**
  * Full config validation: protection tiers, unknown names, detour
