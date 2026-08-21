@@ -1392,14 +1392,21 @@ app.post('/api/instances/:id/copies', (req, res) => {
     }
   }
   handleInstanceMutation(req, res, (config) => {
-    const { stockSpacesCsv, stockVersion } = readStockForValidation();
+    const { stockSpacesCsv, diceCsv, stockVersion } = readStockForValidation();
     const stockRows = parseCsvWithHeaders(stockSpacesCsv).filter(r => r.space_name === slot);
     if (stockRows.length === 0) {
       const err = new Error(`No such space in stock: "${slot}"`);
       err.statusCode = 404;
       throw err;
     }
-    const copyId = createTeacherCopy(config, { slotName: slot, stockRows, overrides, stockVersion, tier });
+    // A card owns its slot's dice outcomes too (CARD_LIBRARY_DESIGN.md stage
+    // 1b). Parsed and filtered here, mirroring stockRows above; a space with
+    // no dice rows yields [] and createTeacherCopy then writes no diceRows key
+    // at all — absent, which the bake reads as "use stock".
+    const stockDiceRows = diceCsv
+      ? parseCsvWithHeaders(diceCsv).filter(r => r.space_name === slot)
+      : [];
+    const copyId = createTeacherCopy(config, { slotName: slot, stockRows, stockDiceRows, overrides, stockVersion, tier });
     return { copyId, slot, tier: config.teacherCopies[copyId].owner.tier };
   });
 });

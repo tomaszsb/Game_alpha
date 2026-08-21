@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.20] - 2026-08-21
+
+### Card library stage 1b: a card carries its slot's dice outcomes
+Third build slice off [CARD_LIBRARY_DESIGN.md](docs/core/CARD_LIBRARY_DESIGN.md), implementing the maintainer's decision that a card owns its dice. A card now captures its space's `DiceRoll Info` rows verbatim at creation — all columns, so `visit_type` and `roll_group` come along and first/return differences, one-roll-many-effects, and multi-roll spaces all work with no new modeling. A space with no dice rows gets no `diceRows` key at all: absent, not empty.
+
+**Absent must keep meaning "fall back to stock", permanently** — so cards written before this change are deliberately NOT backfilled, with a comment in `loadInstance` saying so. Backfilling would freeze today's stock dice onto old cards and cut them off from future stock corrections, which is the exact opposite of the drift rule this design is built on.
+
+The bake gets a third case in `applyConfigToDiceCsv`, which already overlays dice rows for switched-off spaces and authored insertions. Card rows replace stock's rows for that space, emitted in place of the first stock row so file ordering stays stable, and substituted *before* the detour/insertion rewrite so a card's own destinations still get detoured and spliced like any other row — the same ordering rationale `applyConfigToSpacesCsv` already uses. Lookup is the single card the slot is actually playing, no fallback chain, with the slot name forced onto every row so copy ids can never leak into resolved files.
+
+**And it rewrites the curated `DICE_OUTCOMES.csv` too**, which is the load-bearing half. `processGameData` does not regenerate that file and the client reads it directly for destinations, so a bake that touched only the SOURCE dice table would produce a board that renders correctly and routes wrongly — a functionally dead space. That trap is already documented from the Phase 4b authored-space work; this follows the existing insertion rewrite rather than inventing a second mechanism.
+
+Shared-roll column consistency is now a save-time error (`COPY_BAD_DICE_GROUP`) rather than a console warning nobody sees: rows sharing a `(space, visit_type, roll_group)` bucket that fill different faces mean one roll silently does nothing for one of its jobs. Only a card's own rows are validated — stock is the repo's problem and its pre-existing warnings are not turned into hard failures.
+
+**Verified inert, not assumed inert.** The acceptance criterion was that the current board's baked output be byte-identical before and after. It is: 21 of 22 resolved files match by sha256, and the only difference is `bake-stamp.json`'s `bakedAt` — proven to be wall-clock nondeterminism by baking twice under identical post-change code and getting the same single-field difference. Confirmed independently that the live `classroom-1` config has zero copies and zero slots pointing at a card, so the new path genuinely cannot fire on current data. Typecheck clean, production build clean, server suite 391/391 (+15), full suite 2842/2842 (190 files).
+
+Recorded one trap for the editor slice: `instanceCatalog`'s `entry.dice` flag is computed from the stock dice table, so it will go stale the moment a card can *edit* dice rather than merely carry them. Harmless now, noted in the spec's breadcrumbs — it is the same parallel-systems drift that caused the 2026-06-20 `requires_dice_roll`-vs-`Next Step` bug.
+
 ## [3.2.19] - 2026-08-21
 
 ### Card library stage 1, slice 2: cards can be minted at any owner tier, and `official` is admin-only

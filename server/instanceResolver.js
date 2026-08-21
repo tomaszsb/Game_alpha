@@ -252,9 +252,38 @@ function computeInsertionPosition(ins, fromRow, rows) {
 }
 
 /**
- * Classroom overlay for DiceRoll Info.csv: rows of switched-off spaces
- * dropped, destination tokens in the roll columns (1-6) detoured. (Teacher
- * copies cover Spaces.csv fields only in Phase 2 — dice tables stay stock.)
+ * Cards that own their slot's dice outcomes (CARD_LIBRARY_DESIGN.md stage 1b).
+ * Only the card a slot is actually PLAYING counts — same single-pointer lookup
+ * applyConfigToSpacesCsv uses, no fallback chain — and only when that card
+ * carries a `diceRows` array. A card without one (every card written before
+ * stage 1b) is absent from the map, which is what makes stock pass through
+ * untouched.
+ * @param {import('./instanceStore.js').InstanceConfig} config
+ * @returns {Map<string, Array<Object<string, string>>>} space name → dice rows
+ */
+export function copyDiceRowsBySpace(config) {
+  const byName = new Map();
+  const slots = config.slots || {};
+  const copies = config.teacherCopies || {};
+  for (const [name, slot] of Object.entries(slots)) {
+    const copy = slot?.card ? copies[slot.card] : null;
+    if (!copy || !Array.isArray(copy.diceRows) || copy.diceRows.length === 0) continue;
+    // Slot name is forced, exactly as in applyConfigToSpacesCsv: copy ids
+    // never leak into resolved files.
+    byName.set(name, copy.diceRows.map(row => ({ ...row, space_name: name })));
+  }
+  return byName;
+}
+
+/**
+ * Classroom overlay for DiceRoll Info.csv: teacher-copy dice substitution,
+ * rows of switched-off spaces dropped, destination tokens in the roll columns
+ * (1-6) detoured.
+ *
+ * Card-owned dice (stage 1b) are a THIRD case in this function, substituted
+ * FIRST so the card's own destinations get detoured and spliced like any
+ * other row — same ordering rationale as applyConfigToSpacesCsv's copies-then-
+ * rewrite. A card without diceRows leaves its space's stock rows untouched.
  *
  * Phase 4b fork-splice: a dice source's destinations live here, not in
  * Spaces.csv `space_N`, so an insertion on a dice edge A→B must rewrite the
@@ -274,9 +303,12 @@ export function applyConfigToDiceCsv(diceCsv, config, detours = {}, insertions =
     if (!insByFrom.has(ins.from)) insByFrom.set(ins.from, []);
     insByFrom.get(ins.from).push(ins);
   }
-  const out = [];
-  for (const row of rows) {
-    if (off.has(row.space_name)) continue;
+  // Card-owned dice: the card's rows REPLACE stock's rows for that space,
+  // emitted in place of the first stock row so file ordering stays stable.
+  const cardDice = copyDiceRowsBySpace(config);
+  const substituted = new Set();
+
+  const rewriteRow = (row) => {
     const effective = { ...row };
     for (const col of ['1', '2', '3', '4', '5', '6']) {
       if (effective[col]) effective[col] = rewriteSpaceTokens(effective[col], detours);
@@ -286,7 +318,27 @@ export function applyConfigToDiceCsv(diceCsv, config, detours = {}, insertions =
         if (effective[col]) effective[col] = rewriteSpaceTokens(effective[col], { [ins.to]: ins.id });
       }
     }
-    out.push(effective);
+    return effective;
+  };
+
+  const out = [];
+  for (const row of rows) {
+    if (off.has(row.space_name)) continue;
+    const owned = cardDice.get(row.space_name);
+    if (owned) {
+      if (substituted.has(row.space_name)) continue; // stock rows already replaced
+      substituted.add(row.space_name);
+      for (const cardRow of owned) out.push(rewriteRow(cardRow));
+      continue;
+    }
+    out.push(rewriteRow(row));
+  }
+  // A card may own dice for a space stock has no dice rows for at all (stock
+  // gained the space after the card, or the card was authored dice-first).
+  // Those rows have no stock row to stand in for, so they land at the end.
+  for (const [name, owned] of cardDice) {
+    if (substituted.has(name) || off.has(name)) continue;
+    for (const cardRow of owned) out.push(rewriteRow(cardRow));
   }
   return toCsv(out, headers);
 }
@@ -350,6 +402,60 @@ export function appendAuthoredDiceOutcomes(outcomesCsv, authoredRows) {
     rows.push(row);
   }
   return toCsv(rows, headers);
+}
+
+/**
+ * Rewrite the curated DICE_OUTCOMES.csv for every space whose card owns its
+ * dice (CARD_LIBRARY_DESIGN.md stage 1b).
+ *
+ * THIS IS THE LOAD-BEARING HALF. processGameData does NOT regenerate
+ * DICE_OUTCOMES.csv, and the client reads it directly for every dice
+ * destination (dice spaces have empty MOVEMENT.csv destinations). A bake that
+ * rewrote only the SOURCE dice table would yield a board that renders right
+ * and routes WRONG — the space is functionally dead. Same trap the Phase 4b
+ * authored-space work hit; see CLAUDE.md's "Authored-space bakes" entry.
+ *
+ * The card's rows are the authority for its space: its existing outcome rows
+ * are replaced wholesale by rows derived from the card's `die_roll = 'Next
+ * Step'` dice rows (the only rows that are MOVEMENT — exactly what
+ * buildDiceDests and processGameData key on). A card whose dice are all effect
+ * rolls therefore correctly leaves the space with no outcome rows at all.
+ * Spaces with no card-owned dice are untouched.
+ * @param {string} outcomesCsv
+ * @param {import('./instanceStore.js').InstanceConfig} config
+ * @returns {string}
+ */
+export function applyCopyDiceToOutcomesCsv(outcomesCsv, config) {
+  const cardDice = copyDiceRowsBySpace(config);
+  if (cardDice.size === 0) return outcomesCsv;
+  const { headers, rows } = parseWithHeaderLine(outcomesCsv);
+
+  const buildOutcomeRows = (name, diceRows) => diceRows
+    .filter(r => (r.die_roll || '').trim() === 'Next Step')
+    .map(r => {
+      const built = {};
+      for (const h of headers) built[h] = '';
+      built.space_name = name;
+      built.visit_type = r.visit_type || '';
+      for (let f = 1; f <= 6; f++) built[`roll_${f}`] = r[String(f)] || '';
+      return built;
+    });
+
+  const out = [];
+  const replaced = new Set();
+  for (const row of rows) {
+    const owned = cardDice.get(row.space_name);
+    if (!owned) { out.push(row); continue; }
+    if (replaced.has(row.space_name)) continue; // stock rows already replaced
+    replaced.add(row.space_name);
+    out.push(...buildOutcomeRows(row.space_name, owned));
+  }
+  // A card can add dice movement to a space the curated file has no row for.
+  for (const [name, owned] of cardDice) {
+    if (replaced.has(name)) continue;
+    out.push(...buildOutcomeRows(name, owned));
+  }
+  return toCsv(out, headers);
 }
 
 /**
@@ -536,6 +642,21 @@ export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion
     const modalPath = path.join(stockSourceDir, MODAL_CSV);
     const modalCsv = fs.existsSync(modalPath) ? fs.readFileSync(modalPath, 'utf-8') : null;
     processGameData(effectiveSpacesCsv, effectiveDiceCsv, newCleanDir, modalCsv);
+    // Stage 1b: a card that owns its slot's dice must rewrite the curated
+    // DICE_OUTCOMES.csv too, not only the SOURCE table above — processGameData
+    // does not generate it and the client reads it directly for destinations.
+    // Runs BEFORE the detour/insertion pass below so the card's own
+    // destinations get scrubbed and spliced like any other row. No-op when no
+    // card in this classroom owns dice, which is every card written before
+    // stage 1b (absent diceRows = fall back to stock).
+    {
+      const outcomesPath = path.join(newCleanDir, 'DICE_OUTCOMES.csv');
+      if (fs.existsSync(outcomesPath)) {
+        const stockOutcomes = fs.readFileSync(outcomesPath, 'utf-8');
+        const rewritten = applyCopyDiceToOutcomesCsv(stockOutcomes, config);
+        if (rewritten !== stockOutcomes) fs.writeFileSync(outcomesPath, rewritten, 'utf-8');
+      }
+    }
     // Curated CLEAN files (NOT regenerated above) need two scoped rewrites:
     // detours for switched-off spaces, and insertions for spliced dice edges.
     // DICE_OUTCOMES.csv is the load-bearing one — the client reads it directly

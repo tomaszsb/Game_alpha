@@ -13,6 +13,8 @@ import {
   applyPositionsToSpacesCsv,
   applyConfigToSpacesCsv,
   applyConfigToDiceCsv,
+  applyCopyDiceToOutcomesCsv,
+  copyDiceRowsBySpace,
   scrubSpaceReferences,
   bakeInstance,
   ensureFreshBake,
@@ -679,5 +681,143 @@ describe('isBakeFresh / sweepBakeDebris', () => {
     fs.mkdirSync(path.join(dir, 'resolved.stale-123-456'), { recursive: true });
     sweepBakeDebris(instancesRoot, 'classroom-1');
     expect(fs.readdirSync(dir)).toEqual(['config.json']);
+  });
+});
+
+// ===== Card Library stage 1b: a card owns its slot's dice outcomes =====
+
+const GAMMA_STOCK_DICE = [
+  { space_name: 'GAMMA-FORK', die_roll: 'Next Step', visit_type: 'First',
+    '1': 'DELTA-LEFT', '2': 'DELTA-LEFT', '3': 'DELTA-LEFT or EPSILON-RIGHT',
+    '4': 'EPSILON-RIGHT', '5': 'EPSILON-RIGHT', '6': 'EPSILON-RIGHT',
+    button_label: '', roll_group: '' },
+];
+
+const GAMMA_STOCK_SPACE_ROWS = [
+  { space_name: 'GAMMA-FORK', visit_type: 'First', Title: 'Fork', Event: 'Roll it.' },
+];
+
+describe('Stage 1b bake: card-owned dice outcomes', () => {
+  it('a card with diceRows replaces stock in BOTH the SOURCE dice table and the curated DICE_OUTCOMES', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    const stockVersion = computeStockVersion(stockDir);
+
+    const copyId = createTeacherCopy(config, {
+      slotName: 'GAMMA-FORK',
+      stockRows: GAMMA_STOCK_SPACE_ROWS,
+      stockDiceRows: GAMMA_STOCK_DICE,
+      stockVersion,
+    });
+    // The teacher reworks the fork: every face now goes right.
+    config.teacherCopies[copyId].diceRows = [
+      { ...GAMMA_STOCK_DICE[0], '1': 'EPSILON-RIGHT', '2': 'EPSILON-RIGHT', '3': 'EPSILON-RIGHT' },
+    ];
+
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    // SOURCE dice table: the card's rows, not stock's.
+    const dice = readResolved('SOURCE_FILES/DiceRoll Info.csv');
+    const diceRows = parseCsvWithHeaders(dice).filter(r => r.space_name === 'GAMMA-FORK');
+    expect(diceRows).toHaveLength(1);
+    expect(diceRows[0]['1']).toBe('EPSILON-RIGHT');
+    expect(dice).not.toContain('DELTA-LEFT or EPSILON-RIGHT');
+
+    // The LOAD-BEARING half: the curated DICE_OUTCOMES the client actually
+    // reads for destinations. A bake that only rewrote the SOURCE table above
+    // would render right and route wrong.
+    const outcomes = parseCsvWithHeaders(readResolved('CLEAN_FILES/DICE_OUTCOMES.csv'));
+    const gamma = outcomes.filter(r => r.space_name === 'GAMMA-FORK');
+    expect(gamma).toHaveLength(1);
+    expect(gamma[0].visit_type).toBe('First');
+    expect([1, 2, 3, 4, 5, 6].map(f => gamma[0][`roll_${f}`]))
+      .toEqual(Array(6).fill('EPSILON-RIGHT'));
+    // Other spaces' curated rows are untouched.
+    expect(outcomes.find(r => r.space_name === 'DELTA-LEFT')?.roll_1).toBe('ZETA-END');
+
+    // Slot names stay the only identifiers.
+    const base = resolvedDir(instancesRoot, 'classroom-1');
+    for (const sub of ['SOURCE_FILES', 'CLEAN_FILES']) {
+      for (const file of fs.readdirSync(path.join(base, sub))) {
+        expect(fs.readFileSync(path.join(base, sub, file), 'utf-8')).not.toContain(copyId);
+      }
+    }
+  });
+
+  it('a card WITHOUT diceRows changes nothing — dice files byte-identical to a bake with no copy at all', () => {
+    setupPhase2Stock();
+    const stockVersion = computeStockVersion(stockDir);
+
+    // Baseline: no copies at all.
+    const plain = createInstance(instancesRoot, { id: 'classroom-1' });
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config: plain, stockVersion });
+    const baselineDice = readResolved('SOURCE_FILES/DiceRoll Info.csv');
+    const baselineOutcomes = readResolved('CLEAN_FILES/DICE_OUTCOMES.csv');
+
+    // Same classroom, now playing a copy that owns no dice (every card
+    // written before stage 1b). Absent diceRows must mean "fall back to stock".
+    const config = createInstance(instancesRoot, { id: 'classroom-2' });
+    createTeacherCopy(config, {
+      slotName: 'GAMMA-FORK',
+      stockRows: GAMMA_STOCK_SPACE_ROWS,
+      overrides: { First: { Title: 'Reworded fork' } },
+      stockVersion,
+    });
+    expect(config.teacherCopies['gamma_fork_copy_1'].diceRows).toBeUndefined();
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    const withCopy = (rel: string) =>
+      fs.readFileSync(path.join(resolvedDir(instancesRoot, 'classroom-2'), rel), 'utf-8');
+    expect(withCopy('SOURCE_FILES/DiceRoll Info.csv')).toBe(baselineDice);
+    expect(withCopy('CLEAN_FILES/DICE_OUTCOMES.csv')).toBe(baselineOutcomes);
+    // The Spaces.csv override still landed — the copy is doing its old job.
+    expect(withCopy('SOURCE_FILES/Spaces.csv')).toContain('Reworded fork');
+  });
+
+  it('only the card the slot is PLAYING owns dice; an unplayed copy is ignored', () => {
+    const config: any = {
+      slots: { 'GAMMA-FORK': { used: true, card: 'played' } },
+      teacherCopies: {
+        played: { slot: 'GAMMA-FORK', rows: {} },
+        shelved: { slot: 'GAMMA-FORK', rows: {}, diceRows: [{ ...GAMMA_STOCK_DICE[0], '1': 'NOPE' }] },
+      },
+      detours: {},
+    };
+    expect(copyDiceRowsBySpace(config).size).toBe(0);
+  });
+
+  it('card-owned dice are still detoured — the card does not escape switch-off', () => {
+    const config: any = {
+      slots: { 'GAMMA-FORK': { used: true, card: 'c1' }, 'DELTA-LEFT': { used: false } },
+      teacherCopies: { c1: { slot: 'GAMMA-FORK', rows: {}, diceRows: GAMMA_STOCK_DICE } },
+      detours: {},
+    };
+    const out = applyConfigToDiceCsv(P2_DICE, config, { 'DELTA-LEFT': 'ZETA-END' });
+    expect(out).toContain('ZETA-END');
+    expect(out).not.toContain('DELTA-LEFT');
+  });
+
+  it('drops a space from DICE_OUTCOMES when the card keeps no Next Step rows', () => {
+    const config: any = {
+      slots: { 'GAMMA-FORK': { used: true, card: 'c1' } },
+      teacherCopies: {
+        c1: {
+          slot: 'GAMMA-FORK',
+          rows: {},
+          // Effect roll only — no movement. The space stops routing by dice.
+          diceRows: [{ space_name: 'GAMMA-FORK', die_roll: 'W Cards', visit_type: 'First',
+            '1': 'Draw 1', '2': 'Draw 1', '3': 'Draw 1', '4': 'Draw 1', '5': 'Draw 1', '6': 'Draw 1' }],
+        },
+      },
+      detours: {},
+    };
+    const out = parseCsvWithHeaders(applyCopyDiceToOutcomesCsv(P2_DICE_OUTCOMES, config));
+    expect(out.find(r => r.space_name === 'GAMMA-FORK')).toBeUndefined();
+    expect(out.find(r => r.space_name === 'DELTA-LEFT')).toBeDefined();
+  });
+
+  it('is a pure pass-through when no card in the classroom owns dice', () => {
+    const config: any = { slots: {}, teacherCopies: {}, detours: {} };
+    expect(applyCopyDiceToOutcomesCsv(P2_DICE_OUTCOMES, config)).toBe(P2_DICE_OUTCOMES);
   });
 });

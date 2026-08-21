@@ -374,6 +374,44 @@ export function validateConfig({ config, stockSpacesCsv, pathChoiceCsv, diceCsv,
       }
     }
 
+    // Card-owned dice (CARD_LIBRARY_DESIGN.md stage 1b). Rows sharing a
+    // (space, visit_type, roll_group) bucket resolve from ONE roll
+    // (TurnService.processDiceRollEffects), so if the time row populates all
+    // six faces and the money row only five, rolling a 6 silently does nothing
+    // for money. DataService.validateDiceEffectGroups already warns about this
+    // at load — a console warning nobody sees. With teacher-authored dice it
+    // has to be a save-time ERROR instead, which is what this is.
+    //
+    // ONLY the card's OWN diceRows are checked. Stock is the repo's problem
+    // and may carry pre-existing warnings; turning those into hard failures
+    // here would refuse to bake boards that play fine today.
+    if (Array.isArray(copy.diceRows) && copy.diceRows.length > 0) {
+      const buckets = new Map();
+      for (const row of copy.diceRows) {
+        if (!row || typeof row !== 'object') continue;
+        const key = `${copy.slot}|${row.visit_type || ''}|${row.roll_group || ''}`;
+        const list = buckets.get(key) || [];
+        list.push(row);
+        buckets.set(key, list);
+      }
+      const faces = (row) => ['1', '2', '3', '4', '5', '6']
+        .map(col => (row[col] != null && String(row[col]).trim() ? '1' : '0'))
+        .join('');
+      for (const [key, list] of buckets) {
+        if (list.length < 2) continue; // a lone row can't disagree with itself
+        const first = faces(list[0]);
+        if (list.every(row => faces(row) === first)) continue;
+        const detail = list.map(row => `${row.die_roll || '(no die_roll)'}:${faces(row)}`).join(', ');
+        errors.push({
+          code: 'COPY_BAD_DICE_GROUP',
+          copyId,
+          space: copy.slot,
+          message: `Copy "${copyId}" has dice rows sharing one roll (${key}) that fill different faces — `
+            + `they all resolve from the SAME roll, so the blank ones silently do nothing. Rows: ${detail}`,
+        });
+      }
+    }
+
     // Card ownership tier (CARD_LIBRARY_DESIGN.md stage 1). A missing owner
     // is fine — loadInstance backfills it — but a PRESENT owner that is not
     // an object, or names a tier outside the three the model defines, is

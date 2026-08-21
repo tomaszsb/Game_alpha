@@ -393,6 +393,49 @@ describe('teacher copies', () => {
     expect(config.slots['FEE-REVIEW'].used).toBe(true);
   });
 
+  it('stores the slot’s dice rows VERBATIM on the card (stage 1b)', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const stockDiceRows = [
+      { space_name: 'FEE-REVIEW', die_roll: 'Fees Paid', visit_type: 'First',
+        '1': '8%', '2': '8%', '3': '10%', '4': '10%', '5': '12%', '6': '12%',
+        button_label: '', roll_group: '' },
+      { space_name: 'FEE-REVIEW', die_roll: 'Next Step', visit_type: 'First',
+        '1': 'A', '2': 'A', '3': 'B', '4': 'B', '5': 'B', '6': 'B',
+        button_label: 'Choose', roll_group: '' },
+    ];
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, stockDiceRows });
+    const copy = config.teacherCopies[copyId];
+    expect(copy.diceRows).toHaveLength(2);
+    // Every column survives, untouched — no interpretation, no reshaping.
+    expect(copy.diceRows[0]).toEqual(stockDiceRows[0]);
+    expect(copy.diceRows[1]).toEqual(stockDiceRows[1]);
+    // Stored, not aliased: editing the card must not reach back into stock.
+    copy.diceRows[0]['1'] = 'CHANGED';
+    expect(stockDiceRows[0]['1']).toBe('8%');
+  });
+
+  it('a space with no dice rows gets NO diceRows key at all — absent, not []', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    for (const arg of [undefined, [] as unknown[]]) {
+      const copyId = createTeacherCopy(config, {
+        slotName: 'FEE-REVIEW', stockRows, stockDiceRows: arg as never,
+      });
+      const copy = config.teacherCopies[copyId];
+      expect(copy.diceRows).toBeUndefined();
+      expect(Object.prototype.hasOwnProperty.call(copy, 'diceRows')).toBe(false);
+    }
+  });
+
+  it('pins space_name on dice rows to the slot, like the Spaces rows', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, {
+      slotName: 'FEE-REVIEW',
+      stockRows,
+      stockDiceRows: [{ space_name: 'sneaky_rename', die_roll: 'Next Step', visit_type: 'First' }],
+    });
+    expect(config.teacherCopies[copyId].diceRows[0].space_name).toBe('FEE-REVIEW');
+  });
+
   it('refuses to copy a card that does not exist in stock', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     expect(() => createTeacherCopy(config, { slotName: 'GHOST', stockRows: [] })).toThrow(/does not exist/);
@@ -514,6 +557,38 @@ describe("the 'official' tier privilege boundary (Card Library stage 1 slice 2)"
     const reloaded = loadInstance(root, 'classroom-1')!;
     expect(reloaded.teacherCopies[copyId].owner.tier).toBe('official');
     expect(reloaded.slots['FEE-REVIEW'].card).toBe(copyId);
+  });
+});
+
+describe('card-owned dice (Card Library stage 1b)', () => {
+  it('loadInstance does NOT backfill diceRows — absent must keep meaning "fall back to stock"', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    createTeacherCopy(config, {
+      slotName: 'FEE-REVIEW',
+      stockRows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review' }],
+    });
+    const copyId = Object.keys(config.teacherCopies)[0];
+    saveInstance(root, config);
+    const loaded = loadInstance(root, 'classroom-1')!;
+    // A card written before stage 1b has no dice of its own, and must not
+    // acquire a frozen snapshot of today's stock behind the teacher's back —
+    // that would silently cut it off from future stock dice corrections.
+    expect(loaded.teacherCopies[copyId].diceRows).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(loaded.teacherCopies[copyId], 'diceRows')).toBe(false);
+  });
+
+  it('round-trips diceRows verbatim through save/load', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const diceRow = { space_name: 'FEE-REVIEW', die_roll: 'Next Step', visit_type: 'First',
+      '1': 'A', '2': 'A', '3': 'A', '4': 'B', '5': 'B', '6': 'B',
+      button_label: 'Pick', roll_group: 'g1' };
+    const copyId = createTeacherCopy(config, {
+      slotName: 'FEE-REVIEW',
+      stockRows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review' }],
+      stockDiceRows: [diceRow],
+    });
+    saveInstance(root, config);
+    expect(loadInstance(root, 'classroom-1')!.teacherCopies[copyId].diceRows).toEqual([diceRow]);
   });
 });
 

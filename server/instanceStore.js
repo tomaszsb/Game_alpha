@@ -237,6 +237,18 @@ export function loadInstance(instancesRoot, id) {
       copy.owner = { tier: 'individual', id: parsed.meta?.owner || null };
     }
   }
+  // DELIBERATELY NOT BACKFILLED: `diceRows` (Card Library stage 1b).
+  //
+  // `owner` above is backfilled because a card without one has no defensible
+  // meaning — every card has an owner, the field just didn't exist yet.
+  // `diceRows` is the opposite: ABSENT is a meaning, and it is the meaning
+  // that keeps this whole slice inert. The bake reads absent as "this card
+  // does not own its slot's dice — use stock's rows", which is exactly what
+  // every card written before stage 1b was playing. Backfilling from current
+  // stock would freeze today's dice onto old cards, so a later stock dice fix
+  // would silently stop reaching them — the opposite of the drift rule
+  // (system corrections keep flowing until the teacher edits that thing).
+  // Absent must keep meaning "fall back to stock" forever. Do not add one.
   return parsed;
 }
 
@@ -502,9 +514,13 @@ export function setSlotUsed(config, spaceName, used, detour) {
  * original stays untouched in the library.
  * @param {InstanceConfig} config
  * @param {{ slotName: string, stockRows: Array<Object<string, string>>,
+ *   stockDiceRows?: Array<Object<string, string>>,
  *   overrides?: Object<string, Object<string, string>>, stockVersion?: string,
  *   tier?: 'official'|'group'|'individual' }} args
  *   overrides is keyed by visit_type ("First"/"Subsequent").
+ *   stockDiceRows is the slot's rows from DiceRoll Info.csv, already parsed
+ *   and filtered by the caller (mirrors stockRows, and keeps this module free
+ *   of a CSV parser). Stored VERBATIM on the card — see below.
  *   tier is the new card's ownership tier, defaulting to 'individual' (a
  *   classroom's own override — what every caller before Card Library stage 1
  *   meant). The maintainer's own content edits are written 'official': he is
@@ -513,7 +529,7 @@ export function setSlotUsed(config, spaceName, used, detour) {
  *   ADMIN act — the caller enforces that, this function only records it.
  * @returns {string} the new copy id
  */
-export function createTeacherCopy(config, { slotName, stockRows, overrides = {}, stockVersion, tier = 'individual' }) {
+export function createTeacherCopy(config, { slotName, stockRows, stockDiceRows, overrides = {}, stockVersion, tier = 'individual' }) {
   if (!VALID_OWNER_TIERS.has(tier)) {
     throw new Error(`Invalid tier "${tier}": must be one of ${[...VALID_OWNER_TIERS].join(', ')}`);
   }
@@ -549,6 +565,22 @@ export function createTeacherCopy(config, { slotName, stockRows, overrides = {},
     owner: { tier, id: config.meta?.owner || null },
     rows,
   };
+  // A card also owns its slot's dice outcomes (CARD_LIBRARY_DESIGN.md stage
+  // 1b, "Dice outcomes"): the space's DiceRoll Info rows, VERBATIM — every
+  // column (die_roll, visit_type, 1-6, button_label, roll_group), no
+  // interpretation, the same way rows above stores its Spaces.csv rows.
+  //
+  // ABSENT, never []. A space that never rolls gets no diceRows key at all,
+  // and absent is what the bake reads as "fall back to stock" — so an empty
+  // array would be a THIRD state meaning "this card has no dice", which is a
+  // real difference (it would blank the space's dice at bake) and must not be
+  // written by accident here.
+  if (Array.isArray(stockDiceRows) && stockDiceRows.length > 0) {
+    config.teacherCopies[copyId].diceRows = stockDiceRows.map(diceRow => ({
+      ...diceRow,
+      space_name: slotName, // slot names are the only space identifiers
+    }));
+  }
   config.slots[slotName] = { used: true, ...config.slots[slotName], card: copyId };
   return copyId;
 }

@@ -470,3 +470,93 @@ describe('validateConfig — insertions on dice & lock-point edges (Phase 4b)', 
     expect(report.errors.filter(e => e.code.startsWith('INSERT_'))).toEqual([]);
   });
 });
+
+// ===== Card Library stage 1b: card-owned dice =====
+
+const NL = String.fromCharCode(10);
+
+describe('COPY_BAD_DICE_GROUP: shared-roll column consistency', () => {
+  const diceRow = (over: Record<string, string> = {}) => ({
+    space_name: 'GAMMA-FORK', die_roll: 'Next Step', visit_type: 'First',
+    '1': 'DELTA-LEFT', '2': 'DELTA-LEFT', '3': 'DELTA-LEFT',
+    '4': 'EPSILON-RIGHT', '5': 'EPSILON-RIGHT', '6': 'EPSILON-RIGHT',
+    button_label: '', roll_group: '', ...over,
+  });
+
+  const withDice = (diceRows: unknown) => makeConfig({
+    slots: { 'GAMMA-FORK': { used: true, card: 'gamma_fork_copy_1' } },
+    teacherCopies: {
+      gamma_fork_copy_1: {
+        slot: 'GAMMA-FORK',
+        owner: { tier: 'individual', id: null },
+        rows: { First: { space_name: 'GAMMA-FORK' } },
+        diceRows,
+      },
+    },
+  });
+
+  it('rejects rows sharing one roll that fill different faces', () => {
+    const report = validateConfig({
+      config: withDice([
+        diceRow({ die_roll: 'Time outcomes', '1': '1', '2': '1', '3': '2', '4': '2', '5': '3', '6': '3' }),
+        // Same (space, visit_type, roll_group) bucket, face 6 blank — rolling
+        // a 6 would silently cost nothing.
+        diceRow({ die_roll: 'Fees Paid', '1': '10', '2': '10', '3': '20', '4': '20', '5': '30', '6': '' }),
+      ]),
+      stockSpacesCsv: STOCK,
+    });
+    const bad = report.errors.filter(e => e.code === 'COPY_BAD_DICE_GROUP');
+    expect(bad).toHaveLength(1);
+    expect(bad[0].copyId).toBe('gamma_fork_copy_1');
+    expect(bad[0].space).toBe('GAMMA-FORK');
+    expect(report.ok).toBe(false); // save-time ERROR, not a console warning
+  });
+
+  it('accepts consistent rows, and separates buckets by visit_type and roll_group', () => {
+    const report = validateConfig({
+      config: withDice([
+        diceRow({ die_roll: 'Time outcomes' }),
+        diceRow({ die_roll: 'Fees Paid' }),
+        // Different visit type — its own bucket, so a different shape is fine.
+        diceRow({ die_roll: 'Time outcomes', visit_type: 'Subsequent', '6': '' }),
+        // Different roll_group — a SEPARATE roll, so no comparison either.
+        diceRow({ die_roll: 'Fees Paid', roll_group: 'second', '5': '', '6': '' }),
+      ]),
+      stockSpacesCsv: STOCK,
+    });
+    expect(report.errors.filter(e => e.code === 'COPY_BAD_DICE_GROUP')).toEqual([]);
+  });
+
+  it('never validates stock dice — a card without diceRows raises nothing', () => {
+    const report = validateConfig({
+      config: makeConfig({
+        slots: { 'GAMMA-FORK': { used: true, card: 'gamma_fork_copy_1' } },
+        teacherCopies: {
+          gamma_fork_copy_1: {
+            slot: 'GAMMA-FORK',
+            owner: { tier: 'individual', id: null },
+            rows: { First: { space_name: 'GAMMA-FORK' } },
+          },
+        },
+      }),
+      stockSpacesCsv: STOCK,
+      // Stock itself carries an inconsistent shared-roll group. Stock is the
+      // repo's problem; turning its pre-existing warnings into hard failures
+      // would refuse to bake a board that plays fine today.
+      diceCsv: [
+        'space_name,die_roll,visit_type,1,2,3,4,5,6,button_label,roll_group',
+        'GAMMA-FORK,Time outcomes,First,1,1,2,2,3,3,,',
+        'GAMMA-FORK,Fees Paid,First,10,10,20,20,30,,,',
+      ].join(NL) + NL,
+    });
+    expect(report.errors.filter(e => e.code === 'COPY_BAD_DICE_GROUP')).toEqual([]);
+  });
+
+  it('a lone row in a bucket cannot disagree with itself', () => {
+    const report = validateConfig({
+      config: withDice([diceRow({ '4': '', '5': '', '6': '' })]),
+      stockSpacesCsv: STOCK,
+    });
+    expect(report.errors.filter(e => e.code === 'COPY_BAD_DICE_GROUP')).toEqual([]);
+  });
+});
