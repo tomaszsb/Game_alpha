@@ -62,11 +62,29 @@ It also softens an earlier reservation honestly recorded here: when tiers were f
 3. **Editing produces a new card.** Nothing is overwritten; the previous version stays reachable. *"One can always just go back to the previous version of the card."*
 4. **Drift: flag it, keep playing theirs.** When a system correction changes the official card a copy was made from, the copy keeps playing and is marked for review. Rejected: auto-replacing the teacher's card.
 5. **The maintainer's overrides are king** while there are no teachers — and his edits must stop evaporating, which is what makes that true rather than aspirational.
-6. **A card owns its slot's dice outcomes** — stored verbatim as rows, carrying `visit_type` and `roll_group` so first/return differences, one-roll-many-effects, and multiple rolls all come along without new modeling. See the section above.
+6. **A card owns rows keyed to exactly one space that hold that space's authored content** — cross-space relationships and globally-keyed tables stay out. That covers dice outcomes (verbatim, carrying `visit_type` and `roll_group`), modal copy, and logic-question *wording*; it excludes path-choice rules and action tooltips. Full table and reasoning under "What a card owns".
 7. **Build the tiers; defer the approval queue.** All three decks exist and work; promoting a card upward is a manual operation for now. Rationale: the queue is the piece most likely to be designed wrong with zero teachers to observe, and it is the cheapest to add later once cards already know their owner.
 8. **One editing surface.** The two screens merge. *"We are editing the same thing."*
 
-## A card owns its dice outcomes
+## What a card owns
+
+**The rule (maintainer, 2026-08-21).** A card owns a file's rows **when they are keyed to exactly one space and hold that space's authored content.** Cross-space relationships and globally-keyed tables stay out.
+
+Recorded as a standing test, not just as a list of verdicts, so a file added next year is decided by asking the question rather than by re-running this whole audit. Applied to every data file as of today:
+
+| File | Card owns it? | Why |
+|---|---|---|
+| `Spaces.csv` rows | **Yes** (already) | The card's original content. |
+| `DiceRoll Info.csv` / `DICE_OUTCOMES.csv` | **Yes** | Keyed by space + visit type. See below. |
+| `ModalConfig.csv` | **Yes** | Keyed `space_name, visit_type` — the card's exact shape. Trivially small today: 2 rows in the whole file, both on `BANK-FUND-REVIEW`, setting one button label. |
+| `LOGIC_QUESTIONS.csv` | **Wording only** | Per-space and genuinely authored, but each row also carries routing. See below. |
+| `PATH_CHOICE_RULES.csv` | **No** | Names an `affected_space`, but its meaning comes from a choice made at a *different* space — a relationship between spaces, not content of one. |
+| `ACTION_TOOLTIPS.csv` | **No** | Keyed by action type, not by space. Global. |
+| `MOVEMENT` / `GAME_CONFIG` / `SPACE_CONTENT` / `SPACE_EFFECTS` / `DICE_EFFECTS` | n/a | Generated from the rows a card already holds. |
+
+`PATH_CHOICE_RULES` is the counterexample worth keeping in mind. [TEACHER_LAYER_DESIGN.md](TEACHER_LAYER_DESIGN.md) reached the same conclusion from the opposite direction — it considered rewriting that file during a bake and rejected it as "building a compiler." Two independent routes to one answer; treat it as settled.
+
+### Dice outcomes
 
 **Decision (maintainer, 2026-08-21):** yes — a card owns the dice outcomes of its slot. Raised with three complications: first-visit vs return-visit differences, a roll that does more than one thing, and rolling more than once at a space.
 
@@ -84,9 +102,20 @@ So the model extension is simply: **a card stores its space's dice rows verbatim
 - **`DICE_OUTCOMES.csv` is the load-bearing one.** It is curated and `processGameData` does **not** regenerate it, and the client reads it directly for destinations. A bake that rewrites only the SOURCE dice table produces a board that renders correctly and routes wrongly — the space is functionally dead. This trap is already documented in CLAUDE.md from the Phase 4b authored-space work; any dice-carrying card must rewrite both.
 - **Column consistency matters more once teachers can edit.** Rows sharing one roll must populate all six faces, or a roll silently does nothing for one of its jobs. `DataService.validateDiceEffectGroups` already warns on this at load; with teacher-authored dice it should be a save-time validation error, not a console warning nobody sees.
 
-### Still open: ModalConfig
+### Logic questions: wording, not routing
 
-The Space Data Editor saves a third file, `ModalConfig.csv`, which likewise has no card representation. Smaller and less entangled than dice — deliberately not decided here. Answer it before the editor's save path is swapped over, so that swap happens once rather than twice.
+`LOGIC_QUESTIONS.csv` is per-space authored content — 10 rows today, all on `REG-FDNY-FEE-REVIEW`, holding real player-facing text ("Did the scope change since the last visit?"). But each row carries `yes_target` / `no_target` alongside the wording: where the player actually goes.
+
+**Decision: a card owns the wording; routing stays fixed.** A teacher can rewrite a question into their classroom's own language — the entire benefit for the translation-and-clarity use case this layer exists to serve — without being able to strand a player. Letting a card change `yes_target`/`no_target` would make it able to reshape the board's topology, which is exactly the class of change this project surrounds with protection and save-time validation; opening it now would mean building that validation before a single teacher exists to need it. Routing can open later, and the wording-only split does not have to be undone to do it.
+
+Practically: the copy-editable field set for logic questions is `question_text`, `yes_reason`, `no_reason`. `question_id`, `yes_target`, `no_target` and `auto_answer_from` are structural and always come from stock.
+
+### Deliberately still open
+
+Two questions that genuinely cannot be answered yet, parked rather than guessed:
+
+- **How deep version history goes in the picker** — needs a deck that has actually got crowded.
+- **Whether a group admin can edit official cards** — needs a real group to exist. Stage 4 assumes no.
 
 ## What exists vs. what is new
 
@@ -123,6 +152,11 @@ game-data/cards/<cardId>.json
   diceRows:  [ {die_roll, visit_type, '1'..'6', button_label, roll_group}, … ]
              # this space's DiceRoll Info rows, verbatim. Absent on a card for
              # a space that never rolls; absent on cards written before this.
+  modalRows: [ {visit_type, effect_action, modal_title, modal_description,
+                modal_button_label, modal_summary, dice_value}, … ]
+  logicRows: [ {visit_type, question_id, question_text, yes_reason, no_reason}, … ]
+             # WORDING ONLY -- question_id/yes_target/no_target/auto_answer_from
+             # are structural and always resolve from stock at bake.
   createdAt / updatedAt / supersededBy
 ```
 
@@ -136,7 +170,7 @@ The classroom config keeps only the *choice*: `slots[name].card = <cardId>`. Res
 
 > **Clarified 2026-08-21, during slice 2.** An earlier draft of this line said "into the card library," which is ahead of itself — the shared library does not exist until the storage move, and the durability fix does not need it. Cards live in the classroom config today, and that config already survives every deploy by construction, so writing there is sufficient and correct for stage 1. Admin edits are written at `owner.tier: 'official'`: the maintainer is the curator, so when the shared library is later extracted, **the official-tier cards are exactly the set that migrates into it** — which is what makes the deferral safe rather than a debt. Correct the Board Layout Editor's on-screen help, which currently claims each drop is *"written to `Spaces.csv`"* — it posts to `/api/instances/:id/positions` ([saveBoardPosition.ts:64](../../src/components/board/saveBoardPosition.ts)) and the in-game tooltip already says so correctly. *(The related "board draggable with no way to turn it off" bug was fixed ahead of this stage on 2026-08-21 — see CHANGELOG.)*
 
-**Stage 1b — a card carries its dice rows.** Extend the card to hold its space's `DiceRoll Info` rows and merge them at bake through `applyConfigToDiceCsv`, rewriting the curated `DICE_OUTCOMES.csv` as well as the SOURCE table (see the cost notes above — missing the curated file yields a board that renders right and routes wrong). Promote the shared-roll column-consistency check from a load-time console warning to a save-time error. This must land before the Space Data Editor's save path is swapped, or that screen would persist some edits and silently drop others.
+**Stage 1b — a card carries the rest of its own content.** Dice rows, modal copy, and logic-question wording, per the ownership rule above. Dice is the load-bearing part: Extend the card to hold its space's `DiceRoll Info` rows and merge them at bake through `applyConfigToDiceCsv`, rewriting the curated `DICE_OUTCOMES.csv` as well as the SOURCE table (see the cost notes above — missing the curated file yields a board that renders right and routes wrong). Promote the shared-roll column-consistency check from a load-time console warning to a save-time error. This must land before the Space Data Editor's save path is swapped, or that screen would persist some edits and silently drop others.
 
 **Stage 2 — make it a rolodex.** Edit branches; remove unselects; per-slot card picker showing every visible card with its tier and role note; the drift flag moves onto the card it concerns instead of the page-level banner.
 
@@ -157,8 +191,3 @@ Deliberately reserved now so later work is additive rather than a rework:
 - **`role` note from stage 2.** Doubles as the submission blurb if a queue is ever built — a teacher proposing a card upward has already written why it exists.
 - **Approval queue, when it comes:** the shape to copy is the glossary Purgatory review already running in the dictionary-scraper backend (nightly robot stages candidates, human approves/rejects). Confirmed 2026-08-21 that no Purgatory code exists in *this* repo — it would be a fresh build here, informed by a pattern the maintainer already operates. Minimum pieces: a submission record (card id + submitter + note + status), a review screen, and a promote operation that clones the card to `owner.tier = 'official'` while leaving the submitter's original in place.
 - **Card protection tiers** (structural / semantic / path-choice) already exist for slots and are untouched by any of this. A protected slot restricts *switching off*, never *which card fills it*, so tiers and protection stay orthogonal.
-
-## Open questions
-
-- **How deep should version history go in the UI?** The data keeps everything (`derivedFrom`); the question is whether the picker shows all versions inline or hides older ones behind a "show earlier versions" control. The maintainer's read on 2026-08-21: official stays short because it's curated, so crowding is only ever a teacher/school-deck problem — decide when a deck actually gets crowded.
-- **Does a group admin edit official cards?** Unresolved, and safely so — it cannot be answered before a real group exists. Stage 4 should assume no.
