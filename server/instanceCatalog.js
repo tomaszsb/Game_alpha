@@ -7,7 +7,13 @@
 // in this classroom (in play / off+detour / custom copy), and its
 // protection tier so the UI can disable forbidden switches with reasons.
 //
-// Pure module; server.js wires it into GET /api/instances/:id/catalog.
+// Pure module; server.js wires it into GET /api/instances/:id/catalog. The
+// response's `copies` field (server.js: `copies: config.teacherCopies`) is a
+// raw pass-through of the classroom's teacher copies, not composed here — so
+// each copy's `owner` (CARD_LIBRARY_DESIGN.md stage 1: card ownership tier,
+// written by instanceStore.createTeacherCopy / backfilled by loadInstance)
+// already rides along automatically. Nothing in this file renders it; the
+// client type lives in classroomApi.ts's TeacherCopy interface.
 
 import { parseCsvWithHeaders } from './processGameData.js';
 import { computeProtection } from './spaceProtection.js';

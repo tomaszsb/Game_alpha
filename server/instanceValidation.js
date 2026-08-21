@@ -288,6 +288,9 @@ const CARD_DECKS = new Set(['W', 'B', 'I', 'L', 'E']);
 const MAX_CARD_DRAW = 9;
 /** A die has six faces — an authored dice space must assign all of them. */
 const DIE_FACES = 6;
+/** Card ownership tiers (CARD_LIBRARY_DESIGN.md "the model") — stored
+ *  structurally, never the skin's display word. */
+const VALID_OWNER_TIERS = new Set(['official', 'group', 'individual']);
 
 /**
  * Full config validation: protection tiers, unknown names, detour
@@ -367,6 +370,17 @@ export function validateConfig({ config, stockSpacesCsv, pathChoiceCsv, diceCsv,
       if (row.space_name && row.space_name !== copy.slot) {
         errors.push({ code: 'COPY_RENAMES_SLOT', copyId, space: copy.slot, message: `Copy "${copyId}" must keep space_name "${copy.slot}"` });
         break;
+      }
+    }
+
+    // Card ownership tier (CARD_LIBRARY_DESIGN.md stage 1). A missing owner
+    // is fine — loadInstance backfills it — but a PRESENT owner that is not
+    // an object, or names a tier outside the three the model defines, is
+    // malformed data and must be rejected rather than silently baked.
+    if (copy.owner !== undefined) {
+      const tier = copy.owner && typeof copy.owner === 'object' ? copy.owner.tier : undefined;
+      if (!copy.owner || typeof copy.owner !== 'object' || !VALID_OWNER_TIERS.has(tier)) {
+        errors.push({ code: 'COPY_BAD_OWNER', copyId, space: copy.slot, message: `Copy "${copyId}" has a malformed owner (tier must be one of ${[...VALID_OWNER_TIERS].join(', ')})` });
       }
     }
   }

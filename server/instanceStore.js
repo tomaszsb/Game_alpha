@@ -224,6 +224,19 @@ export function loadInstance(instancesRoot, id) {
   } else if (!parsed.edgeAnchors || typeof parsed.edgeAnchors !== 'object') {
     throw new Error(`Instance "${id}": invalid edgeAnchors`);
   }
+  // owner on each teacher copy (Card Library stage 1, 2026-08-21) is newer
+  // than every copy already on disk — backfill it here so every downstream
+  // reader can assume it is always present, same upgrade-in-place treatment
+  // as edgeWaypoints' single-point-to-array fixup above. A copy predating
+  // this change was, by construction, this classroom's own override (the
+  // tier the field would have recorded had it existed), so the backfill
+  // mirrors createTeacherCopy's own owner shape rather than leaving it
+  // absent. The next save naturally persists the backfilled value.
+  for (const copy of Object.values(parsed.teacherCopies)) {
+    if (copy && typeof copy === 'object' && !copy.owner) {
+      copy.owner = { tier: 'individual', id: parsed.meta?.owner || null };
+    }
+  }
   return parsed;
 }
 
@@ -506,6 +519,11 @@ export function createTeacherCopy(config, { slotName, stockRows, overrides = {},
     createdAt: now,
     updatedAt: now,
     copiedFromStockVersion: stockVersion || null,
+    // Card ownership tier (CARD_LIBRARY_DESIGN.md stage 1). A teacher copy is
+    // always this classroom's own override — 'individual', never 'official'
+    // (that tier is reserved for the curated stock library) — owned by
+    // whoever owns the classroom right now (nullable: no owner bound yet).
+    owner: { tier: 'individual', id: config.meta?.owner || null },
     rows,
   };
   config.slots[slotName] = { used: true, ...config.slots[slotName], card: copyId };

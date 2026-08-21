@@ -221,6 +221,48 @@ describe('validateConfig — teacher copies', () => {
     expect(report.ok).toBe(true);
     expect(report.warnings.some(w => w.code === 'COPY_STOCK_UPDATED')).toBe(true);
   });
+
+  it('accepts a copy with no owner at all — loadInstance backfills it, not a validation error', () => {
+    const report = validateConfig({
+      config: copyConfig({ slot: 'BETA-MIDDLE', rows: { First: fullRow } }),
+      stockSpacesCsv: STOCK,
+    });
+    expect(report.ok).toBe(true);
+    expect(report.errors).toEqual([]);
+  });
+
+  it('accepts a well-formed owner for each of the three tiers', () => {
+    for (const owner of [
+      { tier: 'official', id: null },
+      { tier: 'group', id: 'school-xyz' },
+      { tier: 'individual', id: 'teacher-aaa' },
+    ]) {
+      const report = validateConfig({
+        config: copyConfig({ slot: 'BETA-MIDDLE', owner, rows: { First: fullRow } }),
+        stockSpacesCsv: STOCK,
+      });
+      expect(report.ok).toBe(true);
+      expect(report.errors.some(e => e.code === 'COPY_BAD_OWNER')).toBe(false);
+    }
+  });
+
+  it('errors when owner is present but not an object (CARD_LIBRARY_DESIGN.md stage 1)', () => {
+    const report = validateConfig({
+      config: copyConfig({ slot: 'BETA-MIDDLE', owner: 'individual', rows: { First: fullRow } }),
+      stockSpacesCsv: STOCK,
+    });
+    expect(report.ok).toBe(false);
+    expect(report.errors.some(e => e.code === 'COPY_BAD_OWNER' && e.copyId === 'beta_middle_copy_1' && e.space === 'BETA-MIDDLE')).toBe(true);
+  });
+
+  it('errors when owner.tier is outside the three allowed values', () => {
+    const report = validateConfig({
+      config: copyConfig({ slot: 'BETA-MIDDLE', owner: { tier: 'school', id: null }, rows: { First: fullRow } }),
+      stockSpacesCsv: STOCK,
+    });
+    expect(report.ok).toBe(false);
+    expect(report.errors.some(e => e.code === 'COPY_BAD_OWNER')).toBe(true);
+  });
 });
 
 describe('validateConfig — PATH_CHOICE drift tripwire', () => {

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.18] - 2026-08-21
+
+### Card library stage 1, slice 1: every card now records who owns it
+First build slice off [CARD_LIBRARY_DESIGN.md](docs/core/CARD_LIBRARY_DESIGN.md). Nothing reads the new field yet, which is the point — the spec's load-bearing breadcrumb is that a card must carry an owner from the start, because it is nearly free to add now and expensive to retrofit once cards exist in the wild.
+
+Every teacher copy gains `owner: { tier, id }`. The tier is stored **structurally** — `official` / `group` / `individual` — never the skin's display word, so a reskin can rename the decks (school/teacher by default, club/master under the D&D skin) through the existing `UI_STRINGS.csv` swap without a data migration. `createTeacherCopy` writes `individual`, never `official`: a teacher copy is one classroom's own override, while `official` is reserved for the curated stock library. The owner id is the classroom's bound account, nullable when none is bound yet.
+
+`loadInstance` backfills the field on any copy already on disk, upgrading in place so every downstream reader can assume it is always present — the same treatment `insertions`, `edgeWaypoints` (including its single-point-to-array fixup) and `edgeAnchors` already get in that function. A copy predating this change was by construction that classroom's own override, so the backfill mirrors `createTeacherCopy`'s shape rather than leaving it absent. Validation rejects a *present* but malformed owner (`COPY_BAD_OWNER` — not an object, or a tier outside the three the model defines); a missing owner is not an error, since the backfill handles it. `owner` rides to the client through the catalog's existing raw pass-through of `teacherCopies` — no composition logic needed, documented in place so nobody goes looking for it — and is typed on `TeacherCopy` in `classroomApi.ts`.
+
+### Fix: the Board Layout Editor claimed it saved somewhere it doesn't
+Its header help said each drop was "written to `Spaces.csv`". It isn't — drag-saves post to `/api/instances/:id/positions` and land in the classroom config ([saveBoardPosition.ts:64](src/components/board/saveBoardPosition.ts)), which is why they survive deploys; the in-game Edit tooltip has always said so correctly. Two screens describing the same action in opposite terms is exactly the confusion the card-library spec was written to end. Reworded in plain language, keeping the genuinely useful part the old copy carried (changes apply to every future game) and dropping the filename the maintainer never opens.
+
+Verified: typecheck clean, production build clean, server + board suites 403/403 (20 files), including new tests for the owner on a fresh copy with and without a bound classroom account, backfill of an old copy, and validation of both well-formed and malformed owners.
+
 ## [3.2.17] - 2026-08-21
 
 ### Fix: the board could stay draggable with no way to turn edit mode off

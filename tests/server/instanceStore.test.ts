@@ -396,6 +396,61 @@ describe('teacher copies', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     expect(() => createTeacherCopy(config, { slotName: 'GHOST', stockRows: [] })).toThrow(/does not exist/);
   });
+
+  it('stamps a new copy "individual", owned by no one, when the classroom has no owner account (CARD_LIBRARY_DESIGN.md stage 1)', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    expect(config.teacherCopies[copyId].owner).toEqual({ tier: 'individual', id: null });
+  });
+
+  it('stamps a new copy with the classroom\'s own owner account id, still "individual" (not "official")', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setInstanceOwner(config, 'teacher-aaa');
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    expect(config.teacherCopies[copyId].owner).toEqual({ tier: 'individual', id: 'teacher-aaa' });
+  });
+});
+
+describe('card ownership (Card Library stage 1, 2026-08-21)', () => {
+  it('loadInstance backfills owner on a copy saved before the field existed', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    createTeacherCopy(config, {
+      slotName: 'FEE-REVIEW',
+      stockRows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review' }],
+    });
+    const copyId = Object.keys(config.teacherCopies)[0];
+    delete (config.teacherCopies[copyId] as any).owner;
+    fs.writeFileSync(configPath(root, 'classroom-1'), JSON.stringify(config, null, 2));
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.teacherCopies[copyId].owner).toEqual({ tier: 'individual', id: null });
+  });
+
+  it('backfill uses the classroom\'s current owner account, not null, when one is bound', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    createTeacherCopy(config, {
+      slotName: 'FEE-REVIEW',
+      stockRows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review' }],
+    });
+    const copyId = Object.keys(config.teacherCopies)[0];
+    delete (config.teacherCopies[copyId] as any).owner;
+    config.meta.owner = 'teacher-bbb';
+    fs.writeFileSync(configPath(root, 'classroom-1'), JSON.stringify(config, null, 2));
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.teacherCopies[copyId].owner).toEqual({ tier: 'individual', id: 'teacher-bbb' });
+  });
+
+  it('loadInstance leaves an already-present owner untouched', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    createTeacherCopy(config, {
+      slotName: 'FEE-REVIEW',
+      stockRows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review' }],
+    });
+    const copyId = Object.keys(config.teacherCopies)[0];
+    (config.teacherCopies[copyId] as any).owner = { tier: 'group', id: 'school-xyz' };
+    fs.writeFileSync(configPath(root, 'classroom-1'), JSON.stringify(config, null, 2));
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.teacherCopies[copyId].owner).toEqual({ tier: 'group', id: 'school-xyz' });
+  });
 });
 
 describe('deleteInstance (Phase 3 polish)', () => {

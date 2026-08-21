@@ -37,11 +37,26 @@ export interface CatalogSpace {
   stock: Record<string, Record<string, string>>;
 }
 
+/**
+ * Card ownership tier (CARD_LIBRARY_DESIGN.md "the model"). Stored
+ * structurally — never the skin's display word ("school"/"teacher") — so a
+ * reskin can rename tiers through the UI_STRINGS vocabulary swap without a
+ * data migration. `id` is nullable: an `official` card has no owner account,
+ * and a classroom with no owner bound yet produces `individual` copies with
+ * `id: null`.
+ */
+export interface CardOwner {
+  tier: 'official' | 'group' | 'individual';
+  id: string | null;
+}
+
 export interface TeacherCopy {
   slot: string;
   createdAt: string;
   updatedAt: string;
   copiedFromStockVersion: string | null;
+  /** Always present — new copies write it, loadInstance backfills old ones. */
+  owner: CardOwner;
   rows: Record<string, Record<string, string>>;
 }
 

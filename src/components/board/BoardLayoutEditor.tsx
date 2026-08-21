@@ -251,9 +251,9 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
             }}
           >
             Drag tiles to reposition. Each drop saves automatically — the
-            green banner top-right confirms the new coordinates were written
-            to <code>Spaces.csv</code>. Changes apply to every future game.
-            Click a connector line to hide it individually.
+            green banner top-right confirms it. Your layout is saved with
+            this classroom, survives app updates, and applies to every
+            future game. Click a connector line to hide it individually.
           </p>
           {reloadError && (
             <p
