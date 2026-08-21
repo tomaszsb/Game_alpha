@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.17] - 2026-08-21
+
+### Fix: the board could stay draggable with no way to turn edit mode off
+Maintainer report from live testing: "I can now move the nodes without being in edit mode." Reproduced in a running app, and it is not a stuck toggle — the two halves of the admin-only rule were stored with different lifetimes. The "is edit mode on" flag lives in `localStorage` (survives forever); the admin session lives in `sessionStorage` (dies with the tab). Close the tab with edit mode on and the login is gone while the flag is not — and since `BoardToggle` renders **nothing at all** for a non-admin, its own off switch disappears along with the login. The board stays draggable with no control anywhere on screen, unrecoverable short of clearing site data.
+
+New [boardEditModeGate.ts](src/components/board/boardEditModeGate.ts) owns the starting value and refuses to start edit mode on without an admin session, clearing the stored flag while it is at it so a forgotten "on" cannot come back on a later mount. Extracted rather than inlined in `GameLayout` for the same reason `saveBoardPosition` was — it is unit-testable without mounting the layout, GameContext and React Flow. Fails closed on a storage exception (private mode), which is the safe direction for an admin-only control.
+
+Verified live in the running app, before and after: pre-fix, no admin session and no Edit button rendered, yet board nodes still carried React Flow's `draggable` class and the flag stayed `1`; post-fix, same setup leaves nodes `selectable` only and the flag reset to `0`. Confirmed the admin path still works end to end (button renders, toggles on, nodes become draggable). 6 new tests in `tests/components/board/boardEditModeGate.test.ts`; checked they actually catch it rather than assuming — reverting the fix fails the two bug-specific tests, restoring it passes them. Typecheck clean, production build clean, layout + board suites 54/54.
+
+### Docs: card library design spec (the "rolodex" model)
+New [CARD_LIBRARY_DESIGN.md](docs/core/CARD_LIBRARY_DESIGN.md), extending TEACHER_LAYER_DESIGN rather than replacing it — it closes that spec's "Editor mapping" line (decision 3), which was never implemented for the content editor. Written from a design session with the maintainer, who reported the two space editors (Space Data Editor, Classroom Setup) "do the same thing in different ways."
+
+An audit of both surfaces found the durability is backwards from how they look: every Space Data Editor edit is reverted on the next restart, because `initWritableData()` re-seeds stock whenever a content hash differs from the shipped image — and saving in the editor is exactly what makes it differ. Classroom Setup's changes persist by construction. Also found: editing a card destroys the previous version, the live preview renders the *retired* classic panel's stylesheet, and the Board Layout Editor's on-screen help claims it writes to `Spaces.csv` when it posts to the instance endpoint.
+
+The finding that shapes the plan: a slot holds one pointer to one card and the bake resolves it with a single lookup, no fallback chain ([instanceResolver.js:114](server/instanceResolver.js)) — so ownership tiers never touch the resolver, where the project's hardest guarantees live. Tiers are a visibility question, not a resolution strategy. Tiers are stored structurally (`official`/`group`/`individual`) and labelled through the existing `UI_STRINGS.csv` swap, so a reskin renames the decks without a data migration — school/teacher by default, club/master under the D&D skin (maintainer's own observation, arriving from the reskin experiment). Four build stages; the approval queue is deliberately deferred with breadcrumbs recorded for it. No code changes — spec plus companion TODO entry only.
+
 ## [3.2.16] - 2026-08-19
 
 ### Feature: click a Chronicle entry to jump the board to where it happened

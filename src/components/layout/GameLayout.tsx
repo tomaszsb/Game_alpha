@@ -40,6 +40,7 @@ import { PlayerDebug } from '../debug/PlayerDebug';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { ShutdownNotice } from '../common/ShutdownNotice';
 import { isAdminAuthenticated } from '../../utils/adminAuth';
+import { readInitialBoardEditMode, BOARD_EDIT_MODE_KEY } from '../board/boardEditModeGate';
 import { isTeacherLoggedIn } from '../../utils/teacherAuth';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { fetchEdgeWaypoints, saveEdgeWaypoints, clearEdgeWaypoint, clearAllEdgeWaypoints, type EdgeWaypointResult } from '../../utils/saveEdgeWaypoint';
@@ -119,15 +120,15 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // only renderer so the toggle and its persistence keys are gone. The
   // remaining board state (edit mode, edges visibility, per-edge hides) is
   // still wired to BoardCanvas's admin features below.
-  const [boardEditMode, setBoardEditModeState] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      return window.localStorage.getItem('unravel:boardEditMode') === '1';
-    } catch { return false; }
-  });
+  // Edit mode is admin-only. readInitialBoardEditMode owns the "a stored 'on'
+  // must never outlive the admin session that set it" rule — see that module
+  // for why the two used to drift apart.
+  const [boardEditMode, setBoardEditModeState] = useState<boolean>(
+    () => readInitialBoardEditMode({ isAdmin: isAdminAuthenticated })
+  );
   const setBoardEditMode = useCallback((v: boolean) => {
     setBoardEditModeState(v);
-    try { window.localStorage.setItem('unravel:boardEditMode', v ? '1' : '0'); } catch { /* ignored */ }
+    try { window.localStorage.setItem(BOARD_EDIT_MODE_KEY, v ? '1' : '0'); } catch { /* ignored */ }
   }, []);
   // Global edges-visible toggle (default on). Persisted per-session.
   const [boardEdgesVisible, setBoardEdgesVisibleState] = useState<boolean>(() => {
