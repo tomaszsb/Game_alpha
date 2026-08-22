@@ -20,66 +20,16 @@ import {
   fetchCatalog, postBoardChange, createCopy, updateCopy, unselectCopy, selectCard,
   createInsertion, updateInsertion, deleteInsertion,
   type CatalogResponse, type CatalogSpace, type ValidationReport, type ValidationIssue,
-  type Insertion, type TeacherCopy, type CardOwner,
+  type Insertion,
 } from './classroomApi';
+import {
+  TIER_WORD, cardsForSpace, cardHasDrift, madeOnLabel, splitVersions, warningsByCard,
+  type SpaceCard,
+} from './cardRolodex';
 import { SwitchOffConfirm } from './SwitchOffConfirm';
 import { CopyEditor } from './CopyEditor';
 import { InsertionEditor, type InsertionDraft } from './InsertionEditor';
 import { colors } from '../../styles/theme';
-
-// The rolodex (CARD_LIBRARY_DESIGN.md "the model"): every copy visible for a
-// space, alongside the original. Plain-language tier words — "tier" itself
-// never appears in the UI. `official`/`group` are shown for completeness
-// (a maintainer using the content editor already mints `official` copies),
-// even though only `individual` is reachable from this screen today.
-const TIER_WORD: Record<CardOwner['tier'], string> = {
-  official: 'Official',
-  group: 'Shared',
-  individual: 'Your copy',
-};
-
-/** One space's cards, beyond the original: every teacherCopy whose slot matches. */
-function cardsForSpace(catalog: CatalogResponse | null, spaceName: string): Array<{ id: string; copy: TeacherCopy }> {
-  if (!catalog) return [];
-  return Object.entries(catalog.copies)
-    .filter(([, copy]) => copy.slot === spaceName)
-    .map(([id, copy]) => ({ id, copy }));
-}
-
-/** True when a copy-keyed warning says the card's original moved since it was made. */
-function cardHasDrift(warnings: ValidationIssue[] | undefined): boolean {
-  return !!warnings?.some(w => w.code === 'COPY_STOCK_UPDATED' || w.code === 'COPY_SCHEMA_DRIFT');
-}
-
-/**
- * "Made 20 Aug" — when this version was saved.
- *
- * A space can hold several versions now that editing makes a new card instead
- * of writing over the old one, so each one needs to be tellable from the
- * others at a glance. The role note is a version's name; the date is how you
- * tell two unnamed ones apart. The year only appears when it isn't this one.
- */
-function madeOnLabel(iso: string | undefined): string | null {
-  if (!iso) return null;
-  const when = new Date(iso);
-  if (Number.isNaN(when.getTime())) return null;
-  const thisYear = when.getFullYear() === new Date().getFullYear();
-  return `Made ${when.toLocaleDateString(undefined, thisYear
-    ? { day: 'numeric', month: 'short' }
-    : { day: 'numeric', month: 'short', year: 'numeric' })}`;
-}
-
-/** Newest first — the order a rolodex of versions is read in. */
-function newestFirst(a: { copy: TeacherCopy }, b: { copy: TeacherCopy }): number {
-  return (b.copy.createdAt || '').localeCompare(a.copy.createdAt || '');
-}
-
-/**
- * How many versions stay on screen without asking. The original and whatever
- * is playing are always shown on top of these, so a space that has been
- * edited once or twice never hides anything.
- */
-const VERSIONS_SHOWN_INLINE = 3;
 
 interface RolodexChipProps {
   /** null for "the original" chip, which has no tier/role/edit affordance. */
@@ -162,7 +112,7 @@ function RolodexChip({ tierWord, role, madeOn, isPlaying, drift, busy, onUse, on
 
 interface CardRolodexProps {
   space: CatalogSpace;
-  cards: Array<{ id: string; copy: TeacherCopy }>;
+  cards: SpaceCard[];
   warningsByCopy: Map<string, ValidationIssue[]>;
   busy: boolean;
   onSelect: (copyId: string | null) => void;
@@ -178,18 +128,9 @@ function CardRolodex({ space, cards, warningsByCopy, busy, onSelect, onEdit }: C
   // fold away behind one plain-language line so a much-edited space doesn't
   // bury the space below it.
   const [showEarlier, setShowEarlier] = useState(false);
-  const { recent, earlier } = useMemo(() => {
-    const sorted = [...cards].sort(newestFirst);
-    const shown: typeof sorted = [];
-    const hidden: typeof sorted = [];
-    for (const card of sorted) {
-      if (shown.length < VERSIONS_SHOWN_INLINE || card.id === playingId) shown.push(card);
-      else hidden.push(card);
-    }
-    return { recent: shown, earlier: hidden };
-  }, [cards, playingId]);
+  const { recent, earlier } = useMemo(() => splitVersions(cards, playingId), [cards, playingId]);
 
-  const chipFor = ({ id, copy }: { id: string; copy: TeacherCopy }): JSX.Element => (
+  const chipFor = ({ id, copy }: SpaceCard): JSX.Element => (
     <RolodexChip
       key={id}
       tierWord={TIER_WORD[copy.owner?.tier ?? 'individual']}
@@ -479,15 +420,8 @@ export function SpaceDeckPanel({
   // Warnings split by whether they're about one specific card (Card Library
   // stage 2: attach those to the card they concern, in its rolodex chip)
   // or about the classroom generally (those stay in this page-level banner).
-  const allWarnings = catalog?.validation?.warnings ?? [];
-  const pageWarnings = allWarnings.filter(w => !w.copyId);
-  const cardWarningsByCopy = new Map<string, ValidationIssue[]>();
-  for (const w of allWarnings) {
-    if (!w.copyId) continue;
-    const list = cardWarningsByCopy.get(w.copyId) ?? [];
-    list.push(w);
-    cardWarningsByCopy.set(w.copyId, list);
-  }
+  const pageWarnings = (catalog?.validation?.warnings ?? []).filter(w => !w.copyId);
+  const cardWarningsByCopy = warningsByCard(catalog);
 
 
   return (

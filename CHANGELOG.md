@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.27] - 2026-08-22
+
+### One screen instead of two — the editing half, and the merge is done
+Stage 3b-ii completes the screen the maintainer designed. Clicking "Make changes" no longer opens a separate editor: the same screen switches into a focused editing view. The deck collapses to a rolodex button top left, versions run full-width across the top where they finally get real room, and the editing fields sit beside the player view. Clicking the rolodex slides the deck back **out over** the card rather than navigating away — "minimise" implies it comes back.
+
+**The deck is never unmounted.** One element moves between being the left column and being a drawer, so "you keep your place" is literally true: scroll position and the deck's own notices survive the trip. Picking a different space from the drawer keeps you in editing on the new space — you opened it *while working*, and the editing view already shows the player view, so nothing browsing offers is lost by staying. Unsaved edits prompt first, and discarding genuinely re-reads from the server rather than leaving stale text on screen. Escape backs out one step at a time: drawer, then browse, then closed.
+
+Composition plus one extraction, as intended. `SpaceEditor`'s ~1100 lines of field UI are reused untouched; what moved is the editor's *state* — parsed rows, handlers, dirty tracking, save, save status — into `useEditorSource`, which `DataEditor` and the merged screen now share. There is still exactly one save path (`POST /api/instances/:id/content`); the endpoint-auth test now pins it there and additionally asserts neither screen has grown a save of its own. The rolodex's *answers* (which versions exist, which fold away, drift, dates) moved into a shared module so the deck's chips and the new strip cannot disagree about them.
+
+**Two things worth recording.**
+
+The fold control would have been dead UI. The strip first showed five versions inline on the reasoning that it has more room than the deck — but a space can never hold more than five, so "Show earlier versions" could never appear. Set to four, and verified it actually shows and expands.
+
+And a real defect, **already live in v3.2.26's browse half**, was found and fixed: the board's floating Edit/Edges strip stacks above this screen and was swallowing clicks in the top-right corner — proven with `elementFromPoint`, which returned the "Edges on" button when asked what sits under "Back to your deck". The same corner was already eating the browse half's "✕ Close". The cause is the setup screen's own `position: fixed; z-index: 1000` boxing in the dialog's 9000. Fixed by portalling the merged screen to `document.body`. Note the fix is on the new screen, **not** on the gameplay toggle — nothing players use changed.
+
+`DataEditor` stays in the tree but nothing opens it any more. It is deliberately not deleted yet: it is the fallback if focus mode has a problem in real use, and removing it is a separate cleanup once this is confirmed live.
+
+Verified on the Express server rather than Vite — Vite serves stock files, so a save appears to revert there, a trap that cost a false alarm mid-session and is exactly what the project's own note about verifying baked boards on 3001 warns about. Observed: the screen switching in place; the player view following keystroke by keystroke; a save reporting *"1 space is stored in the classroom — these stay put through restarts and updates"*, confirmed server-side in both the served CSV and the config; the drawer sliding out and away; switching to the original and watching both fields and preview revert, then follow back; six versions showing four plus "Show earlier versions (1)"; and the unsaved-change guard proven in both directions. Typecheck clean, production build clean, full suite 2930/2930 (191 files).
+
 ## [3.2.26] - 2026-08-22
 
 ### One screen instead of two — browsing half

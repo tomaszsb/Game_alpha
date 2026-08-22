@@ -1,22 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useGameContext } from '../../context/GameContext';
-import { getBackendURL } from '../../utils/networkDetection';
-import { isAdminAuthenticated, verifyAdminPassword, getAdminPassword } from '../../utils/adminAuth';
+import { isAdminAuthenticated, verifyAdminPassword } from '../../utils/adminAuth';
 import { SpaceBrowser } from './SpaceBrowser';
 import { SpaceEditor } from './SpaceEditor';
 import { PlayerPreviewPanel } from './PlayerPreviewPanel';
-import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
-import { exportSpacesCSV, exportDiceRollCSV, exportModalConfigCSV } from './utils/csvExport';
-import { loadEditorSource } from './loadEditorSource';
-import { DEFAULT_INSTANCE_ID } from '../board/saveBoardPosition';
+import { useEditorSource } from './useEditorSource';
 import { colors } from '../../styles/theme';
+
+// The original Space Data Editor, in its own window.
+//
+// NOTHING OPENS THIS ANY MORE. As of 2026-08-22 "Make changes" keeps you on
+// the merged screen (SpaceDeckScreen) instead of hopping here, so this file
+// has no caller outside its own tests. It is deliberately left standing as
+// the fallback if the merged screen turns out to have a problem in real use;
+// removing it is a separate cleanup once the maintainer has lived with the
+// new screen. The two cannot drift apart in the meantime — everything about
+// the data is in useEditorSource, which both use.
 
 interface DataEditorProps {
   onClose: () => void;
   /**
    * Open with this space already picked. Left out, the editor starts with
-   * nothing selected exactly as it always has; the browse screen passes the
-   * space you were looking at so "Make changes" lands on it.
+   * nothing selected exactly as it always has.
    */
   initialSpaceName?: string | null;
 }
@@ -122,270 +126,38 @@ export function DataEditor({ onClose, initialSpaceName }: DataEditorProps): JSX.
 }
 
 function DataEditorContent({ onClose, initialSpaceName }: DataEditorProps): JSX.Element {
-  const { dataService } = useGameContext();
-
-  // Editor state
-  const [spacesData, setSpacesData] = useState<SpaceRow[]>([]);
-  const [diceRollData, setDiceRollData] = useState<DiceRollRow[]>([]);
-  const [modalConfigData, setModalConfigData] = useState<ModalConfigRow[]>([]);
+  // Which space is being worked on, and how the rest of the screen is
+  // filtered, stay here — they are this screen's own furniture. Everything
+  // about the DATA (the three CSVs, what is unsaved, and the save itself)
+  // lives in useEditorSource, shared with the merged screen's focus mode so
+  // there is one save path and one idea of "unsaved" between them.
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(initialSpaceName ?? null);
   const [visitType, setVisitType] = useState<'First' | 'Subsequent'>('First');
   const [searchTerm, setSearchTerm] = useState('');
   const [phaseFilter, setPhaseFilter] = useState('');
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   // activeTab removed — dice rolls now inline in SpaceEditor
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Load data from DataService (CLEAN_FILES) and convert to source format
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      setError(null);
+  const {
+    spacesData, diceRollData, modalConfigData,
+    allSpaceNames, spaceFirst, spaceSubsequent,
+    isLoading, error, hasUnsavedChanges, isSaving, saveStatus,
+    handleFieldChange, handleDisplayLabelChange,
+    handleDiceRollUpdate, handleAddDiceRoll, handleDeleteDiceRoll,
+    handleModalConfigChange, handleAddSpace, handleDeleteSpace,
+    handleSave, handleResetToBaseline,
+  } = useEditorSource(selectedSpaceId);
 
-      try {
-        // Shared with the browse screen (loadEditorSource.ts) so the two can
-        // never read the same three CSVs in two slightly different ways.
-        const source = await loadEditorSource();
-        setSpacesData(source.spaces);
-        setDiceRollData(source.diceRolls);
-        setModalConfigData(source.modalConfigs);
-
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Error loading source files:', err);
-        setError('Failed to load source files. Make sure SOURCE_FILES are in public/data/SOURCE_FILES/');
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [dataService]);
-
-  // Get all unique space names for dropdowns
-  const allSpaceNames = React.useMemo(() => {
-    const names = new Set<string>();
-    spacesData.forEach(space => names.add(space.space_name));
-    return Array.from(names).sort();
-  }, [spacesData]);
-
-  // Get current space data (First and Subsequent)
-  const spaceFirst = spacesData.find(
-    s => s.space_name === selectedSpaceId && s.visit_type === 'First'
-  ) || null;
-  const spaceSubsequent = spacesData.find(
-    s => s.space_name === selectedSpaceId && s.visit_type === 'Subsequent'
-  ) || null;
-
-  // Handle field changes
-  const handleFieldChange = useCallback((
-    vType: 'First' | 'Subsequent',
-    field: keyof SpaceRow,
-    value: string
-  ) => {
-    setSpacesData(prev => prev.map(space => {
-      if (space.space_name === selectedSpaceId && space.visit_type === vType) {
-        return { ...space, [field]: value };
-      }
-      return space;
-    }));
-    setHasUnsavedChanges(true);
-  }, [selectedSpaceId]);
-
-  // Tile label (display_label_override) is a per-space GAME_CONFIG value that
-  // rides in _extraColumns. It must stay identical on the First + Subsequent
-  // rows so the regenerated GAME_CONFIG.csv carries one consistent value
-  // regardless of which visit row the regen reads. Update both at once.
-  const handleDisplayLabelChange = useCallback((value: string) => {
-    setSpacesData(prev => prev.map(space => {
-      if (space.space_name === selectedSpaceId) {
-        return {
-          ...space,
-          _extraColumns: { ...(space._extraColumns ?? {}), display_label_override: value },
-        };
-      }
-      return space;
-    }));
-    setHasUnsavedChanges(true);
-  }, [selectedSpaceId]);
-
-  // Handle dice roll changes
-  const handleDiceRollUpdate = useCallback((
-    index: number,
-    field: keyof DiceRollRow,
-    value: string
-  ) => {
-    setDiceRollData(prev => prev.map((roll, i) => {
-      if (i === index) {
-        return { ...roll, [field]: value };
-      }
-      return roll;
-    }));
-    setHasUnsavedChanges(true);
-  }, []);
-
-  const handleAddDiceRoll = useCallback((newRoll: DiceRollRow) => {
-    setDiceRollData(prev => [...prev, newRoll]);
-    setHasUnsavedChanges(true);
-  }, []);
-
-  const handleDeleteDiceRoll = useCallback((index: number) => {
-    if (!confirm('Delete this dice roll row?')) return;
-    setDiceRollData(prev => prev.filter((_, i) => i !== index));
-    setHasUnsavedChanges(true);
-  }, []);
-
-  // Save to server (live save)
-  const handleSave = useCallback(async () => {
-    const password = getAdminPassword();
-    if (!password) {
-      setSaveStatus({ type: 'error', message: 'Admin session expired. Please re-open the editor.' });
-      return;
-    }
-
-    setIsSaving(true);
-    setSaveStatus(null);
-
-    try {
-      const backendURL = getBackendURL();
-      const spacesCSV = exportSpacesCSV(spacesData);
-      const diceRollCSV = exportDiceRollCSV(diceRollData);
-      const modalConfigCSV = exportModalConfigCSV(modalConfigData);
-
-      // Saves go to the CLASSROOM, not to the master CSVs (Card Library
-      // stage 1, docs/core/CARD_LIBRARY_DESIGN.md). The old target,
-      // /api/admin/save-source-files, wrote the writable stock — which the
-      // server re-seeds from the shipped copy on every restart, so every edit
-      // saved here quietly went away. Same three CSVs, same password header:
-      // the server works out which spaces actually changed and stores just
-      // those as cards, which survive restarts and deploys by construction.
-      const response = await fetch(`${backendURL}/api/instances/${DEFAULT_INSTANCE_ID}/content`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
-        body: JSON.stringify({ spacesCSV, diceRollCSV, modalConfigCSV })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setHasUnsavedChanges(false);
-        // Refresh DataService's in-memory caches so gameplay sees the new CSVs
-        // without a hard browser reload. Without this, SPACE_EFFECTS / DICE_EFFECTS
-        // / MOVEMENT stay stale until the user hits Ctrl+Shift+R — same trap as
-        // the v2.69.4 reloadGameConfig fix, generalized in v2.70.1.
-        try {
-          await dataService.reloadAllData();
-        } catch (reloadErr) {
-          console.warn('[DataEditor] Save succeeded but in-memory reload failed:', reloadErr);
-        }
-        // Say what actually happened, in plain language. The old message
-        // ("N files regenerated") described machinery, and described it
-        // wrongly now — nothing is regenerated, the changed spaces are saved
-        // into the classroom. The counts come from the server's own diff.
-        const saved = (data.created?.length ?? 0) + (data.updated?.length ?? 0);
-        setSaveStatus({
-          type: 'success',
-          message: saved === 0
-            ? 'Saved. Nothing had changed, so nothing needed storing.'
-            : `Saved! ${saved} ${saved === 1 ? 'space is' : 'spaces are'} stored in the classroom — `
-              + 'these stay put through restarts and updates.',
-        });
-        // Auto-clear success message after 4 seconds
-        setTimeout(() => setSaveStatus(prev => prev?.type === 'success' ? null : prev), 4000);
-      } else {
-        // A rejected save comes back one of two ways: the per-step diagnostic
-        // (step + detail) this has always shown, or — new with the classroom
-        // save path — a 422 carrying the validation report, whose first error
-        // says in words what is wrong with the edit. Both are surfaced.
-        const base = data.error || data.report?.errors?.[0]?.message || 'Save failed';
-        const detail = data.detail ? ` (${data.step || 'unknown'}: ${data.detail})` : '';
-        setSaveStatus({ type: 'error', message: base + detail });
-      }
-    } catch (err) {
-      setSaveStatus({ type: 'error', message: 'Connection error: ' + (err instanceof Error ? err.message : String(err)) });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [spacesData, diceRollData, modalConfigData, dataService]);
-
-  // Add new space
-  const handleAddSpace = useCallback((spaceName: string) => {
-    // Determine default phase from the first space (or SETUP)
-    const defaultPhase = spacesData.length > 0 ? spacesData[0].phase : 'SETUP';
-    const newFirst: SpaceRow = {
-      space_name: spaceName,
-      phase: defaultPhase,
-      visit_type: 'First',
-      Title: '', Event: '', Action: '', Outcome: '',
-      w_card: '', b_card: '', i_card: '', l_card: '', e_card: '',
-      Time: '', Fee: '',
-      space_1: '', space_2: '', space_3: '', space_4: '', space_5: '',
-      Negotiate: '', requires_dice_roll: '', path: 'Main', rolls: '',
-      end_turn_label: 'End Turn', try_again_label: 'Try Again',
-      w_card_label: '', b_card_label: '', i_card_label: '', l_card_label: '', e_card_label: '',
-      shake_on: '', tts_field: '',
-      w_card_narrative: '', b_card_narrative: '', i_card_narrative: '', l_card_narrative: '', e_card_narrative: ''
-    };
-    const newSubsequent: SpaceRow = { ...newFirst, visit_type: 'Subsequent' };
-    setSpacesData(prev => [...prev, newFirst, newSubsequent]);
+  // Adding a space lands you on it; deleting the one you were on leaves you
+  // with nothing picked. The rows themselves are the hook's business.
+  const addSpace = useCallback((spaceName: string) => {
+    handleAddSpace(spaceName);
     setSelectedSpaceId(spaceName);
-    setHasUnsavedChanges(true);
-  }, [spacesData]);
+  }, [handleAddSpace]);
 
-  // Delete space
-  const handleDeleteSpace = useCallback((spaceName: string) => {
-    setSpacesData(prev => prev.filter(s => s.space_name !== spaceName));
-    setDiceRollData(prev => prev.filter(d => d.space_name !== spaceName));
-    if (selectedSpaceId === spaceName) {
-      setSelectedSpaceId(null);
-    }
-    setHasUnsavedChanges(true);
-  }, [selectedSpaceId]);
-
-  // Reset to baseline
-  const handleResetToBaseline = useCallback(async () => {
-    const confirmed = window.confirm(
-      'Reset to Baseline?\n\n' +
-      'This will revert ALL space and dice roll data to the original defaults ' +
-      'that were baked into the Docker image.\n\n' +
-      'Any changes you\'ve saved will be lost.\n\n' +
-      'Continue?'
-    );
-    if (!confirmed) return;
-
-    const password = getAdminPassword();
-    if (!password) {
-      setSaveStatus({ type: 'error', message: 'Admin session expired. Please re-open the editor.' });
-      return;
-    }
-
-    setIsSaving(true);
-    setSaveStatus(null);
-
-    try {
-      const backendURL = getBackendURL();
-      const response = await fetch(`${backendURL}/api/admin/reset-to-baseline`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setSaveStatus({ type: 'success', message: 'Reset to baseline! Reloading data...' });
-        // Reload the data from server
-        setTimeout(() => window.location.reload(), 1000);
-      } else {
-        setSaveStatus({ type: 'error', message: data.error || 'Reset failed' });
-      }
-    } catch (err) {
-      setSaveStatus({ type: 'error', message: 'Connection error: ' + (err instanceof Error ? err.message : String(err)) });
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
+  const deleteSpace = useCallback((spaceName: string) => {
+    handleDeleteSpace(spaceName);
+    setSelectedSpaceId(prev => (prev === spaceName ? null : prev));
+  }, [handleDeleteSpace]);
 
   // Handle close with unsaved changes warning
   const handleClose = useCallback(() => {
@@ -456,8 +228,8 @@ function DataEditorContent({ onClose, initialSpaceName }: DataEditorProps): JSX.
                   onSearchChange={setSearchTerm}
                   phaseFilter={phaseFilter}
                   onPhaseFilterChange={setPhaseFilter}
-                  onAddSpace={handleAddSpace}
-                  onDeleteSpace={handleDeleteSpace}
+                  onAddSpace={addSpace}
+                  onDeleteSpace={deleteSpace}
                 />
               </div>
               <div style={styles.editorPanel}>
@@ -475,7 +247,7 @@ function DataEditorContent({ onClose, initialSpaceName }: DataEditorProps): JSX.
                   onUpdateDiceRoll={handleDiceRollUpdate}
                   onAddDiceRoll={handleAddDiceRoll}
                   onDeleteDiceRoll={handleDeleteDiceRoll}
-                  onModalConfigChange={(updatedConfigs) => { setModalConfigData(updatedConfigs); setHasUnsavedChanges(true); }}
+                  onModalConfigChange={handleModalConfigChange}
                 />
               </div>
               <div style={styles.previewPanel}>

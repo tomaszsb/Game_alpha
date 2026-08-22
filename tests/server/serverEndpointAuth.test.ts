@@ -295,14 +295,29 @@ describe('server.js endpoint auth wiring', () => {
     // The whole point of the slice: /api/admin/save-source-files writes the
     // writable stock, which initWritableData re-seeds on boot — so edits saved
     // there are reverted by the next restart.
-    const editor = fs.readFileSync(
-      path.resolve(__dirname, '../../src/components/editor/DataEditor.tsx'),
+    // The save moved out of DataEditor.tsx into useEditorSource.ts on
+    // 2026-08-22, when the merged screen grew its own editing mode and the
+    // two had to share one save path rather than grow a second one. This
+    // still asserts the same thing about the same save — and about BOTH
+    // screens at once, since neither has a save of its own any more.
+    const save = fs.readFileSync(
+      path.resolve(__dirname, '../../src/components/editor/useEditorSource.ts'),
       'utf8'
     );
-    expect(editor).toContain('/content`');
+    expect(save).toContain('/content`');
     // The old target may still be NAMED in a comment explaining the change —
     // what must be gone is the request to it.
-    expect(editor).not.toContain('backendURL}/api/admin/save-source-files');
+    expect(save).not.toContain('backendURL}/api/admin/save-source-files');
+
+    // And no screen may quietly grow its own second save around it.
+    for (const screen of ['editor/DataEditor.tsx', 'classroom/SpaceDeckScreen.tsx']) {
+      const source = fs.readFileSync(
+        path.resolve(__dirname, '../../src/components', screen),
+        'utf8'
+      );
+      expect(source).not.toContain('backendURL}/api/admin/save-source-files');
+      expect(source).not.toContain('spacesCSV');
+    }
   });
 
   it('/api/admin/save-source-files still exists and still guards itself', () => {
