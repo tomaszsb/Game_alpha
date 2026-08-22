@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.23] - 2026-08-22
+
+### Card library stage 2: the rolodex is visible
+Until now a slot's alternatives existed in the data but nowhere on screen — Classroom Setup showed one row per space with a single Customize button. Each space now lists the cards available for it: the original plus any you have made, showing which is playing, what each is for, and a way to switch between them at any time.
+
+**Removing a card no longer destroys it.** `deleteTeacherCopy` deleted the card *and* cleared the slot; it is now `unselectCard`, which only clears the selection. The card stays in the deck and can be picked again. This is the spec's "removing unselects, never destroys" rule, and it matters most for the case it was written for: nobody should lose work by clicking the wrong button. The button now reads "↩ Back to the original" rather than "🗑 Remove my copy", which is what it actually does.
+
+A new route sets which card plays a slot (or clears it back to the original), validating that a card can only be selected for the space it belongs to. It is deliberately NOT admin-gated — picking among cards you can already see is not a minting act, and only creating an `official` card requires admin.
+
+Cards carry an optional **role note** ("Shorter version for a 45-minute period"), editable alongside the card's other fields. It is what makes a deck of near-identical cards navigable, and the spec reserves it as the submission blurb if an approval queue is ever built.
+
+Per-card drift badges replace the generic banner. `COPY_STOCK_UPDATED` / `COPY_SCHEMA_DRIFT` warnings were already computed per card but rendered as one page-level notice, so you could see that *something* had changed without seeing *what*. They now attach to the card they concern, inline rather than hover-only — this file's own recorded lesson about tooltips being invisible on touch. Warnings that are not card-keyed stay in the page banner.
+
+Live-verified end to end: created a copy with a role note, watched it appear as a second card, switched to it and confirmed the *served board* changed, switched back to the original and confirmed it reverted, then used "Back to the original" and confirmed the card was still in the config rather than gone.
+
+### Fix: Vite's file watcher was breaking every local instance save on Windows
+Found while verifying the above. `vite.config.ts` had no `server.watch.ignored`, so chokidar watched `server/data/**` — none of which is part of the frontend build — and held open handles on `instances/*/resolved/`. The instance bake replaces that directory with an atomic rename, which Windows refuses while a handle is open.
+
+This had been misfiled as the documented "can't swap `resolved/` while the dev server serves it" limitation. It is worse and more specific than that note implied: with `npm run dev` running it fires on **every** instance mutation, not just a concurrent offline bake — isolated by controlled test (Express alone always succeeds; adding Vite always fails). It is also the reason an earlier verification in this same arc hit a 500 at the bake step. Fixed by scoping the watcher; the CLAUDE.md entry now records the real cause and the fix.
+
+Typecheck clean, production build clean, full suite 2912/2912 (191 files).
+
 ## [3.2.22] - 2026-08-21
 
 ### Space Data Editor saves now survive a restart — the original complaint, fixed

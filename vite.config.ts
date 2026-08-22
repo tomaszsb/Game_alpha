@@ -149,6 +149,19 @@ export default defineConfig({
     port: 3000,
     host: true, // Bind to all interfaces for network access
     open: true, // Let Vite handle opening the browser with the correct port
+    watch: {
+      // Vite has no reason to watch the server's writable data — none of it is
+      // part of the frontend build. Leaving it watched is actively harmful on
+      // Windows: chokidar holds open handles on
+      // server/data/game-data/instances/*/resolved/, and the instance bake
+      // replaces that directory with an atomic rename, which Windows refuses
+      // while a handle is open (EPERM). The failure looked like the documented
+      // "can't swap resolved/ while the dev server serves it" limitation, but
+      // it fires on EVERY instance mutation whenever Vite is running, not just
+      // on a concurrent offline bake — isolated 2026-08-22 (Express alone
+      // always succeeds; adding Vite always fails).
+      ignored: ['**/server/data/**'],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

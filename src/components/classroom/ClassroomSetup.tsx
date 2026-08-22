@@ -15,14 +15,161 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  fetchCatalog, postBoardChange, createCopy, updateCopy, deleteCopy,
+  fetchCatalog, postBoardChange, createCopy, updateCopy, unselectCopy, selectCard,
   createInsertion, updateInsertion, deleteInsertion,
-  type CatalogResponse, type CatalogSpace, type ValidationReport, type Insertion,
+  type CatalogResponse, type CatalogSpace, type ValidationReport, type ValidationIssue,
+  type Insertion, type TeacherCopy, type CardOwner,
 } from './classroomApi';
 import { SwitchOffConfirm } from './SwitchOffConfirm';
 import { CopyEditor } from './CopyEditor';
 import { InsertionEditor, type InsertionDraft } from './InsertionEditor';
 import { colors } from '../../styles/theme';
+
+// The rolodex (CARD_LIBRARY_DESIGN.md "the model"): every copy visible for a
+// space, alongside the original. Plain-language tier words — "tier" itself
+// never appears in the UI. `official`/`group` are shown for completeness
+// (a maintainer using the content editor already mints `official` copies),
+// even though only `individual` is reachable from this screen today.
+const TIER_WORD: Record<CardOwner['tier'], string> = {
+  official: 'Official',
+  group: 'Shared',
+  individual: 'Your copy',
+};
+
+/** One space's cards, beyond the original: every teacherCopy whose slot matches. */
+function cardsForSpace(catalog: CatalogResponse | null, spaceName: string): Array<{ id: string; copy: TeacherCopy }> {
+  if (!catalog) return [];
+  return Object.entries(catalog.copies)
+    .filter(([, copy]) => copy.slot === spaceName)
+    .map(([id, copy]) => ({ id, copy }));
+}
+
+/** True when a copy-keyed warning says the card's original moved since it was made. */
+function cardHasDrift(warnings: ValidationIssue[] | undefined): boolean {
+  return !!warnings?.some(w => w.code === 'COPY_STOCK_UPDATED' || w.code === 'COPY_SCHEMA_DRIFT');
+}
+
+interface RolodexChipProps {
+  /** null for "the original" chip, which has no tier/role/edit affordance. */
+  tierWord: string | null;
+  role: string | undefined;
+  isPlaying: boolean;
+  drift: boolean;
+  busy: boolean;
+  onUse: () => void;
+  onEdit?: () => void;
+}
+
+function RolodexChip({ tierWord, role, isPlaying, drift, busy, onUse, onEdit }: RolodexChipProps): JSX.Element {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: '0.15rem',
+      border: isPlaying ? '2px solid #7c3aed' : '1px solid #e9ecef',
+      background: isPlaying ? '#faf5ff' : '#fff',
+      borderRadius: 10, padding: '0.35rem 0.6rem', fontSize: '0.78rem', maxWidth: 260,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+        <span style={{ fontWeight: isPlaying ? 700 : 500, color: isPlaying ? '#6d28d9' : '#495057' }}>
+          {tierWord ?? 'The original'}
+        </span>
+        {isPlaying && (
+          <span style={{
+            fontSize: '0.68rem', fontWeight: 700, color: '#065f46',
+            background: '#d1fae5', borderRadius: 999, padding: '0.05rem 0.4rem',
+          }}>
+            Playing now
+          </span>
+        )}
+        {!isPlaying && (
+          <button
+            type="button"
+            onClick={onUse}
+            disabled={busy}
+            style={{
+              fontSize: '0.72rem', border: 'none', background: 'none', color: '#7c3aed',
+              cursor: busy ? 'not-allowed' : 'pointer', textDecoration: 'underline', padding: 0,
+            }}
+          >
+            Use this one
+          </button>
+        )}
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={busy}
+            aria-label={`Edit ${role || tierWord || 'this copy'}`}
+            style={{
+              fontSize: '0.78rem', border: 'none', background: 'none', color: '#6b7280',
+              cursor: busy ? 'not-allowed' : 'pointer', padding: 0,
+            }}
+          >
+            ✏️
+          </button>
+        )}
+      </div>
+      {role && (
+        <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>{role}</div>
+      )}
+      {drift && (
+        <div style={{ fontSize: '0.72rem', color: '#92400e' }}>
+          ⚠️ The original changed since you made this — worth a look
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface CardRolodexProps {
+  space: CatalogSpace;
+  cards: Array<{ id: string; copy: TeacherCopy }>;
+  warningsByCopy: Map<string, ValidationIssue[]>;
+  busy: boolean;
+  onSelect: (copyId: string | null) => void;
+  /** null means "start a brand-new copy". */
+  onEdit: (copyId: string | null) => void;
+}
+
+function CardRolodex({ space, cards, warningsByCopy, busy, onSelect, onEdit }: CardRolodexProps): JSX.Element {
+  const playingId = space.copyId;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
+      <RolodexChip
+        tierWord={null}
+        role={undefined}
+        isPlaying={!playingId}
+        drift={false}
+        busy={busy}
+        onUse={() => onSelect(null)}
+      />
+      {cards.map(({ id, copy }) => (
+        <RolodexChip
+          key={id}
+          tierWord={TIER_WORD[copy.owner?.tier ?? 'individual']}
+          role={copy.role}
+          isPlaying={playingId === id}
+          drift={cardHasDrift(warningsByCopy.get(id))}
+          busy={busy}
+          onUse={() => onSelect(id)}
+          onEdit={() => onEdit(id)}
+        />
+      ))}
+      <button
+        type="button"
+        onClick={() => onEdit(null)}
+        disabled={busy || !space.used}
+        title="Make another copy of this space"
+        style={{
+          alignSelf: 'flex-start', padding: '0.35rem 0.6rem', borderRadius: 10, fontSize: '0.78rem',
+          border: '1px dashed #a78bfa', background: '#faf5ff', color: '#6d28d9',
+          cursor: busy || !space.used ? 'not-allowed' : 'pointer',
+        }}
+      >
+        ➕ Add a copy
+      </button>
+    </div>
+  );
+}
 
 interface ClassroomSetupProps {
   onClose: () => void;
@@ -46,7 +193,10 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ space: CatalogSpace; report: ValidationReport } | null>(null);
-  const [editing, setEditing] = useState<CatalogSpace | null>(null);
+  // Which card's editor is open. copyId null = making a brand-new copy of
+  // `space`; a copyId edits that specific card from the rolodex — NOT
+  // necessarily the one currently playing (CARD_LIBRARY_DESIGN.md stage 2).
+  const [editing, setEditing] = useState<{ space: CatalogSpace; copyId: string | null } | null>(null);
   // Phase 4a: authoring a space. null = closed; { existing: null } = new;
   // { existing } = editing an authored space.
   const [insertionEdit, setInsertionEdit] = useState<{ existing: Insertion | null } | null>(null);
@@ -129,27 +279,49 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
     }
   };
 
-  const handleSaveCopy = async (overrides: Record<string, Record<string, string>>) => {
+  const handleSaveCopy = async (overrides: Record<string, Record<string, string>>, role: string) => {
     if (!editing) return;
     setBusy(true);
     try {
       const result = editing.copyId
-        ? await updateCopy(instanceId, editing.copyId, overrides)
-        : await createCopy(instanceId, { slot: editing.name, overrides });
-      const ok = await finishMutation(result, `Your copy of “${editing.title}” is saved and live for new games.`);
+        ? await updateCopy(instanceId, editing.copyId, { overrides, role })
+        : await createCopy(instanceId, { slot: editing.space.name, overrides, role });
+      const ok = await finishMutation(result, `Your copy of “${editing.space.title}” is saved and live for new games.`);
       if (ok) setEditing(null);
     } finally {
       setBusy(false);
     }
   };
 
-  const handleDeleteCopy = async () => {
+  // "Back to the original" from inside the editor — unselects the card being
+  // edited (a no-op unless it happens to be the one currently playing; see
+  // unselectCopy's own doc comment). The card itself is never removed from
+  // the rolodex; switching between EXISTING cards is handleSelectCard below.
+  const handleUnselectCopy = async () => {
     if (!editing?.copyId) return;
     setBusy(true);
     try {
-      const result = await deleteCopy(instanceId, editing.copyId);
-      const ok = await finishMutation(result, `Your copy was removed — “${editing.title}” plays the original card again.`);
+      const result = await unselectCopy(instanceId, editing.copyId);
+      const ok = await finishMutation(result, `“${editing.space.title}” plays the original again. Your copy is still here if you want it back.`);
       if (ok) setEditing(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // The rolodex picker (CARD_LIBRARY_DESIGN.md stage 2): switch a space to
+  // play a different existing card, or `null` for the original. Distinct
+  // from handleUnselectCopy above — this can select ANY card, not just clear
+  // the one currently playing.
+  const handleSelectCard = async (space: CatalogSpace, copyId: string | null) => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const result = await selectCard(instanceId, { slot: space.name, copyId });
+      await finishMutation(
+        result,
+        copyId ? `“${space.title}” now plays that copy.` : `“${space.title}” plays the original again.`
+      );
     } finally {
       setBusy(false);
     }
@@ -201,7 +373,18 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
     }
   };
 
-  const warnings = catalog?.validation?.warnings ?? [];
+  // Warnings split by whether they're about one specific card (Card Library
+  // stage 2: attach those to the card they concern, in its rolodex chip)
+  // or about the classroom generally (those stay in this page-level banner).
+  const allWarnings = catalog?.validation?.warnings ?? [];
+  const pageWarnings = allWarnings.filter(w => !w.copyId);
+  const cardWarningsByCopy = new Map<string, ValidationIssue[]>();
+  for (const w of allWarnings) {
+    if (!w.copyId) continue;
+    const list = cardWarningsByCopy.get(w.copyId) ?? [];
+    list.push(w);
+    cardWarningsByCopy.set(w.copyId, list);
+  }
 
   return (
     <div
@@ -247,12 +430,12 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
             {notice}
           </div>
         )}
-        {warnings.length > 0 && (
+        {pageWarnings.length > 0 && (
           <div style={{
             marginBottom: '0.75rem', padding: '0.55rem 0.8rem', borderRadius: 8, fontSize: '0.82rem',
             background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e',
           }}>
-            {warnings.map((w, i) => <div key={i}>💡 {w.message}</div>)}
+            {pageWarnings.map((w, i) => <div key={i}>💡 {w.message}</div>)}
           </div>
         )}
 
@@ -271,7 +454,9 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
               {group.phase || 'Other'}
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-              {group.spaces.map(space => (
+              {group.spaces.map(space => {
+                const cards = cardsForSpace(catalog, space.name);
+                return (
                 <div
                   key={space.name}
                   style={{
@@ -284,14 +469,6 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '0.92rem', fontWeight: 600, color: colors.text.primary }}>
                       {space.title}
-                      {space.copyId && (
-                        <span style={{
-                          marginLeft: '0.5rem', fontSize: '0.7rem', fontWeight: 700,
-                          background: '#ede9fe', color: '#6d28d9', borderRadius: 999, padding: '0.1rem 0.5rem',
-                        }}>
-                          your copy
-                        </span>
-                      )}
                       {!space.used && space.detour && (
                         <span style={{ marginLeft: '0.5rem', fontSize: '0.74rem', color: '#6b7280' }}>
                           off — players go to {space.detour}
@@ -306,20 +483,35 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
                         🔒 Always on — {TIER_LABEL[space.protection.tier] ?? space.protection.reason}
                       </div>
                     )}
+                    {cards.length > 0 && (
+                      // The rolodex (CARD_LIBRARY_DESIGN.md stage 2): every
+                      // copy available for this space, plus the original,
+                      // each with a way to switch to it.
+                      <CardRolodex
+                        space={space}
+                        cards={cards}
+                        warningsByCopy={cardWarningsByCopy}
+                        busy={busy}
+                        onSelect={copyId => void handleSelectCard(space, copyId)}
+                        onEdit={copyId => setEditing({ space, copyId })}
+                      />
+                    )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setEditing(space)}
-                    disabled={busy || !space.used}
-                    style={{
-                      padding: '0.35rem 0.7rem', borderRadius: 8, fontSize: '0.8rem',
-                      border: '1px solid #ddd6fe', background: '#fff', color: '#6d28d9',
-                      cursor: busy || !space.used ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {space.copyId ? '✏️ Edit my copy' : '✏️ Customize'}
-                  </button>
+                  {cards.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setEditing({ space, copyId: null })}
+                      disabled={busy || !space.used}
+                      style={{
+                        padding: '0.35rem 0.7rem', borderRadius: 8, fontSize: '0.8rem',
+                        border: '1px solid #ddd6fe', background: '#fff', color: '#6d28d9',
+                        cursor: busy || !space.used ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      ✏️ Customize
+                    </button>
+                  )}
 
                   {space.protection ? (
                     <span
@@ -348,7 +540,8 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
                     </button>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         ))}
@@ -427,12 +620,12 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
       )}
       {editing && catalog && (
         <CopyEditor
-          space={editing}
+          space={editing.space}
           copy={editing.copyId ? catalog.copies[editing.copyId] ?? null : null}
           editableFields={catalog.editableFields}
           busy={busy}
-          onSave={overrides => void handleSaveCopy(overrides)}
-          onDelete={() => void handleDeleteCopy()}
+          onSave={(overrides, role) => void handleSaveCopy(overrides, role)}
+          onDelete={() => void handleUnselectCopy()}
           onCancel={() => setEditing(null)}
         />
       )}

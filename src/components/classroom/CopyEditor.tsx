@@ -16,7 +16,7 @@ interface CopyEditorProps {
   copy: TeacherCopy | null;
   editableFields: string[];
   busy: boolean;
-  onSave: (overrides: Record<string, Record<string, string>>) => void;
+  onSave: (overrides: Record<string, Record<string, string>>, role: string) => void;
   onDelete: () => void;
   onCancel: () => void;
 }
@@ -36,6 +36,10 @@ export function CopyEditor({
     }
     return initial;
   });
+  // A short note on what this copy is FOR (CARD_LIBRARY_DESIGN.md stage 2,
+  // "Role field") — what makes several near-identical copies of the same
+  // space tellable apart later. Purely descriptive; never read by the game.
+  const [role, setRole] = useState(copy?.role ?? '');
 
   const setField = (vt: string, field: string, value: string) =>
     setValues(prev => ({ ...prev, [vt]: { ...prev[vt], [field]: value } }));
@@ -45,7 +49,7 @@ export function CopyEditor({
     for (const vt of visitTypes) {
       overrides[vt] = { ...values[vt] };
     }
-    onSave(overrides);
+    onSave(overrides, role);
   };
 
   return (
@@ -71,6 +75,25 @@ export function CopyEditor({
           library and updates from new versions of the game won’t change your
           words. Fields that differ from the original are highlighted.
         </p>
+
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
+            Note to yourself (optional)
+          </label>
+          <input
+            type="text"
+            value={role}
+            onChange={e => setRole(e.target.value)}
+            placeholder="e.g. Shorter version for a 45-minute period"
+            style={{
+              width: '100%', padding: '0.45rem 0.6rem', borderRadius: 8, fontSize: '0.88rem',
+              border: '1px solid #ced4da', boxSizing: 'border-box',
+            }}
+          />
+          <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.2rem' }}>
+            Helps you tell copies of the same space apart later. Only you see this.
+          </div>
+        </div>
 
         {visitTypes.map(vt => (
           <fieldset
@@ -143,9 +166,9 @@ export function CopyEditor({
                 padding: '0.5rem 1rem', borderRadius: 8, border: '1px solid #fecaca',
                 background: '#fff', color: '#b91c1c', cursor: 'pointer', fontSize: '0.85rem',
               }}
-              title="Removes your copy — the original card returns immediately."
+              title="Stops playing this copy — the original plays instead. Your copy stays saved, so you can use it again later."
             >
-              🗑 Remove my copy
+              ↩ Back to the original
             </button>
           ) : <span />}
           <div style={{ display: 'flex', gap: '0.6rem' }}>

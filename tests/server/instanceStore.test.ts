@@ -23,7 +23,8 @@ import {
   clearAllEdgeAnchors,
   createTeacherCopy,
   updateTeacherCopy,
-  deleteTeacherCopy,
+  unselectCard,
+  selectCardForSlot,
   findCardForSlot,
   replaceCardContent,
   addInsertion,
@@ -386,13 +387,33 @@ describe('teacher copies', () => {
     expect(() => updateTeacherCopy(config, 'nope', {})).toThrow(/No such copy/);
   });
 
-  it('deleting a copy reverts the slot to the stock card', () => {
+  it('unselecting a card reverts the slot to the stock card WITHOUT destroying the card (removing unselects, never destroys)', () => {
     const config = createInstance(root, { id: 'classroom-1' });
-    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
-    deleteTeacherCopy(config, copyId);
-    expect(config.teacherCopies[copyId]).toBeUndefined();
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, overrides: { First: { Title: 'My fee review' } } });
+    unselectCard(config, copyId);
+    // The slot reverts to stock...
     expect(config.slots['FEE-REVIEW'].card).toBeUndefined();
     expect(config.slots['FEE-REVIEW'].used).toBe(true);
+    // ...but the card itself is untouched, still in the library with its work intact.
+    expect(config.teacherCopies[copyId]).toBeDefined();
+    expect(config.teacherCopies[copyId].rows['First'].Title).toBe('My fee review');
+  });
+
+  it('unselecting a card that is not the one currently playing is a harmless no-op', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const first = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    const second = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    // The slot is now playing `second`; unselecting `first` (never played)
+    // must not touch the slot pointer or delete anything.
+    unselectCard(config, first);
+    expect(config.slots['FEE-REVIEW'].card).toBe(second);
+    expect(config.teacherCopies[first]).toBeDefined();
+    expect(config.teacherCopies[second]).toBeDefined();
+  });
+
+  it('unselectCard throws on an unknown copy id', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    expect(() => unselectCard(config, 'ghost')).toThrow(/No such copy/);
   });
 
   it('stores the slot’s dice rows VERBATIM on the card (stage 1b)', () => {
@@ -866,6 +887,106 @@ describe('card ownership (Card Library stage 1, 2026-08-21)', () => {
     fs.writeFileSync(configPath(root, 'classroom-1'), JSON.stringify(config, null, 2));
     const loaded = loadInstance(root, 'classroom-1')!;
     expect(loaded.teacherCopies[copyId].owner).toEqual({ tier: 'group', id: 'school-xyz' });
+  });
+});
+
+describe('selectCardForSlot (Card Library stage 2, the rolodex picker)', () => {
+  const stockRows = [
+    { space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review', Fee: '100' },
+    { space_name: 'FEE-REVIEW', visit_type: 'Subsequent', Title: 'Fee review', Fee: '50' },
+  ];
+
+  it('points the slot at the given card', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    // Unselect it first so the slot starts back on stock, proving selectCardForSlot re-selects it.
+    unselectCard(config, copyId);
+    expect(config.slots['FEE-REVIEW'].card).toBeUndefined();
+    selectCardForSlot(config, 'FEE-REVIEW', copyId);
+    expect(config.slots['FEE-REVIEW'].card).toBe(copyId);
+  });
+
+  it('switches between two existing cards for the same slot', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const first = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    const second = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    expect(config.slots['FEE-REVIEW'].card).toBe(second);
+    selectCardForSlot(config, 'FEE-REVIEW', first);
+    expect(config.slots['FEE-REVIEW'].card).toBe(first);
+    selectCardForSlot(config, 'FEE-REVIEW', second);
+    expect(config.slots['FEE-REVIEW'].card).toBe(second);
+  });
+
+  it('a falsy copyId clears the slot back to the original', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    expect(config.slots['FEE-REVIEW'].card).toBe(copyId);
+    selectCardForSlot(config, 'FEE-REVIEW', null);
+    expect(config.slots['FEE-REVIEW'].card).toBeUndefined();
+    // The card itself is still there, still selectable again later.
+    expect(config.teacherCopies[copyId]).toBeDefined();
+  });
+
+  it('clearing a slot that never had a card at all does not throw', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    expect(() => selectCardForSlot(config, 'NEVER-TOUCHED', null)).not.toThrow();
+    expect(config.slots['NEVER-TOUCHED']?.card).toBeUndefined();
+  });
+
+  it('refuses to select a card for a space it does not belong to', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    expect(() => selectCardForSlot(config, 'OTHER-SPACE', copyId))
+      .toThrow(/belongs to "FEE-REVIEW", not "OTHER-SPACE"/);
+    // The slot it does NOT belong to must not have been touched.
+    expect(config.slots['OTHER-SPACE']).toBeUndefined();
+  });
+
+  it('refuses an unknown copy id', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    expect(() => selectCardForSlot(config, 'FEE-REVIEW', 'ghost')).toThrow(/No such copy/);
+  });
+});
+
+describe('card role notes (Card Library stage 2, "what this card is for")', () => {
+  const stockRows = [
+    { space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review', Fee: '100' },
+  ];
+
+  it('createTeacherCopy defaults role to an empty string when omitted', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    expect(config.teacherCopies[copyId].role).toBe('');
+  });
+
+  it('createTeacherCopy stores and trims a given role', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, {
+      slotName: 'FEE-REVIEW', stockRows, role: '  Shorter version for a 45-minute period  ',
+    });
+    expect(config.teacherCopies[copyId].role).toBe('Shorter version for a 45-minute period');
+  });
+
+  it('updateTeacherCopy replaces the role note without touching rows when overrides is empty', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, role: 'Original note' });
+    updateTeacherCopy(config, copyId, {}, 'Updated note');
+    expect(config.teacherCopies[copyId].role).toBe('Updated note');
+    expect(config.teacherCopies[copyId].rows['First'].Title).toBe('Fee review');
+  });
+
+  it('updateTeacherCopy leaves the role untouched when the argument is omitted entirely', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, role: 'Keep me' });
+    updateTeacherCopy(config, copyId, { First: { Fee: '999' } });
+    expect(config.teacherCopies[copyId].role).toBe('Keep me');
+  });
+
+  it('updateTeacherCopy can clear the role with an explicit empty string', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, role: 'Has a note' });
+    updateTeacherCopy(config, copyId, {}, '');
+    expect(config.teacherCopies[copyId].role).toBe('');
   });
 });
 

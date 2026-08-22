@@ -44,13 +44,33 @@ export function assertValidInstanceId(id) {
  */
 
 /**
+ * @typedef {Object} TeacherCopy
+ * @property {string} slot
+ * @property {string} createdAt
+ * @property {string} updatedAt
+ * @property {string|null} copiedFromStockVersion
+ * @property {{ tier: 'official'|'group'|'individual', id: string|null }} owner
+ * @property {string} [role] optional free-text note on what this card is
+ *   for (CARD_LIBRARY_DESIGN.md stage 2, "Role field") — what makes a
+ *   rolodex of near-identical cards navigable. Always written by
+ *   createTeacherCopy (defaults to ''); older cards predating this field
+ *   simply lack the key, which every reader treats the same as ''.
+ * @property {Object<string, Object<string, string>>} rows
+ * @property {Array<Object<string, string>>} [diceRows]
+ * @property {Array<Object<string, string>>} [modalRows]
+ * @property {Array<{visit_type: string, question_id: string, question_text: string, yes_reason: string, no_reason: string}>} [logicRows]
+ *
  * @typedef {Object} InstanceConfig
  * @property {{ id: string, displayName: string, createdAt: string,
  *   updatedAt: string, writeToken: string, owner: string|null,
  *   coTeachers: string[], classCode: string|null, visibility: string }} meta
  * @property {number} configVersion
  * @property {Object<string, SlotConfig>} slots
- * @property {Object<string, any>} teacherCopies
+ * @property {Object<string, any>} teacherCopies see the {@link TeacherCopy}
+ *   typedef above for the real shape — kept loose here (not
+ *   Object<string, TeacherCopy>) so a test building a partial fixture by
+ *   hand doesn't need every optional field populated just to satisfy the
+ *   type checker.
  * @property {Object<string, string>} detours
  * @property {Object<string, InsertionConfig>} insertions
  * @property {Object<string, Array<{ x: number, y: number }>>} edgeWaypoints
@@ -521,8 +541,12 @@ export function setSlotUsed(config, spaceName, used, detour) {
  *   stockModalRows?: Array<Object<string, string>>,
  *   stockLogicRows?: Array<Object<string, string>>,
  *   overrides?: Object<string, Object<string, string>>, stockVersion?: string,
- *   tier?: 'official'|'group'|'individual' }} args
+ *   tier?: 'official'|'group'|'individual', role?: string }} args
  *   overrides is keyed by visit_type ("First"/"Subsequent").
+ *   role is an optional free-text note on what this card is for
+ *   (CARD_LIBRARY_DESIGN.md stage 2) — defaults to '' when omitted, never
+ *   undefined, so every card downstream can read it without an existence
+ *   check.
  *   stockDiceRows is the slot's rows from DiceRoll Info.csv, already parsed
  *   and filtered by the caller (mirrors stockRows, and keeps this module free
  *   of a CSV parser). Stored VERBATIM on the card — see below.
@@ -543,7 +567,7 @@ export function setSlotUsed(config, spaceName, used, detour) {
  */
 export function createTeacherCopy(config, {
   slotName, stockRows, stockDiceRows, stockModalRows, stockLogicRows,
-  overrides = {}, stockVersion, tier = 'individual',
+  overrides = {}, stockVersion, tier = 'individual', role = '',
 }) {
   if (!VALID_OWNER_TIERS.has(tier)) {
     throw new Error(`Invalid tier "${tier}": must be one of ${[...VALID_OWNER_TIERS].join(', ')}`);
@@ -578,6 +602,13 @@ export function createTeacherCopy(config, {
     // meaning either way: whoever owns the classroom right now, nullable
     // when no account is bound yet (an official card has no owner account).
     owner: { tier, id: config.meta?.owner || null },
+    // Role field (CARD_LIBRARY_DESIGN.md stage 2) — a short human-written
+    // note on what this card is FOR, so a rolodex of near-identical cards
+    // is navigable. Always a string, never undefined/absent: unlike
+    // diceRows/modalRows/logicRows there is no "fall back to stock"
+    // meaning to preserve by omitting the key — an empty note is just an
+    // empty note.
+    role: role ? String(role).trim() : '',
     rows,
   };
   // A card also owns its slot's dice outcomes (CARD_LIBRARY_DESIGN.md stage
@@ -642,8 +673,11 @@ export function createTeacherCopy(config, {
  * @param {InstanceConfig} config
  * @param {string} copyId
  * @param {Object<string, Object<string, string>>} overrides
+ * @param {string} [role] when given (not undefined), replaces the card's role
+ *   note. Omit the argument entirely to leave the existing note untouched —
+ *   pass '' explicitly to clear it.
  */
-export function updateTeacherCopy(config, copyId, overrides) {
+export function updateTeacherCopy(config, copyId, overrides, role) {
   const copy = config.teacherCopies[copyId];
   if (!copy) throw new Error(`No such copy: "${copyId}"`);
   for (const [visitType, fields] of Object.entries(overrides || {})) {
@@ -651,6 +685,9 @@ export function updateTeacherCopy(config, copyId, overrides) {
       throw new Error(`Copy "${copyId}" has no "${visitType}" row`);
     }
     copy.rows[visitType] = { ...copy.rows[visitType], ...fields, space_name: copy.slot };
+  }
+  if (role !== undefined) {
+    copy.role = String(role).trim();
   }
   copy.updatedAt = new Date().toISOString();
 }
@@ -752,17 +789,59 @@ export function replaceCardContent(config, copyId, { rows, diceRows, modalRows, 
 }
 
 /**
- * Delete a copy. If the slot is playing it, the slot reverts to the stock
- * card (the original was never gone — that is the whole point).
+ * Unselect a card (CARD_LIBRARY_DESIGN.md "removing unselects, never
+ * destroys", stage 2). If the slot is currently playing this card, the slot
+ * reverts to the stock card — but the card itself is left exactly where it
+ * was, in `config.teacherCopies`, still pickable from the rolodex later.
+ *
+ * FORMERLY `deleteTeacherCopy`, which also `delete`d the card from
+ * `teacherCopies` — a maintainer who clicked this expecting "stop playing
+ * my copy" would silently lose the work in it forever. The HTTP route this
+ * backs is still `DELETE /copies/:copyId` (same user intent — "I don't
+ * want this one active right now" — so the verb didn't need to change),
+ * but nothing here destroys anything anymore.
+ *
+ * A no-op (not an error) when the slot isn't currently playing this card —
+ * there's nothing to unselect, and the card already sits unselected in the
+ * rolodex, which is a perfectly normal state now that stage 2 makes it
+ * visible.
  * @param {InstanceConfig} config
  * @param {string} copyId
  */
-export function deleteTeacherCopy(config, copyId) {
+export function unselectCard(config, copyId) {
   const copy = config.teacherCopies[copyId];
   if (!copy) throw new Error(`No such copy: "${copyId}"`);
-  delete config.teacherCopies[copyId];
   const slot = config.slots[copy.slot];
   if (slot && slot.card === copyId) delete slot.card;
+}
+
+/**
+ * Choose which card a slot plays (CARD_LIBRARY_DESIGN.md stage 2, the
+ * rolodex picker): point it at `copyId`, or clear it (falsy) to fall back to
+ * the stock card. A plain reassignment of the slot's one pointer — "the
+ * finding that makes tiers cheap" — so this never creates, edits, or
+ * removes any card, only changes which one plays.
+ *
+ * Validates that the card exists AND belongs to this exact slot — a card
+ * authored for one space must never become selectable for another, since a
+ * card's `rows` are pinned to its own `space_name` and playing it elsewhere
+ * would silently mislabel that space's content.
+ * @param {InstanceConfig} config
+ * @param {string} slotName
+ * @param {string|null|undefined} copyId falsy clears the slot back to stock
+ */
+export function selectCardForSlot(config, slotName, copyId) {
+  if (copyId) {
+    const copy = config.teacherCopies[copyId];
+    if (!copy) throw new Error(`No such copy: "${copyId}"`);
+    if (copy.slot !== slotName) {
+      throw new Error(`Copy "${copyId}" belongs to "${copy.slot}", not "${slotName}"`);
+    }
+    config.slots[slotName] = { ...(config.slots[slotName] ?? {}), card: copyId };
+  } else {
+    if (!config.slots[slotName]) config.slots[slotName] = {};
+    delete config.slots[slotName].card;
+  }
 }
 
 // ===== Phase 4a: teacher-authored spaces (card insertion) =====

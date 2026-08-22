@@ -57,6 +57,14 @@ export interface TeacherCopy {
   copiedFromStockVersion: string | null;
   /** Always present — new copies write it, loadInstance backfills old ones. */
   owner: CardOwner;
+  /**
+   * Optional free-text note on what this card is FOR (CARD_LIBRARY_DESIGN.md
+   * stage 2, "Role field") — what makes a rolodex of near-identical cards
+   * navigable ("Shorter version for a 45-minute period"). New cards always
+   * write it (default ''); a card saved before stage 2 simply lacks the key,
+   * so this is optional rather than always-string.
+   */
+  role?: string;
   rows: Record<string, Record<string, string>>;
 }
 
@@ -212,29 +220,64 @@ export function postBoardChange(
  */
 export function createCopy(
   instanceId: string,
-  args: { slot: string; overrides?: Record<string, Record<string, string>>; tier?: CardOwner['tier'] },
+  args: {
+    slot: string; overrides?: Record<string, Record<string, string>>;
+    tier?: CardOwner['tier']; role?: string;
+  },
   deps: ClassroomApiDeps = {}
 ): Promise<MutationResult> {
   return mutate(`/api/instances/${instanceId}/copies`, 'POST', args, deps);
 }
 
-/** Update a copy's fields (keyed by visit type). */
+/**
+ * Update a copy's fields (keyed by visit type) and/or its role note. Either
+ * may be omitted — passing only `role` edits the note without touching a
+ * single row, and vice versa; the server requires at least one of them.
+ */
 export function updateCopy(
   instanceId: string,
   copyId: string,
-  overrides: Record<string, Record<string, string>>,
+  args: { overrides?: Record<string, Record<string, string>>; role?: string },
   deps: ClassroomApiDeps = {}
 ): Promise<MutationResult> {
-  return mutate(`/api/instances/${instanceId}/copies/${copyId}`, 'PATCH', { overrides }, deps);
+  return mutate(`/api/instances/${instanceId}/copies/${copyId}`, 'PATCH', args, deps);
 }
 
-/** Delete a copy; the slot reverts to the stock card. */
-export function deleteCopy(
+/**
+ * Unselect a card (CARD_LIBRARY_DESIGN.md "removing unselects, never
+ * destroys", stage 2): if the given card is the one its space is currently
+ * playing, that space goes back to the original — the card itself is left
+ * exactly where it was, still pickable again later. A no-op if the card
+ * wasn't the one playing. The HTTP verb is DELETE (same route as before
+ * this rename); nothing on the server actually deletes the card anymore.
+ */
+export function unselectCopy(
   instanceId: string,
   copyId: string,
   deps: ClassroomApiDeps = {}
 ): Promise<MutationResult> {
   return mutate(`/api/instances/${instanceId}/copies/${copyId}`, 'DELETE', undefined, deps);
+}
+
+/**
+ * Choose which card a space plays (CARD_LIBRARY_DESIGN.md stage 2, the
+ * rolodex picker): point it at `copyId`, or pass `null` to fall back to the
+ * original. Selecting among cards already visible to you is not an admin
+ * act — only minting an `official` card (via `createCopy` with
+ * `tier: 'official'`) is — so this authorizes the same way as every other
+ * Classroom Setup write.
+ */
+export function selectCard(
+  instanceId: string,
+  args: { slot: string; copyId: string | null },
+  deps: ClassroomApiDeps = {}
+): Promise<MutationResult> {
+  return mutate(
+    `/api/instances/${instanceId}/slots/${encodeURIComponent(args.slot)}/card`,
+    'POST',
+    { copyId: args.copyId },
+    deps
+  );
 }
 
 /**

@@ -35,7 +35,8 @@ import {
   setSlotUsed,
   createTeacherCopy,
   updateTeacherCopy,
-  deleteTeacherCopy,
+  unselectCard,
+  selectCardForSlot,
   addInsertion,
   updateInsertion,
   removeInsertion,
@@ -1381,7 +1382,7 @@ app.post('/api/instances/:id/board', (req, res) => {
 // Teacher copies: full copies of the current stock card under a stable id;
 // the slot plays the copy, the stock original stays in the library.
 app.post('/api/instances/:id/copies', (req, res) => {
-  const { slot, overrides, tier } = req.body || {};
+  const { slot, overrides, tier, role } = req.body || {};
   if (!slot || typeof slot !== 'string') {
     return res.status(400).json({ success: false, error: 'slot (space name) is required' });
   }
@@ -1441,16 +1442,20 @@ app.post('/api/instances/:id/copies', (req, res) => {
       : [];
     const copyId = createTeacherCopy(config, {
       slotName: slot, stockRows, stockDiceRows, stockModalRows, stockLogicRows,
-      overrides, stockVersion, tier,
+      overrides, stockVersion, tier, role,
     });
     return { copyId, slot, tier: config.teacherCopies[copyId].owner.tier };
   });
 });
 
 app.patch('/api/instances/:id/copies/:copyId', (req, res) => {
-  const { overrides } = req.body || {};
-  if (!overrides || typeof overrides !== 'object' || Object.keys(overrides).length === 0) {
-    return res.status(400).json({ success: false, error: 'overrides object is required (visit_type → fields)' });
+  const { overrides, role } = req.body || {};
+  const hasOverrides = overrides && typeof overrides === 'object' && Object.keys(overrides).length > 0;
+  // role is a legitimate patch on its own (Card Library stage 2 — editing
+  // just the note without touching a single row), so this route no longer
+  // requires overrides — only that the patch says SOMETHING.
+  if (!hasOverrides && role === undefined) {
+    return res.status(400).json({ success: false, error: 'overrides and/or role is required' });
   }
   handleInstanceMutation(req, res, (config) => {
     if (!config.teacherCopies[req.params.copyId]) {
@@ -1458,11 +1463,18 @@ app.patch('/api/instances/:id/copies/:copyId', (req, res) => {
       err.statusCode = 404;
       throw err;
     }
-    updateTeacherCopy(config, req.params.copyId, overrides);
+    updateTeacherCopy(config, req.params.copyId, overrides, role);
     return { copyId: req.params.copyId };
   });
 });
 
+// Unselects a card (CARD_LIBRARY_DESIGN.md "removing unselects, never
+// destroys", stage 2): if the slot is currently playing this card, the slot
+// reverts to the stock card. The HTTP verb stays DELETE — it's the same
+// user intent, "stop playing this one right now" — but nothing here
+// destroys the card. It stays in config.teacherCopies, pickable again from
+// the rolodex later. (Formerly deleteTeacherCopy, which really did delete
+// it — see unselectCard's own doc comment in instanceStore.js.)
 app.delete('/api/instances/:id/copies/:copyId', (req, res) => {
   handleInstanceMutation(req, res, (config) => {
     if (!config.teacherCopies[req.params.copyId]) {
@@ -1470,8 +1482,40 @@ app.delete('/api/instances/:id/copies/:copyId', (req, res) => {
       err.statusCode = 404;
       throw err;
     }
-    deleteTeacherCopy(config, req.params.copyId);
-    return { copyId: req.params.copyId, deleted: true };
+    unselectCard(config, req.params.copyId);
+    return { copyId: req.params.copyId, unselected: true };
+  });
+});
+
+// Which card a slot plays (Card Library stage 2, the rolodex picker):
+// reassign the slot's one pointer to a card already in its rolodex, or
+// clear it (falsy copyId) to fall back to the stock card. This never
+// creates, edits, or removes a card — purely a selection among cards the
+// teacher can already see, so unlike POST /copies with tier:'official' it
+// is NOT an admin-only act: handleInstanceMutation's own
+// checkInstanceWriteAccess (instance write token, classroom-owning teacher
+// session, or admin password) is exactly the right and sufficient bar here,
+// same as its /copies siblings above. selectCardForSlot itself rejects a
+// copyId that doesn't exist or belongs to a different slot.
+app.post('/api/instances/:id/slots/:slot/card', (req, res) => {
+  const { copyId } = req.body || {};
+  handleInstanceMutation(req, res, (config) => {
+    const slotName = req.params.slot;
+    if (copyId) {
+      const copy = config.teacherCopies[copyId];
+      if (!copy) {
+        const err = new Error(`No such copy: "${copyId}"`);
+        err.statusCode = 404;
+        throw err;
+      }
+      if (copy.slot !== slotName) {
+        const err = new Error(`Copy "${copyId}" belongs to "${copy.slot}", not "${slotName}"`);
+        err.statusCode = 400;
+        throw err;
+      }
+    }
+    selectCardForSlot(config, slotName, copyId || null);
+    return { slot: slotName, copyId: copyId || null };
   });
 });
 

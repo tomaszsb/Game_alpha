@@ -156,11 +156,27 @@ describe('server.js endpoint auth wiring', () => {
     ['post', '/api/instances/:id/board'],
     ['patch', '/api/instances/:id/copies/:copyId'],
     ['delete', '/api/instances/:id/copies/:copyId'],
+    ['post', '/api/instances/:id/slots/:slot/card'],
     ['post', '/api/instances/:id/insertions'],
     ['patch', '/api/instances/:id/insertions/:insertionId'],
     ['delete', '/api/instances/:id/insertions/:insertionId'],
   ])('%s %s routes through the guarded mutation flow', (method, route) => {
     expect(handlerHead(method, route, 1200)).toContain('handleInstanceMutation(req, res');
+  });
+
+  // ===== Card Library stage 2: picking which card a slot plays =====
+
+  it('POST /api/instances/:id/slots/:slot/card is NOT admin-gated (unlike minting an official card)', () => {
+    // Selecting among cards you can already see is not an admin act — only
+    // MINTING an official card is (the /copies and /content boundary
+    // above). handleInstanceMutation's own checkInstanceWriteAccess
+    // (instance token, classroom-owning teacher, or admin) is sufficient.
+    const start = source.indexOf("app.post('/api/instances/:id/slots/:slot/card',");
+    expect(start, 'POST /api/instances/:id/slots/:slot/card not found in server.js').toBeGreaterThan(-1);
+    const end = source.indexOf('\napp.', start + 1);
+    const body = source.slice(start, end);
+    expect(body).not.toContain("checkAdminPassword(");
+    expect(body).toContain('handleInstanceMutation(req, res');
   });
 
   // POST /copies needs its own slice: the tier privilege boundary below sits
