@@ -12,10 +12,14 @@ import { AdminGameManager } from './AdminGameManager';
 interface AdminToolsPanelProps {
   /** Needed by handleStartClassroomGame's URL mode param. */
   selectedMode: 'pc' | 'tv';
-  onOpenDataEditor: () => void;
+  /**
+   * The one way in to your spaces. It replaced two buttons that did the same
+   * job differently — "Space Data Editor" and "Classroom Setup"
+   * (CARD_LIBRARY_DESIGN.md, "Stage 3's screen").
+   */
+  onOpenSpaceDeck: () => void;
   onOpenBugReports: () => void;
   onOpenBoardLayoutEditor: () => void;
-  onOpenClassroomSetup: () => void;
   onOpenClassroomAdmin: () => void;
 }
 
@@ -25,10 +29,9 @@ interface AdminToolsPanelProps {
  */
 export function AdminToolsPanel({
   selectedMode,
-  onOpenDataEditor,
+  onOpenSpaceDeck,
   onOpenBugReports,
   onOpenBoardLayoutEditor,
-  onOpenClassroomSetup,
   onOpenClassroomAdmin,
 }: AdminToolsPanelProps): JSX.Element {
   const {
@@ -97,7 +100,7 @@ export function AdminToolsPanel({
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               type="button"
-              onClick={onOpenDataEditor}
+              onClick={onOpenSpaceDeck}
               style={{
                 padding: '0.6rem 1rem',
                 backgroundColor: colors.secondary.main,
@@ -111,8 +114,9 @@ export function AdminToolsPanel({
                 alignItems: 'center',
                 gap: '0.4rem'
               }}
+              title="Look through your spaces the way players meet them, switch any off, add your own, and change what they say. Applies to every future game."
             >
-              ⚙️ Space Data Editor
+              🏫 Your deck of spaces
             </button>
             <button
               type="button"
@@ -133,26 +137,6 @@ export function AdminToolsPanel({
               title="Drag tiles to set their positions on the board. Applies to every future game."
             >
               🗺️ Edit Board Layout
-            </button>
-            <button
-              type="button"
-              onClick={onOpenClassroomSetup}
-              style={{
-                padding: '0.6rem 1rem',
-                backgroundColor: colors.secondary.main,
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}
-              title="Browse the deck of spaces: switch cards on/off, make your own copies. Applies to every future game."
-            >
-              🏫 Classroom Setup
             </button>
             <button
               type="button"

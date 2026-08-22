@@ -178,6 +178,16 @@ The classroom config keeps only the *choice*: `slots[name].card = <cardId>`. Res
 
 **Stage 3 — one screen.** Merge the two editors: the Space Data Editor's field layout and live preview, plus Classroom Setup's switch-off, author-a-space, and durability. **Fix the preview while doing it** — `PlayerPreviewPanel` deliberately renders with the retired classic panel's stylesheet and its own comment says it *"mirrors what the classic panel used to look like in-game"* ([PlayerPreviewPanel.tsx:3](../../src/components/editor/PlayerPreviewPanel.tsx)). Players see `PlayerPanelV2`. The single most reassuring feature in the tool is currently drawing a design that no longer ships.
 
+### Stage 3's screen: browse, then focus (maintainer, 2026-08-22)
+
+Sketched as three options; the maintainer combined two of them into a better answer than any single one. **Two modes, not two screens** — the deck gets out of the way once you are actually working.
+
+**Browsing.** The deck runs down the left, grouped by phase as it is today. The right-hand side shows the space you have landed on: the **player view on top, with a short strip of facts beneath it** (time, fee, where it leads, how many versions exist). Flipping through the deck should feel like flipping through the actual cards — you meet each space the way a player does — with the facts there for scanning and comparing. Deck-level decisions live here, because they are decisions *between* spaces: switching a space off, and adding a new one.
+
+**Working on a card.** Clicking in collapses the deck to a **rolodex icon, top left**, and the card takes the whole screen: **versions across the top at full width** (where they finally get real room), then the editing fields beside the player view. The icon **slides the deck back out over the card** rather than navigating away — "minimise" implies it comes back, and it means you keep your place instead of losing it whenever you want to glance at another space.
+
+Rationale worth keeping: the original complaint was not that there were two screens, it was that their jobs overlapped and neither was clear. This gives one screen two clearly different *jobs* — compare across spaces, or work on one — which is the actual fix. It is also the only sketched shape that survives a narrow screen, which matters in a classroom.
+
 **Stage 4 — group tier.** Group entity (a school, a club), roles on accounts (member / group admin), permission checks on every write, group-scoped visibility in the picker. Promotion to official stays a manual operation.
 
 **Deferred — the approval queue.** Not built. See below.

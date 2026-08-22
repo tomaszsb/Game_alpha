@@ -6,12 +6,19 @@ import { SpaceBrowser } from './SpaceBrowser';
 import { SpaceEditor } from './SpaceEditor';
 import { PlayerPreviewPanel } from './PlayerPreviewPanel';
 import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
-import { exportSpacesCSV, exportDiceRollCSV, exportModalConfigCSV, parseModalConfigCSV, parseSpacesCSV, parseDiceRollCSV } from './utils/csvExport';
+import { exportSpacesCSV, exportDiceRollCSV, exportModalConfigCSV } from './utils/csvExport';
+import { loadEditorSource } from './loadEditorSource';
 import { DEFAULT_INSTANCE_ID } from '../board/saveBoardPosition';
 import { colors } from '../../styles/theme';
 
 interface DataEditorProps {
   onClose: () => void;
+  /**
+   * Open with this space already picked. Left out, the editor starts with
+   * nothing selected exactly as it always has; the browse screen passes the
+   * space you were looking at so "Make changes" lands on it.
+   */
+  initialSpaceName?: string | null;
 }
 
 /**
@@ -106,22 +113,22 @@ function AdminAuthGate({ onAuthenticated, onClose }: { onAuthenticated: () => vo
 // authenticated skipped the gate on first render and never saw it, which is how
 // it survived unnoticed. (28 react-hooks/rules-of-hooks errors; DEF-3 in the
 // 2026-06-10 deficiency audit.)
-export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
+export function DataEditor({ onClose, initialSpaceName }: DataEditorProps): JSX.Element {
   const [isAuthed, setIsAuthed] = useState(() => isAdminAuthenticated());
   if (!isAuthed) {
     return <AdminAuthGate onAuthenticated={() => setIsAuthed(true)} onClose={onClose} />;
   }
-  return <DataEditorContent onClose={onClose} />;
+  return <DataEditorContent onClose={onClose} initialSpaceName={initialSpaceName} />;
 }
 
-function DataEditorContent({ onClose }: DataEditorProps): JSX.Element {
+function DataEditorContent({ onClose, initialSpaceName }: DataEditorProps): JSX.Element {
   const { dataService } = useGameContext();
 
   // Editor state
   const [spacesData, setSpacesData] = useState<SpaceRow[]>([]);
   const [diceRollData, setDiceRollData] = useState<DiceRollRow[]>([]);
   const [modalConfigData, setModalConfigData] = useState<ModalConfigRow[]>([]);
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(initialSpaceName ?? null);
   const [visitType, setVisitType] = useState<'First' | 'Subsequent'>('First');
   const [searchTerm, setSearchTerm] = useState('');
   const [phaseFilter, setPhaseFilter] = useState('');
@@ -139,34 +146,12 @@ function DataEditorContent({ onClose }: DataEditorProps): JSX.Element {
       setError(null);
 
       try {
-        // Load source files directly from public folder
-        const [spacesResponse, diceRollResponse, modalConfigResponse] = await Promise.all([
-          fetch('/data/SOURCE_FILES/Spaces.csv?_=' + Date.now()),
-          fetch('/data/SOURCE_FILES/DiceRoll Info.csv?_=' + Date.now()),
-          fetch('/data/SOURCE_FILES/ModalConfig.csv?_=' + Date.now())
-        ]);
-
-        if (!spacesResponse.ok || !diceRollResponse.ok) {
-          throw new Error('Failed to load source files');
-        }
-
-        const spacesText = await spacesResponse.text();
-        const diceRollText = await diceRollResponse.text();
-
-        // Parse Spaces.csv
-        const spacesRows = parseSpacesCSV(spacesText);
-        setSpacesData(spacesRows);
-
-        // Parse DiceRoll Info.csv
-        const diceRollRows = parseDiceRollCSV(diceRollText);
-        setDiceRollData(diceRollRows);
-
-        // Parse ModalConfig.csv (optional — may not exist yet)
-        if (modalConfigResponse.ok) {
-          const modalConfigText = await modalConfigResponse.text();
-          const modalRows = parseModalConfigCSV(modalConfigText);
-          setModalConfigData(modalRows);
-        }
+        // Shared with the browse screen (loadEditorSource.ts) so the two can
+        // never read the same three CSVs in two slightly different ways.
+        const source = await loadEditorSource();
+        setSpacesData(source.spaces);
+        setDiceRollData(source.diceRolls);
+        setModalConfigData(source.modalConfigs);
 
         setIsLoading(false);
       } catch (err) {

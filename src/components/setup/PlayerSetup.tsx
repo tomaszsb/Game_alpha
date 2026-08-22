@@ -14,9 +14,8 @@ import { getStoredPreferredMode, resolveInitialMode } from '../../utils/modePref
 import { consumeResumeHint } from '../../utils/lastGameMemory';
 import { fetchJoinInfo, buildJoinGameUrl, JoinPickerPlayer } from '../../utils/joinGameFlow';
 import { AvatarIcon } from '../icons/AvatarIcons';
-import { DataEditor } from '../editor/DataEditor';
+import { SpaceDeckScreen } from '../classroom/SpaceDeckScreen';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
-import { ClassroomSetup } from '../classroom/ClassroomSetup';
 import { ClassroomAdminPanel } from '../classroom/ClassroomAdminPanel';
 import { ClassroomBadge } from '../classroom/ClassroomBadge';
 import { BugReportsPanel } from '../editor/BugReportsPanel';
@@ -110,10 +109,9 @@ export function PlayerSetup({
   });
 
   const [isStarting, setIsStarting] = useState(false);
-  const [isDataEditorOpen, setIsDataEditorOpen] = useState(false);
+  const [isSpaceDeckOpen, setIsSpaceDeckOpen] = useState(false);
   const [isBugReportsOpen, setIsBugReportsOpen] = useState(false);
   const [isBoardLayoutEditorOpen, setIsBoardLayoutEditorOpen] = useState(false);
-  const [isClassroomSetupOpen, setIsClassroomSetupOpen] = useState(false);
   const [showCardSelection, setShowCardSelection] = useState(false);
 
   // Lobby controls — merged from the retired GameLobby screen so setup
@@ -1145,10 +1143,9 @@ export function PlayerSetup({
 
           <AdminToolsPanel
             selectedMode={selectedMode}
-            onOpenDataEditor={() => setIsDataEditorOpen(true)}
+            onOpenSpaceDeck={() => setIsSpaceDeckOpen(true)}
             onOpenBugReports={() => setIsBugReportsOpen(true)}
             onOpenBoardLayoutEditor={() => setIsBoardLayoutEditorOpen(true)}
-            onOpenClassroomSetup={() => setIsClassroomSetupOpen(true)}
             onOpenClassroomAdmin={() => setIsClassroomAdminOpen(true)}
           />
 
@@ -1163,17 +1160,14 @@ export function PlayerSetup({
         {' '}Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right), or email <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
       </footer>
 
-      {/* Data Editor Modal */}
-      {isDataEditorOpen && <DataEditor onClose={() => setIsDataEditorOpen(false)} />}
+      {/* Your deck of spaces — browse, then change (CARD_LIBRARY_DESIGN.md stage 3) */}
+      {isSpaceDeckOpen && <SpaceDeckScreen onClose={() => setIsSpaceDeckOpen(false)} />}
 
       {/* Bug Reports Modal */}
       {isBugReportsOpen && <BugReportsPanel onClose={() => setIsBugReportsOpen(false)} />}
 
       {/* Board Layout Editor Modal */}
       {isBoardLayoutEditorOpen && <BoardLayoutEditor onClose={() => setIsBoardLayoutEditorOpen(false)} />}
-
-      {/* Classroom Setup (teacher catalog) Modal */}
-      {isClassroomSetupOpen && <ClassroomSetup onClose={() => setIsClassroomSetupOpen(false)} />}
 
       {/* Manage Classrooms & Teachers (admin) Modal */}
       {isClassroomAdminOpen && <ClassroomAdminPanel onClose={() => setIsClassroomAdminOpen(false)} />}

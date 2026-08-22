@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.26] - 2026-08-22
+
+### One screen instead of two — browsing half
+Stage 3b-i, and the start of the fix for the complaint that began this whole arc: *"there seem to be two versions of that... to me they do the same thing in different ways."* Admin Tools' two buttons (⚙️ Space Data Editor and 🏫 Classroom Setup) are now one — **🏫 Your deck of spaces**.
+
+The design is the maintainer's own, revised from three sketched options into a better shape than any of them: **two modes rather than two screens**. Browsing shows the deck on the left and the space you land on at the right — the player view on top, a strip of facts beneath (time, fee, where it leads, how many versions exist), so flipping through the deck feels like flipping through the actual cards. Deck-level decisions stay in the deck, because they are decisions *between* spaces: switching one off, adding your own. Recorded in [CARD_LIBRARY_DESIGN.md](docs/core/CARD_LIBRARY_DESIGN.md) under "Stage 3's screen: browse, then focus". Focus mode — the collapse-to-icon editing view with versions across the top — is the next slice; "Make changes" opens today's editor in the meantime, already on the right space, returning to browse with that space still selected.
+
+Mostly composition rather than new UI. The deck moved out of `ClassroomSetup` into a shared `SpaceDeckPanel` (phase grouping, switch on/off and its confirm flow, protection locks, the v3.2.23 version chips, add-a-space) so both screens render the same one; `ClassroomSetup` is now 68 lines of chrome around it. The player view reuses `PlayerPreviewPanel`, rebuilt in v3.2.25. `DataEditor`'s three-CSV read was extracted so the new screen and the editor share one loader.
+
+**The two screens read different data sources, and that was the crux.** The deck keeps its own catalog fetch, because it is the only thing that knows about switched-off spaces, locks and version counts — and the only thing that mutates them; hoisting it would have meant hoisting every mutation handler or duplicating them. The parsed rows load in the new container. They stay in step through `configVersion`.
+
+Checked rather than assumed: `/data/SOURCE_FILES/*` is served from the classroom's baked output first, and the bake substitutes the played card for the stock row — so the preview really does show the card in play, proven by saving a title change and watching the preview follow. Two consequences handled: the bake drops switched-off spaces entirely, so there is no row to preview (the right side says so plainly and names the detour), and dice spaces carry blank destination columns, so "leads to" falls back to the deck's own edge list.
+
+One real bug found during live verification and fixed: after saving in the editor, the version count still read "1 — just the original", because the save bypasses the deck entirely and it had no idea a card had been minted. Re-verified from a clean config that it now goes 1 → 2 with the chips appearing, no reload.
+
+A first-visit / coming-back toggle was added to the right-hand side, beyond the sketched design — without it half of every space's authored copy is unviewable while browsing.
+
+Verified live: one button where there were two; all 27 spaces grouped by phase with locks intact; clicking through updates the right side; a dice space resolved 5 destinations through the fallback; the end space reads "Nowhere — this is the end of the path"; switching a space off shows the switched-off message naming its detour, and switching back on repopulates on its own. Typecheck clean, production build clean, full suite 2930/2930 (191 files).
+
+**Not yet merged for teachers.** A signed-in teacher still reaches `ClassroomSetup` through their own classroom panel, so they get the deck without the player view beside it. Out of scope here (this slice merged Admin Tools' entry point), and the shared panel makes it a small job later — but there are technically still two screens, and only one of them is admin-reachable.
+
 ## [3.2.25] - 2026-08-22
 
 ### The editor's live preview now shows the game players actually see
