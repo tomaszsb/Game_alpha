@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.24] - 2026-08-22
+
+### Editing a space no longer overwrites what was there, and the classroom config finally has a safety net
+Two layers, matching what content systems converged on long ago (Optimizely/Craft/Payload keep an unversioned working state under named published versions; Figma collapses autosave checkpoints beneath named ones; WordPress's unbounded per-save revisions are the standard cautionary tale for skipping a retention cap).
+
+**The safety net first.** `saveInstance` wrote the classroom config atomically and took **no backup**. That was survivable while the config held only tile positions; since v3.2.22 it holds all the maintainer's durable content, so a bad save overwrote the previous state with nothing behind it. [TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md) promised this in Phase 1 — *"Classroom configs join the existing backup/restore mechanism, so a bad teacher edit is a one-step rollback"* — and it never shipped. It ships here: every write snapshots the outgoing config into the existing `game-data/backups/` convention, namespaced per classroom, keeping the last 20 plus anything under 30 days (the spec's own retention rule). Taken inside `saveInstance` rather than at call sites, so it covers switch-offs, detours, positions and waypoints too — none of which are cards. Best-effort by design: a failed snapshot warns and lets the save through rather than locking the maintainer out of their own work.
+
+**Then branching.** `replaceCardContent` replaced a card's content in place; it is now `branchCardContent`, and a save carrying genuinely different content mints a *new* card, points the slot at it, and leaves the previous one in the deck — with `derivedFrom` on the new card and `supersededBy` on the old. Both were reserved as breadcrumbs in the spec precisely because they cannot be reconstructed later. Applies to both edit paths. A save whose content matches the playing card creates nothing; a note-only save renames in place, since a version's name is not part of what it says.
+
+Five versions are kept per space — the 3–5 range the WordPress ecosystem settled on, and more than the strict one-step undo the maintainer's original wording implied. Pruning never touches the playing card, never the stock original, and never the card an edit was branched *from*: at prune time the slot already points at the new card, so without that third guard, going back to an old version and editing it would have been the move that deleted it. That case was found in live testing, not reasoning. `createTeacherCopy` prunes too — "Add a copy" was otherwise an unbounded way around the cap.
+
+**Two bugs this surfaced, both caught before shipping.** The `/content` route branched from `findCardForSlot(slot, 'official')`, which finds nothing for a slot playing a teacher copy and would have minted a fresh card on every save; it now branches from whatever the slot actually plays. And the assumption that the route's existing diff already prevented no-op branching was **wrong** — `diffSubmittedContent` compares the submission against *stock*, while the editor loads the *resolved* board, so every space already carrying a card reads as changed on every save. Harmless under the old in-place upsert; under branching it would have branched every carded space on the board every time. Fixed by comparing at the card level as well.
+
+Consequence worth knowing: an admin content-editor save on a slot playing an `individual` card now produces a new `individual` card rather than silently promoting it into the curated deck, following the spec's own "inherits the previous card's owner" rule.
+
+`COPY_UNPLAYED` no longer fires for a superseded card — earlier versions being out of play is the intended state now, and warning about each would put a caution on every card in a healthy deck. `backupSourceFiles`'s pruner also needed guarding against the new `backups/instances/` subtree, which would otherwise have sorted ahead of every timestamped directory and eventually tried to `unlink` a directory — the same EISDIR shape already commented there.
+
+The rolodex stays readable: the original, the playing card and the newest few show inline, the rest behind "Show earlier versions". Each version carries its note and when it was made — the note is effectively the version's name, which is how Figma's named versions work.
+
+Live-verified end to end: six successive edits produced six versions with intact links, the served board tracked each one, switching back actually changed the served board, an identical resave added nothing, the sixth edit pruned the oldest while keeping the one playing, and one backup file appeared per write — with the snapshot taken before the sixth edit still containing the version the cap had since pruned, confirming the backup layer really does stand behind the version cap. Typecheck clean, production build clean, full suite 2930/2930 (191 files).
+
 ## [3.2.23] - 2026-08-22
 
 ### Card library stage 2: the rolodex is visible

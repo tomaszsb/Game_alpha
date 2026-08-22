@@ -354,7 +354,14 @@ export function validateConfig({ config, stockSpacesCsv, pathChoiceCsv, diceCsv,
       continue;
     }
     const slot = (config.slots || {})[copy.slot];
-    if (!slot || slot.card !== copyId) {
+    // An earlier VERSION being out of play is the normal, intended state now
+    // that editing branches (CARD_LIBRARY_DESIGN.md stage 2) — `supersededBy`
+    // says a newer version of this exact card took over, which is what the
+    // teacher asked for. Warning about it would put a caution on every card
+    // in a healthy rolodex. A card with no successor that is still not in
+    // play is a different thing (unselected, or superseded by a version that
+    // was later pruned) and still worth flagging.
+    if ((!slot || slot.card !== copyId) && !copy.supersededBy) {
       warnings.push({ code: 'COPY_UNPLAYED', copyId, space: copy.slot, message: `Copy "${copyId}" exists but is not in play (slot uses a different card)` });
     }
     const stockFields = headerSet;

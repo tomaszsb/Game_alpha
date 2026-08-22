@@ -280,11 +280,15 @@ describe('server.js endpoint auth wiring', () => {
     expect(contentRouteBody()).toContain('handleInstanceMutation(req, res');
   });
 
-  it("content saves mint cards at the 'official' tier and upsert rather than duplicate", () => {
+  it("content saves mint cards at the 'official' tier and BRANCH rather than overwrite", () => {
     const body = contentRouteBody();
     expect(body).toContain("tier: 'official'");
-    expect(body).toContain("findCardForSlot(config, change.slot, 'official')");
-    expect(body).toContain('replaceCardContent(');
+    // Branched from the card the slot PLAYS, whatever tier it belongs to —
+    // a tier-filtered lookup would mint a brand-new card on every save for
+    // any slot playing a teacher copy (see the route comment).
+    expect(body).toContain('findCardForSlot(config, change.slot)');
+    expect(body).not.toContain("findCardForSlot(config, change.slot, 'official')");
+    expect(body).toContain('branchCardContent(');
   });
 
   it('the editor posts to the classroom content route, not to save-source-files', () => {

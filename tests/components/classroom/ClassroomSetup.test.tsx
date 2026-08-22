@@ -78,12 +78,12 @@ const CATALOG_WITH_CARDS = {
   },
   copies: {
     beta_middle_copy_1: {
-      slot: 'BETA-MIDDLE', createdAt: 't1', updatedAt: 't1', copiedFromStockVersion: 'v1',
+      slot: 'BETA-MIDDLE', createdAt: '2026-08-19T10:00:00.000Z', updatedAt: '2026-08-19T10:00:00.000Z', copiedFromStockVersion: 'v1',
       owner: { tier: 'individual', id: null }, role: 'Shorter version for a 45-minute period',
       rows: { First: { Title: 'My Middle', Event: 'Mid.', Action: '', Outcome: '', Time: '2', Fee: '50', space_name: 'BETA-MIDDLE' } },
     },
     beta_middle_copy_2: {
-      slot: 'BETA-MIDDLE', createdAt: 't2', updatedAt: 't2', copiedFromStockVersion: 'v2',
+      slot: 'BETA-MIDDLE', createdAt: '2026-08-20T10:00:00.000Z', updatedAt: '2026-08-20T10:00:00.000Z', copiedFromStockVersion: 'v2',
       owner: { tier: 'individual', id: null }, role: '',
       rows: { First: { Title: 'Other version', Event: 'Mid.', Action: '', Outcome: '', Time: '2', Fee: '50', space_name: 'BETA-MIDDLE' } },
     },
@@ -226,8 +226,52 @@ describe('ClassroomSetup', () => {
     expect(screen.getByText('Shorter version for a 45-minute period')).toBeInTheDocument();
     // The original is offered too, even though it isn't playing.
     expect(screen.getByText('The original')).toBeInTheDocument();
-    // Two things can be switched TO (original + copy_2); copy_1 is already playing.
-    expect(screen.getAllByRole('button', { name: 'Use this one' })).toHaveLength(2);
+    // Each version says when it was made, so two unnamed ones are tellable apart.
+    expect(screen.getAllByText(/^Made /)).toHaveLength(2);
+    // copy_2 can be switched to; copy_1 is already playing; the original has
+    // its own wording.
+    expect(screen.getAllByRole('button', { name: 'Go back to this one' })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Go back to the original' })).toBeInTheDocument();
+    // Only two versions, so nothing is folded away yet.
+    expect(screen.queryByRole('button', { name: /Show earlier versions/ })).toBeNull();
+  });
+
+  it('folds older versions away behind "Show earlier versions", keeping the playing one on screen', async () => {
+    // Editing makes a new card instead of overwriting, so a much-edited space
+    // accumulates versions — they must not bury the space below it.
+    const many = {
+      ...CATALOG_WITH_CARDS,
+      validation: { ok: true, errors: [], warnings: [], detours: {}, suggestions: {} },
+      copies: Object.fromEntries([1, 2, 3, 4, 5].map(n => [
+        `beta_middle_copy_${n}`,
+        {
+          slot: 'BETA-MIDDLE',
+          createdAt: `2026-08-0${n}T10:00:00.000Z`,
+          updatedAt: `2026-08-0${n}T10:00:00.000Z`,
+          copiedFromStockVersion: 'v2',
+          owner: { tier: 'individual', id: null },
+          role: `Version ${n}`,
+          rows: { First: { Title: `V${n}`, Event: 'Mid.', Action: '', Outcome: '', Time: '2', Fee: '50', space_name: 'BETA-MIDDLE' } },
+        },
+      ])),
+      // The OLDEST card is the one playing — it must stay on screen anyway.
+      spaces: [{ ...CATALOG_WITH_CARDS.spaces[0], copyId: 'beta_middle_copy_1' }],
+    };
+    fetchMock.mockResolvedValue(jsonResponse(many));
+    render(<ClassroomSetup onClose={() => {}} />);
+    await screen.findByText('The Middle');
+
+    // Newest three, plus the playing one, are inline; the other one waits.
+    expect(screen.getByText('Version 5')).toBeInTheDocument();
+    expect(screen.getByText('Version 4')).toBeInTheDocument();
+    expect(screen.getByText('Version 3')).toBeInTheDocument();
+    expect(screen.getByText('Version 1')).toBeInTheDocument(); // playing
+    expect(screen.queryByText('Version 2')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show earlier versions (1)' }));
+    expect(screen.getByText('Version 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide earlier versions' }));
+    expect(screen.queryByText('Version 2')).toBeNull();
   });
 
   it('attaches a card-keyed drift warning to its own card, not the page banner', async () => {
@@ -254,11 +298,8 @@ describe('ClassroomSetup', () => {
     render(<ClassroomSetup onClose={() => {}} />);
     await screen.findByText('The Middle');
 
-    // copy_1 is playing (no "Use this one" of its own); the original and
-    // copy_2 both offer one. Order in the DOM is: original, copy_1, copy_2.
-    const useButtons = screen.getAllByRole('button', { name: 'Use this one' });
-    expect(useButtons).toHaveLength(2);
-    fireEvent.click(useButtons[1]); // copy_2
+    // copy_1 is playing, so copy_2 is the only other version to go back to.
+    fireEvent.click(screen.getByRole('button', { name: 'Go back to this one' }));
 
     await waitFor(() => {
       const call = fetchMock.mock.calls.find(([url]) => String(url).includes('/slots/BETA-MIDDLE/card'));
@@ -278,8 +319,7 @@ describe('ClassroomSetup', () => {
     render(<ClassroomSetup onClose={() => {}} />);
     await screen.findByText('The Middle');
 
-    const useButtons = screen.getAllByRole('button', { name: 'Use this one' });
-    fireEvent.click(useButtons[0]); // the original
+    fireEvent.click(screen.getByRole('button', { name: 'Go back to the original' }));
 
     await waitFor(() => {
       const call = fetchMock.mock.calls.find(([url]) => String(url).includes('/slots/BETA-MIDDLE/card'));
@@ -299,8 +339,9 @@ describe('ClassroomSetup', () => {
     render(<ClassroomSetup onClose={() => {}} />);
     await screen.findByText('The Middle');
 
-    // copy_2 has no role note yet, so its edit button's name falls back to its tier word.
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Your copy' }));
+    // copy_2 has no role note yet, so its edit button's name falls back to its
+    // tier word plus the date it was made.
+    fireEvent.click(screen.getByRole('button', { name: /^Edit Your copy, made / }));
     expect(await screen.findByText(/Edit your copy of/)).toBeInTheDocument();
 
     const noteInput = screen.getByPlaceholderText(/Shorter version for a 45-minute period/);

@@ -22,11 +22,15 @@ import {
   clearEdgeAnchor,
   clearAllEdgeAnchors,
   createTeacherCopy,
-  updateTeacherCopy,
+  branchTeacherCopy,
   unselectCard,
   selectCardForSlot,
   findCardForSlot,
-  replaceCardContent,
+  branchCardContent,
+  pruneSlotVersions,
+  instanceBackupsDir,
+  pruneInstanceBackups,
+  MAX_VERSIONS_PER_SLOT,
   addInsertion,
   updateInsertion,
   removeInsertion,
@@ -43,14 +47,21 @@ import { checkAdminPassword } from '../../server/authGuards.js';
 const ADMIN_PASSWORD = 'hunter2';
 const ADMIN_HASH = crypto.createHash('sha256').update(ADMIN_PASSWORD).digest('hex');
 
+let gameDataDir: string;
 let root: string;
 
 beforeEach(() => {
-  root = fs.mkdtempSync(path.join(os.tmpdir(), 'instances-'));
+  // Mirror the real layout: instancesRoot is <game-data>/instances, and
+  // config backups land beside it at <game-data>/backups/instances/<id>.
+  // Pointing root straight at a mkdtemp dir would scatter backup folders
+  // through the OS temp root.
+  gameDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'game-data-'));
+  root = path.join(gameDataDir, 'instances');
+  fs.mkdirSync(root, { recursive: true });
 });
 
 afterEach(() => {
-  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(gameDataDir, { recursive: true, force: true });
 });
 
 describe('createInstance', () => {
@@ -378,13 +389,16 @@ describe('teacher copies', () => {
     expect(config.teacherCopies['fee_review_copy_1']).toBeDefined();
   });
 
-  it('updates fields per visit type and pins space_name to the slot', () => {
+  it('editing applies fields per visit type onto a NEW card, pinning space_name to the slot', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
-    updateTeacherCopy(config, copyId, { First: { Fee: '999', space_name: 'sneaky_rename' } });
-    expect(config.teacherCopies[copyId].rows['First']).toMatchObject({ Fee: '999', space_name: 'FEE-REVIEW' });
-    expect(() => updateTeacherCopy(config, copyId, { Ghost: { Fee: '1' } })).toThrow(/no "Ghost" row/);
-    expect(() => updateTeacherCopy(config, 'nope', {})).toThrow(/No such copy/);
+    const newId = branchTeacherCopy(config, copyId, { First: { Fee: '999', space_name: 'sneaky_rename' } });
+    expect(newId).not.toBe(copyId);
+    expect(config.teacherCopies[newId!].rows['First']).toMatchObject({ Fee: '999', space_name: 'FEE-REVIEW' });
+    // The card that was edited is untouched and still there to go back to.
+    expect(config.teacherCopies[copyId].rows['First'].Fee).toBe('100');
+    expect(() => branchTeacherCopy(config, copyId, { Ghost: { Fee: '1' } })).toThrow(/no "Ghost" row/);
+    expect(() => branchTeacherCopy(config, 'nope', {})).toThrow(/No such copy/);
   });
 
   it('unselecting a card reverts the slot to the stock card WITHOUT destroying the card (removing unselects, never destroys)', () => {
@@ -514,7 +528,7 @@ describe('teacher copy tiers (Card Library stage 1 slice 2)', () => {
   });
 });
 
-describe('findCardForSlot / replaceCardContent (Card Library stage 1, the content editor upsert)', () => {
+describe('findCardForSlot / branchCardContent (Card Library stage 2, editing branches)', () => {
   const stockRows = [
     { space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review', Fee: '100' },
     { space_name: 'FEE-REVIEW', visit_type: 'Subsequent', Title: 'Fee review', Fee: '50' },
@@ -554,31 +568,88 @@ describe('findCardForSlot / replaceCardContent (Card Library stage 1, the conten
     expect(findCardForSlot(config, 'FEE-REVIEW', 'official')).toBeNull();
   });
 
-  it('replaces content in place — same card id, same slot pointer, same owner', () => {
+  it('makes a NEW card, points the slot at it, and leaves the previous one in the deck', () => {
     const { config, copyId } = withOfficialCard();
-    const createdAt = config.teacherCopies[copyId].createdAt;
-    replaceCardContent(config, copyId, {
+    const newId = branchCardContent(config, copyId, {
       rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Rewritten', Fee: '999' }],
       diceRows: [],
       modalRows: [],
       stockVersion: 'v2',
     });
-    // One card, still the one in play.
-    expect(Object.keys(config.teacherCopies)).toEqual([copyId]);
-    expect(config.slots['FEE-REVIEW'].card).toBe(copyId);
-    expect(config.teacherCopies[copyId].owner).toEqual({ tier: 'official', id: null });
-    expect(config.teacherCopies[copyId].createdAt).toBe(createdAt);
-    expect(config.teacherCopies[copyId].copiedFromStockVersion).toBe('v2');
+    expect(newId).toBeTruthy();
+    expect(newId).not.toBe(copyId);
+    expect(Object.keys(config.teacherCopies).sort()).toEqual([copyId, newId].sort());
+    expect(config.slots['FEE-REVIEW'].card).toBe(newId);
+    // The previous version is untouched — the whole point of branching.
+    expect(config.teacherCopies[copyId].rows.First.Title).toBe('Fee review');
+    expect(config.teacherCopies[newId!].rows.First.Title).toBe('Rewritten');
+    expect(config.teacherCopies[newId!].copiedFromStockVersion).toBe('v2');
+  });
+
+  it('records the breadcrumbs both ways: derivedFrom forward, supersededBy back', () => {
+    // Reserved by the spec and unreadable after the fact — nothing consumes
+    // them yet, which is exactly why they need pinning.
+    const { config, copyId } = withOfficialCard();
+    const newId = branchCardContent(config, copyId, {
+      rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Rewritten' }],
+    })!;
+    expect(config.teacherCopies[newId].derivedFrom).toBe(copyId);
+    expect(config.teacherCopies[copyId].supersededBy).toBe(newId);
+    expect(config.teacherCopies[copyId].derivedFrom).toBeUndefined();
+    expect(config.teacherCopies[newId].supersededBy).toBeUndefined();
+  });
+
+  it('the new card inherits owner and note; a supplied note names the new version', () => {
+    const { config, copyId } = withOfficialCard();
+    config.teacherCopies[copyId].role = 'The long one';
+    const inherited = branchCardContent(config, copyId, {
+      rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'v2' }],
+    })!;
+    expect(config.teacherCopies[inherited].owner).toEqual({ tier: 'official', id: null });
+    expect(config.teacherCopies[inherited].role).toBe('The long one');
+
+    const renamed = branchCardContent(config, inherited, {
+      rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'v3' }],
+      role: 'Shorter for a 45-minute period',
+    })!;
+    expect(config.teacherCopies[renamed].role).toBe('Shorter for a 45-minute period');
+    expect(config.teacherCopies[inherited].role).toBe('The long one');
+  });
+
+  it('a save that says exactly what the playing card says creates NOTHING', () => {
+    // Not an edge case: the Space Data Editor loads the RESOLVED board, so
+    // every space that already has a card looks changed to a stock-based
+    // diff even when the maintainer never opened it. Without this, one save
+    // would branch every card on the board.
+    const { config, copyId } = withOfficialCard();
+    const before = JSON.stringify(config);
+    const result = branchCardContent(config, copyId, {
+      rows: stockRows,
+      diceRows,
+      modalRows,
+    });
+    expect(result).toBeNull();
+    expect(JSON.stringify(config)).toBe(before);
+  });
+
+  it('treats an empty column and a missing column as the same thing', () => {
+    // A card written before stock gained a column would otherwise look
+    // different from an identical save that carries that column as ''.
+    const { config, copyId } = withOfficialCard();
+    const withEmptyExtra = stockRows.map(r => ({ ...r, brand_new_column: '' }));
+    expect(branchCardContent(config, copyId, {
+      rows: withEmptyExtra, diceRows, modalRows,
+    })).toBeNull();
   });
 
   it('replaces WHOLESALE: a removed visit row goes away and a cleared field stays cleared', () => {
-    // updateTeacherCopy merges, which is right for the field editor and wrong
+    // The Classroom Setup field editor merges, which is right there and wrong
     // here — the content editor sends the whole space back.
     const { config, copyId } = withOfficialCard();
-    replaceCardContent(config, copyId, {
+    const newId = branchCardContent(config, copyId, {
       rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Only first', Fee: '' }],
-    });
-    const copy = config.teacherCopies[copyId];
+    })!;
+    const copy = config.teacherCopies[newId];
     expect(Object.keys(copy.rows)).toEqual(['First']);
     expect(copy.rows.First.Fee).toBe('');
     expect(copy.rows.First.Title).toBe('Only first');
@@ -586,12 +657,12 @@ describe('findCardForSlot / replaceCardContent (Card Library stage 1, the conten
 
   it('forces space_name to the slot — a card can never rename its space', () => {
     const { config, copyId } = withOfficialCard();
-    replaceCardContent(config, copyId, {
+    const newId = branchCardContent(config, copyId, {
       rows: [{ space_name: 'SOMETHING-ELSE', visit_type: 'First', Title: 'x' }],
       diceRows: [{ space_name: 'SOMETHING-ELSE', die_roll: 'Next Step', visit_type: 'First', '1': 'A' }],
       modalRows: [{ space_name: 'SOMETHING-ELSE', visit_type: 'First', modal_title: 'm' }],
-    });
-    const copy = config.teacherCopies[copyId];
+    })!;
+    const copy = config.teacherCopies[newId];
     expect(copy.rows.First.space_name).toBe('FEE-REVIEW');
     expect(copy.diceRows[0].space_name).toBe('FEE-REVIEW');
     expect(copy.modalRows[0].space_name).toBe('FEE-REVIEW');
@@ -602,39 +673,141 @@ describe('findCardForSlot / replaceCardContent (Card Library stage 1, the conten
     // be a third state the resolver does not distinguish.
     const { config, copyId } = withOfficialCard();
     expect(config.teacherCopies[copyId].diceRows).toHaveLength(1);
-    replaceCardContent(config, copyId, {
+    const newId = branchCardContent(config, copyId, {
       rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'x' }],
       diceRows: [],
       modalRows: [],
-    });
-    expect('diceRows' in config.teacherCopies[copyId]).toBe(false);
-    expect('modalRows' in config.teacherCopies[copyId]).toBe(false);
+    })!;
+    expect('diceRows' in config.teacherCopies[newId]).toBe(false);
+    expect('modalRows' in config.teacherCopies[newId]).toBe(false);
   });
 
-  it('never touches logicRows — the content editor has no logic-question fields', () => {
+  it('carries logicRows across untouched — the content editor has no logic-question fields', () => {
     const { config, copyId } = withOfficialCard();
     config.teacherCopies[copyId].logicRows = [
       { visit_type: 'First', question_id: 'Q1', question_text: 'Did the scope change?', yes_reason: 'y', no_reason: 'n' },
     ];
-    replaceCardContent(config, copyId, {
+    const newId = branchCardContent(config, copyId, {
       rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'x' }],
-    });
+    })!;
+    expect(config.teacherCopies[newId].logicRows).toHaveLength(1);
     expect(config.teacherCopies[copyId].logicRows).toHaveLength(1);
   });
 
   it('refuses an empty row set rather than writing a card that says nothing', () => {
     const { config, copyId } = withOfficialCard();
     const before = JSON.stringify(config);
-    expect(() => replaceCardContent(config, copyId, { rows: [] })).toThrow(/must hold at least one row/);
-    expect(() => replaceCardContent(config, 'no_such_copy', { rows: stockRows })).toThrow(/No such copy/);
+    expect(() => branchCardContent(config, copyId, { rows: [] })).toThrow(/must hold at least one row/);
+    expect(() => branchCardContent(config, 'no_such_copy', { rows: stockRows })).toThrow(/No such copy/);
     expect(JSON.stringify(config)).toBe(before);
   });
 
-  it('leaves copiedFromStockVersion alone when no stockVersion is given', () => {
+  it('carries copiedFromStockVersion forward when no stockVersion is given', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, stockVersion: 'v1', tier: 'official' });
-    replaceCardContent(config, copyId, { rows: stockRows });
-    expect(config.teacherCopies[copyId].copiedFromStockVersion).toBe('v1');
+    const newId = branchCardContent(config, copyId, {
+      rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'changed' }],
+    })!;
+    expect(config.teacherCopies[newId].copiedFromStockVersion).toBe('v1');
+  });
+});
+
+describe('version pruning (Card Library stage 2, "keep 5 versions per space")', () => {
+  const stockRows = [
+    { space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review', Fee: '100' },
+  ];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const editNTimes = (config: any, copyId: string, n: number): string[] => {
+    const ids = [copyId];
+    let current = copyId;
+    for (let i = 1; i <= n; i++) {
+      current = branchCardContent(config, current, {
+        rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: `Version ${i}`, Fee: String(100 + i) }],
+      })!;
+      ids.push(current);
+    }
+    return ids;
+  };
+
+  it('keeps five and drops the oldest when a sixth arrives', () => {
+    expect(MAX_VERSIONS_PER_SLOT).toBe(5);
+    const config = createInstance(root, { id: 'classroom-1' });
+    const first = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'official' });
+    const ids = editNTimes(config, first, 4); // 5 cards, still under the cap
+    expect(Object.keys(config.teacherCopies)).toHaveLength(5);
+
+    const sixth = branchCardContent(config, ids[ids.length - 1], {
+      rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Version 5' }],
+    })!;
+    expect(Object.keys(config.teacherCopies)).toHaveLength(5);
+    expect(config.teacherCopies[ids[0]]).toBeUndefined(); // the oldest went
+    expect(config.teacherCopies[sixth]).toBeDefined();
+    expect(config.slots['FEE-REVIEW'].card).toBe(sixth);
+  });
+
+  it('never prunes the card that is playing, however old it is', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const first = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'official' });
+    const ids = editNTimes(config, first, 4); // 5 cards
+    // Go back to the very first version — now the OLDEST card is the one in
+    // play, so pruning has to skip it and take the next-oldest instead.
+    selectCardForSlot(config, 'FEE-REVIEW', ids[0]);
+    const removed = pruneSlotVersions(config, 'FEE-REVIEW', 3);
+    expect(config.teacherCopies[ids[0]]).toBeDefined();
+    expect(config.slots['FEE-REVIEW'].card).toBe(ids[0]);
+    expect(removed).toEqual([ids[1], ids[2]]);
+    expect(Object.keys(config.teacherCopies)).toHaveLength(3);
+  });
+
+  it('never prunes the version an edit was branched FROM, even when it is oldest', () => {
+    // Going back to an old version and editing it must not be the move that
+    // deletes it: the slot pointer has already moved to the new card by the
+    // time pruning runs, so the guard on "what is playing" is not enough.
+    const config = createInstance(root, { id: 'classroom-1' });
+    const first = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'official' });
+    editNTimes(config, first, 4); // 5 cards; `first` is the oldest
+    const fromOldest = branchCardContent(config, first, {
+      rows: [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Reworked from the first one' }],
+    })!;
+    expect(config.teacherCopies[first]).toBeDefined();
+    expect(config.teacherCopies[fromOldest].derivedFrom).toBe(first);
+    expect(Object.keys(config.teacherCopies)).toHaveLength(5);
+  });
+
+  it('leaves other spaces alone — the cap is per space', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    createTeacherCopy(config, {
+      slotName: 'OTHER-SPACE',
+      stockRows: [{ space_name: 'OTHER-SPACE', visit_type: 'First', Title: 'Other' }],
+      tier: 'official',
+    });
+    const first = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'official' });
+    editNTimes(config, first, 8);
+    const feeReviewCards = Object.values(config.teacherCopies)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((c: any) => c.slot === 'FEE-REVIEW');
+    expect(feeReviewCards).toHaveLength(5);
+    expect(config.slots['OTHER-SPACE'].card).toBeTruthy();
+  });
+
+  it('re-links the chain around a pruned card so no breadcrumb dangles', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const first = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'official' });
+    editNTimes(config, first, 6);
+    for (const [id, copy] of Object.entries(config.teacherCopies)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const card = copy as any;
+      if (card.derivedFrom) expect(config.teacherCopies[card.derivedFrom], `${id}.derivedFrom`).toBeDefined();
+      if (card.supersededBy) expect(config.teacherCopies[card.supersededBy], `${id}.supersededBy`).toBeDefined();
+    }
+  });
+
+  it('pruneSlotVersions is a no-op below the cap', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'official' });
+    expect(pruneSlotVersions(config, 'FEE-REVIEW')).toEqual([]);
+    expect(pruneSlotVersions(config, 'NO-SUCH-SLOT')).toEqual([]);
   });
 });
 
@@ -967,26 +1140,131 @@ describe('card role notes (Card Library stage 2, "what this card is for")', () =
     expect(config.teacherCopies[copyId].role).toBe('Shorter version for a 45-minute period');
   });
 
-  it('updateTeacherCopy replaces the role note without touching rows when overrides is empty', () => {
+  it('renaming a card in place: a note-only save makes no new version', () => {
+    // The note is the version's NAME, not part of what the card says — so
+    // renaming it is not an edit that branches (Figma's named versions work
+    // the same way).
     const config = createInstance(root, { id: 'classroom-1' });
     const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, role: 'Original note' });
-    updateTeacherCopy(config, copyId, {}, 'Updated note');
+    expect(branchTeacherCopy(config, copyId, {}, 'Updated note')).toBeNull();
+    expect(Object.keys(config.teacherCopies)).toEqual([copyId]);
     expect(config.teacherCopies[copyId].role).toBe('Updated note');
     expect(config.teacherCopies[copyId].rows['First'].Title).toBe('Fee review');
   });
 
-  it('updateTeacherCopy leaves the role untouched when the argument is omitted entirely', () => {
+  it('a new version carries the previous note forward when the save gives none', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, role: 'Keep me' });
-    updateTeacherCopy(config, copyId, { First: { Fee: '999' } });
+    const newId = branchTeacherCopy(config, copyId, { First: { Fee: '999' } });
+    expect(config.teacherCopies[newId!].role).toBe('Keep me');
     expect(config.teacherCopies[copyId].role).toBe('Keep me');
   });
 
-  it('updateTeacherCopy can clear the role with an explicit empty string', () => {
+  it('a note can be cleared with an explicit empty string', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, role: 'Has a note' });
-    updateTeacherCopy(config, copyId, {}, '');
+    expect(branchTeacherCopy(config, copyId, {}, '')).toBeNull();
     expect(config.teacherCopies[copyId].role).toBe('');
+  });
+
+  it('a save that names the new version applies the note to it, not to the old one', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, role: 'First pass' });
+    const newId = branchTeacherCopy(config, copyId, { First: { Fee: '999' } }, 'Shorter for a 45-minute period');
+    expect(config.teacherCopies[newId!].role).toBe('Shorter for a 45-minute period');
+    expect(config.teacherCopies[copyId].role).toBe('First pass');
+  });
+});
+
+describe('classroom config backups (TEACHER_LAYER_DESIGN.md Phase 1, shipped stage 2 slice 2)', () => {
+  const stockRows = [{ space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review', Fee: '100' }];
+
+  it('snapshots the config being replaced on EVERY save, into game-data/backups', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const backupDir = instanceBackupsDir(root, 'classroom-1');
+    // Nothing yet — the create itself had nothing behind it to preserve.
+    expect(fs.existsSync(backupDir)).toBe(false);
+
+    setSlotUsed(config, 'FEE-REVIEW', false, 'AUDIT');
+    saveInstance(root, config);
+    const afterFirst = fs.readdirSync(backupDir);
+    expect(afterFirst).toHaveLength(1);
+    // The snapshot holds the state BEFORE this save (configVersion 1).
+    expect(JSON.parse(fs.readFileSync(path.join(backupDir, afterFirst[0]), 'utf-8')).configVersion).toBe(1);
+    expect(loadInstance(root, 'classroom-1')!.configVersion).toBe(2);
+
+    setSlotUsed(config, 'FEE-REVIEW', true);
+    saveInstance(root, config);
+    expect(fs.readdirSync(backupDir)).toHaveLength(2);
+  });
+
+  it('protects everything in the file, not just cards — a switched-off space is recoverable', () => {
+    // Card versioning covers card content; this layer is what stands behind
+    // switch-offs, detours, tile positions and connector waypoints.
+    const config = createInstance(root, { id: 'classroom-1' });
+    setSlotPositions(config, { 'FEE-REVIEW': { x: 100, y: 200 } });
+    saveInstance(root, config);
+    setSlotPositions(config, { 'FEE-REVIEW': { x: 999, y: 999 } });
+    saveInstance(root, config);
+
+    const backupDir = instanceBackupsDir(root, 'classroom-1');
+    const newest = fs.readdirSync(backupDir).sort().reverse()[0];
+    const snapshot = JSON.parse(fs.readFileSync(path.join(backupDir, newest), 'utf-8'));
+    expect(snapshot.slots['FEE-REVIEW']).toMatchObject({ pos_x: '100', pos_y: '200' });
+  });
+
+  it('a card edit is recoverable from the snapshot even after the version cap drops it', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows, tier: 'official' });
+    saveInstance(root, config);
+    const beforeVersion = loadInstance(root, 'classroom-1')!.configVersion;
+    const snapshotsBefore = fs.readdirSync(instanceBackupsDir(root, 'classroom-1')).length;
+    expect(beforeVersion).toBe(2);
+    expect(snapshotsBefore).toBe(1);
+  });
+
+  it('keeps the last 20 per classroom PLUS anything from the last 30 days', () => {
+    const dir = instanceBackupsDir(root, 'classroom-1');
+    fs.mkdirSync(dir, { recursive: true });
+    const now = Date.parse('2026-08-22T12:00:00.000Z');
+    const day = 24 * 60 * 60 * 1000;
+    // 30 snapshots: the newest 20 are within the count, and of the older 10
+    // half are still inside the 30-day window.
+    const names: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      const name = `2026-0${i < 10 ? 1 : 2}-${String((i % 27) + 1).padStart(2, '0')}T00-00-0${i % 10}-000Z_config.json`;
+      names.push(name);
+    }
+    names.sort();
+    names.forEach((name, index) => {
+      const full = path.join(dir, name);
+      fs.writeFileSync(full, '{}');
+      // Oldest names get the oldest mtimes; the 5 oldest are past 30 days.
+      const ageDays = index < 5 ? 60 : 3;
+      fs.utimesSync(full, new Date(now - ageDays * day), new Date(now - ageDays * day));
+    });
+
+    const pruned = pruneInstanceBackups(dir, { now });
+    // Only the 5 that fail BOTH tests (outside the newest 20 AND older than
+    // 30 days) go; the other 5 outside the count are recent, so they stay.
+    expect(pruned).toHaveLength(5);
+    expect(fs.readdirSync(dir)).toHaveLength(25);
+    // Never the newest.
+    expect(fs.existsSync(path.join(dir, names[names.length - 1]))).toBe(true);
+  });
+
+  it('is best-effort: a save still goes through when the snapshot cannot be written', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    // A FILE where the backups directory needs to be — mkdirSync then throws.
+    const backupsRoot = path.join(gameDataDir, 'backups');
+    fs.writeFileSync(backupsRoot, 'not a directory');
+    setSlotUsed(config, 'FEE-REVIEW', false, 'AUDIT');
+    expect(() => saveInstance(root, config)).not.toThrow();
+    expect(loadInstance(root, 'classroom-1')!.slots['FEE-REVIEW'].used).toBe(false);
+  });
+
+  it('refuses a traversal id rather than writing outside the backups tree', () => {
+    expect(() => instanceBackupsDir(root, '../escape')).toThrow(/Invalid instance id/);
   });
 });
 

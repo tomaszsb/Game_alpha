@@ -55,6 +55,13 @@ export function assertValidInstanceId(id) {
  *   rolodex of near-identical cards navigable. Always written by
  *   createTeacherCopy (defaults to ''); older cards predating this field
  *   simply lack the key, which every reader treats the same as ''.
+ * @property {string} [derivedFrom] the card this one was branched from
+ *   (CARD_LIBRARY_DESIGN.md stage 2). Absent on a card made straight from
+ *   stock, and on every card written before branching existed.
+ * @property {string} [supersededBy] the card that replaced this one. Written
+ *   on the OLD card at the moment of a branch; absent means this card is the
+ *   newest version of itself. Neither field is read by anything yet — they
+ *   are recorded because they cannot be reconstructed afterwards.
  * @property {Object<string, Object<string, string>>} rows
  * @property {Array<Object<string, string>>} [diceRows]
  * @property {Array<Object<string, string>>} [modalRows]
@@ -275,15 +282,119 @@ export function loadInstance(instancesRoot, id) {
   return parsed;
 }
 
+// ===== Classroom config backups =====
+//
+// TEACHER_LAYER_DESIGN.md Phase 1 promised "classroom configs join the
+// existing backup/restore mechanism, so a bad teacher edit is a one-step
+// rollback". That never shipped: saveInstance replaced the config atomically
+// and kept nothing behind it. Survivable while the config held tile
+// positions; not survivable since v3.2.22, when it started holding ALL the
+// maintainer's durable content.
+//
+// Same place and same naming style as backupSourceFiles in server.js
+// (game-data/backups, `<timestamp>_<what>`), namespaced one level deeper by
+// instance id because the retention policy is stated PER classroom. Deliberately
+// NOT mixed in beside the SOURCE_FILES snapshots: that pruner keeps only the
+// two most recent directories it finds, which would eat these within two
+// editor saves.
+const BACKUPS_DIRNAME = 'backups';
+const INSTANCE_BACKUPS_DIRNAME = 'instances';
+
+/** Keep the last N snapshots per classroom, PLUS anything newer than
+ *  RETENTION_DAYS — the spec's own stated policy. A snapshot is deleted only
+ *  when it fails BOTH tests, so a burst of 50 saves in one afternoon is all
+ *  still there tomorrow, and a classroom edited twice a year still has its
+ *  last 20 states. */
+const BACKUP_KEEP_COUNT = 20;
+const BACKUP_KEEP_DAYS = 30;
+
 /**
- * Persist a modified config: bumps configVersion + updatedAt, writes
- * atomically. The bump is what invalidates the baked output — game creation
- * is gated on configVersion == resolvedVersion (spec).
+ * Where this classroom's config snapshots live:
+ * `<game-data>/backups/instances/<id>/`. Derived from instancesRoot
+ * (`<game-data>/instances`) so instanceStore keeps taking exactly the one
+ * root path every other function here takes.
+ * @param {string} instancesRoot
+ * @param {string} id
+ * @returns {string}
+ */
+export function instanceBackupsDir(instancesRoot, id) {
+  assertValidInstanceId(id);
+  return path.join(path.dirname(instancesRoot), BACKUPS_DIRNAME, INSTANCE_BACKUPS_DIRNAME, id);
+}
+
+/**
+ * Delete snapshots that are BOTH outside the newest `keep` AND older than
+ * `days`. Exported for its own test — the retention rule is the part of this
+ * that can silently be wrong for a month before anyone notices.
+ * @param {string} dir
+ * @param {{ keep?: number, days?: number, now?: number }} [opts]
+ * @returns {string[]} the filenames pruned
+ */
+export function pruneInstanceBackups(dir, { keep = BACKUP_KEEP_COUNT, days = BACKUP_KEEP_DAYS, now = Date.now() } = {}) {
+  if (!fs.existsSync(dir)) return [];
+  // Filenames are ISO timestamps, so a plain descending sort is newest-first.
+  const files = fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort().reverse();
+  const cutoff = now - days * 24 * 60 * 60 * 1000;
+  const pruned = [];
+  for (const file of files.slice(keep)) {
+    const full = path.join(dir, file);
+    let mtime;
+    try {
+      mtime = fs.statSync(full).mtimeMs;
+    } catch {
+      continue;
+    }
+    if (mtime >= cutoff) continue; // recent — kept regardless of count
+    try {
+      fs.unlinkSync(full);
+      pruned.push(file);
+    } catch { /* another process got there first */ }
+  }
+  return pruned;
+}
+
+/**
+ * Copy the config that is ABOUT to be overwritten into the backups tree.
+ * Best-effort on purpose: a failure here (full disk, permissions) must not
+ * block the maintainer's save — that would turn a safety net into a lock on
+ * their own work — but it is never silent either.
+ * @param {string} instancesRoot
+ * @param {string} id
+ * @returns {string|null} the snapshot path, or null when there was nothing to back up
+ */
+export function backupInstanceConfig(instancesRoot, id) {
+  const current = configPath(instancesRoot, id);
+  if (!fs.existsSync(current)) return null; // first write — nothing behind it yet
+  try {
+    const dir = instanceBackupsDir(instancesRoot, id);
+    fs.mkdirSync(dir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const snapshot = path.join(dir, `${stamp}_config.json`);
+    fs.copyFileSync(current, snapshot);
+    pruneInstanceBackups(dir);
+    return snapshot;
+  } catch (err) {
+    console.warn(`⚠️  Could not back up classroom "${id}" before saving: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Persist a modified config: snapshots the config being replaced, bumps
+ * configVersion + updatedAt, writes atomically. The bump is what invalidates
+ * the baked output — game creation is gated on configVersion ==
+ * resolvedVersion (spec).
+ *
+ * The snapshot is taken HERE rather than at each call site so it covers every
+ * write by construction — switch-offs, detours, tile positions, connector
+ * waypoints, cards, authored spaces. Card versioning protects card content
+ * only; this protects everything else in the file too.
  * @param {string} instancesRoot
  * @param {InstanceConfig} config
  * @returns {InstanceConfig}
  */
 export function saveInstance(instancesRoot, config) {
+  backupInstanceConfig(instancesRoot, config.meta.id);
   config.configVersion += 1;
   config.meta.updatedAt = new Date().toISOString();
   atomicWriteJson(configPath(instancesRoot, config.meta.id), config);
@@ -509,6 +620,208 @@ export function clearAllEdgeAnchors(config) {
  */
 export const VALID_OWNER_TIERS = new Set(['official', 'group', 'individual']);
 
+// ===== Card versions (CARD_LIBRARY_DESIGN.md stage 2, "editing branches") =====
+
+/**
+ * How many cards one slot may hold before the oldest is dropped.
+ *
+ * Five, deliberately: it matches the 3–5 range the WordPress ecosystem
+ * settled on after unbounded post revisions proved to be a real bloat
+ * problem, and the maintainer asked for "more than 2". The card currently
+ * playing is never counted out, and the stock original is not a card at all,
+ * so a slot always keeps its original plus up to five saved versions.
+ */
+export const MAX_VERSIONS_PER_SLOT = 5;
+
+/** Mint the next free `<slot>_copy_<n>` id for a slot. */
+function mintCopyId(config, slotName) {
+  const base = slotName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  let n = 1;
+  while (config.teacherCopies[`${base}_copy_${n}`]) n += 1;
+  return `${base}_copy_${n}`;
+}
+
+/**
+ * Drop a row's empty fields so "column absent" and "column empty" compare as
+ * the same thing — the same rule instanceContentDiff uses when deciding
+ * whether the maintainer changed a space. Without it, a card written before
+ * stock gained a column would look different from an identical save that
+ * carries that column as '', and every save would branch.
+ */
+function normalizeRowForCompare(row) {
+  const out = {};
+  for (const [key, value] of Object.entries(row || {})) {
+    const text = value == null ? '' : String(value);
+    if (text !== '') out[key] = text;
+  }
+  return out;
+}
+
+/** Key-order-independent serialization, so two equal rows always match. */
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${stableJson(value[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(value === undefined ? null : value);
+}
+
+/**
+ * What a card SAYS, as one comparable string — its rows plus the three
+ * optional row sets it may own. Deliberately excludes everything that is
+ * identity or bookkeeping (id, slot, owner, timestamps,
+ * copiedFromStockVersion) and the role note: renaming a version is not a new
+ * version, exactly as a named version in Figma is renamed in place.
+ */
+function cardContentSignature({ rows, diceRows, modalRows, logicRows }) {
+  const normalizedRows = {};
+  for (const [visitType, row] of Object.entries(rows || {})) {
+    normalizedRows[visitType] = normalizeRowForCompare(row);
+  }
+  return stableJson({
+    rows: normalizedRows,
+    diceRows: (diceRows || []).map(normalizeRowForCompare),
+    modalRows: (modalRows || []).map(normalizeRowForCompare),
+    logicRows: (logicRows || []).map(normalizeRowForCompare),
+  });
+}
+
+/** Every card belonging to one slot, oldest first. */
+function cardsForSlot(config, slotName) {
+  return Object.entries(config.teacherCopies || {})
+    .filter(([, copy]) => copy && copy.slot === slotName)
+    .map(([id, copy], index) => ({ id, copy, index }))
+    .sort((a, b) => {
+      const at = a.copy.createdAt || '';
+      const bt = b.copy.createdAt || '';
+      if (at !== bt) return at < bt ? -1 : 1;
+      return a.index - b.index; // same millisecond — fall back to write order
+    });
+}
+
+/**
+ * Enforce MAX_VERSIONS_PER_SLOT, oldest first.
+ *
+ * Two things are never pruned: the card the slot is PLAYING (dropping what a
+ * classroom is currently using would be the one unrecoverable mistake here),
+ * and the stock original — which is not a card and so cannot be reached from
+ * this list at all. `protect` names anything else that must survive this
+ * particular prune; branching uses it to keep the version it just branched
+ * FROM, which would otherwise be droppable the moment the slot pointer moved
+ * to the new card. Going back to an old version and editing it must not be
+ * the thing that deletes it.
+ *
+ * A pruned card's neighbours are re-linked around it (`derivedFrom` /
+ * `supersededBy` skip the gap) so the remaining chain still reads as one
+ * history instead of pointing at ids that no longer exist.
+ * @param {InstanceConfig} config
+ * @param {string} slotName
+ * @param {number} [keep]
+ * @param {string[]} [protect] extra card ids this prune must not touch
+ * @returns {string[]} the card ids removed
+ */
+export function pruneSlotVersions(config, slotName, keep = MAX_VERSIONS_PER_SLOT, protect = []) {
+  const playing = (config.slots || {})[slotName]?.card;
+  const keepIds = new Set([playing, ...protect].filter(Boolean));
+  const cards = cardsForSlot(config, slotName);
+  const removed = [];
+  let remaining = cards.length;
+  for (const { id, copy } of cards) {
+    if (remaining <= keep) break;
+    if (keepIds.has(id)) continue;
+    for (const other of Object.values(config.teacherCopies)) {
+      if (other.derivedFrom === id) {
+        if (copy.derivedFrom) other.derivedFrom = copy.derivedFrom;
+        else delete other.derivedFrom;
+      }
+      if (other.supersededBy === id) {
+        if (copy.supersededBy) other.supersededBy = copy.supersededBy;
+        else delete other.supersededBy;
+      }
+    }
+    delete config.teacherCopies[id];
+    removed.push(id);
+    remaining -= 1;
+  }
+  return removed;
+}
+
+/**
+ * The one place editing turns into a new card (CARD_LIBRARY_DESIGN.md "the
+ * model": *"Editing branches. Saving an edit creates a new card and points
+ * the slot at it. The previous card stays in the rolodex, unselected."*).
+ *
+ * Returns null and changes NOTHING about the deck when the new content says
+ * exactly what the source card already says — a save that changed nothing
+ * must not litter the rolodex with a duplicate. A role note supplied
+ * alongside unchanged content is still applied, in place, to the source card:
+ * the note names the version, and renaming a version is not a new version.
+ *
+ * `derivedFrom` on the new card and `supersededBy` on the old one are written
+ * here and nowhere else. Nothing reads them yet — they are what a version
+ * history screen, a "what changed" diff, or any future merge assistance would
+ * be built on, and unlike the content itself they cannot be reconstructed
+ * afterwards (spec, "Breadcrumbs for future expansion").
+ *
+ * @param {InstanceConfig} config
+ * @param {string} copyId the card being edited — the base of the new version
+ * @param {{ rows: Object<string, Object<string, string>>,
+ *   diceRows?: Array<Object<string, string>>,
+ *   modalRows?: Array<Object<string, string>>,
+ *   logicRows?: Array<Object<string, string>> }} content
+ *   Already in stored shape: rows keyed by visit_type, the three optional row
+ *   sets ABSENT (never []) when the card does not own them.
+ * @param {{ role?: string, stockVersion?: string }} [meta]
+ * @returns {string|null} the new card's id, or null when nothing changed
+ */
+function branchFrom(config, copyId, content, { role, stockVersion } = {}) {
+  const source = (config.teacherCopies || {})[copyId];
+  if (!source) throw new Error(`No such copy: "${copyId}"`);
+  if (!content.rows || Object.keys(content.rows).length === 0) {
+    throw new Error(`No rows given for "${copyId}" — a card must hold at least one row`);
+  }
+
+  const now = new Date().toISOString();
+  if (cardContentSignature(content) === cardContentSignature(source)) {
+    if (role !== undefined && String(role).trim() !== (source.role || '')) {
+      source.role = String(role).trim();
+      source.updatedAt = now;
+    }
+    return null;
+  }
+
+  const slotName = source.slot;
+  const newId = mintCopyId(config, slotName);
+  const next = {
+    slot: slotName,
+    createdAt: now,
+    updatedAt: now,
+    // The edit was made against whatever stock the previous card knew about,
+    // unless the caller can say better (the content editor reads the stock it
+    // just showed the maintainer).
+    copiedFromStockVersion: stockVersion || source.copiedFromStockVersion || null,
+    // Inherited, not re-derived: a new version of an official card is still
+    // official, and a new version of a classroom's own copy is still theirs.
+    owner: { ...(source.owner || { tier: 'individual', id: null }) },
+    // The role note is the version's name, so a save that supplies one names
+    // the NEW version; one that doesn't carries the previous name forward.
+    role: role !== undefined ? String(role).trim() : (source.role || ''),
+    derivedFrom: copyId,
+    rows: content.rows,
+  };
+  // ABSENT, never [] — absent is what the bake reads as "this card does not
+  // own its slot's dice/modal copy/logic wording, use stock's".
+  if (content.diceRows && content.diceRows.length > 0) next.diceRows = content.diceRows;
+  if (content.modalRows && content.modalRows.length > 0) next.modalRows = content.modalRows;
+  if (content.logicRows && content.logicRows.length > 0) next.logicRows = content.logicRows;
+
+  config.teacherCopies[newId] = next;
+  source.supersededBy = newId;
+  config.slots[slotName] = { used: true, ...config.slots[slotName], card: newId };
+  pruneSlotVersions(config, slotName, MAX_VERSIONS_PER_SLOT, [copyId]);
+  return newId;
+}
+
 /**
  * Switch a slot on or off. `detour` (only meaningful when switching off)
  * is the teacher's chosen destination from the hybrid confirm flow; omit
@@ -575,10 +888,7 @@ export function createTeacherCopy(config, {
   if (!stockRows || stockRows.length === 0) {
     throw new Error(`No stock rows for "${slotName}" — cannot copy a card that does not exist`);
   }
-  const base = slotName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-  let n = 1;
-  while (config.teacherCopies[`${base}_copy_${n}`]) n += 1;
-  const copyId = `${base}_copy_${n}`;
+  const copyId = mintCopyId(config, slotName);
 
   const now = new Date().toISOString();
   const rows = {};
@@ -663,33 +973,61 @@ export function createTeacherCopy(config, {
     }));
   }
   config.slots[slotName] = { used: true, ...config.slots[slotName], card: copyId };
+  // Same cap as branching: "Add a copy" is another way to reach a sixth
+  // version of one space, so it obeys the same ceiling rather than being a
+  // quiet way around it.
+  pruneSlotVersions(config, slotName);
   return copyId;
 }
 
 /**
- * Update a copy's fields (keyed by visit_type). Only the teacher changes a
- * copy's meaning — never the bake (spec: structure aligns automatically,
- * meaning never does).
+ * Save an edit to a card from the Classroom Setup field editor: the teacher's
+ * changed fields, merged onto the card they were editing.
+ *
+ * Editing BRANCHES (CARD_LIBRARY_DESIGN.md stage 2) — this does not rewrite
+ * the card in place any more. The merged result becomes a NEW card, the slot
+ * plays it, and the card that was edited stays in the rolodex where the
+ * teacher can go back to it. Nothing is overwritten and nothing is lost,
+ * which is the whole point: *"One can always just go back to the previous
+ * version of the card."*
+ *
+ * FORMERLY `updateTeacherCopy`, which merged straight onto `copy.rows` — the
+ * exact behaviour the spec calls out as problem 3, "editing destroys the
+ * previous version".
+ *
+ * A save that changes no field creates nothing (see branchFrom). A save that
+ * changes ONLY the role note renames the card in place — the note is the
+ * version's name, not part of what it says.
  * @param {InstanceConfig} config
- * @param {string} copyId
- * @param {Object<string, Object<string, string>>} overrides
- * @param {string} [role] when given (not undefined), replaces the card's role
- *   note. Omit the argument entirely to leave the existing note untouched —
- *   pass '' explicitly to clear it.
+ * @param {string} copyId the card being edited
+ * @param {Object<string, Object<string, string>>} overrides fields keyed by visit_type
+ * @param {string} [role] when given (not undefined), names the resulting card.
+ *   Omit the argument entirely to carry the existing note forward — pass ''
+ *   explicitly to clear it.
+ * @returns {string|null} the new card's id, or null when nothing changed
  */
-export function updateTeacherCopy(config, copyId, overrides, role) {
+export function branchTeacherCopy(config, copyId, overrides, role) {
   const copy = config.teacherCopies[copyId];
   if (!copy) throw new Error(`No such copy: "${copyId}"`);
+  const rows = {};
+  for (const [visitType, row] of Object.entries(copy.rows || {})) {
+    rows[visitType] = { ...row };
+  }
   for (const [visitType, fields] of Object.entries(overrides || {})) {
-    if (!copy.rows[visitType]) {
+    if (!rows[visitType]) {
       throw new Error(`Copy "${copyId}" has no "${visitType}" row`);
     }
-    copy.rows[visitType] = { ...copy.rows[visitType], ...fields, space_name: copy.slot };
+    rows[visitType] = { ...rows[visitType], ...fields, space_name: copy.slot };
   }
-  if (role !== undefined) {
-    copy.role = String(role).trim();
-  }
-  copy.updatedAt = new Date().toISOString();
+  // The three optional row sets ride along unchanged: this editor has no
+  // fields for dice, modal copy or logic wording, so a save says nothing
+  // about them and the new version owns exactly what the old one did.
+  return branchFrom(config, copyId, {
+    rows,
+    diceRows: copy.diceRows,
+    modalRows: copy.modalRows,
+    logicRows: copy.logicRows,
+  }, { role });
 }
 
 /**
@@ -720,40 +1058,53 @@ export function findCardForSlot(config, slotName, tier) {
 }
 
 /**
- * Replace a card's content wholesale (Card Library stage 1, the content
- * editor's save path). Its identity — id, slot, owner, createdAt, the slot
- * pointer — is untouched; only what the card SAYS changes.
+ * Save a whole-space edit from the Space Data Editor as a NEW version of the
+ * card the slot is playing (Card Library stage 2, "editing branches").
  *
- * Not `updateTeacherCopy`: that merges a few fields onto existing rows, which
- * is right for the Classroom Setup field editor and wrong here. The content
- * editor sends the whole space back, so a field the maintainer CLEARED must
- * end up cleared, and a visit row he removed must be gone — a merge would
- * quietly keep both.
+ * FORMERLY `replaceCardContent`, which overwrote the playing card in place —
+ * the stage-1 stopgap taken deliberately because there was no picker yet to
+ * choose between versions. There is one now, so the previous version stays in
+ * the rolodex instead of being written over.
+ *
+ * Wholesale, not a merge: the content editor sends the whole space back, so a
+ * field the maintainer CLEARED must end up cleared on the new card, and a
+ * visit row he removed must be gone from it. (A merge would quietly keep
+ * both — which is why the Classroom Setup field editor has its own entry
+ * point, branchTeacherCopy.)
+ *
+ * Returns null when the submitted content says exactly what the playing card
+ * already says. That is the common case, not an edge case: the editor loads
+ * the RESOLVED board (`/data/SOURCE_FILES/*`, which is stock with this
+ * classroom's cards overlaid), so every space that already has a card looks
+ * "changed" to a stock-based diff even when the maintainer never opened it.
+ * Comparing against the playing card is what keeps one save from branching
+ * every card on the board.
  *
  * @param {InstanceConfig} config
- * @param {string} copyId
+ * @param {string} copyId the card being edited — the base of the new version
  * @param {{ rows: Array<Object<string, string>>,
  *   diceRows?: Array<Object<string, string>>,
- *   modalRows?: Array<Object<string, string>>, stockVersion?: string }} content
+ *   modalRows?: Array<Object<string, string>>, stockVersion?: string,
+ *   role?: string }} content
  *   Row ARRAYS as parsed from the submitted CSVs (createTeacherCopy's shape),
  *   not the by-visit_type map they are stored as.
+ * @returns {string|null} the new card's id, or null when nothing changed
  */
-export function replaceCardContent(config, copyId, { rows, diceRows, modalRows, stockVersion }) {
+export function branchCardContent(config, copyId, { rows, diceRows, modalRows, stockVersion, role }) {
   const copy = (config.teacherCopies || {})[copyId];
   if (!copy) throw new Error(`No such copy: "${copyId}"`);
   if (!Array.isArray(rows) || rows.length === 0) {
     throw new Error(`No rows given for "${copyId}" — a card must hold at least one row`);
   }
-  const next = {};
+  const nextRows = {};
   for (const row of rows) {
-    next[row.visit_type || ''] = {
+    nextRows[row.visit_type || ''] = {
       ...row,
       space_name: copy.slot, // slot names are the only space identifiers
     };
   }
-  copy.rows = next;
   // diceRows / modalRows follow createTeacherCopy's ABSENT-never-[] rule: no
-  // rows means delete the key, because absent is what the bake reads as "this
+  // rows means no key at all, because absent is what the bake reads as "this
   // card does not own its slot's dice/modal copy — use stock's".
   //
   // KNOWN LIMIT, recorded rather than papered over: that makes "the
@@ -763,29 +1114,27 @@ export function replaceCardContent(config, copyId, { rows, diceRows, modalRows, 
   // copyDiceRowsBySpace skips empty arrays exactly like missing ones. Giving
   // it one is a change to stage 1b's storage rule, not something to smuggle in
   // here.
-  if (Array.isArray(diceRows) && diceRows.length > 0) {
-    copy.diceRows = diceRows.map(diceRow => ({ ...diceRow, space_name: copy.slot }));
-  } else {
-    delete copy.diceRows;
-  }
-  if (Array.isArray(modalRows) && modalRows.length > 0) {
-    copy.modalRows = modalRows.map(modalRow => ({ ...modalRow, space_name: copy.slot }));
-  } else {
-    delete copy.modalRows;
-  }
-  // `logicRows` is deliberately NOT touched. The content editor has no
+  const nextDiceRows = Array.isArray(diceRows) && diceRows.length > 0
+    ? diceRows.map(diceRow => ({ ...diceRow, space_name: copy.slot }))
+    : undefined;
+  const nextModalRows = Array.isArray(modalRows) && modalRows.length > 0
+    ? modalRows.map(modalRow => ({ ...modalRow, space_name: copy.slot }))
+    : undefined;
+  // `logicRows` rides across unchanged. The content editor has no
   // logic-question fields, so a save says nothing about them; blanking them
-  // would drop wording a card already owns, and writing them would freeze
-  // today's stock questions onto the card and cut it off from later
-  // corrections (the same reason loadInstance refuses to backfill them).
-  if (stockVersion) {
-    // This edit was made against the stock the maintainer was just looking at,
-    // so the card is current as of that version — clearing the stale
-    // COPY_STOCK_UPDATED "the original changed, worth a review" flag is the
-    // honest outcome, not a lost warning.
-    copy.copiedFromStockVersion = stockVersion;
-  }
-  copy.updatedAt = new Date().toISOString();
+  // would drop wording the card already owns, and writing today's stock
+  // questions in would cut the card off from later corrections (the same
+  // reason loadInstance refuses to backfill them).
+  return branchFrom(config, copyId, {
+    rows: nextRows,
+    diceRows: nextDiceRows,
+    modalRows: nextModalRows,
+    logicRows: copy.logicRows,
+    // stockVersion: this edit was made against the stock the maintainer was
+    // just looking at, so the new card is current as of that version — the
+    // stale COPY_STOCK_UPDATED "the original changed, worth a review" flag
+    // doesn't carry forward onto it.
+  }, { role, stockVersion });
 }
 
 /**

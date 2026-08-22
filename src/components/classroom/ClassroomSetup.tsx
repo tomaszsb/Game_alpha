@@ -49,10 +49,42 @@ function cardHasDrift(warnings: ValidationIssue[] | undefined): boolean {
   return !!warnings?.some(w => w.code === 'COPY_STOCK_UPDATED' || w.code === 'COPY_SCHEMA_DRIFT');
 }
 
+/**
+ * "Made 20 Aug" — when this version was saved.
+ *
+ * A space can hold several versions now that editing makes a new card instead
+ * of writing over the old one, so each one needs to be tellable from the
+ * others at a glance. The role note is a version's name; the date is how you
+ * tell two unnamed ones apart. The year only appears when it isn't this one.
+ */
+function madeOnLabel(iso: string | undefined): string | null {
+  if (!iso) return null;
+  const when = new Date(iso);
+  if (Number.isNaN(when.getTime())) return null;
+  const thisYear = when.getFullYear() === new Date().getFullYear();
+  return `Made ${when.toLocaleDateString(undefined, thisYear
+    ? { day: 'numeric', month: 'short' }
+    : { day: 'numeric', month: 'short', year: 'numeric' })}`;
+}
+
+/** Newest first — the order a rolodex of versions is read in. */
+function newestFirst(a: { copy: TeacherCopy }, b: { copy: TeacherCopy }): number {
+  return (b.copy.createdAt || '').localeCompare(a.copy.createdAt || '');
+}
+
+/**
+ * How many versions stay on screen without asking. The original and whatever
+ * is playing are always shown on top of these, so a space that has been
+ * edited once or twice never hides anything.
+ */
+const VERSIONS_SHOWN_INLINE = 3;
+
 interface RolodexChipProps {
   /** null for "the original" chip, which has no tier/role/edit affordance. */
   tierWord: string | null;
   role: string | undefined;
+  /** "Made 20 Aug", or null for the original (which was never "made"). */
+  madeOn: string | null;
   isPlaying: boolean;
   drift: boolean;
   busy: boolean;
@@ -60,7 +92,7 @@ interface RolodexChipProps {
   onEdit?: () => void;
 }
 
-function RolodexChip({ tierWord, role, isPlaying, drift, busy, onUse, onEdit }: RolodexChipProps): JSX.Element {
+function RolodexChip({ tierWord, role, madeOn, isPlaying, drift, busy, onUse, onEdit }: RolodexChipProps): JSX.Element {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', gap: '0.15rem',
@@ -90,7 +122,7 @@ function RolodexChip({ tierWord, role, isPlaying, drift, busy, onUse, onEdit }: 
               cursor: busy ? 'not-allowed' : 'pointer', textDecoration: 'underline', padding: 0,
             }}
           >
-            Use this one
+            {tierWord ? 'Go back to this one' : 'Go back to the original'}
           </button>
         )}
         {onEdit && (
@@ -98,7 +130,10 @@ function RolodexChip({ tierWord, role, isPlaying, drift, busy, onUse, onEdit }: 
             type="button"
             onClick={onEdit}
             disabled={busy}
-            aria-label={`Edit ${role || tierWord || 'this copy'}`}
+            // Names the VERSION, not just the space: several versions of one
+            // card can be on screen at once, and the note plus the date is
+            // what tells them apart out loud as well as on screen.
+            aria-label={`Edit ${role || tierWord || 'this copy'}${madeOn ? `, ${madeOn.toLowerCase()}` : ''}`}
             style={{
               fontSize: '0.78rem', border: 'none', background: 'none', color: '#6b7280',
               cursor: busy ? 'not-allowed' : 'pointer', padding: 0,
@@ -110,6 +145,9 @@ function RolodexChip({ tierWord, role, isPlaying, drift, busy, onUse, onEdit }: 
       </div>
       {role && (
         <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>{role}</div>
+      )}
+      {madeOn && (
+        <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{madeOn}</div>
       )}
       {drift && (
         <div style={{ fontSize: '0.72rem', color: '#92400e' }}>
@@ -132,28 +170,64 @@ interface CardRolodexProps {
 
 function CardRolodex({ space, cards, warningsByCopy, busy, onSelect, onEdit }: CardRolodexProps): JSX.Element {
   const playingId = space.copyId;
+  // Editing a space makes a new card rather than writing over the old one
+  // (CARD_LIBRARY_DESIGN.md stage 2), so this list grows as the maintainer
+  // works. Newest versions and whatever is playing stay on screen; the rest
+  // fold away behind one plain-language line so a much-edited space doesn't
+  // bury the space below it.
+  const [showEarlier, setShowEarlier] = useState(false);
+  const { recent, earlier } = useMemo(() => {
+    const sorted = [...cards].sort(newestFirst);
+    const shown: typeof sorted = [];
+    const hidden: typeof sorted = [];
+    for (const card of sorted) {
+      if (shown.length < VERSIONS_SHOWN_INLINE || card.id === playingId) shown.push(card);
+      else hidden.push(card);
+    }
+    return { recent: shown, earlier: hidden };
+  }, [cards, playingId]);
+
+  const chipFor = ({ id, copy }: { id: string; copy: TeacherCopy }): JSX.Element => (
+    <RolodexChip
+      key={id}
+      tierWord={TIER_WORD[copy.owner?.tier ?? 'individual']}
+      role={copy.role}
+      madeOn={madeOnLabel(copy.createdAt)}
+      isPlaying={playingId === id}
+      drift={cardHasDrift(warningsByCopy.get(id))}
+      busy={busy}
+      onUse={() => onSelect(id)}
+      onEdit={() => onEdit(id)}
+    />
+  );
+
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
       <RolodexChip
         tierWord={null}
         role={undefined}
+        madeOn={null}
         isPlaying={!playingId}
         drift={false}
         busy={busy}
         onUse={() => onSelect(null)}
       />
-      {cards.map(({ id, copy }) => (
-        <RolodexChip
-          key={id}
-          tierWord={TIER_WORD[copy.owner?.tier ?? 'individual']}
-          role={copy.role}
-          isPlaying={playingId === id}
-          drift={cardHasDrift(warningsByCopy.get(id))}
-          busy={busy}
-          onUse={() => onSelect(id)}
-          onEdit={() => onEdit(id)}
-        />
-      ))}
+      {recent.map(chipFor)}
+      {showEarlier && earlier.map(chipFor)}
+      {earlier.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowEarlier(v => !v)}
+          style={{
+            alignSelf: 'flex-start', padding: '0.35rem 0.6rem', borderRadius: 10, fontSize: '0.78rem',
+            border: '1px solid #e9ecef', background: '#fff', color: '#495057', cursor: 'pointer',
+          }}
+        >
+          {showEarlier
+            ? 'Hide earlier versions'
+            : `Show earlier versions (${earlier.length})`}
+        </button>
+      )}
       <button
         type="button"
         onClick={() => onEdit(null)}
@@ -286,7 +360,16 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
       const result = editing.copyId
         ? await updateCopy(instanceId, editing.copyId, { overrides, role })
         : await createCopy(instanceId, { slot: editing.space.name, overrides, role });
-      const ok = await finishMutation(result, `Your copy of “${editing.space.title}” is saved and live for new games.`);
+      // Editing makes a NEW version and leaves the old one in the rolodex
+      // (CARD_LIBRARY_DESIGN.md stage 2), so say so — a maintainer who
+      // expects an overwrite should learn from this line that nothing was
+      // lost. `branched: false` means the save changed nothing at all.
+      const savedNotice = !editing.copyId
+        ? `Your copy of “${editing.space.title}” is saved and live for new games.`
+        : (result.success && result.branched === false)
+          ? `Nothing changed in “${editing.space.title}”, so there's no new version.`
+          : `Saved as a new version of “${editing.space.title}”. The one before it is still here if you want to go back.`;
+      const ok = await finishMutation(result, savedNotice);
       if (ok) setEditing(null);
     } finally {
       setBusy(false);

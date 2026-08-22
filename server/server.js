@@ -34,7 +34,7 @@ import {
   setSlotPositions,
   setSlotUsed,
   createTeacherCopy,
-  updateTeacherCopy,
+  branchTeacherCopy,
   unselectCard,
   selectCardForSlot,
   addInsertion,
@@ -48,7 +48,7 @@ import {
   clearAllEdgeAnchors,
   VALID_OWNER_TIERS,
   findCardForSlot,
-  replaceCardContent,
+  branchCardContent,
 } from './instanceStore.js';
 import { diffSubmittedContent } from './instanceContentDiff.js';
 import { validateConfig } from './instanceValidation.js';
@@ -247,6 +247,10 @@ const writableSourceDir = path.join(writableDataDir, 'SOURCE_FILES');
 const writableCleanDir = path.join(writableDataDir, 'CLEAN_FILES');
 const writableBaselineDir = path.join(writableDataDir, 'BASELINE');
 const backupsDir = path.join(writableDataDir, 'backups');
+// Classroom config snapshots (instanceStore.backupInstanceConfig) share this
+// backups root but are namespaced and pruned separately — see the prune step
+// in backupSourceFiles below.
+const INSTANCE_BACKUPS_SUBDIR = 'instances';
 
 // Back up SOURCE_FILES before destructive operations (save, reset, init).
 // Keeps the 2 most recent snapshots so editor data can be recovered.
@@ -269,9 +273,18 @@ function backupSourceFiles(reason) {
   }
   console.log(`💾 Backup created: ${path.basename(snapshotDir)}`);
 
-  // Prune: keep only the 2 most recent snapshots
+  // Prune: keep only the 2 most recent snapshots.
+  //
+  // `instances/` is skipped: classroom config snapshots live under
+  // backups/instances/<id>/ on their own retention policy (last 20 per
+  // classroom plus 30 days — instanceStore.pruneInstanceBackups). Without the
+  // filter it would sort ahead of every timestamped directory and eat one of
+  // the two SOURCE_FILES slots, and once it slipped past them this loop's
+  // unlinkSync would hit a subdirectory and throw — the same shape as the
+  // EISDIR trap the copy loop above already guards against.
   const snapshots = fs.readdirSync(backupsDir)
-    .filter(d => fs.statSync(path.join(backupsDir, d)).isDirectory())
+    .filter(d => d !== INSTANCE_BACKUPS_SUBDIR
+      && fs.statSync(path.join(backupsDir, d)).isDirectory())
     .sort()
     .reverse();
 
@@ -1463,8 +1476,13 @@ app.patch('/api/instances/:id/copies/:copyId', (req, res) => {
       err.statusCode = 404;
       throw err;
     }
-    updateTeacherCopy(config, req.params.copyId, overrides, role);
-    return { copyId: req.params.copyId };
+    // Editing BRANCHES (CARD_LIBRARY_DESIGN.md stage 2): the merged result
+    // becomes a new card, the slot plays it, and the card that was edited
+    // stays in the rolodex. `newCopyId` is null when the save changed no
+    // field — the client reports "nothing changed" rather than claiming a
+    // version that doesn't exist.
+    const newCopyId = branchTeacherCopy(config, req.params.copyId, overrides, role);
+    return { copyId: newCopyId || req.params.copyId, branched: Boolean(newCopyId) };
   });
 });
 
@@ -1574,20 +1592,35 @@ app.post('/api/instances/:id/content', (req, res) => {
     });
     const created = [];
     const updated = [];
+    const unchangedCards = [];
     for (const change of diff.changed) {
-      // UPSERT, never accumulate: saving twice must update the card the slot
-      // already plays. Stage 2 is what turns editing into branching, with a
-      // picker to choose between versions; until that exists a second save
-      // stacking an unreachable duplicate would just be litter.
-      const existing = findCardForSlot(config, change.slot, 'official');
+      // BRANCH, don't overwrite (CARD_LIBRARY_DESIGN.md stage 2). The stage-1
+      // upsert wrote over the playing card because there was no picker to
+      // choose between versions; there is one now, so the previous version
+      // stays in the rolodex.
+      //
+      // Branched from the card the slot is PLAYING, whatever tier it belongs
+      // to — NOT filtered to `official` as the stage-1 upsert was. Two
+      // reasons, and the first is load-bearing: this route's diff compares the
+      // submission against STOCK, while the editor loads the RESOLVED board,
+      // so every space that already has a card of any tier reads as "changed"
+      // on every save. A tier-filtered lookup would find nothing for a slot
+      // playing a teacher's own copy and mint a fresh card every single save.
+      // Second, a new version of a card inherits that card's owner (spec) —
+      // the maintainer editing a classroom's own copy is improving THEIR card,
+      // not silently promoting it into the curated deck.
+      const existing = findCardForSlot(config, change.slot);
       if (existing) {
-        replaceCardContent(config, existing, {
+        const branchedId = branchCardContent(config, existing, {
           rows: change.rows,
           diceRows: change.diceRows,
           modalRows: change.modalRows,
           stockVersion,
         });
-        updated.push(change.slot);
+        // null = this space says exactly what its playing card already said.
+        // The common case, not an edge case — see branchCardContent.
+        if (branchedId) updated.push(change.slot);
+        else unchangedCards.push(change.slot);
       } else {
         // createTeacherCopy's `stockRows` is "the rows this card starts life
         // holding" — here that is the maintainer's edited rows, with no
@@ -1606,7 +1639,15 @@ app.post('/api/instances/:id/content', (req, res) => {
         created.push(change.slot);
       }
     }
-    return { created, updated, unchanged: diff.unchanged.length, skipped: diff.unknown };
+    return {
+      created,
+      updated,
+      // Spaces that matched stock outright plus spaces that matched the card
+      // already playing them — from the maintainer's side both are "I didn't
+      // change this one", so they are one number.
+      unchanged: diff.unchanged.length + unchangedCards.length,
+      skipped: diff.unknown,
+    };
   });
 });
 

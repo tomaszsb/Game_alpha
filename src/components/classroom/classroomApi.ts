@@ -65,6 +65,15 @@ export interface TeacherCopy {
    * so this is optional rather than always-string.
    */
   role?: string;
+  /**
+   * The card this one was branched from (CARD_LIBRARY_DESIGN.md stage 2).
+   * Absent on a card made straight from the original, and on every card
+   * saved before editing started branching. Recorded, not yet read — a
+   * version-history screen or a "what changed" diff would be built on it.
+   */
+  derivedFrom?: string;
+  /** The card that replaced this one; absent means this is the newest version. */
+  supersededBy?: string;
   rows: Record<string, Record<string, string>>;
 }
 
@@ -140,7 +149,13 @@ export interface CatalogResponse {
 }
 
 export type MutationResult =
-  | { success: true; report: ValidationReport; dryRun?: boolean; copyId?: string; insertionId?: string }
+  | {
+      success: true; report: ValidationReport; dryRun?: boolean;
+      copyId?: string; insertionId?: string;
+      /** Card edits: false when the save changed nothing, so no new version
+       *  was made (CARD_LIBRARY_DESIGN.md stage 2). */
+      branched?: boolean;
+    }
   | { success: false; report?: ValidationReport; error?: string; detail?: string };
 
 function resolveDeps(deps: ClassroomApiDeps) {
@@ -230,9 +245,15 @@ export function createCopy(
 }
 
 /**
- * Update a copy's fields (keyed by visit type) and/or its role note. Either
- * may be omitted — passing only `role` edits the note without touching a
- * single row, and vice versa; the server requires at least one of them.
+ * Save an edit to a card: its fields (keyed by visit type) and/or its note.
+ * Either may be omitted — passing only `role` renames the card without
+ * touching a single row, and vice versa; the server requires at least one.
+ *
+ * The result is a NEW card (CARD_LIBRARY_DESIGN.md stage 2, "editing
+ * branches"): the space plays it and the card that was edited stays in the
+ * rolodex to go back to. `copyId` in the response names the card now playing
+ * and `branched` is false when the save changed nothing, in which case no new
+ * card was made.
  */
 export function updateCopy(
   instanceId: string,
