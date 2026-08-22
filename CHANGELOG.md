@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.25] - 2026-08-22
+
+### The editor's live preview now shows the game players actually see
+Stage 3a. The Space Data Editor's preview is the part of that screen the maintainer values most — *"a viewer that sort of shows the final product,"* which *"makes it easier for people to realise what is happening while they make the changes."* It was drawing a design that no longer exists: `PlayerPreviewPanel` rendered with the retired classic panel's `action-center__*` stylesheet, and its own header comment described that as deliberate — *"mirrors what the classic panel used to look like in-game."* That panel was deleted in v3.1.x. Players see `PlayerPanelV2`. So the most reassuring feature in the editor was quietly lying.
+
+Rebuilt against the current panel's visual language, importing the same theme source (`panelPalettes` / `usePanelMode`) rather than copying values, so colours and modes cannot drift apart again. Same zone labels as the real panel (`Where you are & why`, `Things you can do` — verified against `PlayerPanelV2` rather than approximated), same typography and spacing rhythm, same icon conventions the voice rules require (🎯 for outcomes, never 🎲; friendly card-type names, never letter codes). It also gains the light/dark toggle, so the maintainer can preview either.
+
+`PlayerPreviewPanel.css` is deleted — all 650 lines were the dead classic panel's styles, kept alive solely by this one consumer.
+
+**Deliberately not mounting the real panel.** `PlayerPanelV2` takes a service container and a player id, reads live game state, subscribes to services and has side effects; faking that for a preview would be fragile and would route editor bugs through the gameplay panel's own path. The preview stays a separate renderer fed by the editor's `SpaceRow`, and its header comment now says exactly that, flagging the drift risk instead of enshrining it: nothing keeps the two in sync automatically, so it needs re-checking by eye whenever the real panel changes something a player would notice. Extracting a shared presentational component is the eventual answer if that drift recurs; it was not worth refactoring the live gameplay panel to fix a preview.
+
+Two things are deliberately absent rather than faked: the "What's affecting you" zone (needs live player state the editor does not have — an always-empty version would mislead more than omitting it), and the real press-and-hold commit control with its cost preview (no live cost data to preview). Card action labels are approximated from the coarser per-space columns, so they use the "draw" wording where a real space effect row could distinguish draw/replace/give/return.
+
+Verified in a real browser rather than by tests, since this is a visual change: zero remaining nodes carrying the retired class names, no retired stylesheet loaded, and the preview reading as the current game — NPC narrative in the purpose box, the space's own button labels ("Push back on the fee" / "Pay the fee"), multi-destination spaces expanding correctly, dark mode switching the real computed colours, and no horizontal overflow in the editor's narrow preview column. Typecheck clean, production build clean, full suite 2930/2930 (191 files).
+
 ## [3.2.24] - 2026-08-22
 
 ### Editing a space no longer overwrites what was there, and the classroom config finally has a safety net

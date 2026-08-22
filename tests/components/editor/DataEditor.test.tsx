@@ -434,12 +434,15 @@ describe('DataEditor', () => {
       });
     });
 
-    it('renders YOUR ACTIONS section with dice buttons when requires_dice_roll is Yes', async () => {
+    it('renders "Things you can do" section with dice + card actions when requires_dice_roll is Yes', async () => {
+      // PlayerPreviewPanel now mirrors PlayerPanelV2's section copy
+      // ("Things you can do") instead of the retired classic panel's
+      // "YOUR ACTIONS (N)" header — see PlayerPreviewPanel.tsx (2026-08-22
+      // rebuild, docs/core/CARD_LIBRARY_DESIGN.md stage 3).
       await selectSpace('TEST-SPACE-1');
 
       await waitFor(() => {
-        // YOUR ACTIONS section should appear with dice + card actions
-        expect(screen.getByText(/YOUR ACTIONS/)).toBeInTheDocument();
+        expect(screen.getByText('Things you can do')).toBeInTheDocument();
       });
     });
 
