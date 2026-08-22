@@ -455,6 +455,20 @@ export function SpaceDeckPanel({
           <p style={{ color: colors.text.secondary, fontSize: '0.95rem' }}>⏳ Loading your deck…</p>
         )}
 
+        {/* Nothing in the deck LOOKED clickable: the space name was a button
+            with no border, no background and no padding, sitting beside a
+            real-looking "Customize" button — so the eye went to Customize and
+            the maintainer could not find how to pick a space at all. These
+            rules give a pickable row a pointer, a hover lift and a chevron,
+            so the affordance is visible rather than merely present. */}
+        <style>{`
+          .us-deck-pick { cursor: pointer; transition: background 120ms ease, border-color 120ms ease; }
+          .us-deck-pick:hover { background: #f8f5ff !important; border-color: #c4b5fd !important; }
+          .us-deck-pick:hover .us-deck-title { text-decoration: underline; }
+          .us-deck-pick:hover .us-deck-chev { transform: translateX(2px); color: #7c3aed; }
+          .us-deck-chev { transition: transform 120ms ease, color 120ms ease; }
+        `}</style>
+
         {phases.map(group => (
           <section key={group.phase} style={{ marginBottom: '1.1rem' }}>
             <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', margin: '0 0 0.4rem' }}>
@@ -469,7 +483,10 @@ export function SpaceDeckPanel({
                 // shown — otherwise the deck stays the plain list it was.
                 const nameBlock = (
                   <>
-                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: colors.text.primary }}>
+                    <div className="us-deck-title" style={{ fontSize: '0.92rem', fontWeight: 600, color: colors.text.primary }}>
+                      {onSelectSpace && (
+                        <span className="us-deck-chev" aria-hidden="true" style={{ display: 'inline-block', color: '#a78bfa', marginRight: '0.35rem' }}>›</span>
+                      )}
                       {space.title}
                       {!space.used && space.detour && (
                         <span style={{ marginLeft: '0.5rem', fontSize: '0.74rem', color: '#6b7280' }}>
@@ -483,6 +500,13 @@ export function SpaceDeckPanel({
                 return (
                 <div
                   key={space.name}
+                  className={onSelectSpace ? 'us-deck-pick' : undefined}
+                  onClick={onSelectSpace ? (e) => {
+                    // Anything genuinely interactive inside the row keeps its
+                    // own job — only bare space in the row selects.
+                    if ((e.target as HTMLElement).closest('button, a, input, select')) return;
+                    onSelectSpace(space);
+                  } : undefined}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '0.75rem',
                     background: isLookingAt ? '#faf5ff' : space.used ? '#fff' : '#f1f3f5',

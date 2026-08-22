@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.28] - 2026-08-22
+
+### Fix: nothing in the deck looked clickable, so there was no way to pick a space
+Maintainer report on first real use of the merged screen, with a screenshot: *"i do not see how get to it?"* — the right-hand side said to pick a space and the deck offered no visible way to do it.
+
+The space name **was** the button. It was styled `border: none; background: none; padding: 0` — indistinguishable from plain text — sitting immediately beside a real-looking "✏️ Customize" button. So the eye went to Customize, which does something else entirely, and the actual target read as a label. The affordance existed; nothing announced it.
+
+Worth recording that the signal was there and got walked past: verifying v3.2.26 required finding the element programmatically via `[aria-pressed]` because it could not be clicked by looking at the screen. That should have been read as "a person cannot find this either", not as a quirk of automated testing.
+
+The whole row is now the target, with a pointer cursor, a hover lift, an underline on the name, and a chevron marking it as something that opens. Anything genuinely interactive inside the row — Customize, Switch off, the version chips — keeps its own job: the row handler ignores clicks that land on a button, link or input, so the two never fight. The name stays a real `<button>` underneath, so the keyboard and screen-reader path is unchanged; the row click is a mouse convenience layered on top rather than a replacement. The empty state now says "Click any space in your deck on the left" instead of the vaguer "Pick a space from your deck".
+
+Verified live: all 27 rows report a pointer cursor and carry the chevron, clicking bare row space selects the space, and clicking Customize opens its own editor without hijacking the selection — the preview kept showing the previously selected space. Typecheck clean, production build clean, classroom/editor/setup suites 94/94.
+
 ## [3.2.27] - 2026-08-22
 
 ### One screen instead of two — the editing half, and the merge is done

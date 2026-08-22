@@ -441,8 +441,8 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
                   Nothing picked yet
                 </p>
                 <p style={{ margin: 0, fontSize: '0.85rem', color: colors.text.secondary, maxWidth: 380 }}>
-                  Pick a space from your deck and it shows up here the way your
-                  players will meet it.
+                  Click any space in your deck on the left and it shows up here
+                  the way your players will meet it.
                 </p>
               </div>
             ) : (

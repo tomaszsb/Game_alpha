@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** August 19, 2026 — v3.2.16 (fixloop): Chronicle click-entry-to-replay-highlight — clicking a "What's happened" log entry now pans/pulses the board to where it happened, closing half of the Change-legibility P1 remaining line (TV-persistent feed still open). Full detail: CHANGELOG v3.2.16. Earlier same day: replaced the resume/join flow (v3.2.14), then a long live-playtesting-driven batch (v3.2.15). This session's automated browser tooling confirmed (git-stash A/B test) that it renders zero React Flow board edges at all — a pre-existing environment limitation, not a regression — so every board-connector visual fix above was verified via unit tests + code review only, never seen live; see updated G160 item below.
-**Status:** Beta — v3.2.22 confirmed deployed live (commit 960c857, 2026-08-22). Repo at v3.2.27, not yet deployed.
-**Current Version:** 3.2.27 (repo ahead of live deploy).
+**Status:** Beta — v3.2.22 confirmed deployed live (commit 960c857, 2026-08-22). Repo at v3.2.28, not yet deployed.
+**Current Version:** 3.2.28 (repo ahead of live deploy).
 
 ---
 
