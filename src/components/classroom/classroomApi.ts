@@ -66,13 +66,12 @@ export interface TeacherCopy {
    */
   role?: string;
   /**
-   * The card this one was branched from (CARD_LIBRARY_DESIGN.md stage 2).
-   * Absent on a card made straight from the original, and on every card
-   * saved before editing started branching. Recorded, not yet read — a
-   * version-history screen or a "what changed" diff would be built on it.
+   * LEGACY, tolerated on read only. Both were written for one version
+   * (v3.2.24) while a save minted a new card instead of editing the one you
+   * had. Nothing writes them now; a config saved then still carries them.
    */
   derivedFrom?: string;
-  /** The card that replaced this one; absent means this is the newest version. */
+  /** LEGACY, see `derivedFrom`. */
   supersededBy?: string;
   rows: Record<string, Record<string, string>>;
 }
@@ -152,9 +151,8 @@ export type MutationResult =
   | {
       success: true; report: ValidationReport; dryRun?: boolean;
       copyId?: string; insertionId?: string;
-      /** Card edits: false when the save changed nothing, so no new version
-       *  was made (CARD_LIBRARY_DESIGN.md stage 2). */
-      branched?: boolean;
+      /** Card edits: false when the save changed nothing at all. */
+      changed?: boolean;
     }
   | { success: false; report?: ValidationReport; error?: string; detail?: string };
 
@@ -223,70 +221,17 @@ export function postBoardChange(
   return mutate(`/api/instances/${instanceId}/board`, 'POST', body, deps);
 }
 
-/**
- * Create a full copy of the current stock card, with optional overrides.
- *
- * `tier` (CARD_LIBRARY_DESIGN.md stage 1) is the new card's ownership tier,
- * typed against the same three structural values the server stores. Omit it
- * for today's behavior: the server defaults to `individual` — this
- * classroom's own override, which is what a teacher copy has always been.
- * `official` (the curated deck every classroom gets) is ADMIN-only and the
- * server answers 403 without touching the classroom if the caller isn't.
- */
-export function createCopy(
-  instanceId: string,
-  args: {
-    slot: string; overrides?: Record<string, Record<string, string>>;
-    tier?: CardOwner['tier']; role?: string;
-  },
-  deps: ClassroomApiDeps = {}
-): Promise<MutationResult> {
-  return mutate(`/api/instances/${instanceId}/copies`, 'POST', args, deps);
-}
-
-/**
- * Save an edit to a card: its fields (keyed by visit type) and/or its note.
- * Either may be omitted — passing only `role` renames the card without
- * touching a single row, and vice versa; the server requires at least one.
- *
- * The result is a NEW card (CARD_LIBRARY_DESIGN.md stage 2, "editing
- * branches"): the space plays it and the card that was edited stays in the
- * rolodex to go back to. `copyId` in the response names the card now playing
- * and `branched` is false when the save changed nothing, in which case no new
- * card was made.
- */
-export function updateCopy(
-  instanceId: string,
-  copyId: string,
-  args: { overrides?: Record<string, Record<string, string>>; role?: string },
-  deps: ClassroomApiDeps = {}
-): Promise<MutationResult> {
-  return mutate(`/api/instances/${instanceId}/copies/${copyId}`, 'PATCH', args, deps);
-}
-
-/**
- * Unselect a card (CARD_LIBRARY_DESIGN.md "removing unselects, never
- * destroys", stage 2): if the given card is the one its space is currently
- * playing, that space goes back to the original — the card itself is left
- * exactly where it was, still pickable again later. A no-op if the card
- * wasn't the one playing. The HTTP verb is DELETE (same route as before
- * this rename); nothing on the server actually deletes the card anymore.
- */
-export function unselectCopy(
-  instanceId: string,
-  copyId: string,
-  deps: ClassroomApiDeps = {}
-): Promise<MutationResult> {
-  return mutate(`/api/instances/${instanceId}/copies/${copyId}`, 'DELETE', undefined, deps);
-}
+// createCopy / updateCopy / unselectCopy lived here. They were the plumbing
+// behind the second, smaller editor ("Customize"), which is gone: there is one
+// way to change a space now, and it saves through POST /content. The server
+// routes they called still exist and still work — nothing in the app calls
+// them.
 
 /**
  * Choose which card a space plays (CARD_LIBRARY_DESIGN.md stage 2, the
  * rolodex picker): point it at `copyId`, or pass `null` to fall back to the
- * original. Selecting among cards already visible to you is not an admin
- * act — only minting an `official` card (via `createCopy` with
- * `tier: 'official'`) is — so this authorizes the same way as every other
- * Classroom Setup write.
+ * original. Choosing between cards you can already see is not an admin act, so
+ * this authorizes the same way as every other Classroom Setup write.
  */
 export function selectCard(
   instanceId: string,

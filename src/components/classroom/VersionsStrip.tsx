@@ -1,20 +1,21 @@
 // src/components/classroom/VersionsStrip.tsx
 //
-// Every version of one space, laid out across the top of the screen while you
-// are making changes (CARD_LIBRARY_DESIGN.md, "Stage 3's screen: browse, then
-// focus" — "versions across the top at full width, where they finally get
-// real room").
+// The two things a space can say, across the top of the screen while you are
+// making changes: THE ORIGINAL and YOUR VERSION, with a way to switch between
+// them.
 //
-// Same answers as the small chips in the deck — which versions exist, what
-// each is called, when it was made, which one is playing, which ones fold
-// away — because both ask cardRolodex.ts. Only the shape differs: the deck
-// has a narrow column and squeezes them into chips; here there is a whole
-// row, so each version gets its note and its date on their own lines and the
-// one in play is obvious from across a classroom.
+// It used to be an accumulating list with a "show earlier versions" fold,
+// because a save minted another card every time. It doesn't any more — a save
+// edits your card — so there are two, and two need no list and no fold.
+//
+// One exception, deliberately kept: a classroom saved while the old behaviour
+// was live can still hold several cards for one space. Those are all shown,
+// each with the date it was made, rather than quietly hidden. Nothing creates
+// a new one.
 
-import React, { useState } from 'react';
+import React from 'react';
 import type { CatalogSpace, ValidationIssue } from './classroomApi';
-import { TIER_WORD, cardHasDrift, madeOnLabel, splitVersions, type SpaceCard } from './cardRolodex';
+import { YOUR_VERSION, cardHasDrift, madeOnLabel, newestFirst, type SpaceCard } from './cardRolodex';
 
 interface VersionsStripProps {
   space: CatalogSpace;
@@ -26,7 +27,7 @@ interface VersionsStripProps {
 }
 
 interface VersionCardProps {
-  /** null for the original, which has no owner and was never "made". */
+  /** null for the original, which has no note and was never "made". */
   name: string | null;
   note: string | undefined;
   madeOn: string | null;
@@ -73,9 +74,9 @@ function VersionCard({ name, note, madeOn, isPlaying, drift, busy, onUse }: Vers
           type="button"
           onClick={onUse}
           disabled={busy}
-          // Names the VERSION, not just the space: several versions are on
-          // screen at once, and the note plus the date is what tells them
-          // apart out loud as well as on screen.
+          // Names WHICH one, not just the space: an old classroom can have
+          // more than one of yours on screen, and the note plus the date is
+          // what tells them apart out loud as well as on screen.
           aria-label={`Play ${note || name || 'the original'}${madeOn ? `, ${madeOn.toLowerCase()}` : ''}`}
           style={{
             alignSelf: 'flex-start', marginTop: '0.15rem', padding: 0,
@@ -91,31 +92,11 @@ function VersionCard({ name, note, madeOn, isPlaying, drift, busy, onUse }: Vers
 }
 
 export function VersionsStrip({ space, cards, warningsByCopy, busy, onUse }: VersionsStripProps): JSX.Element {
-  const [showEarlier, setShowEarlier] = useState(false);
-  // A whole row is wider than the deck's column, so more fit before anything
-  // has to fold away — four rather than the deck's three, plus whatever is
-  // playing. Not five: a space keeps at most five saved versions
-  // (MAX_VERSIONS_PER_SLOT), and at five nothing would ever fold, which would
-  // leave the control below permanently unreachable — and six tiles in a row
-  // is already more than a classroom projector shows without wrapping.
-  const { recent, earlier } = splitVersions(cards, space.copyId, 4);
-
-  const cardFor = ({ id, copy }: SpaceCard): JSX.Element => (
-    <VersionCard
-      key={id}
-      name={TIER_WORD[copy.owner?.tier ?? 'individual']}
-      note={copy.role}
-      madeOn={madeOnLabel(copy.createdAt)}
-      isPlaying={space.copyId === id}
-      drift={cardHasDrift(warningsByCopy.get(id))}
-      busy={busy}
-      onUse={() => onUse(id)}
-    />
-  );
+  const ordered = [...cards].sort(newestFirst);
 
   return (
     <section
-      aria-label={`Versions of ${space.title}`}
+      aria-label={`What ${space.title} can say`}
       style={{
         padding: '0.6rem 1.25rem', background: '#fff', borderBottom: '1px solid #dee2e6',
       }}
@@ -124,7 +105,7 @@ export function VersionsStrip({ space, cards, warningsByCopy, busy, onUse }: Ver
         fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em',
         color: '#9ca3af', fontWeight: 700, marginBottom: '0.35rem',
       }}>
-        Versions of this space
+        What this space can say
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch', flexWrap: 'wrap' }}>
         <VersionCard
@@ -136,24 +117,22 @@ export function VersionsStrip({ space, cards, warningsByCopy, busy, onUse }: Ver
           busy={busy}
           onUse={() => onUse(null)}
         />
-        {recent.map(cardFor)}
-        {showEarlier && earlier.map(cardFor)}
-        {earlier.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setShowEarlier(v => !v)}
-            style={{
-              alignSelf: 'center', padding: '0.4rem 0.7rem', borderRadius: 10, fontSize: '0.78rem',
-              border: '1px solid #e9ecef', background: '#fff', color: '#495057', cursor: 'pointer',
-            }}
-          >
-            {showEarlier ? 'Hide earlier versions' : `Show earlier versions (${earlier.length})`}
-          </button>
-        )}
+        {ordered.map(({ id, copy }) => (
+          <VersionCard
+            key={id}
+            name={YOUR_VERSION}
+            note={copy.role}
+            madeOn={madeOnLabel(copy.createdAt)}
+            isPlaying={space.copyId === id}
+            drift={cardHasDrift(warningsByCopy.get(id))}
+            busy={busy}
+            onUse={() => onUse(id)}
+          />
+        ))}
         {cards.length === 0 && (
           <p style={{ margin: 0, alignSelf: 'center', fontSize: '0.8rem', color: '#9ca3af' }}>
-            Nothing but the original so far. Saving a change keeps a copy of
-            what it said before, and it shows up here.
+            Only the original so far. The first time you save a change, your
+            own version shows up beside it.
           </p>
         )}
       </div>

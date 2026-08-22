@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.29] - 2026-08-22
+
+### Taking versioning back out, and collapsing to one editor
+Two maintainer reports on first real use of what v3.2.24 and v3.2.27 built, both correct, and both describing something the spec had asked for:
+
+> *"there seem to be two ways of changing the cards ... depending which one you press the data entry fields look different"*
+
+> *"I do not quite understand the versioning. it to seems to complicate things. each space/card should be treated as a separate item. how does versioning help me?"*
+
+**Two editors existed.** `CopyEditor` (6 fields, opened by "Customize") and `SpaceEditor` (~40 fields, opened by "Make changes"). Decision 8 said "one editing surface"; stage 3 merged the two *screens* and left the two *editors* sitting inside the merged one, side by side, with different field sets.
+
+**And automatic branch-on-edit was answering a question nobody asked.** Its one real benefit — undo a bad save — is already covered by the config backups shipped in the same version, which snapshot the whole classroom on every write and so cover positions, switch-offs and detours too, not just cards. Version history earns its keep with several authors and a reason to compare. With one maintainer it was cost without matching benefit.
+
+**What changed.** A save now edits the card you have, in place. The five-version cap and its pruning are gone — they existed only to contain the pile branching created. `derivedFrom`/`supersededBy` are no longer written, only tolerated on read. The strip shows exactly two things, "The original" and "Your version", with a way to switch; no accumulating list, no fold control. `CopyEditor` is deleted along with every "Customize" button, so `SpaceEditor` reached by "Make changes" is the only way to change what a space says.
+
+Two of the deleted editor's ideas moved across rather than being lost: a field that differs from the original is marked and can be put back on its own, and the "safe subset" that stopped a teacher rewiring the board survives as a `visibleFields` prop on the one editor — same component, different amount shown — instead of as a second component. Wiring the revert marker surfaced a real accessibility bug in the first attempt: nesting the control inside the `<label>` made it the field's accessible name and left the input unlabelled, since a `<button>` is a labelable element. Fixed by putting the marker beside the label.
+
+**The several-cards-per-slot machinery stays**, unused by anything automatic. It works, it is tested, and a deliberate "make a named alternative" button could use it later. A classroom saved during the v3.2.24 window still holds several cards and the screen shows them all rather than hiding them. **The config backups are untouched** — they are what makes this simplification safe.
+
+### The deck now says who is speaking
+Ten spaces share a short name: "Scope Check" is three different spaces (Lender, Architect, Engineer), "Initiation" is three, "Fee Review" and "Fund Review" two each. Rows showed the story title over the raw space id — unique today only by luck, since nothing enforces distinct titles, and the id answered a question the maintainer never asks.
+
+Rows now read "Architect · Let's talk about my fee", via the same `getNpcCharacterInfo` helper v3.2.15 used to disambiguate board connectors. It deliberately returns nothing for the five PM-voiced spaces, so those read "You" — which is literally who narrates there, and avoids labelling `ARCH-INITIATION` "Architect" when the prefix would have.
+
+### Known regression, stated rather than buried
+The teacher path reached `CopyEditor` and nothing else, so **a teacher can no longer change what a space says** — they can still switch spaces off, choose between the original and their card, and author new spaces. The one save route is admin-only and mints `official` cards. Reopening teacher editing means giving that route a teacher branch writing `individual` cards and accepting only the safe subset; the editor is already ready for it. That is an addition, deliberately not smuggled into a removal slice. There are no teachers today. `PATCH /copies/:copyId` and `POST /copies` still work and are still tested but now have no caller in the app.
+
+Verified live: three saves to one space left **one** card, not three, with `derivedFrom`/`supersededBy` absent; the strip showed only the original and yours; switching between them changed the served board; exactly one route into editing; 27 deck rows with no raw ids and no Customize buttons; the revert marker naming what the original said, and clearing when clicked. Typecheck clean, production build clean, full suite 2933/2933 (192 files). Net **−443 lines**.
+
 ## [3.2.28] - 2026-08-22
 
 ### Fix: nothing in the deck looked clickable, so there was no way to pick a space

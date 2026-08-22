@@ -25,7 +25,7 @@ The maintainer's mental model (2026-08-21): **a rolodex of cards.** A teacher fl
 - **Rolodex** — every card visible to you for a given slot, across all tiers.
 - **Tiers** — three levels of ownership, stored **structurally** and labelled per skin (see "Tier names are reskinnable" below): `official` (curated, ships with the game), `group` (shared across one organization), `individual` (one person's own).
 - **Role field** — each card carries a short human-written note explaining what it is *for*, so a rolodex of near-identical cards is navigable.
-- **Editing branches.** Saving an edit creates a new card and points the slot at it. The previous card stays in the rolodex, unselected.
+- **Editing edits.** ~~Saving an edit creates a new card and points the slot at it.~~ **Reversed 2026-08-22 — see "The simplification" below.** A save updates your card in place. A space holds the original and at most one card of yours.
 - **Removing unselects, never destroys.** "Remove my copy" points the slot back at the official card; the removed one remains available.
 - **Drift is flagged, never applied.** When the official card changes underneath a copy, the copy keeps playing and gets marked for review. Nothing shifts under a class mid-term.
 
@@ -59,7 +59,7 @@ It also softens an earlier reservation honestly recorded here: when tiers were f
 
 1. **Three tiers: official, group, individual.** An individual's card may stay private to their group or be promoted to official and made available everywhere. Stored structurally, labelled per skin (school/teacher by default, club/master under the D&D skin).
 2. **Every card carries a role note** explaining its purpose.
-3. **Editing produces a new card.** Nothing is overwritten; the previous version stays reachable. *"One can always just go back to the previous version of the card."*
+3. ~~**Editing produces a new card.** Nothing is overwritten; the previous version stays reachable.~~ **REVERSED 2026-08-22 after the maintainer used it** — see "The simplification". A save edits the card you have; going back to a bad save is the config backups' job.
 4. **Drift: flag it, keep playing theirs.** When a system correction changes the official card a copy was made from, the copy keeps playing and is marked for review. Rejected: auto-replacing the teacher's card.
 5. **The maintainer's overrides are king** while there are no teachers — and his edits must stop evaporating, which is what makes that true rather than aspirational.
 6. **A card owns rows keyed to exactly one space that hold that space's authored content** — cross-space relationships and globally-keyed tables stay out. That covers dice outcomes (verbatim, carrying `visit_type` and `roll_group`), modal copy, and logic-question *wording*; it excludes path-choice rules and action tooltips. Full table and reasoning under "What a card owns".
@@ -129,7 +129,7 @@ Two questions that genuinely cannot be answered yet, parked rather than guessed:
 | Switch a space off, with detour preview | **Built** — Classroom Setup |
 | Author a brand-new space | **Built** — insertions, with dice and card draws |
 | Card owner / tier | **New** — the one thing that must be decided early |
-| Edit branches instead of overwrites | **New** — small change to `updateTeacherCopy` |
+| ~~Edit branches instead of overwrites~~ | **Built v3.2.24, REMOVED v3.2.29** — see "The simplification" |
 | Remove unselects instead of deletes | **New** — small change to `deleteTeacherCopy` |
 | Card picker UI | **New** — the catalog already ships unplayed cards to the client; nothing renders them |
 | Role note field | **New** — trivial |
@@ -146,7 +146,7 @@ game-data/cards/<cardId>.json
   owner:     { tier: 'official' | 'group' | 'individual', id: <groupId|accountId|null> }
   slot:      ARCH-FEE-REVIEW          # which position this card can fill
   role:      "Shorter version for a 45-minute period"
-  derivedFrom: <cardId|null>          # the card this was branched from
+  derivedFrom: <cardId|null>          # LEGACY, written v3.2.24 only; read-tolerated
   copiedFromStockVersion: <hash|null> # unchanged; drives the drift flag
   rows:      { First: {...}, Subsequent: {...} }   # Spaces.csv rows
   diceRows:  [ {die_roll, visit_type, '1'..'6', button_label, roll_group}, … ]
@@ -157,7 +157,7 @@ game-data/cards/<cardId>.json
   logicRows: [ {visit_type, question_id, question_text, yes_reason, no_reason}, … ]
              # WORDING ONLY -- question_id/yes_target/no_target/auto_answer_from
              # are structural and always resolve from stock at bake.
-  createdAt / updatedAt / supersededBy
+  createdAt / updatedAt / supersededBy   # supersededBy: LEGACY, same story as derivedFrom
 ```
 
 The classroom config keeps only the *choice*: `slots[name].card = <cardId>`. Resolution is unchanged — one pointer, one lookup, no search.
@@ -174,7 +174,7 @@ The classroom config keeps only the *choice*: `slots[name].card = <cardId>`. Res
 
 **Stage 1b — a card carries the rest of its own content.** Dice rows, modal copy, and logic-question wording, per the ownership rule above. Dice is the load-bearing part: Extend the card to hold its space's `DiceRoll Info` rows and merge them at bake through `applyConfigToDiceCsv`, rewriting the curated `DICE_OUTCOMES.csv` as well as the SOURCE table (see the cost notes above — missing the curated file yields a board that renders right and routes wrong). Promote the shared-roll column-consistency check from a load-time console warning to a save-time error. This must land before the Space Data Editor's save path is swapped, or that screen would persist some edits and silently drop others.
 
-**Stage 2 — make it a rolodex.** Edit branches; remove unselects; per-slot card picker showing every visible card with its tier and role note; the drift flag moves onto the card it concerns instead of the page-level banner.
+**Stage 2 — make it a rolodex.** ~~Edit branches;~~ remove unselects; per-slot card picker showing every visible card with its role note; the drift flag moves onto the card it concerns instead of the page-level banner. (Branching landed v3.2.24 and was removed v3.2.29 — see "The simplification". The picker, the unselect and the drift flag all stand.)
 
 **Stage 3 — one screen.** Merge the two editors: the Space Data Editor's field layout and live preview, plus Classroom Setup's switch-off, author-a-space, and durability. **Fix the preview while doing it** — `PlayerPreviewPanel` deliberately renders with the retired classic panel's stylesheet and its own comment says it *"mirrors what the classic panel used to look like in-game"* ([PlayerPreviewPanel.tsx:3](../../src/components/editor/PlayerPreviewPanel.tsx)). Players see `PlayerPanelV2`. The single most reassuring feature in the tool is currently drawing a design that no longer ships.
 
@@ -192,6 +192,37 @@ Rationale worth keeping: the original complaint was not that there were two scre
 
 **Deferred — the approval queue.** Not built. See below.
 
+## The simplification (maintainer, 2026-08-22, after using the merged screen)
+
+Two reports, verbatim, on first real use of what stages 2 and 3 built:
+
+> *"there seem to be two ways of changing the cards ... there are buttons on top right and in the rolodex area. depending which one you press the data entry fields look different"*
+
+> *"I do not quite understand the versioning. it to seems to complicate things. each space/card should be treated as a separate item. how does versioning help me?"*
+
+Both are correct, and both describe something this document asked for.
+
+**Two editors existed.** `CopyEditor` (6 fields, opened by "Customize" in the deck row and by a pencil on each version chip) and `SpaceEditor` (~40 fields, opened by "Make changes"). Decision 8 said "one editing surface"; stage 3 merged the two *screens* and left the two *editors*.
+
+**Automatic branch-on-edit was answering a question nobody asked.** Its one real benefit — undo a bad save — is already covered by the config backups shipped in the same version (v3.2.24), which snapshot the whole classroom on every write and so protect positions, switch-offs and detours too, not only cards. Version history is a feature for a team with several authors and a reason to compare; with one maintainer it was a cost with no matching benefit.
+
+### What changed (v3.2.29)
+
+- **A save edits the card you have.** `branchCardContent` → `updateCardContent`, `branchTeacherCopy` → `updateTeacherCopy`, both writing in place. A save whose content is identical still changes nothing; a save that only changes the note still renames in place.
+- **The five-version cap and `pruneSlotVersions` are gone**, along with their tests. They existed only to contain the pile branching created. Nothing creates a second card automatically now, so nothing needed dropping.
+- **`derivedFrom` / `supersededBy` are no longer written**, only tolerated on read.
+- **The several-cards-per-slot machinery STAYS** — `cardsForSlot`, `selectCardForSlot`, the picker, the storage shape. It works, it is tested, and a deliberate "make a named alternative" button could use it. A classroom saved during the v3.2.24 window still holds several cards, and the UI shows them all rather than hiding them.
+- **The config backups stay untouched.** They are the safety net that makes this simplification safe.
+- **One editor.** `CopyEditor.tsx` is deleted, with the "✏️ Customize" button and the pencil on each version chip. `SpaceEditor` reached by "Make changes" is the only way to change what a space says. Two of `CopyEditor`'s ideas moved into it: a field that differs from the original is marked and can be put back on its own, and the safe field subset survives as a `visibleFields` prop (same component, different amount shown) rather than as a second component.
+- **The strip shows two things**: "The original" and "Your version", with a way to switch. No accumulating list, no "Show earlier versions".
+- **The deck says who is speaking.** Each row reads "Architect · Let's talk about my fee" instead of the story title over a raw id — ten spaces share a short name, and the id answered the wrong question. Via `getNpcCharacterInfo`, which deliberately returns nothing for the five PM-voiced spaces; those read "You", never a character who isn't talking.
+
+### What this leaves open, honestly
+
+The teacher path (`TeacherClassroomPanel` → `ClassroomSetup` → `SpaceDeckPanel`) reached `CopyEditor` and nothing else, so **a teacher can no longer change what a space says** — only switch spaces off, choose between the original and their own card, and author new spaces. The one save path, `POST /api/instances/:id/content`, is admin-only and mints `official` cards. Reopening teacher editing means giving that route a teacher branch that writes `individual` cards and accepts only the safe subset; `SpaceEditor` is already ready for it (`visibleFields={SAFE_FIELD_SUBSET}`). That is an addition, deliberately not smuggled into a removal slice.
+
+Related: `PATCH /api/instances/:id/copies/:copyId` and `POST /copies` still work and are still tested, but nothing in the app calls them; their client wrappers (`createCopy`/`updateCopy`/`unselectCopy`) were removed with the editor.
+
 ## Breadcrumbs for future expansion
 
 Deliberately reserved now so later work is additive rather than a rework:
@@ -199,7 +230,7 @@ Deliberately reserved now so later work is additive rather than a rework:
 - **`owner` on every card from stage 1**, even while only `official` is used. This is the one field that is expensive to retrofit and cheap to add — everything else in stage 4 depends on it and nothing else does.
 - **`owner.id` nullable.** An official card has no owner id. A group id slots in without a schema change.
 - **Tier labels routed through `getUIString()` from stage 1**, even while only `official` exists. Three CSV keys reserved now (`CARD_TIER.official` / `.group` / `.individual`) means a reskin renames decks without touching stored data or writing a migration.
-- **`derivedFrom` and `supersededBy`** recorded from stage 2, even though nothing reads them yet. They are what a version history screen, a "what changed" diff, and any future merge assistance would all be built on; capturing them costs one field each at write time and cannot be reconstructed afterwards.
+- ~~**`derivedFrom` and `supersededBy`** recorded from stage 2~~ — **stopped 2026-08-22.** They only ever had anything to record while a save minted a new card, and that is gone. Both are still tolerated on read (`instanceValidation` reads `supersededBy`) so a config written in the v3.2.24 window still loads.
 - **`role` note from stage 2.** Doubles as the submission blurb if a queue is ever built — a teacher proposing a card upward has already written why it exists.
 - **Approval queue, when it comes:** the shape to copy is the glossary Purgatory review already running in the dictionary-scraper backend (nightly robot stages candidates, human approves/rejects). Confirmed 2026-08-21 that no Purgatory code exists in *this* repo — it would be a fresh build here, informed by a pattern the maintainer already operates. Minimum pieces: a submission record (card id + submitter + note + status), a review screen, and a promote operation that clones the card to `owner.tier = 'official'` while leaving the submitter's original in place.
 - **✅ CLOSED 2026-08-21 (final stage-1 slice): `instanceCatalog`'s `entry.dice` now consults the played card.** The breadcrumb below is kept for the reasoning; the fix is `buildDiceDests` split into a rows-based `diceDestsFromRows`, which the catalog re-runs over `copyDiceRowsBySpace(config)` so a played card's dice REPLACE stock's answer for its space (and a card whose rolls are all effects correctly makes the space stop being a dice space). **One place still answers this question from stock: `validateInsertions`** ([instanceValidation.js](../../server/instanceValidation.js)), because `instanceResolver` already imports that module and the import cycle is the real blocker — closing it means lifting `copyDiceRowsBySpace` somewhere both can reach. Latent while no card changes its dice-movement rows; noted in the code at the call site.

@@ -1,8 +1,15 @@
 // src/components/classroom/SpaceDeckPanel.tsx
 //
 // Your deck of spaces — the left-hand column, and everything you can decide
-// BETWEEN spaces: switching one off (with its detour confirm), picking which
-// version of a space plays, making a copy, and adding a space of your own.
+// BETWEEN spaces: switching one off (with its detour confirm), picking whether
+// a space plays the original or your version, and adding a space of your own.
+//
+// Changing what a space SAYS is not here. There used to be a second, smaller
+// editor behind a "Customize" button in these rows, with different fields from
+// the real one — the maintainer's report was that there seemed to be "two ways
+// of changing the cards" and the fields looked different depending which you
+// pressed. Both were right. There is one way now: pick a space, then "Make
+// changes" on the screen beside the deck.
 //
 // Extracted from ClassroomSetup on 2026-08-22 so the merged screen
 // (SpaceDeckScreen, CARD_LIBRARY_DESIGN.md "Stage 3's screen: browse, then
@@ -17,23 +24,42 @@
 // for all future games; running games are untouched.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  fetchCatalog, postBoardChange, createCopy, updateCopy, unselectCopy, selectCard,
+  fetchCatalog, postBoardChange, selectCard,
   createInsertion, updateInsertion, deleteInsertion,
   type CatalogResponse, type CatalogSpace, type ValidationReport, type ValidationIssue,
   type Insertion,
 } from './classroomApi';
 import {
-  TIER_WORD, cardsForSpace, cardHasDrift, madeOnLabel, splitVersions, warningsByCard,
+  YOUR_VERSION, cardsForSpace, cardHasDrift, madeOnLabel, newestFirst, warningsByCard,
   type SpaceCard,
 } from './cardRolodex';
 import { SwitchOffConfirm } from './SwitchOffConfirm';
-import { CopyEditor } from './CopyEditor';
 import { InsertionEditor, type InsertionDraft } from './InsertionEditor';
+import { getNpcCharacterInfo } from '../../constants/characters';
 import { colors } from '../../styles/theme';
 
+/**
+ * Who does the talking at a space.
+ *
+ * Ten spaces share a short name — "Scope Check" is the Lender's, the
+ * Architect's and the Engineer's; "Initiation" is three more — so a row that
+ * showed only a title left the reader to guess which one they were looking at,
+ * and the raw id underneath it ("ARCH-FEE-REVIEW") is not something anyone
+ * should have to read.
+ *
+ * getNpcCharacterInfo deliberately answers nothing for the five spaces where
+ * the narration is the project manager's own first-person thought ("I pick a
+ * direction"), so those must never be labelled with a character who isn't
+ * speaking. They get "You", which is exactly who is talking there — as do the
+ * couple of spaces with no character attached at all.
+ */
+function speakerFor(spaceName: string): string {
+  return getNpcCharacterInfo(spaceName)?.shortLabel ?? 'You';
+}
+
 interface RolodexChipProps {
-  /** null for "the original" chip, which has no tier/role/edit affordance. */
-  tierWord: string | null;
+  /** null for "the original" chip. */
+  name: string | null;
   role: string | undefined;
   /** "Made 20 Aug", or null for the original (which was never "made"). */
   madeOn: string | null;
@@ -41,10 +67,9 @@ interface RolodexChipProps {
   drift: boolean;
   busy: boolean;
   onUse: () => void;
-  onEdit?: () => void;
 }
 
-function RolodexChip({ tierWord, role, madeOn, isPlaying, drift, busy, onUse, onEdit }: RolodexChipProps): JSX.Element {
+function RolodexChip({ name, role, madeOn, isPlaying, drift, busy, onUse }: RolodexChipProps): JSX.Element {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', gap: '0.15rem',
@@ -54,7 +79,7 @@ function RolodexChip({ tierWord, role, madeOn, isPlaying, drift, busy, onUse, on
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
         <span style={{ fontWeight: isPlaying ? 700 : 500, color: isPlaying ? '#6d28d9' : '#495057' }}>
-          {tierWord ?? 'The original'}
+          {name ?? 'The original'}
         </span>
         {isPlaying && (
           <span style={{
@@ -74,24 +99,7 @@ function RolodexChip({ tierWord, role, madeOn, isPlaying, drift, busy, onUse, on
               cursor: busy ? 'not-allowed' : 'pointer', textDecoration: 'underline', padding: 0,
             }}
           >
-            {tierWord ? 'Go back to this one' : 'Go back to the original'}
-          </button>
-        )}
-        {onEdit && (
-          <button
-            type="button"
-            onClick={onEdit}
-            disabled={busy}
-            // Names the VERSION, not just the space: several versions of one
-            // card can be on screen at once, and the note plus the date is
-            // what tells them apart out loud as well as on screen.
-            aria-label={`Edit ${role || tierWord || 'this copy'}${madeOn ? `, ${madeOn.toLowerCase()}` : ''}`}
-            style={{
-              fontSize: '0.78rem', border: 'none', background: 'none', color: '#6b7280',
-              cursor: busy ? 'not-allowed' : 'pointer', padding: 0,
-            }}
-          >
-            ✏️
+            {name ? 'Go back to this one' : 'Go back to the original'}
           </button>
         )}
       </div>
@@ -116,38 +124,24 @@ interface CardRolodexProps {
   warningsByCopy: Map<string, ValidationIssue[]>;
   busy: boolean;
   onSelect: (copyId: string | null) => void;
-  /** null means "start a brand-new copy". */
-  onEdit: (copyId: string | null) => void;
 }
 
-function CardRolodex({ space, cards, warningsByCopy, busy, onSelect, onEdit }: CardRolodexProps): JSX.Element {
+/**
+ * The original and yours, side by side, with a way to switch.
+ *
+ * Two chips, normally — a save edits your card rather than making another, so
+ * nothing accumulates here and there is nothing to fold away. A classroom
+ * saved while that WAS the behaviour can still hold several; those are all
+ * shown, newest first, each with the date it was made.
+ */
+function CardRolodex({ space, cards, warningsByCopy, busy, onSelect }: CardRolodexProps): JSX.Element {
   const playingId = space.copyId;
-  // Editing a space makes a new card rather than writing over the old one
-  // (CARD_LIBRARY_DESIGN.md stage 2), so this list grows as the maintainer
-  // works. Newest versions and whatever is playing stay on screen; the rest
-  // fold away behind one plain-language line so a much-edited space doesn't
-  // bury the space below it.
-  const [showEarlier, setShowEarlier] = useState(false);
-  const { recent, earlier } = useMemo(() => splitVersions(cards, playingId), [cards, playingId]);
-
-  const chipFor = ({ id, copy }: SpaceCard): JSX.Element => (
-    <RolodexChip
-      key={id}
-      tierWord={TIER_WORD[copy.owner?.tier ?? 'individual']}
-      role={copy.role}
-      madeOn={madeOnLabel(copy.createdAt)}
-      isPlaying={playingId === id}
-      drift={cardHasDrift(warningsByCopy.get(id))}
-      busy={busy}
-      onUse={() => onSelect(id)}
-      onEdit={() => onEdit(id)}
-    />
-  );
+  const ordered = useMemo(() => [...cards].sort(newestFirst), [cards]);
 
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
       <RolodexChip
-        tierWord={null}
+        name={null}
         role={undefined}
         madeOn={null}
         isPlaying={!playingId}
@@ -155,38 +149,22 @@ function CardRolodex({ space, cards, warningsByCopy, busy, onSelect, onEdit }: C
         busy={busy}
         onUse={() => onSelect(null)}
       />
-      {recent.map(chipFor)}
-      {showEarlier && earlier.map(chipFor)}
-      {earlier.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setShowEarlier(v => !v)}
-          style={{
-            alignSelf: 'flex-start', padding: '0.35rem 0.6rem', borderRadius: 10, fontSize: '0.78rem',
-            border: '1px solid #e9ecef', background: '#fff', color: '#495057', cursor: 'pointer',
-          }}
-        >
-          {showEarlier
-            ? 'Hide earlier versions'
-            : `Show earlier versions (${earlier.length})`}
-        </button>
-      )}
-      <button
-        type="button"
-        onClick={() => onEdit(null)}
-        disabled={busy || !space.used}
-        title="Make another copy of this space"
-        style={{
-          alignSelf: 'flex-start', padding: '0.35rem 0.6rem', borderRadius: 10, fontSize: '0.78rem',
-          border: '1px dashed #a78bfa', background: '#faf5ff', color: '#6d28d9',
-          cursor: busy || !space.used ? 'not-allowed' : 'pointer',
-        }}
-      >
-        ➕ Add a copy
-      </button>
+      {ordered.map(({ id, copy }) => (
+        <RolodexChip
+          key={id}
+          name={YOUR_VERSION}
+          role={copy.role}
+          madeOn={madeOnLabel(copy.createdAt)}
+          isPlaying={playingId === id}
+          drift={cardHasDrift(warningsByCopy.get(id))}
+          busy={busy}
+          onUse={() => onSelect(id)}
+        />
+      ))}
     </div>
   );
 }
+
 const TIER_LABEL: Record<string, string> = {
   structural: 'core space — the game needs an entrance, exit, and hubs',
   semantic: 'a game mechanic depends on this space',
@@ -230,10 +208,6 @@ export function SpaceDeckPanel({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ space: CatalogSpace; report: ValidationReport } | null>(null);
-  // Which card's editor is open. copyId null = making a brand-new copy of
-  // `space`; a copyId edits that specific card from the rolodex — NOT
-  // necessarily the one currently playing (CARD_LIBRARY_DESIGN.md stage 2).
-  const [editing, setEditing] = useState<{ space: CatalogSpace; copyId: string | null } | null>(null);
   // Phase 4a: authoring a space. null = closed; { existing: null } = new;
   // { existing } = editing an authored space.
   const [insertionEdit, setInsertionEdit] = useState<{ existing: Insertion | null } | null>(null);
@@ -314,49 +288,8 @@ export function SpaceDeckPanel({
     }
   };
 
-  const handleSaveCopy = async (overrides: Record<string, Record<string, string>>, role: string) => {
-    if (!editing) return;
-    setBusy(true);
-    try {
-      const result = editing.copyId
-        ? await updateCopy(instanceId, editing.copyId, { overrides, role })
-        : await createCopy(instanceId, { slot: editing.space.name, overrides, role });
-      // Editing makes a NEW version and leaves the old one in the rolodex
-      // (CARD_LIBRARY_DESIGN.md stage 2), so say so — a maintainer who
-      // expects an overwrite should learn from this line that nothing was
-      // lost. `branched: false` means the save changed nothing at all.
-      const savedNotice = !editing.copyId
-        ? `Your copy of “${editing.space.title}” is saved and live for new games.`
-        : (result.success && result.branched === false)
-          ? `Nothing changed in “${editing.space.title}”, so there's no new version.`
-          : `Saved as a new version of “${editing.space.title}”. The one before it is still here if you want to go back.`;
-      const ok = await finishMutation(result, savedNotice);
-      if (ok) setEditing(null);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // "Back to the original" from inside the editor — unselects the card being
-  // edited (a no-op unless it happens to be the one currently playing; see
-  // unselectCopy's own doc comment). The card itself is never removed from
-  // the rolodex; switching between EXISTING cards is handleSelectCard below.
-  const handleUnselectCopy = async () => {
-    if (!editing?.copyId) return;
-    setBusy(true);
-    try {
-      const result = await unselectCopy(instanceId, editing.copyId);
-      const ok = await finishMutation(result, `“${editing.space.title}” plays the original again. Your copy is still here if you want it back.`);
-      if (ok) setEditing(null);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // The rolodex picker (CARD_LIBRARY_DESIGN.md stage 2): switch a space to
-  // play a different existing card, or `null` for the original. Distinct
-  // from handleUnselectCopy above — this can select ANY card, not just clear
-  // the one currently playing.
+  // The picker: switch a space to play a different card it already has, or
+  // `null` for the original. Never creates, edits, or removes a card.
   const handleSelectCard = async (space: CatalogSpace, copyId: string | null) => {
     setBusy(true);
     setNotice(null);
@@ -456,11 +389,10 @@ export function SpaceDeckPanel({
         )}
 
         {/* Nothing in the deck LOOKED clickable: the space name was a button
-            with no border, no background and no padding, sitting beside a
-            real-looking "Customize" button — so the eye went to Customize and
-            the maintainer could not find how to pick a space at all. These
-            rules give a pickable row a pointer, a hover lift and a chevron,
-            so the affordance is visible rather than merely present. */}
+            with no border, no background and no padding, so the eye read it as
+            a label and the maintainer could not find how to pick a space at
+            all. These rules give a pickable row a pointer, a hover lift and a
+            chevron, so the affordance is visible rather than merely present. */}
         <style>{`
           .us-deck-pick { cursor: pointer; transition: background 120ms ease, border-color 120ms ease; }
           .us-deck-pick:hover { background: #f8f5ff !important; border-color: #c4b5fd !important; }
@@ -482,20 +414,24 @@ export function SpaceDeckPanel({
                 // only a button when there is somewhere for the space to be
                 // shown — otherwise the deck stays the plain list it was.
                 const nameBlock = (
-                  <>
-                    <div className="us-deck-title" style={{ fontSize: '0.92rem', fontWeight: 600, color: colors.text.primary }}>
-                      {onSelectSpace && (
-                        <span className="us-deck-chev" aria-hidden="true" style={{ display: 'inline-block', color: '#a78bfa', marginRight: '0.35rem' }}>›</span>
-                      )}
-                      {space.title}
-                      {!space.used && space.detour && (
-                        <span style={{ marginLeft: '0.5rem', fontSize: '0.74rem', color: '#6b7280' }}>
-                          off — players go to {space.detour}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{space.name}</div>
-                  </>
+                  <div className="us-deck-title" style={{ fontSize: '0.92rem', fontWeight: 600, color: colors.text.primary }}>
+                    {onSelectSpace && (
+                      <span className="us-deck-chev" aria-hidden="true" style={{ display: 'inline-block', color: '#a78bfa', marginRight: '0.35rem' }}>›</span>
+                    )}
+                    {/* Who does the talking, ahead of what they say —
+                        "Architect · Let's talk about my fee". The internal id
+                        used to sit under the title; it answered the wrong
+                        question, and ten spaces share a short name so the
+                        title alone could not tell them apart either. */}
+                    <span style={{ color: '#6b7280', fontWeight: 500 }}>{speakerFor(space.name)}</span>
+                    <span style={{ color: '#c4b5fd', margin: '0 0.35rem' }} aria-hidden="true">·</span>
+                    {space.title}
+                    {!space.used && space.detour && (
+                      <span style={{ marginLeft: '0.5rem', fontSize: '0.74rem', color: '#6b7280' }}>
+                        off — players go to {space.detour}
+                      </span>
+                    )}
+                  </div>
                 );
                 return (
                 <div
@@ -538,34 +474,18 @@ export function SpaceDeckPanel({
                       </div>
                     )}
                     {cards.length > 0 && (
-                      // The rolodex (CARD_LIBRARY_DESIGN.md stage 2): every
-                      // copy available for this space, plus the original,
-                      // each with a way to switch to it.
+                      // The original and yours, with a way to switch between
+                      // them. Only shown once this space HAS a version of
+                      // yours — until then there is nothing to choose.
                       <CardRolodex
                         space={space}
                         cards={cards}
                         warningsByCopy={cardWarningsByCopy}
                         busy={busy}
                         onSelect={copyId => void handleSelectCard(space, copyId)}
-                        onEdit={copyId => setEditing({ space, copyId })}
                       />
                     )}
                   </div>
-
-                  {cards.length === 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setEditing({ space, copyId: null })}
-                      disabled={busy || !space.used}
-                      style={{
-                        padding: '0.35rem 0.7rem', borderRadius: 8, fontSize: '0.8rem',
-                        border: '1px solid #ddd6fe', background: '#fff', color: '#6d28d9',
-                        cursor: busy || !space.used ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      ✏️ Customize
-                    </button>
-                  )}
 
                   {space.protection ? (
                     <span
@@ -671,17 +591,6 @@ export function SpaceDeckPanel({
           busy={busy}
           onConfirm={detour => void handleConfirmOff(detour)}
           onCancel={() => setConfirm(null)}
-        />
-      )}
-      {editing && catalog && (
-        <CopyEditor
-          space={editing.space}
-          copy={editing.copyId ? catalog.copies[editing.copyId] ?? null : null}
-          editableFields={catalog.editableFields}
-          busy={busy}
-          onSave={(overrides, role) => void handleSaveCopy(overrides, role)}
-          onDelete={() => void handleUnselectCopy()}
-          onCancel={() => setEditing(null)}
         />
       )}
       {insertionEdit && catalog && (

@@ -3,6 +3,14 @@ import { SpaceRow, DiceRollRow, ModalConfigRow, PHASES, PATH_TYPES, YES_NO_OPTIO
 import { InlineDiceRollEditor } from './InlineDiceRollEditor';
 import { shortName } from '../../utils/boardCommon';
 
+/**
+ * The safe subset a teacher may change: what a space SAYS and what it costs,
+ * never where it leads. Mirrors EDITABLE_FIELDS in server/instanceCatalog.js,
+ * which the catalog also ships as `editableFields` — the words a teacher can
+ * rewrite for their own classroom, without being able to rewire the board.
+ */
+export const SAFE_FIELD_SUBSET = ['Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee'];
+
 interface SpaceEditorProps {
   spaceFirst: SpaceRow | null;
   spaceSubsequent: SpaceRow | null;
@@ -20,6 +28,19 @@ interface SpaceEditorProps {
   onAddDiceRoll: (diceRoll: DiceRollRow) => void;
   onDeleteDiceRoll: (index: number) => void;
   onModalConfigChange: (updatedConfigs: ModalConfigRow[]) => void;
+  /**
+   * What the ORIGINAL of this space says, keyed by visit type — the handful of
+   * fields the classroom catalog carries (SAFE_FIELD_SUBSET). Given it, a
+   * field you have changed is marked and can be put back on its own. Leave it
+   * out and nothing is marked.
+   */
+  original?: Record<string, Record<string, string>> | null;
+  /**
+   * When given, ONLY these fields are shown. Pass SAFE_FIELD_SUBSET for a
+   * teacher; leave it out for the full set. Same component either way — the
+   * difference is how much of it you can see, not which editor you get.
+   */
+  visibleFields?: string[] | null;
 }
 
 // Card type colors matching theme.ts cardTypes
@@ -57,8 +78,14 @@ export function SpaceEditor({
   onAddDiceRoll,
   onDeleteDiceRoll,
   onModalConfigChange,
+  original,
+  visibleFields,
 }: SpaceEditorProps): JSX.Element {
   const currentSpace = visitType === 'First' ? spaceFirst : spaceSubsequent;
+  const shows = (field: string): boolean => !visibleFields || visibleFields.includes(field);
+  // What the original says for one field, or undefined when the original is
+  // not to hand (nothing is marked then, rather than everything).
+  const originalValue = (field: string): string | undefined => original?.[visitType]?.[field];
 
   // Modal config helpers for current space + visit type.
   // `diceValue` is optional and defaults to empty-string (generic row).
@@ -140,7 +167,10 @@ export function SpaceEditor({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h3 style={styles.spaceName}>{currentSpace.space_name}</h3>
-            <input
+            {/* The board tile's name. Not in the safe subset — renaming a tile
+                changes what everyone at the table is looking at, which is a
+                different act from rewriting what a space says. */}
+            {shows('display_label_override') && <input
               type="text"
               value={displayLabelOverride || ''}
               onChange={(e) => onDisplayLabelChange(e.target.value)}
@@ -148,7 +178,7 @@ export function SpaceEditor({
               title="Tile label shown on the board and player panel. Leave blank to auto-name from the space ID."
               style={styles.titleInline}
               data-testid="space-tile-label-input"
-            />
+            />}
           </div>
         </div>
         <div style={styles.visitToggle}>
@@ -174,8 +204,9 @@ export function SpaceEditor({
       </div>
 
       <div style={styles.formContainer}>
-        {/* Identity & Config */}
-        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.identity}` }}>
+        {/* Identity & Config. Wholly outside the safe subset: phase, dice and
+            negotiation decide how a space BEHAVES, not what it says. */}
+        {shows('phase') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.identity}` }}>
           <legend style={styles.legend}>🏷️ Identity & Config</legend>
           <div style={styles.fieldRow}>
             <Field label="Space Name" value={currentSpace.space_name} readOnly />
@@ -205,7 +236,7 @@ export function SpaceEditor({
               onChange={(v) => handleChange('Negotiate', v)}
             />
           </div>
-        </fieldset>
+        </fieldset>}
 
         {/* Story & Narrative */}
         <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.story}` }}>
@@ -214,27 +245,31 @@ export function SpaceEditor({
             label="Story title (subtitle, per visit)"
             value={currentSpace.Title}
             onChange={(v) => handleChange('Title', v)}
+            original={originalValue('Title')}
             rows={1}
           />
           <TextareaField
             label="Event (Story)"
             value={currentSpace.Event}
             onChange={(v) => handleChange('Event', v)}
+            original={originalValue('Event')}
             rows={2}
           />
           <TextareaField
             label="Action"
             value={currentSpace.Action}
             onChange={(v) => handleChange('Action', v)}
+            original={originalValue('Action')}
             rows={2}
           />
           <TextareaField
             label="Outcome"
             value={currentSpace.Outcome}
             onChange={(v) => handleChange('Outcome', v)}
+            original={originalValue('Outcome')}
             rows={2}
           />
-          <div style={styles.fieldRow}>
+          {shows('shake_on') && <div style={styles.fieldRow}>
             <SelectField
               label="Shake On"
               value={currentSpace.shake_on}
@@ -247,14 +282,15 @@ export function SpaceEditor({
               options={[...TTS_FIELD_OPTIONS].filter(o => o !== '')}
               onChange={(v) => handleChange('tts_field', v)}
             />
-          </div>
+          </div>}
         </fieldset>
 
-        {/* Card Effects + Time & Costs */}
+        {/* Card Effects + Time & Costs. What a space DEALS is outside the safe
+            subset; what it costs is inside it, so the row survives on its own. */}
         <div style={styles.fieldRow}>
           <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.cards}`, flex: 1 }}>
-            <legend style={styles.legend}>🃏 (C) Actions</legend>
-            <div style={styles.cardGrid}>
+            <legend style={styles.legend}>{shows('w_card') ? '🃏 (C) Actions' : '⏱️ Time & 💰 Fee'}</legend>
+            {shows('w_card') && <div style={styles.cardGrid}>
               <CardFieldWithLabel type="W" value={currentSpace.w_card} label={currentSpace.w_card_label} narrative={currentSpace.w_card_narrative}
                 modalConfig={getModalConfig('draw_W')}
                 onChange={(v) => handleChange('w_card', v)} onLabelChange={(v) => handleChange('w_card_label', v)} onNarrativeChange={(v) => handleChange('w_card_narrative', v)}
@@ -275,25 +311,36 @@ export function SpaceEditor({
                 modalConfig={getModalConfig('draw_E')}
                 onChange={(v) => handleChange('e_card', v)} onLabelChange={(v) => handleChange('e_card_label', v)} onNarrativeChange={(v) => handleChange('e_card_narrative', v)}
                 onModalConfigChange={(f, v) => setModalConfigField('draw_E', f, v)} />
-            </div>
+            </div>}
             <div style={styles.fieldRow}>
               <div style={styles.field}>
-                <label style={styles.label}>⏱️ Time</label>
+                <LabelWithRevert
+                  label="⏱️ Time"
+                  value={currentSpace.Time}
+                  original={originalValue('Time')}
+                  onChange={(v) => handleChange('Time', v)}
+                />
                 <TimeInput value={currentSpace.Time} onChange={(v) => handleChange('Time', v)} />
-                {currentSpace.Time && <ModalConfigExpander effectAction="add" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
+                {shows('w_card') && currentSpace.Time && <ModalConfigExpander effectAction="add" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
               </div>
               <div style={styles.field}>
-                <label style={styles.label}>💰 Fee</label>
+                <LabelWithRevert
+                  label="💰 Fee"
+                  value={currentSpace.Fee}
+                  original={originalValue('Fee')}
+                  onChange={(v) => handleChange('Fee', v)}
+                />
                 <FeeInput value={currentSpace.Fee} onChange={(v) => handleChange('Fee', v)} />
-                {currentSpace.Fee && <ModalConfigExpander effectAction="deduct" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
+                {shows('w_card') && currentSpace.Fee && <ModalConfigExpander effectAction="deduct" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
               </div>
               <div style={{ flex: 3 }} />
             </div>
           </fieldset>
         </div>
 
-        {/* Dice Rolls — inline */}
-        {currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
+        {/* Dice Rolls — inline. Outside the safe subset: dice decide where a
+            player goes next. */}
+        {shows('w_card') && currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
           <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.dice}` }}>
             <legend style={styles.legend}>🎲 (D) Actions</legend>
             <InlineDiceRollEditor
@@ -311,7 +358,7 @@ export function SpaceEditor({
         {/* Dice Outcome Modals — Phase 4: per-dice-value overrides for DiceResultModal.
             Each roll (1..6) can have its own modal text. The "Any Roll" slot applies
             when no dice-specific row matches. Supports {diceValue}, {spaceName}. */}
-        {currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
+        {shows('w_card') && currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
           <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.dice}` }}>
             <legend style={styles.legend}>🎲 Dice Outcome Modals</legend>
             <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
@@ -342,8 +389,9 @@ export function SpaceEditor({
           </fieldset>
         )}
 
-        {/* Movement */}
-        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.movement}` }}>
+        {/* Movement. The reason the safe subset exists: rewriting words must
+            not be able to rewire where the board leads. */}
+        {shows('space_1') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.movement}` }}>
           <legend style={styles.legend}>🚶 Movement Destinations</legend>
           <div style={{ ...styles.fieldRow, marginBottom: '6px' }}>
             <SelectField
@@ -369,22 +417,22 @@ export function SpaceEditor({
               <SpaceSelectField label="5" value={currentSpace.space_5} options={allSpaceNames} onChange={(v) => handleChange('space_5', v)} />
             </div>
           )}
-        </fieldset>
+        </fieldset>}
 
         {/* Choice Modal — space-level overrides for any non-movement, non-card
             choice modal (e.g., card-triggered CHOICE_OF_EFFECTS prompts) */}
-        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #6f42c1` }}>
+        {shows('w_card') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #6f42c1` }}>
           <legend style={styles.legend}>❓ Choice Modal</legend>
           <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
             Overrides the generic “Make Your Choice” modal when a choice is raised at this space.
             Supports <code>{'{playerName}'}</code> and <code>{'{spaceName}'}</code>.
           </div>
           <ModalConfigExpander effectAction="choice" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
-        </fieldset>
+        </fieldset>}
 
         {/* Negotiation Modal — space-level overrides for the player-to-player
             negotiation flow. Applied when the current player's space matches. */}
-        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #e83e8c` }}>
+        {shows('w_card') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #e83e8c` }}>
           <legend style={styles.legend}>🤝 Negotiation Modal</legend>
           <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
             Overrides the player-to-player negotiation modal when opened from this space.
@@ -393,11 +441,11 @@ export function SpaceEditor({
             <code>{'{partnerName}'}</code>, and <code>{'{spaceName}'}</code>.
           </div>
           <ModalConfigExpander effectAction="negotiate" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
-        </fieldset>
+        </fieldset>}
 
         {/* End Game Modal — overrides the victory modal when the game ends with
             the winner on this space. Only meaningful on FINISH/ending spaces. */}
-        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #ffc107` }}>
+        {shows('w_card') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #ffc107` }}>
           <legend style={styles.legend}>🏁 End Game Modal</legend>
           <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
             Overrides the victory modal when the winning player ends the game on this space.
@@ -407,11 +455,11 @@ export function SpaceEditor({
             and <code>{'{spaceName}'}</code>.
           </div>
           <ModalConfigExpander effectAction="end_game" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
-        </fieldset>
+        </fieldset>}
 
         {/* Button Labels — kept LAST to mirror the in-game panel, where the
             End Turn / Try Again buttons sit at the bottom (fb:8f64c34c). */}
-        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.buttons}` }}>
+        {shows('end_turn_label') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.buttons}` }}>
           <legend style={styles.legend}>🎮 Button Labels</legend>
           <div style={styles.fieldRow}>
             <Field
@@ -436,13 +484,64 @@ export function SpaceEditor({
               </div>
             </div>
           </div>
-        </fieldset>
+        </fieldset>}
       </div>
     </div>
   );
 }
 
 // ─── Field Components ──────────────────────────────────────
+
+/**
+ * "You changed this — put it back."
+ *
+ * Carried over from the small editor that was removed: it marked every field
+ * that no longer said what the original said, and let you undo that one field
+ * on its own. Worth keeping, so it moved here rather than dying with it.
+ *
+ * Only appears for the fields the classroom catalog carries the original of;
+ * everywhere else there is nothing to compare against and nothing is shown.
+ */
+function ChangedFromOriginal({ original, onRevert }: { original: string; onRevert: () => void }): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={onRevert}
+      title={original ? `The original says: ${original}` : 'The original leaves this empty'}
+      style={{
+        fontSize: '10px', color: '#7c3aed', background: 'none', border: 'none',
+        cursor: 'pointer', textDecoration: 'underline', padding: 0, marginLeft: '6px',
+      }}
+    >
+      changed — put back
+    </button>
+  );
+}
+
+/**
+ * A label with the "changed — put back" marker beside it.
+ *
+ * Beside, not inside: a <button> is a labelable element, so a marker nested in
+ * the <label> would take the label's words as its own accessible name and the
+ * field itself would be left unlabelled.
+ */
+function LabelWithRevert({ label, value, original, onChange }: {
+  label: React.ReactNode; value: string; original?: string; onChange: (v: string) => void;
+}): JSX.Element {
+  const differs = original !== undefined && (value || '') !== original;
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+      <label style={styles.label}>{label}</label>
+      {differs && <ChangedFromOriginal original={original} onRevert={() => onChange(original)} />}
+    </div>
+  );
+}
+
+/** Highlight for a field that no longer says what the original says. */
+const CHANGED_INPUT: React.CSSProperties = {
+  border: '2px solid #7c3aed',
+  backgroundColor: '#faf5ff',
+};
 
 interface FieldProps {
   label: string;
@@ -634,14 +733,19 @@ function SpaceSelectField({ label, value, options, onChange }: { label: string; 
   );
 }
 
-function TextareaField({ label, value, onChange, rows = 2 }: { label: string; value: string; onChange: (v: string) => void; rows?: number }): JSX.Element {
+function TextareaField({ label, value, onChange, rows = 2, original }: {
+  label: string; value: string; onChange: (v: string) => void; rows?: number;
+  /** What the original says, when it is known. Undefined = nothing to compare. */
+  original?: string;
+}): JSX.Element {
+  const differs = original !== undefined && (value || '') !== original;
   return (
     <div style={styles.textareaField}>
-      <label style={styles.label}>{label}</label>
+      <LabelWithRevert label={label} value={value} original={original} onChange={onChange} />
       <textarea
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
-        style={styles.textarea}
+        style={differs ? { ...styles.textarea, ...CHANGED_INPUT } : styles.textarea}
         rows={rows}
       />
     </div>

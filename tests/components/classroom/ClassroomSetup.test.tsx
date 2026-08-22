@@ -1,9 +1,12 @@
 // tests/components/classroom/ClassroomSetup.test.tsx
 // The Classroom Setup screen (Phase 2 catalog UI). Pins: the full deck
-// renders from /catalog (not /data), protected spaces show a lock instead
-// of a switch, switching off runs the hybrid confirm flow (dryRun preview
-// → teacher confirms → real save with the chosen detour), and writes
-// carry the admin header.
+// renders from /catalog (not /data), each row says WHO is speaking rather than
+// showing a raw space id, protected spaces show a lock instead of a switch,
+// switching off runs the hybrid confirm flow (dryRun preview → teacher
+// confirms → real save with the chosen detour), and writes carry the admin
+// header. Also pins that the deck offers exactly one thing to do with the
+// cards themselves — switch between the original and yours — and no editor of
+// its own.
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -40,6 +43,19 @@ const CATALOG = {
       name: 'GAMMA-OFF', phase: 'DESIGN', title: 'The Gone One', used: false,
       protection: null, copyId: null, detour: 'BETA-MIDDLE',
       stock: { First: { Title: 'The Gone One', Event: '', Action: '', Outcome: '', Time: '1', Fee: '0' } },
+    },
+    // A real NPC-voiced space and a real PM-voiced one, so the "who is
+    // speaking" line is exercised against the actual character map rather
+    // than against invented ids.
+    {
+      name: 'ARCH-FEE-REVIEW', phase: 'DESIGN', title: "Let's talk about my fee", used: true,
+      protection: null, copyId: null, detour: null,
+      stock: { First: { Title: "Let's talk about my fee", Event: '', Action: '', Outcome: '', Time: '1', Fee: '0' } },
+    },
+    {
+      name: 'PM-DECISION-CHECK', phase: 'DESIGN', title: 'I pick a direction', used: true,
+      protection: null, copyId: null, detour: null,
+      stock: { First: { Title: 'I pick a direction', Event: '', Action: '', Outcome: '', Time: '1', Fee: '0' } },
     },
   ],
 };
@@ -121,6 +137,36 @@ describe('ClassroomSetup', () => {
     expect(screen.getByText(/worth a review/)).toBeInTheDocument();
   });
 
+  it('each row says who is speaking, and never shows the raw space id', async () => {
+    // Ten spaces share a short name, so a title on its own cannot tell the
+    // Architect's "Fee Review" from the Engineer's. The id underneath used to
+    // do the disambiguating and answered the wrong question.
+    fetchMock.mockResolvedValue(jsonResponse(CATALOG));
+    render(<ClassroomSetup onClose={() => {}} />);
+    await screen.findByText('The Middle');
+
+    expect(screen.getByText('Architect')).toBeInTheDocument();
+    // PM-voiced spaces have no NPC talking at them — the narration is the
+    // player's own thought — so they must NOT be attributed to a character.
+    expect(screen.getByText("I pick a direction")).toBeInTheDocument();
+    expect(screen.getAllByText('You').length).toBeGreaterThan(0);
+    // No raw ids anywhere in the deck.
+    expect(screen.queryByText('ARCH-FEE-REVIEW')).toBeNull();
+    expect(screen.queryByText('PM-DECISION-CHECK')).toBeNull();
+    expect(screen.queryByText('BETA-MIDDLE')).toBeNull();
+  });
+
+  it('offers no editor of its own — one way to change a space, and it is not here', () => {
+    // The maintainer's report: "there seem to be two ways of changing the
+    // cards ... depending which one you press the data entry fields look
+    // different". The small one is gone.
+    fetchMock.mockResolvedValue(jsonResponse(CATALOG));
+    render(<ClassroomSetup onClose={() => {}} />);
+
+    expect(screen.queryByRole('button', { name: /Customize/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Add a copy/ })).toBeNull();
+  });
+
   it('shows a lock instead of a switch for protected spaces', async () => {
     fetchMock.mockResolvedValue(jsonResponse(CATALOG));
     render(<ClassroomSetup onClose={() => {}} />);
@@ -186,93 +232,33 @@ describe('ClassroomSetup', () => {
     expect(screen.queryByText(/Switch off “/)).toBeNull();
   });
 
-  it('opens the copy editor with stock values and saves a create', async () => {
-    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.includes('/catalog')) return jsonResponse(CATALOG);
-      if (url.endsWith('/copies')) {
-        return jsonResponse({ success: true, report: DRY_RUN_REPORT, copyId: 'beta_middle_copy_1', configVersion: 2, resolvedVersion: 2 });
-      }
-      throw new Error(`unexpected fetch: ${url}`);
-    });
-
-    render(<ClassroomSetup onClose={() => {}} />);
-    await screen.findByText('The Middle');
-    // The Middle's customize button (protected/off rows have them too; pick by row order).
-    const customizeButtons = screen.getAllByRole('button', { name: /Customize/ });
-    fireEvent.click(customizeButtons[1]); // ALPHA first, BETA second
-
-    expect(await screen.findByText(/Make your copy of/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Create my copy' }));
-
-    await waitFor(() => {
-      const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/copies'));
-      expect(call).toBeDefined();
-      const body = JSON.parse(call![1]!.body as string);
-      expect(body.slot).toBe('BETA-MIDDLE');
-      expect(body.overrides.First.Title).toBe('The Middle');
-    });
-  });
-
-  it('shows the rolodex for a space with several copies: which one is playing, each one\'s tier and note', async () => {
+  it('shows the original and yours side by side, saying which one is playing', async () => {
+    // This fixture is a classroom saved while a save still made a NEW card
+    // every time, so it holds two. Both are shown rather than hidden; nothing
+    // makes a third.
     fetchMock.mockResolvedValue(jsonResponse(CATALOG_WITH_CARDS));
     render(<ClassroomSetup onClose={() => {}} />);
     await screen.findByText('The Middle');
 
     // Playing indicator appears exactly once — on copy_1, the one the slot plays.
     expect(screen.getAllByText('Playing now')).toHaveLength(1);
-    // Both copies are "Your copy" tier (individual); copy_1 also carries its role note.
-    expect(screen.getAllByText('Your copy')).toHaveLength(2);
+    // One word for both — "tier" is a storage detail nobody should read.
+    expect(screen.getAllByText('Your version')).toHaveLength(2);
     expect(screen.getByText('Shorter version for a 45-minute period')).toBeInTheDocument();
     // The original is offered too, even though it isn't playing.
     expect(screen.getByText('The original')).toBeInTheDocument();
-    // Each version says when it was made, so two unnamed ones are tellable apart.
+    // Each says when it was made, so two unnamed ones are tellable apart.
     expect(screen.getAllByText(/^Made /)).toHaveLength(2);
-    // copy_2 can be switched to; copy_1 is already playing; the original has
-    // its own wording.
     expect(screen.getAllByRole('button', { name: 'Go back to this one' })).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Go back to the original' })).toBeInTheDocument();
-    // Only two versions, so nothing is folded away yet.
+    // No accumulating list and no fold — there are two things, not a history.
     expect(screen.queryByRole('button', { name: /Show earlier versions/ })).toBeNull();
   });
 
-  it('folds older versions away behind "Show earlier versions", keeping the playing one on screen', async () => {
-    // Editing makes a new card instead of overwriting, so a much-edited space
-    // accumulates versions — they must not bury the space below it.
-    const many = {
-      ...CATALOG_WITH_CARDS,
-      validation: { ok: true, errors: [], warnings: [], detours: {}, suggestions: {} },
-      copies: Object.fromEntries([1, 2, 3, 4, 5].map(n => [
-        `beta_middle_copy_${n}`,
-        {
-          slot: 'BETA-MIDDLE',
-          createdAt: `2026-08-0${n}T10:00:00.000Z`,
-          updatedAt: `2026-08-0${n}T10:00:00.000Z`,
-          copiedFromStockVersion: 'v2',
-          owner: { tier: 'individual', id: null },
-          role: `Version ${n}`,
-          rows: { First: { Title: `V${n}`, Event: 'Mid.', Action: '', Outcome: '', Time: '2', Fee: '50', space_name: 'BETA-MIDDLE' } },
-        },
-      ])),
-      // The OLDEST card is the one playing — it must stay on screen anyway.
-      spaces: [{ ...CATALOG_WITH_CARDS.spaces[0], copyId: 'beta_middle_copy_1' }],
-    };
-    fetchMock.mockResolvedValue(jsonResponse(many));
-    render(<ClassroomSetup onClose={() => {}} />);
-    await screen.findByText('The Middle');
-
-    // Newest three, plus the playing one, are inline; the other one waits.
-    expect(screen.getByText('Version 5')).toBeInTheDocument();
-    expect(screen.getByText('Version 4')).toBeInTheDocument();
-    expect(screen.getByText('Version 3')).toBeInTheDocument();
-    expect(screen.getByText('Version 1')).toBeInTheDocument(); // playing
-    expect(screen.queryByText('Version 2')).toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Show earlier versions (1)' }));
-    expect(screen.getByText('Version 2')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Hide earlier versions' }));
-    expect(screen.queryByText('Version 2')).toBeNull();
-  });
+  // A "folds older versions away behind Show earlier versions" test lived
+  // here. It asserted an accumulating list that no longer accumulates: a save
+  // edits your card instead of making another, so a space has the original and
+  // yours, and two things need no fold.
 
   it('attaches a card-keyed drift warning to its own card, not the page banner', async () => {
     fetchMock.mockResolvedValue(jsonResponse(CATALOG_WITH_CARDS));
@@ -328,32 +314,7 @@ describe('ClassroomSetup', () => {
     });
   });
 
-  it('editing a specific card\'s role note saves it alongside its fields', async () => {
-    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.includes('/catalog')) return jsonResponse(CATALOG_WITH_CARDS);
-      if (url.includes('/copies/beta_middle_copy_2')) return jsonResponse({ success: true, report: DRY_RUN_REPORT, copyId: 'beta_middle_copy_2', configVersion: 2, resolvedVersion: 2 });
-      throw new Error(`unexpected fetch: ${url}`);
-    });
-
-    render(<ClassroomSetup onClose={() => {}} />);
-    await screen.findByText('The Middle');
-
-    // copy_2 has no role note yet, so its edit button's name falls back to its
-    // tier word plus the date it was made.
-    fireEvent.click(screen.getByRole('button', { name: /^Edit Your copy, made / }));
-    expect(await screen.findByText(/Edit your copy of/)).toBeInTheDocument();
-
-    const noteInput = screen.getByPlaceholderText(/Shorter version for a 45-minute period/);
-    fireEvent.change(noteInput, { target: { value: 'For the advanced class' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-
-    await waitFor(() => {
-      const call = fetchMock.mock.calls.find(([url]) => String(url).includes('/copies/beta_middle_copy_2'));
-      expect(call).toBeDefined();
-      const body = JSON.parse(call![1]!.body as string);
-      expect(body.role).toBe('For the advanced class');
-      expect(body.overrides.First.Title).toBe('Other version');
-    });
-  });
+  // An "editing a specific card's role note saves it alongside its fields"
+  // test lived here. It drove the second, smaller editor that this slice
+  // removed; there is one way to change a space now, and the deck is not it.
 });

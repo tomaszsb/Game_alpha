@@ -34,7 +34,7 @@ import {
   setSlotPositions,
   setSlotUsed,
   createTeacherCopy,
-  branchTeacherCopy,
+  updateTeacherCopy,
   unselectCard,
   selectCardForSlot,
   addInsertion,
@@ -48,7 +48,7 @@ import {
   clearAllEdgeAnchors,
   VALID_OWNER_TIERS,
   findCardForSlot,
-  branchCardContent,
+  updateCardContent,
 } from './instanceStore.js';
 import { diffSubmittedContent } from './instanceContentDiff.js';
 import { validateConfig } from './instanceValidation.js';
@@ -1476,13 +1476,11 @@ app.patch('/api/instances/:id/copies/:copyId', (req, res) => {
       err.statusCode = 404;
       throw err;
     }
-    // Editing BRANCHES (CARD_LIBRARY_DESIGN.md stage 2): the merged result
-    // becomes a new card, the slot plays it, and the card that was edited
-    // stays in the rolodex. `newCopyId` is null when the save changed no
-    // field — the client reports "nothing changed" rather than claiming a
-    // version that doesn't exist.
-    const newCopyId = branchTeacherCopy(config, req.params.copyId, overrides, role);
-    return { copyId: newCopyId || req.params.copyId, branched: Boolean(newCopyId) };
+    // Editing edits: the merged result is written onto the card itself and
+    // the slot keeps playing it. `changedId` is null when the save changed no
+    // field, so the client can say "nothing changed" honestly.
+    const changedId = updateTeacherCopy(config, req.params.copyId, overrides, role);
+    return { copyId: req.params.copyId, changed: Boolean(changedId) };
   });
 });
 
@@ -1594,32 +1592,25 @@ app.post('/api/instances/:id/content', (req, res) => {
     const updated = [];
     const unchangedCards = [];
     for (const change of diff.changed) {
-      // BRANCH, don't overwrite (CARD_LIBRARY_DESIGN.md stage 2). The stage-1
-      // upsert wrote over the playing card because there was no picker to
-      // choose between versions; there is one now, so the previous version
-      // stays in the rolodex.
-      //
-      // Branched from the card the slot is PLAYING, whatever tier it belongs
-      // to — NOT filtered to `official` as the stage-1 upsert was. Two
-      // reasons, and the first is load-bearing: this route's diff compares the
-      // submission against STOCK, while the editor loads the RESOLVED board,
-      // so every space that already has a card of any tier reads as "changed"
-      // on every save. A tier-filtered lookup would find nothing for a slot
-      // playing a teacher's own copy and mint a fresh card every single save.
-      // Second, a new version of a card inherits that card's owner (spec) —
-      // the maintainer editing a classroom's own copy is improving THEIR card,
-      // not silently promoting it into the curated deck.
+      // Written onto the card the slot is PLAYING, whatever tier it belongs
+      // to — NOT filtered to `official`. Load-bearing: this route's diff
+      // compares the submission against STOCK, while the editor loads the
+      // RESOLVED board, so every space that already has a card of any tier
+      // reads as "changed" on every save. A tier-filtered lookup would find
+      // nothing for a slot playing a teacher's own copy and mint a fresh card
+      // every single save. And a save onto a classroom's own copy is improving
+      // THEIR card, not silently promoting it into the curated deck.
       const existing = findCardForSlot(config, change.slot);
       if (existing) {
-        const branchedId = branchCardContent(config, existing, {
+        const changedId = updateCardContent(config, existing, {
           rows: change.rows,
           diceRows: change.diceRows,
           modalRows: change.modalRows,
           stockVersion,
         });
-        // null = this space says exactly what its playing card already said.
-        // The common case, not an edge case — see branchCardContent.
-        if (branchedId) updated.push(change.slot);
+        // null = this space says exactly what its card already said. The
+        // common case, not an edge case — see updateCardContent.
+        if (changedId) updated.push(change.slot);
         else unchangedCards.push(change.slot);
       } else {
         // createTeacherCopy's `stockRows` is "the rows this card starts life

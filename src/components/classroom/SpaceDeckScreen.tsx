@@ -14,8 +14,9 @@
 //
 // MAKING CHANGES. "Make changes" doesn't go anywhere: this same screen gives
 // the space the whole width. The deck collapses to a rolodex button, top
-// left; every version of the space runs full width across the top, where they
-// finally get real room; the editing fields sit beside the player view.
+// left; the original and your version of the space run full width across the
+// top, where they finally get real room; the editing fields sit beside the
+// player view.
 // Pressing the rolodex button slides the deck back out OVER the card instead
 // of navigating away — "minimise" implies it comes back, and it means you
 // keep your place instead of losing it whenever you want to glance at another
@@ -25,7 +26,7 @@
 // Two data sources meet here, and this screen is the one place they are read:
 //   • the deck comes from the classroom catalog (SpaceDeckPanel's own
 //     fetchCatalog) — the only thing that knows about switched-off spaces,
-//     locks, and which versions a space has;
+//     locks, and whether a space has a version of yours;
 //   • the rows come from the three space CSVs (useEditorSource, shared with
 //     the old Space Data Editor), which the server serves from the
 //     classroom's baked board — so what is previewed is the version each
@@ -52,11 +53,14 @@ interface SpaceDeckScreenProps {
   instanceId?: string;
 }
 
-/** "3 — the original and 2 of yours": how many ways this space can read. */
+/** What this space can say: the original, and yours if you have made one. */
 function versionsLabel(catalog: CatalogResponse | null, spaceName: string): string {
   const mine = cardsForSpace(catalog, spaceName).length;
-  if (mine === 0) return '1 — just the original';
-  return `${mine + 1} — the original and ${mine === 1 ? 'one of yours' : `${mine} of yours`}`;
+  if (mine === 0) return 'Just the original';
+  if (mine === 1) return 'The original, and your version';
+  // Only reachable in a classroom saved while a save used to make a new card
+  // every time. Shown rather than hidden; nothing makes more.
+  return `The original, and ${mine} of yours`;
 }
 
 export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDeckScreenProps): JSX.Element {
@@ -68,7 +72,7 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
   // browsing, where the deck is simply there.
   const [isDeckOut, setIsDeckOut] = useState(false);
   // Bumped when something outside the deck changes the classroom, so the deck
-  // reads itself again — a save mints a new version without going through it.
+  // reads itself again — a save writes a card without going through it.
   const [deckReloads, setDeckReloads] = useState(0);
   // Bumped to make the three CSVs be read again. Kept apart from the deck's
   // own token because re-reading throws away anything typed and not saved.
@@ -145,15 +149,15 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
 
   const handleSave = useCallback(async () => {
     await editor.handleSave();
-    // A save mints a new version without the deck hearing about it, so the
-    // deck (and the versions across the top, which read from it) must look
-    // again or they will keep saying the space has only the original.
+    // A save writes a card without the deck hearing about it, so the deck
+    // (and the strip across the top, which reads from it) must look again or
+    // they will keep saying the space has only the original.
     setDeckReloads(n => n + 1);
   }, [editor]);
 
   const handleUseVersion = useCallback(async (copyId: string | null) => {
     if (!selected) return;
-    if (!discardsChanges('Switch this space to another version?')) return;
+    if (!discardsChanges('Switch which one this space plays?')) return;
     setVersionBusy(true);
     setNotice(null);
     try {
@@ -252,7 +256,7 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
             </h2>
             <p style={{ margin: '0.15rem 0 0', fontSize: '0.82rem', color: colors.text.secondary }}>
               {isMakingChanges
-                ? 'Change what this space says. Saving keeps the version before it, so you can always go back. Changes apply to new games only.'
+                ? 'Change what this space says. Your version replaces the original for your games; the original always stays in the library. Changes apply to new games only.'
                 : 'Pick a space on the left to meet it the way a player does. Switch a space off, or add one of your own, from the deck — the originals always stay in the library. Changes apply to new games only.'}
             </p>
           </div>
@@ -414,6 +418,12 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
                     onAddDiceRoll={editor.handleAddDiceRoll}
                     onDeleteDiceRoll={editor.handleDeleteDiceRoll}
                     onModalConfigChange={editor.handleModalConfigChange}
+                    // What the ORIGINAL of this space says, so a field you
+                    // changed is marked and can be put back on its own. The
+                    // deck's catalog is the only thing that carries it — the
+                    // rows the editor loads are the RESOLVED board, which
+                    // already has your version overlaid on them.
+                    original={selected.stock}
                   />
                 </div>
                 <div style={{
@@ -537,7 +547,7 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
                           ? destinations.map(titleFor).join(', ')
                           : 'Nowhere — this is the end of the path'}
                       </dd>
-                      <dt style={factLabel}>Versions</dt>
+                      <dt style={factLabel}>Wording</dt>
                       <dd style={factValue}>{versionsLabel(catalog, selected.name)}</dd>
                     </dl>
                   </>
