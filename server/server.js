@@ -1580,6 +1580,20 @@ app.post('/api/instances/:id/content', (req, res) => {
   }
   handleInstanceMutation(req, res, (config) => {
     const { stockSpacesCsv, diceCsv, modalCsv, stockVersion } = readStockForValidation();
+    // The baseline is the board the editor LOADED, not the shipped stock.
+    // The editor fetches /data/SOURCE_FILES/*, which is served from this
+    // classroom's baked output — so it already carries tile positions, any
+    // card in play, detours and switch-offs. Diffing the submission against
+    // stock counted every one of those as an edit: a maintainer whose tiles
+    // had been arranged (i.e. any real classroom) saved one space and minted
+    // a card for all 26 (reported 2026-08-22). Falls back to stock when the
+    // bake is missing, which is only ever a brand-new classroom, where the
+    // two are the same thing anyway.
+    const bakedSource = path.join(resolvedDir(instancesRoot, req.params.id), 'SOURCE_FILES');
+    const readBaked = (name) => {
+      try { return fs.readFileSync(path.join(bakedSource, name), 'utf-8'); } catch { return null; }
+    };
+    const baselineSpacesCsv = readBaked('Spaces.csv');
     const diff = diffSubmittedContent({
       submittedSpacesCsv: spacesCSV,
       submittedDiceCsv: diceRollCSV,
@@ -1587,6 +1601,9 @@ app.post('/api/instances/:id/content', (req, res) => {
       stockSpacesCsv,
       stockDiceCsv: diceCsv,
       stockModalCsv: modalCsv,
+      baselineSpacesCsv,
+      baselineDiceCsv: baselineSpacesCsv ? readBaked('DiceRoll Info.csv') : null,
+      baselineModalCsv: baselineSpacesCsv ? readBaked('ModalConfig.csv') : null,
     });
     const created = [];
     const updated = [];

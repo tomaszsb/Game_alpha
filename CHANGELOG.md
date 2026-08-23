@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.30] - 2026-08-22
+
+### Fix: one edit created a card for every space on the board
+Maintainer report with a screenshot — changed one space, found "Your version · Playing now" on every space in the deck. Confirmed on the live server: **26 cards, all created in the same minute, from a single save.**
+
+**Cause.** The Space Data Editor fetches `/data/SOURCE_FILES/*`, which is served from the classroom's **baked** board — so it carries whatever the bake applies, and above all the tile positions saved by the Board Layout Editor. The diff compared that submission against **shipped stock**, which has no positions. Every positioned space therefore read as edited, and a classroom whose tiles have been arranged — which is any real one — minted a card for all of them on the first save.
+
+Reproduced before fixing, using the project's own parser: a classroom with positions, submitting the baked board back **untouched**, reported **27 of 27 spaces changed**. After the fix, 0.
+
+**Two parts, because there were two problems.** Positions are not content: `pos_x`/`pos_y` belong to the Board Layout Editor, are written through a different route, and must never mint a card — moving a tile is not changing what a space says. And more generally, the baseline was simply wrong: "changed" has to mean "the maintainer changed it", so the diff now compares against **the board the editor actually loaded** rather than stock. That also covers the other legitimate reasons a baked board differs from stock — a card already in play, a switched-off space, a detour — each of which counted as an edit before. Stock is still consulted separately, to answer whether a submitted space is a slot that exists at all.
+
+Worth recording that this was foreseen and under-read. The v3.2.22 work noted the same mismatch — *"every space already carrying a card reads as changed on every save"* — and it was fixed only for the already-has-a-card case. Positions make it fire on the very first save of a classroom that has never had a card at all, which is the state every real classroom is in.
+
+Three regression tests pin both halves: a no-op save on a classroom with arranged tiles mints nothing, a moved tile alone is not a content change even when compared straight against stock, and a real edit still mints exactly one card and leaves the rest alone. Typecheck clean, production build clean, full suite 2936/2936 (192 files).
+
 ## [3.2.29] - 2026-08-22
 
 ### Taking versioning back out, and collapsing to one editor

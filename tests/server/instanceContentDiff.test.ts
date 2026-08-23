@@ -221,3 +221,54 @@ describe('a Space Data Editor save that changed nothing mints nothing (real data
     expect(diff.changed[0].rows.some(r => r.Title === 'Edited by the maintainer')).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Regression: one edit minted a card for every space (reported 2026-08-22)
+//
+// The maintainer changed a single space and found ~26 cards created. Cause:
+// the editor loads the classroom's BAKED board, which carries tile positions
+// the Board Layout Editor saved, while the diff compared against shipped
+// stock, which has none. Every positioned space therefore read as edited.
+// Both halves of the fix are pinned here: positions are not content, and the
+// baseline is what the editor actually loaded.
+// ---------------------------------------------------------------------------
+describe('a save on a classroom whose tiles have been arranged', () => {
+  const HEADER = 'space_name,visit_type,Title,Event,pos_x,pos_y';
+  const stock = [
+    HEADER,
+    'ALPHA,First,Alpha,Something happens,0,0',
+    'BETA,First,Beta,Something else,0,0',
+  ].join('\n');
+  // What the bake serves the editor: same words, tiles moved.
+  const baked = [
+    HEADER,
+    'ALPHA,First,Alpha,Something happens,340,120',
+    'BETA,First,Beta,Something else,620,480',
+  ].join('\n');
+
+  it('mints nothing when the maintainer changed nothing', () => {
+    const r = diffSubmittedContent({
+      submittedSpacesCsv: baked,
+      stockSpacesCsv: stock,
+      baselineSpacesCsv: baked,
+    });
+    expect(r.changed).toEqual([]);
+    expect(r.unchanged.sort()).toEqual(['ALPHA', 'BETA']);
+  });
+
+  it('still mints nothing even when compared straight against stock, because a moved tile is not a content change', () => {
+    const r = diffSubmittedContent({ submittedSpacesCsv: baked, stockSpacesCsv: stock });
+    expect(r.changed).toEqual([]);
+  });
+
+  it('mints a card for the one space that really changed, and only that one', () => {
+    const edited = baked.replace('Something happens', 'Something the maintainer rewrote');
+    const r = diffSubmittedContent({
+      submittedSpacesCsv: edited,
+      stockSpacesCsv: stock,
+      baselineSpacesCsv: baked,
+    });
+    expect(r.changed.map(c => c.slot)).toEqual(['ALPHA']);
+    expect(r.unchanged).toEqual(['BETA']);
+  });
+});

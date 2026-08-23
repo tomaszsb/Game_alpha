@@ -55,9 +55,23 @@ function rowsBySpace(csv) {
  * doesn't know about rides through `_extraColumns` and lands back in the
  * payload, so its absence would be a real difference worth catching.
  */
+/**
+ * Columns the Space Data Editor does not own, and must never mint a card over.
+ *
+ * `pos_x`/`pos_y` are the BOARD LAYOUT editor's — dragged tiles are saved
+ * through `/api/instances/:id/positions`, and the bake overlays them onto
+ * every positioned space. The content editor loads that baked board, so a
+ * classroom whose tiles have been arranged (i.e. any real one) submitted
+ * every space back with positions stock has never seen. Every space then read
+ * as edited: one save on one space minted a card for all 26 (reported live,
+ * 2026-08-22). Moving a tile is not changing what a space says.
+ */
+const NOT_CONTENT = new Set(['pos_x', 'pos_y']);
+
 function rowsEqual(a, b) {
   const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
   for (const key of keys) {
+    if (NOT_CONTENT.has(key)) continue;
     if (String((a || {})[key] ?? '') !== String((b || {})[key] ?? '')) return false;
   }
   return true;
@@ -100,13 +114,24 @@ export function diffSubmittedContent({
   stockSpacesCsv,
   stockDiceCsv,
   stockModalCsv,
+  baselineSpacesCsv,
+  baselineDiceCsv,
+  baselineModalCsv,
 }) {
   const submittedSpaces = rowsBySpace(submittedSpacesCsv);
   const submittedDice = rowsBySpace(submittedDiceCsv);
   const submittedModal = rowsBySpace(submittedModalCsv);
   const stockSpaces = rowsBySpace(stockSpacesCsv);
-  const stockDice = rowsBySpace(stockDiceCsv);
-  const stockModal = rowsBySpace(stockModalCsv);
+  // The BASELINE is what the editor actually loaded — the classroom's baked
+  // board — not the shipped stock. "Changed" has to mean "the maintainer
+  // changed it", and the bake legitimately differs from stock for reasons
+  // that are nobody's edit: tile positions, a card already in play, a
+  // switched-off space, a detour. Comparing to stock counted all of those as
+  // edits. Stock is still needed separately, to answer whether a submitted
+  // space is a slot that exists at all.
+  const baseSpaces = baselineSpacesCsv ? rowsBySpace(baselineSpacesCsv) : stockSpaces;
+  const baseDice = baselineSpacesCsv ? rowsBySpace(baselineDiceCsv) : rowsBySpace(stockDiceCsv);
+  const baseModal = baselineSpacesCsv ? rowsBySpace(baselineModalCsv) : rowsBySpace(stockModalCsv);
 
   const changed = [];
   const unchanged = [];
@@ -124,9 +149,9 @@ export function diffSubmittedContent({
     }
     const diceRows = submittedDice.get(slot) || [];
     const modalRows = submittedModal.get(slot) || [];
-    const same = rowListsEqual(rows, stockSpaces.get(slot))
-      && rowListsEqual(diceRows, stockDice.get(slot) || [])
-      && rowListsEqual(modalRows, stockModal.get(slot) || []);
+    const same = rowListsEqual(rows, baseSpaces.get(slot))
+      && rowListsEqual(diceRows, baseDice.get(slot) || [])
+      && rowListsEqual(modalRows, baseModal.get(slot) || []);
     if (same) unchanged.push(slot);
     else changed.push({ slot, rows, diceRows, modalRows });
   }
