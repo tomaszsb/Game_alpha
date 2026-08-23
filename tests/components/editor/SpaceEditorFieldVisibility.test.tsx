@@ -131,6 +131,58 @@ describe('SpaceEditor — how much of it you can see', () => {
   });
 });
 
+// The panel already lit up when you TYPED. It said nothing when you merely
+// clicked into a field — and a field you are still deciding what to write in is
+// exactly when you want telling what it feeds. Maintainer, 2026-08-23:
+// "nothing still shows what it is editing when the edit side is clicked on
+// (i see it works in the reverse)".
+describe('SpaceEditor — what the cursor is in', () => {
+  it('names the part of the player view the focused field feeds', () => {
+    const onFocusedRegion = vi.fn();
+    renderEditor({ onFocusedRegion });
+
+    fireEvent.focusIn(screen.getByDisplayValue('We need to talk money.'));
+    expect(onFocusedRegion).toHaveBeenLastCalledWith('story');
+
+    fireEvent.focusIn(screen.getByDisplayValue('Pay the fee, or push back.'));
+    expect(onFocusedRegion).toHaveBeenLastCalledWith('guidance');
+  });
+
+  it('names the part from a section heading, which has no field of its own', () => {
+    const onFocusedRegion = vi.fn();
+    renderEditor({ onFocusedRegion });
+
+    fireEvent.focusIn(screen.getByText(regionHeading('destinations')));
+    expect(onFocusedRegion).toHaveBeenLastCalledWith('destinations');
+  });
+
+  it('says nothing for a section that feeds no part of the player view', () => {
+    const onFocusedRegion = vi.fn();
+    renderEditor({ onFocusedRegion });
+
+    fireEvent.focusIn(screen.getByText('How this space behaves'));
+    expect(onFocusedRegion).toHaveBeenLastCalledWith(null);
+  });
+
+  it('clears when the cursor leaves the editor, but not while it moves inside it', () => {
+    const onFocusedRegion = vi.fn();
+    renderEditor({ onFocusedRegion });
+
+    const story = screen.getByDisplayValue('We need to talk money.');
+    const guidance = screen.getByDisplayValue('Pay the fee, or push back.');
+    fireEvent.focusIn(story);
+
+    // Tabbing to the next field is not leaving; clearing here would drop the
+    // highlight for a frame on every Tab.
+    onFocusedRegion.mockClear();
+    fireEvent.focusOut(story, { relatedTarget: guidance });
+    expect(onFocusedRegion).not.toHaveBeenCalled();
+
+    fireEvent.focusOut(story, { relatedTarget: document.body });
+    expect(onFocusedRegion).toHaveBeenLastCalledWith(null);
+  });
+});
+
 describe('SpaceEditor — "you changed this, put it back"', () => {
   const original = { First: { Title: "Let's talk about my fee", Event: 'We need to talk money.', Time: '3 days', Fee: '5%' } };
 

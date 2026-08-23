@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.37] - 2026-08-23
+
+### Clicking into a field now shows you what it changes, and a folded section stops looking like a box
+Maintainer, on v3.2.35 in real use: *"now it feels a little crowded when folded. and nothing still shows what it is editing when the edit side is clicked on. (i see it works in the reverse)"*
+
+**The link only ever worked one way and a half.** Clicking a part of the player view jumped to its fields; *typing* in a field flashed the part it feeds. But merely clicking into a field said nothing — and a field you are sitting in, still deciding what to write, is exactly when you want telling what it feeds. The panel now marks the part your cursor is in **steadily**, for as long as it is in there, and scrolls it into view if it is below the fold. Steady rather than pulsing: a thing that flashes for as long as you type in it would be unbearable.
+
+It is reported from **one handler on the form**, not wired field by field, so a field added later cannot quietly fail to report. A normal field states its part through its own anchor; a section heading — which has no field of its own — states it through the section's region. Moving between two fields does not clear the mark, because tabbing from one field to the next is not leaving the editor; only focus actually leaving does.
+
+Verified live for each shape: a story field lights "what players read here", an action column lights that action, a per-action narrative lights that action's pop-up, the Time pop-up box lights "the pop-up when days are added", the End Turn label lights "the button that ends the turn", and leaving the editor clears it. A section the panel does not show for the current space lights nothing rather than something arbitrary.
+
+**Folded sections were made of the wrong material.** Every section was a bordered white card whether open or shut, so twelve one-line rows stacked up read as twelve boxes — clutter, even though folding had cut the column by a third. A folded section is now a quiet row: no border, no card, no gap worth noticing, and its heading in a lighter weight. An open section keeps the card. That contrast is what makes the open ones findable, and it is the whole fix — nothing was re-hidden.
+
+### Three server dependencies were filed in the wrong drawer
+Chasing v3.2.36's leftover — that the Dockerfile ships devDependencies into the running image — turned up something worse than the tidiness problem it was meant to solve. **`express`, `cors` and `ws` were all declared as devDependencies**, while frontend-only libraries that are bundled at build time and never needed at runtime (`react`, `framer-motion`, `recharts`, `html2canvas`, `@xyflow/react`, `qrcode.react`) sat in `dependencies`. The split was almost exactly inverted.
+
+Nothing was broken by this, because `npm ci` installs both sets — but it meant the obvious fix for v3.2.36's leftover, adding `npm prune --omit=dev` after the build, **would have deleted Express from the image and taken the server down on the next deploy.** The three are now in `dependencies` where they belong. No effect on what gets installed today; it is the prerequisite that makes pruning survivable later.
+
+**The prune itself is still not done, deliberately.** It changes how deploys are built and wants a real container build to prove, which cannot be done from here. Recorded in TODO.md with this finding attached, so whoever picks it up starts from the fact that the naive version of it is a live outage.
+
+Full suite 2963/2963 (195 files) — four new tests covering what the cursor reports, including that it says nothing for a section feeding no part of the panel, and that moving between fields does not clear the mark. Typecheck clean, production build clean.
+
 ## [3.2.36] - 2026-08-23
 
 ### The four security warnings in the deploy log are gone — by going forward, not back

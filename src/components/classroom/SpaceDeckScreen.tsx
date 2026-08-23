@@ -85,6 +85,9 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
   // its first field; typing in a field flashes the part it feeds.
   const [goTo, setGoTo] = useState<{ anchor: SpaceRegionAnchor; nonce: number } | null>(null);
   const [litRegion, setLitRegion] = useState<string | null>(null);
+  // The part the cursor is currently in, held for as long as it is there.
+  // Separate from litRegion, which is the flash after a keystroke and fades.
+  const [editingRegion, setEditingRegion] = useState<string | null>(null);
   const goToCount = useRef(0);
   const litTimer = useRef<number | null>(null);
 
@@ -453,6 +456,7 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
                     original={selected.stock}
                     goTo={goTo}
                     onEdited={handleEdited}
+                    onFocusedRegion={setEditingRegion}
                   />
                 </div>
                 <div style={{
@@ -466,6 +470,7 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
                     modalConfigData={editor.modalConfigData}
                     onEditRegion={handleEditRegion}
                     highlightRegion={litRegion}
+                    editingRegion={editingRegion}
                   />
                 </div>
               </>

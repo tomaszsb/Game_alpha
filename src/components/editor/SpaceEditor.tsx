@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SpaceRow, DiceRollRow, ModalConfigRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS, SHAKE_OPTIONS, TTS_FIELD_OPTIONS } from './types/EditorTypes';
 import { InlineDiceRollEditor } from './InlineDiceRollEditor';
 import { shortName } from '../../utils/boardCommon';
-import { SpaceRegionAnchor, regionHeading, regionShortLabel } from './spaceRegions';
+import { SpaceRegionAnchor, regionForAnchor, regionHeading, regionShortLabel } from './spaceRegions';
 
 /**
  * The safe subset a teacher may change: what a space SAYS and what it costs,
@@ -57,6 +57,13 @@ interface SpaceEditorProps {
    * component's — this only says what was touched.
    */
   onEdited?: (anchor: SpaceRegionAnchor) => void;
+  /**
+   * "The cursor is now in something that feeds THIS part" — or null when it
+   * has left the editor entirely. Reported for every field, pop-up box and
+   * section heading from one handler on the form, rather than wired field by
+   * field, so nothing can be added later and quietly not report.
+   */
+  onFocusedRegion?: (regionId: string | null) => void;
 }
 
 // Card type colors matching theme.ts cardTypes. The WORDS are not here: each
@@ -106,6 +113,7 @@ export function SpaceEditor({
   visibleFields,
   goTo,
   onEdited,
+  onFocusedRegion,
 }: SpaceEditorProps): JSX.Element {
   const currentSpace = visitType === 'First' ? spaceFirst : spaceSubsequent;
   const formRef = useRef<HTMLDivElement | null>(null);
@@ -152,6 +160,30 @@ export function SpaceEditor({
       lit?.classList.remove(GO_TO_CLASS);
     };
   }, [goTo]);
+
+  // Which part of the player view the focused thing feeds. A field states it
+  // through its own anchor; a section heading — which has no anchor, being a
+  // heading — states it through the section's region.
+  const regionAt = (el: HTMLElement | null): string | null => {
+    if (!el) return null;
+    const anchored = el.closest<HTMLElement>('[data-editor-anchor]');
+    const anchor = anchored?.getAttribute('data-editor-anchor');
+    if (anchor) {
+      const region = regionForAnchor(anchor);
+      if (region) return region.id;
+    }
+    return el.closest<HTMLElement>('[data-editor-region]')?.getAttribute('data-editor-region') ?? null;
+  };
+  const reportFocus = (e: React.FocusEvent<HTMLDivElement>) => {
+    onFocusedRegion?.(regionAt(e.target as HTMLElement));
+  };
+  const reportBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    // Moving between two fields of the same form is not leaving it; clearing
+    // on every blur would drop the highlight for a frame on every Tab.
+    const next = e.relatedTarget as HTMLElement | null;
+    if (next && formRef.current?.contains(next)) return;
+    onFocusedRegion?.(null);
+  };
 
   const shows = (field: string): boolean => !visibleFields || visibleFields.includes(field);
   // What the original says for one field, or undefined when the original is
@@ -315,7 +347,7 @@ export function SpaceEditor({
         }
       `}</style>
 
-      <div style={styles.formContainer} ref={formRef}>
+      <div style={styles.formContainer} ref={formRef} onFocusCapture={reportFocus} onBlurCapture={reportBlur}>
         {/* How this space behaves. Wholly outside the safe subset: phase, the
             outcome roll and negotiation decide how a space BEHAVES, not what
             it says, so a teacher never sees this section at all. Folded by
@@ -389,7 +421,7 @@ export function SpaceEditor({
             the in-game panel, where they sit at the bottom (fb:8f64c34c). */}
 
         <EditorSection
-          heading={regionHeading('story')}
+          regionId="story"
           color={SECTION_COLORS.story}
           defaultOpen
           summary={clip(currentSpace.Event) || 'nothing written'}
@@ -416,7 +448,7 @@ export function SpaceEditor({
             answers to exactly one clickable part of the player view rather
             than two. */}
         <EditorSection
-          heading={regionHeading('guidance')}
+          regionId="guidance"
           color={SECTION_COLORS.story}
           defaultOpen
           summary={clip(currentSpace.Action) || 'nothing written'}
@@ -443,7 +475,7 @@ export function SpaceEditor({
             fieldset, which meant a teacher — who may change what a space costs
             but not what it deals — met a fieldset renamed around them. */}
         <EditorSection
-          heading={regionHeading('cost')}
+          regionId="cost"
           color={SECTION_COLORS.costs}
           defaultOpen={filled(currentSpace.Time, currentSpace.Fee)}
           summary={[currentSpace.Time, currentSpace.Fee].filter(v => (v || '').trim() !== '').join(' · ') || 'nothing'}
@@ -515,7 +547,7 @@ export function SpaceEditor({
             fields have no single spot of their own. */}
         {shows('w_card') && currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
           <EditorSection
-            heading={regionHeading('outcomes')}
+            regionId="outcomes"
             color={SECTION_COLORS.dice}
             defaultOpen
             anchor="section:outcomes"
@@ -537,7 +569,7 @@ export function SpaceEditor({
             to rewire where the board leads. */}
         {shows('space_1') && (
           <EditorSection
-            heading={regionHeading('destinations')}
+            regionId="destinations"
             color={SECTION_COLORS.movement}
             defaultOpen={filled(currentSpace.space_1)}
             summary={currentSpace.path === 'LOGIC'
@@ -583,7 +615,7 @@ export function SpaceEditor({
             dice-specific row matches. */}
         {shows('w_card') && currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
           <EditorSection
-            heading={regionHeading('popup-outcome')}
+            regionId="popup-outcome"
             color={SECTION_COLORS.dice}
             defaultOpen={diceModalsSet.length > 0}
             summary={diceModalsSet.length ? `${diceModalsSet.length} written` : 'nothing written'}
@@ -619,7 +651,7 @@ export function SpaceEditor({
             (e.g. card-triggered CHOICE_OF_EFFECTS prompts). */}
         {shows('w_card') && (
           <EditorSection
-            heading={regionHeading('popup-choice')}
+            regionId="popup-choice"
             color="#6f42c1"
             defaultOpen={modalFilled('choice')}
             summary={modalFilled('choice') ? 'written' : 'nothing written'}
@@ -636,7 +668,7 @@ export function SpaceEditor({
             Applied when the current player's space matches. */}
         {shows('w_card') && (
           <EditorSection
-            heading={regionHeading('popup-negotiate')}
+            regionId="popup-negotiate"
             color="#e83e8c"
             defaultOpen={modalFilled('negotiate')}
             summary={modalFilled('negotiate') ? 'written' : 'nothing written'}
@@ -655,7 +687,7 @@ export function SpaceEditor({
             this space. Only meaningful on FINISH/ending spaces. */}
         {shows('w_card') && (
           <EditorSection
-            heading={regionHeading('popup-end-game')}
+            regionId="popup-end-game"
             color="#ffc107"
             defaultOpen={modalFilled('end_game')}
             summary={modalFilled('end_game') ? 'written' : 'nothing written'}
@@ -743,8 +775,16 @@ export function SpaceEditor({
  * click-a-part-of-the-player-view jump finds its target with a DOM query, and
  * unmounting the fold would leave it nothing to find.
  */
-function EditorSection({ heading, summary, color, defaultOpen, anchor, children }: {
-  heading: string;
+function EditorSection({ regionId, heading, summary, color, defaultOpen, anchor, children }: {
+  /**
+   * The part of the player view this section feeds. It supplies the heading —
+   * the same words the panel uses — and tells the panel which part to light
+   * while the cursor is in here. Left out only by the sections that feed no
+   * part of the panel at all.
+   */
+  regionId?: string;
+  /** Only for a section with no region of its own. */
+  heading?: string;
   /** What this section holds, for the one line it shows while folded. */
   summary?: string;
   color: string;
@@ -754,14 +794,16 @@ function EditorSection({ heading, summary, color, defaultOpen, anchor, children 
   children: React.ReactNode;
 }): JSX.Element {
   const [open, setOpen] = useState(defaultOpen);
+  const title = regionId ? regionHeading(regionId) : (heading ?? '');
   return (
     <fieldset
       data-editor-section=""
+      data-editor-region={regionId}
       data-editor-anchor={anchor}
       style={{
         ...styles.fieldset,
+        ...(open ? styles.fieldsetOpen : styles.fieldsetFolded),
         borderLeft: `3px solid ${color}`,
-        padding: open ? '6px 10px' : '0 10px 2px',
       }}
     >
       <legend style={styles.legend}>
@@ -773,7 +815,7 @@ function EditorSection({ heading, summary, color, defaultOpen, anchor, children 
           style={styles.sectionHeaderBtn}
         >
           <span style={styles.sectionChevron} aria-hidden="true">{open ? '▾' : '▸'}</span>
-          <span style={styles.sectionHeading}>{heading}</span>
+          <span style={open ? styles.sectionHeading : styles.sectionHeadingFolded}>{title}</span>
           {!open && summary && <span style={styles.sectionSummary}>{summary}</span>}
         </button>
       </legend>
@@ -1300,9 +1342,19 @@ const styles: Record<string, React.CSSProperties> = {
   },
   toggleButtonActive: { backgroundColor: '#007bff', color: 'white', borderColor: '#007bff' },
   formContainer: { flex: 1, overflowY: 'auto', padding: '8px' },
-  fieldset: {
+  // A section OPEN is a card. A section FOLDED is a quiet row — no border, no
+  // card, no gap worth noticing. Twelve bordered boxes stacked up read as
+  // clutter even when each one is a single line (maintainer, 2026-08-23: "now
+  // it feels a little crowded when folded"), and the contrast between the two
+  // is what makes the open ones findable.
+  fieldset: { padding: 0, border: 'none', margin: 0 },
+  fieldsetOpen: {
     border: '1px solid #dee2e6', borderRadius: '4px', padding: '6px 10px',
     marginBottom: '8px', backgroundColor: 'white',
+  },
+  fieldsetFolded: {
+    border: 'none', borderRadius: 0, padding: '1px 10px 1px 7px',
+    marginBottom: '1px', backgroundColor: 'transparent',
   },
   legend: { fontSize: '11px', fontWeight: 600, color: '#495057', padding: '0 4px' },
   sectionHeaderBtn: {
@@ -1312,6 +1364,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sectionChevron: { fontSize: '9px', color: '#adb5bd', width: '8px', flexShrink: 0 },
   sectionHeading: { fontSize: '11px', fontWeight: 700, color: '#343a40', whiteSpace: 'nowrap' as const },
+  // Lighter while folded: a closed section is a thing to skim past, not a
+  // heading competing with the open one you are actually working in.
+  sectionHeadingFolded: { fontSize: '11px', fontWeight: 500, color: '#6c757d', whiteSpace: 'nowrap' as const },
   // The folded line's own contents, pushed right and dimmed so the heading
   // still reads first.
   sectionSummary: {

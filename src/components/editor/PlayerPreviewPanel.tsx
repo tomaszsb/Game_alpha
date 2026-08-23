@@ -22,9 +22,9 @@
 // `action-center__*` stylesheet, which is exactly this drift risk having
 // gone unnoticed for over a year; see CARD_LIBRARY_DESIGN.md stage 3.)
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
-import { editRegionLabel, regionById, REGION_PULSE_CLASS } from './spaceRegions';
+import { editRegionLabel, regionById, REGION_EDITING_CLASS, REGION_PULSE_CLASS } from './spaceRegions';
 import { usePanelMode, panelPalettes } from '../player/panelTheme';
 import { colors } from '../../styles/theme';
 import { shortName } from '../../utils/boardCommon';
@@ -50,6 +50,24 @@ interface PlayerPreviewPanelProps {
   onEditRegion?: (regionId: string) => void;
   /** The part to flash right now, because a field feeding it was just typed in. */
   highlightRegion?: string | null;
+  /**
+   * The part being worked in right now — lit steadily and scrolled into view,
+   * for as long as the cursor is in a field that feeds it. Separate from
+   * `highlightRegion`, which is the brief flash after a keystroke.
+   */
+  editingRegion?: string | null;
+}
+
+/**
+ * The two ways a part of this panel can be lit, off one place so Region and
+ * EditChip cannot disagree: a brief flash after a keystroke, and a steady mark
+ * on the part whose fields hold the cursor.
+ */
+function regionClasses(id: string, highlight?: string | null, editing?: string | null): string {
+  let out = '';
+  if (highlight === id) out += ` ${REGION_PULSE_CLASS}`;
+  if (editing === id) out += ` ${REGION_EDITING_CLASS}`;
+  return out;
 }
 
 /**
@@ -60,21 +78,23 @@ interface PlayerPreviewPanelProps {
  * inside a <label> where it would steal the field's name (the shape that
  * shipped a bug here recently).
  */
-function Region({ id, onEdit, highlight, style, children }: {
+function Region({ id, onEdit, highlight, editing, style, children }: {
   id: string;
   onEdit?: (regionId: string) => void;
   highlight?: string | null;
+  editing?: string | null;
   style?: React.CSSProperties;
   children: React.ReactNode;
 }): JSX.Element {
-  const lit = highlight === id ? ` ${REGION_PULSE_CLASS}` : '';
+  const lit = regionClasses(id, highlight, editing);
   if (!onEdit) {
-    return <div className={`space-region${lit}`} style={style}>{children}</div>;
+    return <div className={`space-region${lit}`} data-region-id={id} style={style}>{children}</div>;
   }
   return (
     <button
       type="button"
       className={`space-region space-region-click${lit}`}
+      data-region-id={id}
       aria-label={editRegionLabel(id)}
       onClick={() => onEdit(id)}
       style={{
@@ -93,15 +113,17 @@ function Region({ id, onEdit, highlight, style, children }: {
  * own to click (the two fold-outs). Beside that control, never wrapped around
  * it — a button inside a button is not a thing.
  */
-function EditChip({ id, onEdit, highlight, accent }: {
-  id: string; onEdit?: (regionId: string) => void; highlight?: string | null; accent: string;
+function EditChip({ id, onEdit, highlight, editing, accent }: {
+  id: string; onEdit?: (regionId: string) => void; highlight?: string | null;
+  editing?: string | null; accent: string;
 }): JSX.Element | null {
   if (!onEdit) return null;
-  const lit = highlight === id ? ` ${REGION_PULSE_CLASS}` : '';
+  const lit = regionClasses(id, highlight, editing);
   return (
     <button
       type="button"
       className={`space-region space-region-click${lit}`}
+      data-region-id={id}
       aria-label={editRegionLabel(id)}
       onClick={() => onEdit(id)}
       style={{
@@ -149,14 +171,27 @@ function defaultDiceActionLabel(dieRoll: string): string {
 }
 
 export function PlayerPreviewPanel({
-  currentSpace, visitType, diceRollData, modalConfigData, onEditRegion, highlightRegion,
+  currentSpace, visitType, diceRollData, modalConfigData, onEditRegion, highlightRegion, editingRegion,
 }: PlayerPreviewPanelProps): JSX.Element {
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const [mode, toggleMode] = usePanelMode();
   const p = panelPalettes[mode];
   // Collapsed by default, same as PlayerPanelV2's "What to do & why" and
   // "Move" toggles — approximating the first-look state a player actually sees.
   const [showWhy, setShowWhy] = useState(false);
   const [showMoveOptions, setShowMoveOptions] = useState(false);
+
+  // Lighting a part that is scrolled out of sight tells nobody anything, and
+  // this panel is taller than its box on most spaces. `block: 'nearest'` so a
+  // part already on screen does not jump.
+  useEffect(() => {
+    if (!editingRegion) return;
+    const root = rootRef.current;
+    if (!root) return;
+    root
+      .querySelector<HTMLElement>(`[data-region-id="${editingRegion}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [editingRegion]);
 
   const toggleBtn: React.CSSProperties = {
     border: `1px solid ${p.borderStrong}`,
@@ -317,7 +352,7 @@ export function PlayerPreviewPanel({
   const subActionBtn: React.CSSProperties = { ...actionBtn, padding: '7px 10px', fontSize: 12, marginBottom: 5 };
 
   return (
-    <div style={{ width: '100%', height: '100%', overflow: 'auto', background: p.bg, color: p.text, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div ref={rootRef} style={{ width: '100%', height: '100%', overflow: 'auto', background: p.bg, color: p.text, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* "That's this bit" flash, plus the hover/focus outline that says a
           part of this panel can be clicked through to its fields. Same
           component-scoped <style> + toggled class pattern BoardCanvas uses for
@@ -330,6 +365,13 @@ export function PlayerPreviewPanel({
         .${REGION_PULSE_CLASS} {
           border-radius: 6px;
           animation: space-region-pulse-kf 0.75s ease-in-out 2;
+        }
+        /* Steady, not animated: this says "you are in here", and a thing that
+           pulses for as long as you type in it would be unbearable. */
+        .${REGION_EDITING_CLASS} {
+          border-radius: 6px;
+          outline: 2px solid ${p.accent};
+          outline-offset: 2px;
         }
         .space-region-click { cursor: pointer; }
         .space-region-click:hover { outline: 1px dashed ${p.accent}; outline-offset: 2px; }
@@ -363,7 +405,7 @@ export function PlayerPreviewPanel({
           <span style={{ fontSize: 11, color: p.muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             {visitType === 'First' ? 'First visit' : 'Return visit'}
           </span>
-          <Region id="cost" onEdit={onEditRegion} highlight={highlightRegion}
+          <Region id="cost" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 16, width: 'auto' }}>
             {currentSpace.Time && (
               <span style={stat}>
@@ -399,7 +441,7 @@ export function PlayerPreviewPanel({
       {/* Purpose — "Where you are & why", matching PlayerPanelV2's Purpose zone. */}
       <div style={pad}>
         <p style={zlbl}>Where you are &amp; why</p>
-        <Region id="story" onEdit={onEditRegion} highlight={highlightRegion}
+        <Region id="story" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
           style={{ background: p.surf, borderLeft: `3px solid ${p.accent}`, padding: '10px 12px' }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>📍 {spaceLabel}</div>
           {currentSpace.Event ? (
@@ -438,7 +480,7 @@ export function PlayerPreviewPanel({
               Nothing written about what to do here yet
             </span>
           )}
-          <EditChip id="guidance" onEdit={onEditRegion} highlight={highlightRegion} accent={p.accent} />
+          <EditChip id="guidance" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion} accent={p.accent} />
         </div>
         {showWhy && (
           <div style={{ marginTop: 4 }}>
@@ -468,12 +510,12 @@ export function PlayerPreviewPanel({
             <div style={{ fontSize: 12, color: p.muted, fontStyle: 'italic', marginBottom: 7 }}>No actions authored yet</div>
           )}
           {cardActions.map((a) => (
-            <Region key={a.key} id={a.regionId} onEdit={onEditRegion} highlight={highlightRegion} style={actionBtn}>
+            <Region key={a.key} id={a.regionId} onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion} style={actionBtn}>
               {a.icon} {a.label}
             </Region>
           ))}
           {diceActions.map((a) => (
-            <Region key={a.key} id="outcomes" onEdit={onEditRegion} highlight={highlightRegion} style={actionBtn}>
+            <Region key={a.key} id="outcomes" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion} style={actionBtn}>
               {a.icon} {a.label}
             </Region>
           ))}
@@ -488,7 +530,7 @@ export function PlayerPreviewPanel({
                 >
                   <span aria-hidden>{showMoveOptions ? '▾' : '▸'}</span> ➡️ Move — {destinations.length} options
                 </button>
-                <EditChip id="destinations" onEdit={onEditRegion} highlight={highlightRegion} accent={p.accent} />
+                <EditChip id="destinations" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion} accent={p.accent} />
               </div>
               {showMoveOptions && (
                 <div style={{ marginLeft: 12, paddingLeft: 10, borderLeft: `2px solid ${p.border}`, marginTop: 2 }}>
@@ -500,13 +542,13 @@ export function PlayerPreviewPanel({
             </>
           )}
           {destinations.length === 1 && (
-            <Region id="destinations" onEdit={onEditRegion} highlight={highlightRegion}
+            <Region id="destinations" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
               style={{ fontSize: 12, color: p.muted, padding: '4px 2px' }}>
               ➡️ Next: {destinations[0].label} <span style={{ fontSize: 10 }}>(automatic)</span>
             </Region>
           )}
           {destinations.length === 0 && (
-            <Region id="destinations" onEdit={onEditRegion} highlight={highlightRegion}
+            <Region id="destinations" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
               style={{ fontSize: 12, color: p.muted, fontStyle: 'italic', padding: '4px 2px' }}>
               ➡️ Where they go next is not set here
             </Region>
@@ -530,7 +572,7 @@ export function PlayerPreviewPanel({
               <div style={{ fontSize: 10, color: p.muted, marginBottom: 3 }}>
                 {regionById(pu.regionId)?.label}
               </div>
-              <Region id={pu.regionId} onEdit={onEditRegion} highlight={highlightRegion}
+              <Region id={pu.regionId} onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
                 style={{
                   border: `1px solid ${p.borderStrong}`, borderRadius: 9, overflow: 'hidden',
                   background: p.surf, width: '100%', boxSizing: 'border-box',
@@ -587,11 +629,11 @@ export function PlayerPreviewPanel({
             border: `1px solid ${p.borderStrong}`,
             background: p.surf,
           }}>
-            <Region id="try-again" onEdit={onEditRegion} highlight={highlightRegion}
+            <Region id="try-again" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
               style={{ flex: 1, textAlign: 'center', padding: '13px 8px', fontSize: 13, fontWeight: 600, color: p.text, width: 'auto' }}>
               {tryAgainLabel}
             </Region>
-            <Region id="end-turn" onEdit={onEditRegion} highlight={highlightRegion}
+            <Region id="end-turn" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
               style={{
                 flex: 1,
                 textAlign: 'center',
@@ -607,7 +649,7 @@ export function PlayerPreviewPanel({
             </Region>
           </div>
         ) : (
-          <Region id="end-turn" onEdit={onEditRegion} highlight={highlightRegion}
+          <Region id="end-turn" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
             style={{
               width: '100%',
               border: 'none',

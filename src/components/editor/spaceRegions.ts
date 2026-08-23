@@ -250,3 +250,16 @@ export function editRegionLabel(regionId: string): string {
  * stylesheets agree on one name.
  */
 export const REGION_PULSE_CLASS = 'space-region--just-edited';
+
+/**
+ * The class the player view puts on the part you are CURRENTLY working in —
+ * steady, for as long as the cursor is in a field that feeds it, as opposed to
+ * REGION_PULSE_CLASS's brief flash after a keystroke.
+ *
+ * The flash alone was not enough. Maintainer, 2026-08-23: "nothing still shows
+ * what it is editing when the edit side is clicked on (i see it works in the
+ * reverse)" — clicking into a field said nothing, because only typing lit
+ * anything, and a field you are still deciding what to write in is exactly
+ * when you want to be told what it feeds.
+ */
+export const REGION_EDITING_CLASS = 'space-region--being-edited';
