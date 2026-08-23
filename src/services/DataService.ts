@@ -1070,6 +1070,11 @@ export class DataService implements IDataService {
       if (values[12] && values[12].trim()) spaceEffect.modal_button_label = values[12].trim();
       if (values[13] && values[13].trim()) spaceEffect.modal_summary = values[13].trim();
 
+      // button_label (column 14) — a label the maintainer typed in the editor.
+      // Appended at the end because this parser reads by fixed column NUMBER,
+      // so a column inserted anywhere earlier shifts every field after it.
+      if (values[14] && values[14].trim()) spaceEffect.button_label = values[14].trim();
+
       return spaceEffect;
     });
   }

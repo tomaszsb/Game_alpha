@@ -456,7 +456,18 @@ function processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup = new Map
         }
       }
 
-      // Use custom button label from CSV if provided, otherwise auto-generate
+      // An authored button label gets its OWN column, and the auto-generated
+      // fallback never lands there.
+      //
+      // It used to go into `description` alone -- a column that auto-fills
+      // with game-speak ("3 E cards") when nobody authored anything, which is
+      // exactly why the voice sweep stopped button labels reading it. So a
+      // label the maintainer typed had nowhere to arrive: he renamed the
+      // expeditor draw button, saw it change in the modal (a different path)
+      // and not on the player panel, and reported it (2026-08-22).
+      // `description` keeps its old meaning for every other consumer;
+      // `button_label` is empty unless a human wrote one, so preferring it
+      // can never reintroduce the leak.
       const customLabel = (row[cardLabelCols[colName]] || '').trim();
       const description = customLabel || `${cardValue} ${cardLetter} cards`;
 
@@ -498,6 +509,7 @@ function processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup = new Map
         effect_value: cardCount,
         condition: condition,
         description: description,
+        button_label: customLabel,
         trigger_type: triggerType,
         narrative: narrative
       });
@@ -593,7 +605,12 @@ function processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup = new Map
   const fieldnames = [
     'space_name', 'visit_type', 'effect_type', 'effect_action', 'effect_value',
     'condition', 'description', 'trigger_type', 'fee_type', 'narrative',
-    'modal_title', 'modal_description', 'modal_button_label', 'modal_summary'
+    'modal_title', 'modal_description', 'modal_button_label', 'modal_summary',
+    // APPENDED, deliberately: DataService.parseSpaceEffectsCsv reads this file
+    // by fixed column NUMBER, not by header name, so inserting a column mid-row
+    // silently shifts every field after it (18 tests went red proving exactly
+    // that). New columns go on the end until that parser reads by name.
+    'button_label'
   ];
 
   return toCsv(effects, fieldnames);

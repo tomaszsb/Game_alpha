@@ -242,6 +242,11 @@ export interface SpaceEffect {
   effect_value: string | number;
   condition: string;
   description: string;
+  /** A button label the maintainer typed in the editor (the *_card_label
+   *  columns). Empty unless a human wrote one — the auto-generated wording
+   *  ("3 E cards") lives in `description`, which is why button labels stopped
+   *  reading that column. Preferring this one cannot resurface game-speak. */
+  button_label?: string;
   trigger_type?: 'manual' | 'auto';
   // 2026-07-16: CSV-portability lift — LOAN_TIERED added, replacing text-
   // sniffing ("1.4m"/"2.75m" substring checks in FinancialEffectHandler)

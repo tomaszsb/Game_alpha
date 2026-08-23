@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.33] - 2026-08-22
+
+### Fix: a button label you type in the editor now actually reaches the player panel
+Maintainer report: renamed the expeditor card-draw button, watched it change in the modal and do nothing at all on the player panel.
+
+`formatManualEffectButton` generated the text in code — literally `'Hire Expeditor'` / `` `Hire ${count} Expeditors` `` — and never looked at what was typed. The authored label was written by the pipeline into `description`, which is the one column the voice sweep had deliberately stopped button labels reading, because it auto-fills with game-speak like "3 E cards" when nobody authors anything. Two past decisions in direct collision: the field existed, and its value landed exactly where nothing would look.
+
+An authored label now gets its own `button_label` column, empty unless a human wrote one, and the formatter prefers it. The generated wording remains as a safe default — so honouring an explicit label cannot resurface the leak the voice sweep removed. It is applied at the end rather than as an early return, because the icon is still chosen from the card type.
+
+**Appended to the end of the header on purpose.** `DataService.parseSpaceEffectsCsv` reads that file by fixed column *number*, not by header name, so inserting the column after `description` — where it belongs semantically — silently shifted every field after it and turned 18 tests red. Recorded in the pipeline's own header list so the next person adding a column does not rediscover it. Fixing that parser to read by name is the real answer and is left as a follow-up; it is a hot path and this was not the moment.
+
+**Also fixes shifted data in `CON-INITIATION`.** Its rows had `e_card_label='negative'` and `shake_on='summary'`, one column left of where every other row puts them — `negative` is a `shake_on` value and appears in no other row's label. Harmless while nothing read the label; the moment this fix landed it would have printed the word "negative" on a player's button. `shake_on` and `tts_field` are restored to the values the shift had displaced.
+
+Five tests pin the behaviour, including the one that matters most: an authored label wins, and a *missing* one never falls back to `description`. Full suite 2946/2946 (194 files), typecheck clean, production build clean.
+
 ## [3.2.32] - 2026-08-22
 
 ### The generated game data can be rebuilt from source again — zero drift

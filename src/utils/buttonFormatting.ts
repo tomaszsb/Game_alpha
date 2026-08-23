@@ -72,6 +72,17 @@ export function getManualEffectButtonStyle(
 export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
   const isCardEffect = effect.effect_type === 'cards';
 
+  // An authored label wins over the generated wording below. That wording is
+  // a SAFE DEFAULT, not a house style to defend: if the maintainer typed a
+  // button label in the editor, honouring it is the whole point of the field.
+  // It arrives in its own column, never the auto-filled description, so
+  // preferring it cannot bring back the game-speak the voice sweep removed.
+  // Applied at the END rather than as an early return, because the icon still
+  // has to be chosen from the card type. Before this, renaming the expeditor
+  // draw button changed the modal and did nothing at all to the player panel
+  // (reported 2026-08-22).
+  const authoredLabel = (effect.button_label || '').trim();
+
   // Extract card type from effect_action (e.g., "draw_W" → "W", "replace_E" → "E", "give_E" → "E")
   let cardType = '';
   if (isCardEffect) {
@@ -175,7 +186,7 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
     icon = '⚡';
   }
 
-  return { text, icon };
+  return { text: authoredLabel || text, icon };
 }
 
 /**
