@@ -17,6 +17,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SpaceEditor, SAFE_FIELD_SUBSET } from '../../../src/components/editor/SpaceEditor';
+import { regionHeading, regionShortLabel } from '../../../src/components/editor/spaceRegions';
 import { EDITABLE_FIELDS } from '../../../server/instanceCatalog.js';
 import type { SpaceRow } from '../../../src/components/editor/types/EditorTypes';
 
@@ -69,11 +70,33 @@ describe('SpaceEditor — how much of it you can see', () => {
 
   it('shows everything when no subset is asked for (the admin case)', () => {
     renderEditor();
-    expect(screen.getByText('🏷️ Identity & Config')).toBeInTheDocument();
-    expect(screen.getByText('🚶 Movement Destinations')).toBeInTheDocument();
-    expect(screen.getByText('🎮 Button Labels')).toBeInTheDocument();
-    expect(screen.getByText('🃏 (C) Actions')).toBeInTheDocument();
+    expect(screen.getByText('How this space behaves')).toBeInTheDocument();
+    expect(screen.getByText(regionHeading('destinations'))).toBeInTheDocument();
+    expect(screen.getByText('The buttons that end the turn')).toBeInTheDocument();
+    expect(screen.getByText('The actions players can take')).toBeInTheDocument();
     expect(screen.getByTestId('space-tile-label-input')).toBeInTheDocument();
+  });
+
+  // The maintainer's verdict on the merged screen was that it was "hard to
+  // find things on the left that match things on the right" — the editor named
+  // its sections after the data model while the player view named the same
+  // things plainly. These headings are read off spaceRegions.ts precisely so
+  // that a rename on one side cannot leave the other behind.
+  it('heads its sections with the words the player view uses', () => {
+    renderEditor({ spaceFirst: row({ requires_dice_roll: 'yes' }) });
+    for (const id of ['story', 'guidance', 'cost', 'outcomes', 'destinations',
+                      'popup-outcome', 'popup-choice', 'popup-negotiate', 'popup-end-game']) {
+      expect(screen.getByText(regionHeading(id))).toBeInTheDocument();
+    }
+  });
+
+  // Five columns that used to read "🏗️ W", "🏦 B", … against a player view
+  // saying "The scope worktypes action".
+  it('names each action column the way the player view names that action', () => {
+    renderEditor();
+    for (const type of ['W', 'B', 'I', 'L', 'E']) {
+      expect(screen.getByText(regionShortLabel(`action-${type}`))).toBeInTheDocument();
+    }
   });
 
   it('shows only the safe subset when one is asked for (the teacher case)', () => {
@@ -87,13 +110,13 @@ describe('SpaceEditor — how much of it you can see', () => {
 
     // Everything that decides how a space BEHAVES goes — above all, where it
     // leads, which is the whole reason the subset exists.
-    expect(screen.queryByText('🚶 Movement Destinations')).toBeNull();
-    expect(screen.queryByText('🏷️ Identity & Config')).toBeNull();
-    expect(screen.queryByText('🎮 Button Labels')).toBeNull();
-    expect(screen.queryByText('❓ Choice Modal')).toBeNull();
-    expect(screen.queryByText('🤝 Negotiation Modal')).toBeNull();
-    expect(screen.queryByText('🏁 End Game Modal')).toBeNull();
-    expect(screen.queryByText('🃏 (C) Actions')).toBeNull();
+    expect(screen.queryByText(regionHeading('destinations'))).toBeNull();
+    expect(screen.queryByText('How this space behaves')).toBeNull();
+    expect(screen.queryByText('The buttons that end the turn')).toBeNull();
+    expect(screen.queryByText(regionHeading('popup-choice'))).toBeNull();
+    expect(screen.queryByText(regionHeading('popup-negotiate'))).toBeNull();
+    expect(screen.queryByText(regionHeading('popup-end-game'))).toBeNull();
+    expect(screen.queryByText('The actions players can take')).toBeNull();
     // Renaming the board tile changes what the whole table looks at.
     expect(screen.queryByTestId('space-tile-label-input')).toBeNull();
   });
@@ -103,8 +126,8 @@ describe('SpaceEditor — how much of it you can see', () => {
       spaceFirst: row({ requires_dice_roll: 'Yes' }),
       visibleFields: SAFE_FIELD_SUBSET,
     });
-    expect(screen.queryByText('🎲 (D) Actions')).toBeNull();
-    expect(screen.queryByText('🎲 Dice Outcome Modals')).toBeNull();
+    expect(screen.queryByText(regionHeading('outcomes'))).toBeNull();
+    expect(screen.queryByText(regionHeading('popup-outcome'))).toBeNull();
   });
 });
 

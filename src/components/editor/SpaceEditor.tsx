@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SpaceRow, DiceRollRow, ModalConfigRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS, SHAKE_OPTIONS, TTS_FIELD_OPTIONS } from './types/EditorTypes';
 import { InlineDiceRollEditor } from './InlineDiceRollEditor';
 import { shortName } from '../../utils/boardCommon';
-import { SpaceRegionAnchor } from './spaceRegions';
+import { SpaceRegionAnchor, regionHeading, regionShortLabel } from './spaceRegions';
 
 /**
  * The safe subset a teacher may change: what a space SAYS and what it costs,
@@ -59,13 +59,15 @@ interface SpaceEditorProps {
   onEdited?: (anchor: SpaceRegionAnchor) => void;
 }
 
-// Card type colors matching theme.ts cardTypes
-const CARD_COLORS: Record<string, { primary: string; bg: string; border: string; text: string; emoji: string; label: string }> = {
-  W: { primary: '#6f42c1', bg: '#f3e5f5', border: '#6f42c1', text: '#4a148c', emoji: '🏗️', label: 'Scope Worktypes' },
-  B: { primary: '#007bff', bg: '#e3f2fd', border: '#007bff', text: '#0d47a1', emoji: '🏦', label: 'Bank' },
-  I: { primary: '#28a745', bg: '#e8f5e9', border: '#28a745', text: '#1b5e20', emoji: '💰', label: 'Investor' },
-  L: { primary: '#dc3545', bg: '#fce4ec', border: '#dc3545', text: '#b71c1c', emoji: '🎲', label: 'Life Event' },
-  E: { primary: '#ff9800', bg: '#fff3e0', border: '#ff9800', text: '#e65100', emoji: '⚡', label: 'Expeditor' },
+// Card type colors matching theme.ts cardTypes. The WORDS are not here: each
+// column names itself with regionShortLabel(`action-<type>`), so it says the
+// same thing the player view says about the same action.
+const CARD_COLORS: Record<string, { primary: string; bg: string; border: string; text: string; emoji: string }> = {
+  W: { primary: '#6f42c1', bg: '#f3e5f5', border: '#6f42c1', text: '#4a148c', emoji: '🏗️' },
+  B: { primary: '#007bff', bg: '#e3f2fd', border: '#007bff', text: '#0d47a1', emoji: '🏦' },
+  I: { primary: '#28a745', bg: '#e8f5e9', border: '#28a745', text: '#1b5e20', emoji: '💰' },
+  L: { primary: '#dc3545', bg: '#fce4ec', border: '#dc3545', text: '#b71c1c', emoji: '🎲' },
+  E: { primary: '#ff9800', bg: '#fff3e0', border: '#ff9800', text: '#e65100', emoji: '⚡' },
 };
 
 /**
@@ -118,7 +120,14 @@ export function SpaceEditor({
     const find = () => root.querySelector<HTMLElement>(`[data-editor-anchor="${goTo.anchor}"]`);
     const spot = find();
     if (!spot) return;
-    spot.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    // A field inside a folded-up SECTION is in the DOM but not on screen, so
+    // scrolling to it would land on nothing. Open its section first — one
+    // level up from the folded pop-up box below, same idea. Sections are never
+    // nested, so the only toggle inside the fieldset is its own.
+    spot
+      .closest<HTMLElement>('[data-editor-section]')
+      ?.querySelector<HTMLButtonElement>('[data-section-toggle][aria-expanded="false"]')
+      ?.click();
     // A folded-up pop-up box has nothing to type in until it is opened, and
     // opening it swaps the element out — so everything after this re-finds it
     // rather than holding on to the one we started with.
@@ -127,6 +136,9 @@ export function SpaceEditor({
     const settle = window.setTimeout(() => {
       lit = find();
       if (!lit) return;
+      // Scroll here rather than above: until the section and the pop-up box
+      // are open the target has no height to centre on.
+      lit.scrollIntoView({ block: 'center', behavior: 'smooth' });
       lit.classList.add(GO_TO_CLASS);
       // Something to TYPE IN first — a pop-up box that has just been unfolded
       // leads with its "collapse" button, and landing there would be useless.
@@ -215,6 +227,27 @@ export function SpaceEditor({
     onEdited?.(`field:${String(field)}`);
   };
 
+  // ── What a folded-up section says about itself on its one line. Folding is
+  //    what stops this column being "very big and sparse" (maintainer,
+  //    2026-08-23), but folding that hid whether a section had anything in it
+  //    would only move the problem, so every closed section still reports its
+  //    own contents.
+  const filled = (...values: Array<string | undefined>): boolean =>
+    values.some(v => (v || '').trim() !== '');
+  const clip = (value: string | undefined, max = 48): string => {
+    const text = (value || '').trim().replace(/\s+/g, ' ');
+    return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  };
+  const modalFilled = (effectAction: string, diceValue = ''): boolean => {
+    const config = getModalConfig(effectAction, diceValue);
+    return !!(config && (config.modal_title || config.modal_description
+      || config.modal_button_label || config.modal_summary));
+  };
+  const actionsSet = ['W', 'B', 'I', 'L', 'E'].filter(
+    t => filled(currentSpace[`${t.toLowerCase()}_card` as keyof SpaceRow] as string)
+  );
+  const diceModalsSet = ['', '1', '2', '3', '4', '5', '6'].filter(dv => modalFilled('dice', dv));
+
   return (
     <div style={styles.container}>
       {/* Header with space name, tile label, and visit type toggle.
@@ -283,46 +316,84 @@ export function SpaceEditor({
       `}</style>
 
       <div style={styles.formContainer} ref={formRef}>
-        {/* Identity & Config. Wholly outside the safe subset: phase, dice and
-            negotiation decide how a space BEHAVES, not what it says. */}
-        {shows('phase') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.identity}` }}>
-          <legend style={styles.legend}>🏷️ Identity & Config</legend>
-          <div style={styles.fieldRow}>
-            <Field label="Space Name" value={currentSpace.space_name} readOnly />
-            <Field label="Visit Type" value={currentSpace.visit_type} readOnly />
-            <SelectField
-              label="Phase"
-              value={currentSpace.phase}
-              options={PHASES as unknown as string[]}
-              onChange={(v) => handleChange('phase', v)}
-            />
-            <SelectField
-              anchor="field:requires_dice_roll"
-              label="Dice Roll?"
-              value={currentSpace.requires_dice_roll}
-              options={YES_NO_LOWER_OPTIONS as unknown as string[]}
-              onChange={(v) => handleChange('requires_dice_roll', v)}
-            />
-            <Field
-              anchor="field:rolls"
-              label="Rolls"
-              value={currentSpace.rolls}
-              type="number"
-              onChange={(v) => handleChange('rolls', v)}
-            />
-            <SelectField
-              anchor="field:Negotiate"
-              label="Negotiate"
-              value={currentSpace.Negotiate}
-              options={YES_NO_OPTIONS as unknown as string[]}
-              onChange={(v) => handleChange('Negotiate', v)}
-            />
-          </div>
-        </fieldset>}
+        {/* How this space behaves. Wholly outside the safe subset: phase, the
+            outcome roll and negotiation decide how a space BEHAVES, not what
+            it says, so a teacher never sees this section at all. Folded by
+            default — it is the part that changes least often, and ten sections
+            all standing open was most of what made this column feel long. */}
+        {shows('phase') && (
+          <EditorSection
+            heading="How this space behaves"
+            color={SECTION_COLORS.identity}
+            defaultOpen={false}
+            summary={[
+              currentSpace.phase,
+              currentSpace.requires_dice_roll?.toLowerCase() === 'yes' ? 'outcome roll' : null,
+              currentSpace.Negotiate === 'YES' ? 'can negotiate' : null,
+            ].filter(Boolean).join(' · ')}
+          >
+            <div style={styles.fieldRow}>
+              <Field label="Space Name" value={currentSpace.space_name} readOnly />
+              <Field label="Visit Type" value={currentSpace.visit_type} readOnly />
+              <SelectField
+                label="Phase"
+                value={currentSpace.phase}
+                options={PHASES as unknown as string[]}
+                onChange={(v) => handleChange('phase', v)}
+              />
+              <SelectField
+                anchor="field:requires_dice_roll"
+                label="Dice Roll?"
+                value={currentSpace.requires_dice_roll}
+                options={YES_NO_LOWER_OPTIONS as unknown as string[]}
+                onChange={(v) => handleChange('requires_dice_roll', v)}
+              />
+              <Field
+                anchor="field:rolls"
+                label="Rolls"
+                value={currentSpace.rolls}
+                type="number"
+                onChange={(v) => handleChange('rolls', v)}
+              />
+              <SelectField
+                anchor="field:Negotiate"
+                label="Negotiate"
+                value={currentSpace.Negotiate}
+                options={YES_NO_OPTIONS as unknown as string[]}
+                onChange={(v) => handleChange('Negotiate', v)}
+              />
+            </div>
+            {/* Moved out of the story section: how a line is announced and
+                shaken is behaviour, not words a player reads. */}
+            {shows('shake_on') && <div style={styles.fieldRow}>
+              <SelectField
+                label="Shake On"
+                value={currentSpace.shake_on}
+                options={[...SHAKE_OPTIONS].filter(o => o !== '')}
+                onChange={(v) => handleChange('shake_on', v)}
+              />
+              <SelectField
+                label="TTS Field"
+                value={currentSpace.tts_field}
+                options={[...TTS_FIELD_OPTIONS].filter(o => o !== '')}
+                onChange={(v) => handleChange('tts_field', v)}
+              />
+              <div style={{ flex: 4 }} />
+            </div>}
+          </EditorSection>
+        )}
 
-        {/* Story & Narrative */}
-        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.story}` }}>
-          <legend style={styles.legend}>📖 Story & Narrative</legend>
+        {/* From here down the sections run in the order the player view runs,
+            each headed with the words the player view uses for the same part.
+            The pop-ups come after, and the turn buttons stay LAST to mirror
+            the in-game panel, where they sit at the bottom (fb:8f64c34c). */}
+
+        <EditorSection
+          heading={regionHeading('story')}
+          color={SECTION_COLORS.story}
+          defaultOpen
+          summary={clip(currentSpace.Event) || 'nothing written'}
+        >
           <TextareaField
             anchor="field:Title"
             label="Story title (subtitle, per visit)"
@@ -339,6 +410,17 @@ export function SpaceEditor({
             original={originalValue('Event')}
             rows={2}
           />
+        </EditorSection>
+
+        {/* Split out of the old "Story & Narrative", so that each section
+            answers to exactly one clickable part of the player view rather
+            than two. */}
+        <EditorSection
+          heading={regionHeading('guidance')}
+          color={SECTION_COLORS.story}
+          defaultOpen
+          summary={clip(currentSpace.Action) || 'nothing written'}
+        >
           <TextareaField
             anchor="field:Action"
             label="Action"
@@ -355,28 +437,55 @@ export function SpaceEditor({
             original={originalValue('Outcome')}
             rows={2}
           />
-          {shows('shake_on') && <div style={styles.fieldRow}>
-            <SelectField
-              label="Shake On"
-              value={currentSpace.shake_on}
-              options={[...SHAKE_OPTIONS].filter(o => o !== '')}
-              onChange={(v) => handleChange('shake_on', v)}
-            />
-            <SelectField
-              label="TTS Field"
-              value={currentSpace.tts_field}
-              options={[...TTS_FIELD_OPTIONS].filter(o => o !== '')}
-              onChange={(v) => handleChange('tts_field', v)}
-            />
-          </div>}
-        </fieldset>
+        </EditorSection>
 
-        {/* Card Effects + Time & Costs. What a space DEALS is outside the safe
-            subset; what it costs is inside it, so the row survives on its own. */}
-        <div style={styles.fieldRow}>
-          <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.cards}`, flex: 1 }}>
-            <legend style={styles.legend}>{shows('w_card') ? '🃏 (C) Actions' : '⏱️ Time & 💰 Fee'}</legend>
-            {shows('w_card') && <div style={styles.cardGrid}>
+        {/* Its own section now. It was the tail of the old "(C) Actions"
+            fieldset, which meant a teacher — who may change what a space costs
+            but not what it deals — met a fieldset renamed around them. */}
+        <EditorSection
+          heading={regionHeading('cost')}
+          color={SECTION_COLORS.costs}
+          defaultOpen={filled(currentSpace.Time, currentSpace.Fee)}
+          summary={[currentSpace.Time, currentSpace.Fee].filter(v => (v || '').trim() !== '').join(' · ') || 'nothing'}
+        >
+          <div style={styles.fieldRow}>
+            <div style={styles.field} data-editor-anchor="field:Time">
+              <LabelWithRevert
+                label="⏱️ Time"
+                value={currentSpace.Time}
+                original={originalValue('Time')}
+                onChange={(v) => handleChange('Time', v)}
+              />
+              <TimeInput value={currentSpace.Time} onChange={(v) => handleChange('Time', v)} />
+              {shows('w_card') && currentSpace.Time && <ModalConfigExpander effectAction="add" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
+            </div>
+            <div style={styles.field} data-editor-anchor="field:Fee">
+              <LabelWithRevert
+                label="💰 Fee"
+                value={currentSpace.Fee}
+                original={originalValue('Fee')}
+                onChange={(v) => handleChange('Fee', v)}
+              />
+              <FeeInput value={currentSpace.Fee} onChange={(v) => handleChange('Fee', v)} />
+              {shows('w_card') && currentSpace.Fee && <ModalConfigExpander effectAction="deduct" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
+            </div>
+            <div style={{ flex: 1 }} />
+          </div>
+        </EditorSection>
+
+        {/* The five actions. Outside the safe subset: what a space DEALS is
+            not what it SAYS. Each column names itself with the same words the
+            player view uses for that action. */}
+        {shows('w_card') && (
+          <EditorSection
+            heading="The actions players can take"
+            color={SECTION_COLORS.cards}
+            defaultOpen={actionsSet.length > 0}
+            summary={actionsSet.length
+              ? actionsSet.map(t => regionShortLabel(`action-${t}`)).join(' · ')
+              : 'none'}
+          >
+            <div style={styles.cardGrid}>
               <CardFieldWithLabel type="W" value={currentSpace.w_card} label={currentSpace.w_card_label} narrative={currentSpace.w_card_narrative}
                 modalConfig={getModalConfig('draw_W')}
                 onChange={(v) => handleChange('w_card', v)} onLabelChange={(v) => handleChange('w_card_label', v)} onNarrativeChange={(v) => handleChange('w_card_narrative', v)}
@@ -397,38 +506,21 @@ export function SpaceEditor({
                 modalConfig={getModalConfig('draw_E')}
                 onChange={(v) => handleChange('e_card', v)} onLabelChange={(v) => handleChange('e_card_label', v)} onNarrativeChange={(v) => handleChange('e_card_narrative', v)}
                 onModalConfigChange={(f, v) => setModalConfigField('draw_E', f, v)} />
-            </div>}
-            <div style={styles.fieldRow}>
-              <div style={styles.field} data-editor-anchor="field:Time">
-                <LabelWithRevert
-                  label="⏱️ Time"
-                  value={currentSpace.Time}
-                  original={originalValue('Time')}
-                  onChange={(v) => handleChange('Time', v)}
-                />
-                <TimeInput value={currentSpace.Time} onChange={(v) => handleChange('Time', v)} />
-                {shows('w_card') && currentSpace.Time && <ModalConfigExpander effectAction="add" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
-              </div>
-              <div style={styles.field} data-editor-anchor="field:Fee">
-                <LabelWithRevert
-                  label="💰 Fee"
-                  value={currentSpace.Fee}
-                  original={originalValue('Fee')}
-                  onChange={(v) => handleChange('Fee', v)}
-                />
-                <FeeInput value={currentSpace.Fee} onChange={(v) => handleChange('Fee', v)} />
-                {shows('w_card') && currentSpace.Fee && <ModalConfigExpander effectAction="deduct" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
-              </div>
-              <div style={{ flex: 3 }} />
             </div>
-          </fieldset>
-        </div>
+          </EditorSection>
+        )}
 
-        {/* Dice Rolls — inline. Outside the safe subset: dice decide where a
-            player goes next. */}
+        {/* Outside the safe subset: the outcome table decides where a player
+            goes next. `section:outcomes` is the whole fieldset because these
+            fields have no single spot of their own. */}
         {shows('w_card') && currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
-          <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.dice}` }} data-editor-anchor="section:outcomes">
-            <legend style={styles.legend}>🎲 (D) Actions</legend>
+          <EditorSection
+            heading={regionHeading('outcomes')}
+            color={SECTION_COLORS.dice}
+            defaultOpen
+            anchor="section:outcomes"
+            summary={`${diceRollData.length} written`}
+          >
             <InlineDiceRollEditor
               diceRolls={diceRollData}
               spaceName={currentSpace.space_name}
@@ -438,18 +530,66 @@ export function SpaceEditor({
               onAddDiceRoll={onAddDiceRoll}
               onDeleteDiceRoll={onDeleteDiceRoll}
             />
-          </fieldset>
+          </EditorSection>
         )}
 
-        {/* Dice Outcome Modals — Phase 4: per-dice-value overrides for DiceResultModal.
-            Each roll (1..6) can have its own modal text. The "Any Roll" slot applies
-            when no dice-specific row matches. Supports {diceValue}, {spaceName}. */}
+        {/* The reason the safe subset exists: rewriting words must not be able
+            to rewire where the board leads. */}
+        {shows('space_1') && (
+          <EditorSection
+            heading={regionHeading('destinations')}
+            color={SECTION_COLORS.movement}
+            defaultOpen={filled(currentSpace.space_1)}
+            summary={currentSpace.path === 'LOGIC'
+              ? 'decided by a rule'
+              : [currentSpace.space_1, currentSpace.space_2, currentSpace.space_3, currentSpace.space_4, currentSpace.space_5]
+                  .filter(v => (v || '').trim() !== '').map(v => shortName(v)).join(' · ') || 'nowhere'}
+          >
+            <div style={{ ...styles.fieldRow, marginBottom: '6px' }}>
+              <SelectField
+                anchor="field:path"
+                label="Path Type"
+                value={currentSpace.path}
+                options={PATH_TYPES as unknown as string[]}
+                onChange={(v) => handleChange('path', v)}
+              />
+              <div style={{ flex: 3 }} />
+            </div>
+            {currentSpace.path === 'LOGIC' ? (
+              <LogicBuilder
+                currentSpace={currentSpace}
+                allSpaceNames={allSpaceNames}
+                onFieldChange={handleChange}
+              />
+            ) : (
+              <div style={styles.fieldRow}>
+                <SpaceSelectField anchor="field:space_1" label="1" value={currentSpace.space_1} options={allSpaceNames} onChange={(v) => handleChange('space_1', v)} />
+                <SpaceSelectField anchor="field:space_2" label="2" value={currentSpace.space_2} options={allSpaceNames} onChange={(v) => handleChange('space_2', v)} />
+                <SpaceSelectField anchor="field:space_3" label="3" value={currentSpace.space_3} options={allSpaceNames} onChange={(v) => handleChange('space_3', v)} />
+                <SpaceSelectField anchor="field:space_4" label="4" value={currentSpace.space_4} options={allSpaceNames} onChange={(v) => handleChange('space_4', v)} />
+                <SpaceSelectField anchor="field:space_5" label="5" value={currentSpace.space_5} options={allSpaceNames} onChange={(v) => handleChange('space_5', v)} />
+              </div>
+            )}
+          </EditorSection>
+        )}
+
+        {/* The pop-ups, gathered under one heading so the eye can skip the
+            lot. They are wording that lands ON the panel rather than part of
+            it, which is why they sit below everything the panel itself shows. */}
+        {shows('w_card') && <div style={styles.groupDivider}>Pop-ups that land on top of the panel</div>}
+
+        {/* Per-dice-value overrides for DiceResultModal. Each roll (1..6) can
+            have its own wording; the "Any Roll" slot applies when no
+            dice-specific row matches. */}
         {shows('w_card') && currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
-          <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.dice}` }}>
-            <legend style={styles.legend}>🎲 Dice Outcome Modals</legend>
-            <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
-              Customize the result modal shown after each dice roll. Dice-specific rows
-              win over “Any Roll”. Supports <code>{'{diceValue}'}</code> and{' '}
+          <EditorSection
+            heading={regionHeading('popup-outcome')}
+            color={SECTION_COLORS.dice}
+            defaultOpen={diceModalsSet.length > 0}
+            summary={diceModalsSet.length ? `${diceModalsSet.length} written` : 'nothing written'}
+          >
+            <div style={styles.sectionHint}>
+              Dice-specific rows win over “Any Roll”. Supports <code>{'{diceValue}'}</code> and{' '}
               <code>{'{spaceName}'}</code>.
             </div>
             <div style={{ marginBottom: '4px' }}>
@@ -472,110 +612,173 @@ export function SpaceEditor({
                 />
               </div>
             ))}
-          </fieldset>
+          </EditorSection>
         )}
 
-        {/* Movement. The reason the safe subset exists: rewriting words must
-            not be able to rewire where the board leads. */}
-        {shows('space_1') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.movement}` }}>
-          <legend style={styles.legend}>🚶 Movement Destinations</legend>
-          <div style={{ ...styles.fieldRow, marginBottom: '6px' }}>
-            <SelectField
-              anchor="field:path"
-              label="Path Type"
-              value={currentSpace.path}
-              options={PATH_TYPES as unknown as string[]}
-              onChange={(v) => handleChange('path', v)}
-            />
-            <div style={{ flex: 3 }} />
-          </div>
-          {currentSpace.path === 'LOGIC' ? (
-            <LogicBuilder
-              currentSpace={currentSpace}
-              allSpaceNames={allSpaceNames}
-              onFieldChange={handleChange}
-            />
-          ) : (
-            <div style={styles.fieldRow}>
-              <SpaceSelectField anchor="field:space_1" label="1" value={currentSpace.space_1} options={allSpaceNames} onChange={(v) => handleChange('space_1', v)} />
-              <SpaceSelectField anchor="field:space_2" label="2" value={currentSpace.space_2} options={allSpaceNames} onChange={(v) => handleChange('space_2', v)} />
-              <SpaceSelectField anchor="field:space_3" label="3" value={currentSpace.space_3} options={allSpaceNames} onChange={(v) => handleChange('space_3', v)} />
-              <SpaceSelectField anchor="field:space_4" label="4" value={currentSpace.space_4} options={allSpaceNames} onChange={(v) => handleChange('space_4', v)} />
-              <SpaceSelectField anchor="field:space_5" label="5" value={currentSpace.space_5} options={allSpaceNames} onChange={(v) => handleChange('space_5', v)} />
+        {/* Space-level overrides for any non-movement, non-card choice modal
+            (e.g. card-triggered CHOICE_OF_EFFECTS prompts). */}
+        {shows('w_card') && (
+          <EditorSection
+            heading={regionHeading('popup-choice')}
+            color="#6f42c1"
+            defaultOpen={modalFilled('choice')}
+            summary={modalFilled('choice') ? 'written' : 'nothing written'}
+          >
+            <div style={styles.sectionHint}>
+              Overrides the generic “Make Your Choice” modal when a choice is raised at this space.
+              Supports <code>{'{playerName}'}</code> and <code>{'{spaceName}'}</code>.
             </div>
-          )}
-        </fieldset>}
+            <ModalConfigExpander effectAction="choice" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
+          </EditorSection>
+        )}
 
-        {/* Choice Modal — space-level overrides for any non-movement, non-card
-            choice modal (e.g., card-triggered CHOICE_OF_EFFECTS prompts) */}
-        {shows('w_card') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #6f42c1` }}>
-          <legend style={styles.legend}>❓ Choice Modal</legend>
-          <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
-            Overrides the generic “Make Your Choice” modal when a choice is raised at this space.
-            Supports <code>{'{playerName}'}</code> and <code>{'{spaceName}'}</code>.
-          </div>
-          <ModalConfigExpander effectAction="choice" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
-        </fieldset>}
+        {/* Space-level overrides for the player-to-player negotiation flow.
+            Applied when the current player's space matches. */}
+        {shows('w_card') && (
+          <EditorSection
+            heading={regionHeading('popup-negotiate')}
+            color="#e83e8c"
+            defaultOpen={modalFilled('negotiate')}
+            summary={modalFilled('negotiate') ? 'written' : 'nothing written'}
+          >
+            <div style={styles.sectionHint}>
+              Overrides the player-to-player negotiation modal when opened from this space.
+              Title replaces the step header, description replaces the “Select a player…” prompt,
+              and button label replaces “Make Offer”. Supports <code>{'{playerName}'}</code>,{' '}
+              <code>{'{partnerName}'}</code>, and <code>{'{spaceName}'}</code>.
+            </div>
+            <ModalConfigExpander effectAction="negotiate" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
+          </EditorSection>
+        )}
 
-        {/* Negotiation Modal — space-level overrides for the player-to-player
-            negotiation flow. Applied when the current player's space matches. */}
-        {shows('w_card') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #e83e8c` }}>
-          <legend style={styles.legend}>🤝 Negotiation Modal</legend>
-          <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
-            Overrides the player-to-player negotiation modal when opened from this space.
-            Title replaces the step header, description replaces the “Select a player…” prompt,
-            and button label replaces “Make Offer”. Supports <code>{'{playerName}'}</code>,{' '}
-            <code>{'{partnerName}'}</code>, and <code>{'{spaceName}'}</code>.
-          </div>
-          <ModalConfigExpander effectAction="negotiate" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
-        </fieldset>}
+        {/* Overrides the victory modal when the game ends with the winner on
+            this space. Only meaningful on FINISH/ending spaces. */}
+        {shows('w_card') && (
+          <EditorSection
+            heading={regionHeading('popup-end-game')}
+            color="#ffc107"
+            defaultOpen={modalFilled('end_game')}
+            summary={modalFilled('end_game') ? 'written' : 'nothing written'}
+          >
+            <div style={styles.sectionHint}>
+              Overrides the victory modal when the winning player ends the game on this space.
+              Title replaces “Game Complete!”, description replaces the victory subtitle,
+              summary replaces the “Well played!” banner, button label replaces “Play Again”.
+              Only applies to FINISH/ending spaces. Supports <code>{'{winnerName}'}</code>{' '}
+              and <code>{'{spaceName}'}</code>.
+            </div>
+            <ModalConfigExpander effectAction="end_game" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
+          </EditorSection>
+        )}
 
-        {/* End Game Modal — overrides the victory modal when the game ends with
-            the winner on this space. Only meaningful on FINISH/ending spaces. */}
-        {shows('w_card') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #ffc107` }}>
-          <legend style={styles.legend}>🏁 End Game Modal</legend>
-          <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
-            Overrides the victory modal when the winning player ends the game on this space.
-            Title replaces “Game Complete!”, description replaces the victory subtitle,
-            summary replaces the “Well played!” banner, button label replaces “Play Again”.
-            Only applies to FINISH/ending spaces. Supports <code>{'{winnerName}'}</code>{' '}
-            and <code>{'{spaceName}'}</code>.
-          </div>
-          <ModalConfigExpander effectAction="end_game" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
-        </fieldset>}
-
-        {/* Button Labels — kept LAST to mirror the in-game panel, where the
-            End Turn / Try Again buttons sit at the bottom (fb:8f64c34c). */}
-        {shows('end_turn_label') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.buttons}` }}>
-          <legend style={styles.legend}>🎮 Button Labels</legend>
-          <div style={styles.fieldRow}>
-            <Field
-              anchor="field:end_turn_label"
-              label="End Turn Label"
-              value={currentSpace.end_turn_label}
-              onChange={(v) => handleChange('end_turn_label', v)}
-              placeholder="End Turn"
-            />
-            <Field
-              anchor="field:try_again_label"
-              label="Try Again Label"
-              value={currentSpace.try_again_label}
-              onChange={(v) => handleChange('try_again_label', v)}
-              placeholder="Try Again"
-            />
-            <div style={styles.field}>
-              <label style={styles.label}>Preview</label>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <span style={styles.btnPreviewGreen}>{currentSpace.end_turn_label || 'End Turn'}</span>
-                {currentSpace.Negotiate === 'YES' && (
-                  <span style={styles.btnPreviewYellow}>{currentSpace.try_again_label || 'Try Again'}</span>
-                )}
+        {/* Kept LAST to mirror the in-game panel, where the End Turn / Try
+            Again buttons sit at the bottom (fb:8f64c34c). One section for
+            both, because on the panel they are one row. */}
+        {shows('end_turn_label') && (
+          <EditorSection
+            heading="The buttons that end the turn"
+            color={SECTION_COLORS.buttons}
+            defaultOpen={filled(currentSpace.end_turn_label, currentSpace.try_again_label)}
+            summary={[
+              currentSpace.end_turn_label || 'End Turn',
+              currentSpace.Negotiate === 'YES' ? (currentSpace.try_again_label || 'Try Again') : null,
+            ].filter(Boolean).join(' · ')}
+          >
+            <div style={styles.fieldRow}>
+              <Field
+                anchor="field:end_turn_label"
+                label="End Turn Label"
+                value={currentSpace.end_turn_label}
+                onChange={(v) => handleChange('end_turn_label', v)}
+                placeholder="End Turn"
+              />
+              <Field
+                anchor="field:try_again_label"
+                label="Try Again Label"
+                value={currentSpace.try_again_label}
+                onChange={(v) => handleChange('try_again_label', v)}
+                placeholder="Try Again"
+              />
+              <div style={styles.field}>
+                <label style={styles.label}>Preview</label>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <span style={styles.btnPreviewGreen}>{currentSpace.end_turn_label || 'End Turn'}</span>
+                  {currentSpace.Negotiate === 'YES' && (
+                    <span style={styles.btnPreviewYellow}>{currentSpace.try_again_label || 'Try Again'}</span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </fieldset>}
+          </EditorSection>
+        )}
       </div>
     </div>
+  );
+}
+
+// ─── Sections ──────────────────────────────────────────────
+
+/**
+ * One folding section of the editor, headed with the SAME words the player
+ * view uses for the part it feeds.
+ *
+ * Two complaints made this, both from the maintainer on 2026-08-23 looking at
+ * the merged screen for real: the left column was "very big and sparse", and
+ * "it is hard to find things on the left that match things on the right".
+ *
+ * They had one cause. The editor named its sections after the data model —
+ * "🃏 (C) Actions", "🎲 Dice Outcome Modals", "🚶 Movement Destinations" —
+ * while the player view named the very same things in plain words: "The scope
+ * worktypes action", "The pop-up after an outcome", "Where they go next".
+ * Ten sections' worth of headings, and not one shared word between the two
+ * halves of the screen. Headings now come from `spaceRegions.ts`, the one map
+ * both sides already read, so the vocabularies cannot drift apart again.
+ *
+ * The sparseness was the other half: ten fieldsets standing open at once, most
+ * of them empty on any given space. A section that has nothing written in it
+ * now sits folded on one line — but a folded section still says what is inside
+ * it, so folding hides bulk rather than information.
+ *
+ * The children stay MOUNTED while folded, hidden rather than unrendered. The
+ * click-a-part-of-the-player-view jump finds its target with a DOM query, and
+ * unmounting the fold would leave it nothing to find.
+ */
+function EditorSection({ heading, summary, color, defaultOpen, anchor, children }: {
+  heading: string;
+  /** What this section holds, for the one line it shows while folded. */
+  summary?: string;
+  color: string;
+  defaultOpen: boolean;
+  /** Set when the whole fieldset is the anchor (only `section:outcomes`). */
+  anchor?: string;
+  children: React.ReactNode;
+}): JSX.Element {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <fieldset
+      data-editor-section=""
+      data-editor-anchor={anchor}
+      style={{
+        ...styles.fieldset,
+        borderLeft: `3px solid ${color}`,
+        padding: open ? '6px 10px' : '0 10px 2px',
+      }}
+    >
+      <legend style={styles.legend}>
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          aria-expanded={open}
+          data-section-toggle=""
+          style={styles.sectionHeaderBtn}
+        >
+          <span style={styles.sectionChevron} aria-hidden="true">{open ? '▾' : '▸'}</span>
+          <span style={styles.sectionHeading}>{heading}</span>
+          {!open && summary && <span style={styles.sectionSummary}>{summary}</span>}
+        </button>
+      </legend>
+      <div hidden={!open} style={{ display: open ? 'block' : 'none' }}>{children}</div>
+    </fieldset>
   );
 }
 
@@ -683,10 +886,13 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
 
   return (
     <div style={styles.cardWithLabel} data-editor-anchor={`field:${lower}_card`}>
-      <label style={{ ...styles.label, color: cc.text }}>
-        <span style={{ ...styles.cardBadge, backgroundColor: cc.bg, borderColor: cc.border, color: cc.primary }}>
+      <label style={{ ...styles.label, color: cc.text, display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+        <span style={{ ...styles.cardBadge, backgroundColor: cc.bg, borderColor: cc.border, color: cc.primary, flexShrink: 0 }}>
           {cc.emoji} {type}
         </span>
+        {/* The same words the player view uses for this action. A bare "🏗️ W"
+            was most of why the two sides were hard to line up by eye. */}
+        <span style={styles.cardColumnName}>{regionShortLabel(`action-${type}`)}</span>
       </label>
       <div style={{ display: 'flex', gap: '3px' }}>
         {useCustom ? (
@@ -1099,6 +1305,33 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: '8px', backgroundColor: 'white',
   },
   legend: { fontSize: '11px', fontWeight: 600, color: '#495057', padding: '0 4px' },
+  sectionHeaderBtn: {
+    display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
+    background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer',
+    font: 'inherit', textAlign: 'left' as const,
+  },
+  sectionChevron: { fontSize: '9px', color: '#adb5bd', width: '8px', flexShrink: 0 },
+  sectionHeading: { fontSize: '11px', fontWeight: 700, color: '#343a40', whiteSpace: 'nowrap' as const },
+  // The folded line's own contents, pushed right and dimmed so the heading
+  // still reads first.
+  sectionSummary: {
+    fontSize: '10px', fontWeight: 400, color: '#868e96', fontStyle: 'italic' as const,
+    marginLeft: 'auto', paddingLeft: '10px', minWidth: 0,
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+  },
+  // The words a card column shares with the player view, beside its badge.
+  cardColumnName: {
+    fontSize: '10px', fontWeight: 600, minWidth: 0,
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+  },
+  // One rule above the pop-up sections, so the eye can skip the lot.
+  groupDivider: {
+    fontSize: '10px', fontWeight: 700, color: '#adb5bd', textTransform: 'uppercase' as const,
+    letterSpacing: '0.04em', margin: '12px 0 4px', paddingTop: '6px',
+    borderTop: '1px solid #e9ecef',
+  },
+  // The explaining line inside a section, dimmer than anything editable.
+  sectionHint: { fontSize: '10px', color: '#868e96', marginBottom: '4px' },
   fieldRow: { display: 'flex', gap: '6px', marginBottom: '6px' },
   cardGrid: {
     display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginBottom: '6px',

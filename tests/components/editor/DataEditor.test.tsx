@@ -495,15 +495,18 @@ describe('DataEditor', () => {
         expect(screen.getByDisplayValue('Test event 1')).toBeInTheDocument();
       });
 
-      // All section legends (include emoji prefix in search to be specific)
+      // Every section is headed with the words the PLAYER VIEW uses for the
+      // same part — see spaceRegions.ts. The data-model names these used to
+      // carry ("(C) Actions", "Movement Destinations") were half of why the
+      // two sides of the screen were hard to line up by eye.
       const legends = document.querySelectorAll('legend');
       const legendTexts = Array.from(legends).map(l => l.textContent);
       expect(legendTexts).toEqual(expect.arrayContaining([
-        expect.stringContaining('Identity & Config'),
-        expect.stringContaining('Button Labels'),
-        expect.stringContaining('Story & Narrative'),
-        expect.stringContaining('(C) Actions'),
-        expect.stringContaining('Movement Destinations'),
+        expect.stringContaining('How this space behaves'),
+        expect.stringContaining('The buttons that end the turn'),
+        expect.stringContaining('What players read here'),
+        expect.stringContaining('The actions players can take'),
+        expect.stringContaining('Where they go next'),
       ]));
     });
   });

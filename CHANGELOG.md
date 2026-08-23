@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.35] - 2026-08-23
+
+### The editor and the player panel finally use the same words
+Maintainer's verdict on the merged screen, seen in real use: *"the left side is very big and sparse. it is hard to find things on the left that match things on the player panel on the right."*
+
+Both halves of that were one cause. v3.2.34 linked the two sides by click, but left them speaking different languages. The editor headed its sections after the data model — **🃏 (C) Actions**, **🎲 Dice Outcome Modals**, **🚶 Movement Destinations**, **🎮 Button Labels** — while the player view named the very same things plainly: *the scope worktypes action*, *the pop-up after an outcome*, *where they go next*, *the button that ends the turn*. Ten headings across the screen and not one shared word between the two halves. The five action columns were the sharpest case: they read `🏗️ W`, `🏦 B`, `💰 I` against a panel offering to edit "the scope worktypes action".
+
+**Headings now come off `spaceRegions.ts`** — the one map both directions already read. The panel's button says "Edit what this costs" and the section is headed "What this costs", because they are the same string. The action columns name themselves the same way, via a new `shortLabel` for the five spots too narrow for a full label. This is the same reason the click map was built as one list in the first place: two copies of a naming decision would drift, and the half that drifted would be the half nobody was looking at.
+
+**Sections fold, and a folded one still says what is in it.** The sparseness was the other half of the same problem — ten fieldsets standing open at once, most of them empty on any given space. A section with nothing written in it now sits on one line reading `▸ The pop-up for negotiating — nothing written`. On `CON-INITIATION` the column measures **1221px as it opens against 1761px with everything expanded**, and the five folded sections are exactly the five with nothing in them. Folding hides bulk, never information.
+
+**Two sections split so each answers to exactly one part of the panel.** The old "Story & Narrative" fed two separate clickable regions; it is now "What players read here" and "What to do and why". Cost moved out of the "(C) Actions" fieldset into "What this costs" — which also fixes a smaller wrong: a teacher, who may change what a space costs but not what it deals, used to meet a fieldset renamed around them at runtime. `shake_on` and `tts_field` moved the other way, into "How this space behaves", because how a line is announced is behaviour rather than words a player reads.
+
+Sections now run in the panel's own order, with the pop-ups gathered under one divider below everything the panel itself shows. The turn buttons stay last, mirroring the in-game panel where they sit at the bottom (fb:8f64c34c).
+
+**Folded sections do not break the jump.** Children stay mounted while folded — hidden, not unrendered — because the click-a-part-of-the-panel jump finds its target with a DOM query and would have nothing to find otherwise. The jump now opens the containing section before scrolling, one level up from the folded pop-up box it already opened, and scrolls only once both are open rather than centring on something with no height. Checked in the live DOM both ways: clicking "Edit what this costs" against a folded section unfolds it and lands the cursor in the Time field, and the two-level case — "Edit the pop-up for negotiating", a folded box inside a folded section — unfolds both and lands in the title input.
+
+Also checked live rather than assumed: no buttons inside buttons, none inside labels, and all twelve section toggles named and carrying `aria-expanded`. The editor's own field labels are still not associated with their inputs — pre-existing across the whole file, untouched here rather than half-fixed inside an unrelated slice.
+
+Full suite 2959/2959 (195 files) including two new tests that pin the vocabulary itself: every section heading and every action column name is asserted against `spaceRegions.ts`, so renaming a part on one side of the screen cannot leave the other behind. Typecheck clean, production build clean.
+
 ## [3.2.34] - 2026-08-23
 
 ### The player view and the editor are now linked both ways, and pop-up copy is finally visible
