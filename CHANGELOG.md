@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.32] - 2026-08-22
+
+### The generated game data can be rebuilt from source again — zero drift
+Completes the investigation v3.2.31 started. Regenerating the CLEAN files used to change three of them, because values had been written **straight into generated files** and into no source file at all. The pipeline could not reproduce them, so every regeneration deleted them — and the live server regenerates on every content save, so live had already lost all of them.
+
+All three are now real source data, and `node scripts/regen-clean-files.mjs` reproduces every committed CLEAN file **byte for byte**.
+
+- **`fee_category`** (5 rows — architectural / engineering / construction) says which bucket a dice-driven fee is spent from. It existed in no source file. It now lives on the space in `Spaces.csv`, and the pipeline carries it onto the matching money row only — tagging the same space's *time* row would be meaningless, and that one extra row was the last difference standing.
+- **`npc_speaker`** (5 rows, all `PM`) marks the spaces where the project manager narrates rather than a character.
+- **`approval_role`** (3 rows — `dob_exam`, `dob_audit`, `fdny_exam`) says which space plays the DOB or FDNY exam role.
+
+The last two matter beyond the drift: both were added by the v3.1.0 CSV-portability lift *along with the code to read them*, and both had **zero rows populated**. The features fell back to hardcoded lists and looked fine, so nothing surfaced it — but the portability those columns exist to provide was inert. A reskin could not move who speaks, or which space examines a filing, no matter what it put in its CSVs. Now it can.
+
+`Spaces.csv` shows a large diff because writing it back re-serialises every row with consistent trailing commas. Nothing was lost: the round-trip was checked field by field across all 105 rows × 55 columns before any edit — **zero differences** — and the proof is that the regenerated CLEAN files now match the committed ones exactly.
+
+**A guard test so this cannot come back.** `tests/server/pipelineFaithful.test.ts` regenerates all five CLEAN files from the committed SOURCE files and asserts each matches byte for byte. If it ever fails, the fix is the pipeline or a source column — never the generated file, because hand-editing generated files is precisely what created three silent production regressions here. Full suite 2941/2941 (193 files), typecheck clean, production build clean.
+
 ## [3.2.31] - 2026-08-22
 
 ### Fix: the bank's tiered loan fee was being charged as a flat percentage, on live

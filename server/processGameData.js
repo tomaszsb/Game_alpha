@@ -599,9 +599,24 @@ function processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup = new Map
   return toCsv(effects, fieldnames);
 }
 
-function processDiceEffects(diceRollCsv) {
+function processDiceEffects(diceRollCsv, spacesCsv) {
   const rows = parseCsvWithHeaders(diceRollCsv);
   const effects = [];
+
+  // fee_category (architectural / engineering / construction) says which
+  // bucket a dice-driven fee is spent from. It lives on the SPACE, in
+  // Spaces.csv, not on the dice row -- the dice table has no column for it.
+  //
+  // It had been written straight into the generated DICE_EFFECTS.csv and into
+  // no source file at all, so every regeneration dropped it and live had
+  // already lost it (found 2026-08-22). Carrying it here is what makes it
+  // survive.
+  const feeCategoryBySpace = new Map();
+  for (const r of parseCsvWithHeaders(spacesCsv || '')) {
+    const key = `${(r.space_name || '').trim()}|${(r.visit_type || '').trim()}`;
+    const cat = (r.fee_category || '').trim();
+    if (cat) feeCategoryBySpace.set(key, cat);
+  }
 
   for (const row of rows) {
     const spaceName = row.space_name;
@@ -662,7 +677,10 @@ function processDiceEffects(diceRollCsv) {
       roll_group: row.roll_group || '',
       roll_action: rollAction,
       roll_is_percentage: rollIsPercentage ? 'true' : 'false',
-      roll_numeric_only: rollNumericOnly ? 'true' : 'false'
+      roll_numeric_only: rollNumericOnly ? 'true' : 'false',
+      // Only a MONEY row carries it: the category says which bucket a fee is
+      // spent from, so tagging the same space's time row would be meaningless.
+      fee_category: effectType === 'money' ? (feeCategoryBySpace.get(`${spaceName}|${visitType}`) || '') : ''
     });
   }
 
@@ -670,6 +688,7 @@ function processDiceEffects(diceRollCsv) {
     'space_name', 'visit_type', 'effect_type', 'card_type',
     'roll_1', 'roll_2', 'roll_3', 'roll_4', 'roll_5', 'roll_6',
     'roll_group', 'roll_action', 'roll_is_percentage', 'roll_numeric_only'
+  , 'fee_category'
   ];
 
   return toCsv(effects, fieldnames);
@@ -696,7 +715,7 @@ export function processGameData(spacesCsv, diceRollCsv, outputDir, modalConfigCs
     'GAME_CONFIG.csv': processGameConfig(spacesCsv),
     'SPACE_CONTENT.csv': processSpaceContent(spacesCsv),
     'SPACE_EFFECTS.csv': processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup),
-    'DICE_EFFECTS.csv': processDiceEffects(diceRollCsv),
+    'DICE_EFFECTS.csv': processDiceEffects(diceRollCsv, spacesCsv),
   };
 
   const results = [];
