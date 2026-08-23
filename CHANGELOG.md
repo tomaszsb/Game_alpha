@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.31] - 2026-08-22
+
+### Fix: the bank's tiered loan fee was being charged as a flat percentage, on live
+Found while investigating why regenerating the game's data files breaks the test suite. BANK-FUND-REVIEW's fee reads *"1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M"* — three brackets, and `FinancialEffectHandler` has a `LOAN_TIERED` branch that charges them properly. The pipeline saw a single `%` and labelled the whole thing `LOAN_PERCENTAGE`, a flat rate.
+
+Someone had corrected this **by hand in the generated file**, which the pipeline could not reproduce — so every regeneration silently put the flat rate back. The live server regenerates on content save, so it had already reverted: `curl .../data/CLEAN_FILES/SPACE_EFFECTS.csv` showed `LOAN_PERCENTAGE` on both visit rows. Real money, charged wrong, in production.
+
+The pipeline now decides from the fee text itself: more than one percentage means tiered. Only BANK-FUND-REVIEW matches in current data, which makes the rule exact rather than heuristic. The correction is now reproducible, so it survives regeneration instead of depending on nobody re-running it — which is the actual fix. This is the "orphan CLEAN edit" trap [CLAUDE.md](docs/core/CLAUDE.md) already documents: *"if you find yourself reaching for the CLEAN file because the SOURCE pipeline doesn't yet support the change, fix the pipeline first."*
+
+Also fixes a typecheck error shipped in v3.2.30: the regression tests added there pass `baselineSpacesCsv`, which was added to `diffSubmittedContent`'s signature but not its JSDoc, so `tsc` rejected the tests while vitest ran them green. Exactly the trap CLAUDE.md records — *"vitest doesn't typecheck; re-run `npm run typecheck` AFTER writing tests that exercise new JSDoc-typed server params"* — and it shipped because build and tests were re-run after adding those tests but typecheck was not.
+
+### Known, recorded, not fixed here
+Regenerating still changes two files, and both are the same species of orphan edit:
+
+- **`DICE_EFFECTS.csv` loses `fee_category`** (5 rows: architectural / engineering / construction). The column exists in no source file — it was written straight into the generated one. Live has already lost it. Fixing it properly needs a new source column, which is a data edit this session did not have the room to do safely.
+- **`GAME_CONFIG.csv` loses `npc_speaker`** (5 rows, all `PM`). Same story. Harmless today because `getNpcCharacterInfo` uses a hardcoded list of the five PM-voiced spaces and still gets the right answer — but it means the v3.1.0 CSV-portability lift is inert for this column: a reskin cannot move who speaks. **`approval_role` is in the same state** — 0 rows populated, so the DOB/FDNY exam roles cannot be moved by CSV either.
+
+Typecheck clean, production build clean, full suite 2936/2936 (192 files).
+
 ## [3.2.30] - 2026-08-22
 
 ### Fix: one edit created a card for every space on the board

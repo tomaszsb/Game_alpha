@@ -552,7 +552,18 @@ function processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup = new Map
         // this in its Fee column; it's the authored scope-fee path (4b slice 4).
         feeType = 'SCOPE_PERCENTAGE';
       } else if (feeValLower.includes('%')) {
-        feeType = 'LOAN_PERCENTAGE';
+        // Several bracketed rates, not one flat rate. BANK-FUND-REVIEW's fee
+        // reads "1% for loan of up to $1.4M or 2% for loan between $1.5M and
+        // 2.75M or 3% above 2.75M" — three tiers, and FinancialEffectHandler
+        // has a LOAN_TIERED branch that charges them properly. The pipeline
+        // saw one '%' and called the whole thing a flat percentage.
+        //
+        // Someone had corrected this by hand IN THE GENERATED FILE, which the
+        // pipeline could not reproduce, so every regeneration silently put the
+        // flat rate back — and the live server regenerates on save. Live was
+        // charging LOAN_PERCENTAGE on a tiered fee (found 2026-08-22). Fixing
+        // it here is what makes the correction survive.
+        feeType = (feeValue.match(/%/g) || []).length > 1 ? 'LOAN_TIERED' : 'LOAN_PERCENTAGE';
       }
 
       effects.push({

@@ -96,9 +96,17 @@ function rowListsEqual(a = [], b = []) {
  * and a dice-only edit is exactly the kind of change that used to evaporate on
  * restart, so ignoring it here would leave half the bug alive.
  *
+ * `baseline*` is what the editor actually LOADED — this classroom's baked
+ * board. It is the thing a submission must be compared against, because the
+ * bake legitimately differs from stock for reasons that are nobody's edit
+ * (tile positions above all). Omit it and stock is used, which is only right
+ * for a classroom that has never been baked.
+ *
  * @param {{ submittedSpacesCsv: string, submittedDiceCsv?: string|null,
  *   submittedModalCsv?: string|null, stockSpacesCsv: string,
- *   stockDiceCsv?: string|null, stockModalCsv?: string|null }} args
+ *   stockDiceCsv?: string|null, stockModalCsv?: string|null,
+ *   baselineSpacesCsv?: string|null, baselineDiceCsv?: string|null,
+ *   baselineModalCsv?: string|null }} args
  * @returns {{
  *   changed: Array<{ slot: string, rows: Array<Object<string, string>>,
  *     diceRows: Array<Object<string, string>>, modalRows: Array<Object<string, string>> }>,
