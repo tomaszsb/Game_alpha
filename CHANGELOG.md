@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.36] - 2026-08-23
+
+### The four security warnings in the deploy log are gone — by going forward, not back
+The v3.2.35 deploy printed `4 high severity vulnerabilities` during `npm ci`. They were four names for one flaw: **`extract-zip` unpacks zip files without checking whether the entries inside are symlinks pointing elsewhere**, so a booby-trapped archive can write outside the folder it is being unpacked into. The other three — `puppeteer`, `puppeteer-core`, `@puppeteer/browsers` — were flagged only for standing on top of it.
+
+`puppeteer` is a devDependency, driven by the screenshot scripts and the UAT scripts and never by the game. But the Dockerfile is single-stage: `npm ci` installs dev tooling and nothing prunes it afterwards, so the vulnerable code was riding along inside the production image. Never executed there — `CMD` runs only `server/server.js` — but present, which is not the same as absent.
+
+**`npm audit fix` proposed the wrong direction.** Its suggested remedy was `puppeteer@19.8.0` — six major versions *backwards* from the installed 24.43.1, to a release from early 2023. That is npm finding the newest version carrying no *recorded* advisory, which is not the same as the safest version; taking it would have traded one known flaw for two and a half years of unknown ones.
+
+The fix is forward. `@puppeteer/browsers@3.2.1` **dropped `extract-zip` altogether** in favour of `modern-tar`, so upgrading removes the vulnerable package rather than tolerating a patched copy of it.
+
+- `puppeteer` `^24.33.0` → `^25.8.0`
+- `extract-zip` is gone from `node_modules`, not merely updated
+- `npm audit`: **0 vulnerabilities**, was 4 high
+- 48 packages removed, 14 added — a smaller image as well as a quieter one
+
+A major bump on a browser driver is exactly where things break quietly, so it was smoke-tested rather than assumed: puppeteer 25 launched with the same options the scripts pass (`headless: 'new'`, `--no-sandbox`), opened a page and read its content back. The four scripts that use it — `scripts/capture-game-screenshot{,-more}.js`, `tests/uat/puppeteer-simple.js`, `tests/uat/test-pm-decision-check.js` — are not covered by `npm test`, which is why the launch was checked by hand.
+
+Full suite 2959/2959 (195 files), typecheck clean, production build clean.
+
+**Left alone deliberately:** the Dockerfile still ships devDependencies into the running image. An `npm prune --omit=dev` after the build, or a second build stage, would have made this a non-issue regardless of the flaw — but that changes how deploys are built, which is the maintainer's call rather than something to fold into a security fix. Recorded in TODO.md.
+
 ## [3.2.35] - 2026-08-23
 
 ### The editor and the player panel finally use the same words
