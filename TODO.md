@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** August 19, 2026 — v3.2.16 (fixloop): Chronicle click-entry-to-replay-highlight — clicking a "What's happened" log entry now pans/pulses the board to where it happened, closing half of the Change-legibility P1 remaining line (TV-persistent feed still open). Full detail: CHANGELOG v3.2.16. Earlier same day: replaced the resume/join flow (v3.2.14), then a long live-playtesting-driven batch (v3.2.15). This session's automated browser tooling confirmed (git-stash A/B test) that it renders zero React Flow board edges at all — a pre-existing environment limitation, not a regression — so every board-connector visual fix above was verified via unit tests + code review only, never seen live; see updated G160 item below.
-**Status:** Beta — v3.2.22 confirmed deployed live (commit 960c857, 2026-08-22). Repo at v3.2.33, not yet deployed.
-**Current Version:** 3.2.33 (repo ahead of live deploy).
+**Status:** Beta — v3.2.22 confirmed deployed live (commit 960c857, 2026-08-22). Repo at v3.2.34, not yet deployed.
+**Current Version:** 3.2.34 (repo ahead of live deploy).
 
 ---
 
@@ -86,6 +86,9 @@
 - [x] **Orphan CLEAN edits — ALL FIXED v3.2.31+v3.2.32.** fee_type (bank tiered loan fee, was charging flat on live), fee_category, npc_speaker and approval_role are all real source data now; regen reproduces every CLEAN file byte-for-byte, guarded by tests/server/pipelineFaithful.test.ts. Also closed a real gap: npc_speaker and approval_role had ZERO rows populated since the v3.1.0 CSV-portability lift, so a reskin could not move who speaks or which space examines a filing.
 
 - [x] **Custom card-draw button label — FIXED v3.2.33.** Own `button_label` column, formatter prefers it, CON-INITIATION shifted data corrected. **Follow-up worth doing: `DataService.parseSpaceEffectsCsv` reads SPACE_EFFECTS by fixed column NUMBER, not header name** — inserting a column mid-header shifted every later field and turned 18 tests red, so new columns must be appended to the end until that parser reads by name (the editor's own csvExport was fixed this way in v2.66.1; this parser never was).
+
+- [ ] **Editor field labels are not associated with their inputs** — found 2026-08-23 building the preview/editor link. Across all ~1100 lines of `SpaceEditor`, a field's `<label>` is a sibling with no `htmlFor`/`id` pairing, so `getByLabelText` cannot find them and a screen reader announces the fields unnamed. Pre-existing, not introduced by that slice, and the same family as the nested-button bug fixed in v3.2.29. Mechanical to fix (id + htmlFor per field) but touches every field, so it wants its own pass with the suite green either side.
+- [ ] **Confirm the new preview/editor link by keyboard** (v3.2.34) — reachability was verified structurally (native buttons, no custom key handling, correct tab order, visible focus ring) but synthetic keystrokes do not reach the page in this environment, so nobody has actually pressed Tab through it. ~30 seconds of real tabbing in your own browser.
 
 - [ ] **Glossary auto-sync: 6 drafted terms are sitting in Purgatory awaiting your approval.** WORKING as of 2026-07-26 22:20 EDT — first successful run staged Standpipe, Heat Recovery Ventilation, Stormwater Management, Tax Credit, Crowdfunding, Environmental Review (tagged `source=game_auto | AI Generated`). Verified from timestamped logs, see CHANGELOG v3.1.62 "Ops". Only action left is a human one: review/approve them on the dashboard's candidates page. Re-check health any time with `ssh unraid "docker logs -t dictionary-scraper-backend | grep glossary-autosync | tail -20"` (`-t` matters). Details: memory [[project_glossary_autosync]].
 

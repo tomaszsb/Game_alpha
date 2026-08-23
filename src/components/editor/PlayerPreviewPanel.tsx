@@ -23,7 +23,8 @@
 // gone unnoticed for over a year; see CARD_LIBRARY_DESIGN.md stage 3.)
 
 import React, { useState } from 'react';
-import { SpaceRow, DiceRollRow } from './types/EditorTypes';
+import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
+import { editRegionLabel, regionById, REGION_PULSE_CLASS } from './spaceRegions';
 import { usePanelMode, panelPalettes } from '../player/panelTheme';
 import { colors } from '../../styles/theme';
 import { shortName } from '../../utils/boardCommon';
@@ -34,6 +35,83 @@ interface PlayerPreviewPanelProps {
   currentSpace: SpaceRow | null;
   visitType: 'First' | 'Subsequent';
   diceRollData: DiceRollRow[];
+  /**
+   * The pop-up wording rows for the whole board. Needed because a pop-up's
+   * words are otherwise edited blind — nothing on this panel showed them.
+   * Leave it out and the pop-ups show their standard wording.
+   */
+  modalConfigData?: ModalConfigRow[];
+  /**
+   * "Take me to the fields that make this bit." Given, every part of this
+   * panel that spaceRegions.ts knows about becomes a real button that says
+   * out loud which fields it opens. Left out, the panel is just a picture —
+   * which is what browsing wants.
+   */
+  onEditRegion?: (regionId: string) => void;
+  /** The part to flash right now, because a field feeding it was just typed in. */
+  highlightRegion?: string | null;
+}
+
+/**
+ * One part of the player view, tied to spaceRegions.ts by its id.
+ *
+ * A real <button> when it can be clicked through to the fields, and a plain
+ * <div> when it cannot — never a div pretending, and never a button hidden
+ * inside a <label> where it would steal the field's name (the shape that
+ * shipped a bug here recently).
+ */
+function Region({ id, onEdit, highlight, style, children }: {
+  id: string;
+  onEdit?: (regionId: string) => void;
+  highlight?: string | null;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}): JSX.Element {
+  const lit = highlight === id ? ` ${REGION_PULSE_CLASS}` : '';
+  if (!onEdit) {
+    return <div className={`space-region${lit}`} style={style}>{children}</div>;
+  }
+  return (
+    <button
+      type="button"
+      className={`space-region space-region-click${lit}`}
+      aria-label={editRegionLabel(id)}
+      onClick={() => onEdit(id)}
+      style={{
+        display: 'block', width: '100%', textAlign: 'left', font: 'inherit',
+        color: 'inherit', background: 'none', border: 'none', padding: 0, margin: 0,
+        ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * The small pencil for a part of the panel that already has something of its
+ * own to click (the two fold-outs). Beside that control, never wrapped around
+ * it — a button inside a button is not a thing.
+ */
+function EditChip({ id, onEdit, highlight, accent }: {
+  id: string; onEdit?: (regionId: string) => void; highlight?: string | null; accent: string;
+}): JSX.Element | null {
+  if (!onEdit) return null;
+  const lit = highlight === id ? ` ${REGION_PULSE_CLASS}` : '';
+  return (
+    <button
+      type="button"
+      className={`space-region space-region-click${lit}`}
+      aria-label={editRegionLabel(id)}
+      onClick={() => onEdit(id)}
+      style={{
+        background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer',
+        fontSize: 11, color: accent, lineHeight: 1,
+      }}
+    >
+      <span aria-hidden>✏️</span>
+    </button>
+  );
 }
 
 // Mirrors formatManualEffectButton's card branch defaults (buttonFormatting.ts)
@@ -70,7 +148,9 @@ function defaultDiceActionLabel(dieRoll: string): string {
   return DICE_BUTTON.OUTCOME;
 }
 
-export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: PlayerPreviewPanelProps): JSX.Element {
+export function PlayerPreviewPanel({
+  currentSpace, visitType, diceRollData, modalConfigData, onEditRegion, highlightRegion,
+}: PlayerPreviewPanelProps): JSX.Element {
   const [mode, toggleMode] = usePanelMode();
   const p = panelPalettes[mode];
   // Collapsed by default, same as PlayerPanelV2's "What to do & why" and
@@ -128,11 +208,13 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
       const meta = colors.game.cardTypes[cf.type];
       return {
         key: `card-${cf.type}`,
+        // The one map decides which fields this button belongs to.
+        regionId: `action-${cf.type}`,
         icon: meta ? meta.emoji : '📄',
         label: customLabel || defaultCardActionLabel(cf.type, count),
       };
     })
-    .filter((x): x is { key: string; icon: string; label: string } => x !== null);
+    .filter((x): x is { key: string; regionId: string; icon: string; label: string } => x !== null);
 
   const spaceDiceRolls = diceRollData.filter(
     (dr) => dr.space_name === currentSpace.space_name && dr.visit_type === visitType,
@@ -159,6 +241,51 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
   const isDiceMovementSpace = currentSpace.requires_dice_roll?.toLowerCase() === 'yes';
   const hasThingsToDo = cardActions.length > 0 || diceActions.length > 0 || destinations.length > 0;
   const spaceLabel = currentSpace._extraColumns?.display_label_override || currentSpace.Title || shortName(currentSpace.space_name);
+
+  // --- the pop-ups this space raises, and what each will say ---------------
+  // Until now this panel showed none of them, so their wording was written
+  // blind. Each one below is tied to spaceRegions.ts by its id, so it opens
+  // the same wording boxes the rest of the panel opens.
+  const modalRows = modalConfigData ?? [];
+  const modalFor = (effectAction: string, diceValue = ''): ModalConfigRow | undefined =>
+    modalRows.find(r => r.space_name === currentSpace.space_name && r.visit_type === visitType
+      && r.effect_action === effectAction && (r.dice_value || '') === diceValue);
+
+  const popupFor = (regionId: string, effectAction: string, fallbackBody: string) => {
+    const cfg = modalFor(effectAction);
+    const extraRolls = effectAction === 'dice'
+      ? modalRows.filter(r => r.space_name === currentSpace.space_name && r.visit_type === visitType
+          && r.effect_action === 'dice' && !!(r.dice_value || '')).length
+      : 0;
+    return {
+      regionId,
+      title: cfg?.modal_title || '',
+      body: cfg?.modal_description || fallbackBody,
+      button: cfg?.modal_button_label || '',
+      summary: cfg?.modal_summary || '',
+      extraRolls,
+      authored: !!(cfg && (cfg.modal_title || cfg.modal_description || cfg.modal_button_label || cfg.modal_summary))
+        || !!fallbackBody || extraRolls > 0,
+    };
+  };
+  type PopupPreview = ReturnType<typeof popupFor>;
+
+  const popups: PopupPreview[] = [];
+  cardFields.forEach((cf) => {
+    if (!currentSpace[cf.key]) return;
+    const narrative = currentSpace[`${cf.type.toLowerCase()}_card_narrative` as keyof SpaceRow] as string;
+    popups.push(popupFor(`popup-${cf.type}`, `draw_${cf.type}`, narrative || ''));
+  });
+  if (currentSpace.Time) popups.push(popupFor('popup-time', 'add', ''));
+  if (currentSpace.Fee) popups.push(popupFor('popup-fee', 'deduct', ''));
+  if (isDiceMovementSpace) popups.push(popupFor('popup-outcome', 'dice', ''));
+  if (showTryAgain) popups.push(popupFor('popup-negotiate', 'negotiate', ''));
+  // These two are not raised by anything the space itself declares, so they
+  // are only worth showing once somebody has actually written words for them.
+  const choicePopup = popupFor('popup-choice', 'choice', '');
+  if (choicePopup.authored) popups.push(choicePopup);
+  const endGamePopup = popupFor('popup-end-game', 'end_game', '');
+  if (endGamePopup.authored) popups.push(endGamePopup);
 
   // --- shared style tokens, matching PlayerPanelV2's own constants --------
   const pad: React.CSSProperties = { padding: '11px 13px', borderBottom: `0.5px solid ${p.border}` };
@@ -191,6 +318,26 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
 
   return (
     <div style={{ width: '100%', height: '100%', overflow: 'auto', background: p.bg, color: p.text, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      {/* "That's this bit" flash, plus the hover/focus outline that says a
+          part of this panel can be clicked through to its fields. Same
+          component-scoped <style> + toggled class pattern BoardCanvas uses for
+          its chronicle highlight (v3.2.16) — not a second way of doing it. */}
+      <style>{`
+        @keyframes space-region-pulse-kf {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
+          50% { box-shadow: 0 0 0 5px rgba(124,58,237,0.5); }
+        }
+        .${REGION_PULSE_CLASS} {
+          border-radius: 6px;
+          animation: space-region-pulse-kf 0.75s ease-in-out 2;
+        }
+        .space-region-click { cursor: pointer; }
+        .space-region-click:hover { outline: 1px dashed ${p.accent}; outline-offset: 2px; }
+        .space-region-click:focus-visible { outline: 2px solid ${p.accent}; outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) {
+          .${REGION_PULSE_CLASS} { animation: none; box-shadow: 0 0 0 4px rgba(124,58,237,0.5); }
+        }
+      `}</style>
       {/* Header — no real player in the editor, so this names the surface
           rather than a player, but keeps the same dot + right-aligned phase
           badge layout as PlayerPanelV2's header. */}
@@ -216,16 +363,22 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
           <span style={{ fontSize: 11, color: p.muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             {visitType === 'First' ? 'First visit' : 'Return visit'}
           </span>
-          {currentSpace.Time && (
-            <span style={stat} title="Time cost">
-              <span aria-hidden>🕐</span>{currentSpace.Time}
-            </span>
-          )}
-          {currentSpace.Fee && (
-            <span style={stat} title="Fee">
-              <span aria-hidden>💰</span>{currentSpace.Fee}
-            </span>
-          )}
+          <Region id="cost" onEdit={onEditRegion} highlight={highlightRegion}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 16, width: 'auto' }}>
+            {currentSpace.Time && (
+              <span style={stat}>
+                <span aria-hidden>🕐</span>{currentSpace.Time}
+              </span>
+            )}
+            {currentSpace.Fee && (
+              <span style={stat}>
+                <span aria-hidden>💰</span>{currentSpace.Fee}
+              </span>
+            )}
+            {!currentSpace.Time && !currentSpace.Fee && (
+              <span style={{ fontSize: 11, color: p.muted, fontStyle: 'italic' }}>No days or fee here</span>
+            )}
+          </Region>
           {isDiceMovementSpace && (
             <span style={{ ...stat, fontSize: 11, color: p.muted }} title="This space resolves by outcome">
               <span aria-hidden>🎯</span>
@@ -246,16 +399,21 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
       {/* Purpose — "Where you are & why", matching PlayerPanelV2's Purpose zone. */}
       <div style={pad}>
         <p style={zlbl}>Where you are &amp; why</p>
-        <div style={{ background: p.surf, borderLeft: `3px solid ${p.accent}`, padding: '10px 12px' }}>
+        <Region id="story" onEdit={onEditRegion} highlight={highlightRegion}
+          style={{ background: p.surf, borderLeft: `3px solid ${p.accent}`, padding: '10px 12px' }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>📍 {spaceLabel}</div>
           {currentSpace.Event ? (
             <div style={{ fontSize: 12, color: p.muted, marginTop: 4, lineHeight: 1.5 }}>{currentSpace.Event}</div>
           ) : (
             <div style={{ fontSize: 12, color: p.muted, marginTop: 4, fontStyle: 'italic' }}>No story text yet</div>
           )}
-        </div>
-        {(currentSpace.Action || currentSpace.Outcome) && (
-          <>
+        </Region>
+        {/* The fold-out is already a control of its own, so the way through
+            to its fields sits BESIDE it as its own button rather than around
+            it — a button inside a button is not a thing, and a control inside
+            a <label> takes the label's words as its own name. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 6 }}>
+          {(currentSpace.Action || currentSpace.Outcome) ? (
             <button
               type="button"
               onClick={() => setShowWhy((v) => !v)}
@@ -264,7 +422,6 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
-                marginTop: 6,
                 padding: '4px 2px',
                 background: 'none',
                 border: 'none',
@@ -276,25 +433,30 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
             >
               <span aria-hidden>{showWhy ? '▾' : '▸'}</span> What to do &amp; why
             </button>
-            {showWhy && (
-              <div style={{ marginTop: 4 }}>
-                {currentSpace.Action && (
-                  <div style={{ background: p.surf2, borderLeft: `3px solid ${p.accent}`, padding: '8px 10px', marginTop: 4 }}>
-                    <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                      <strong>What to do:</strong> {currentSpace.Action}
-                    </div>
-                  </div>
-                )}
-                {currentSpace.Outcome && (
-                  <div style={{ background: p.surf2, borderLeft: `3px solid ${p.muted}`, padding: '8px 10px', marginTop: 4 }}>
-                    <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                      <strong>Why:</strong> {currentSpace.Outcome}
-                    </div>
-                  </div>
-                )}
+          ) : (
+            <span style={{ fontSize: 11, color: p.muted, fontStyle: 'italic', padding: '4px 2px' }}>
+              Nothing written about what to do here yet
+            </span>
+          )}
+          <EditChip id="guidance" onEdit={onEditRegion} highlight={highlightRegion} accent={p.accent} />
+        </div>
+        {showWhy && (
+          <div style={{ marginTop: 4 }}>
+            {currentSpace.Action && (
+              <div style={{ background: p.surf2, borderLeft: `3px solid ${p.accent}`, padding: '8px 10px', marginTop: 4 }}>
+                <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                  <strong>What to do:</strong> {currentSpace.Action}
+                </div>
               </div>
             )}
-          </>
+            {currentSpace.Outcome && (
+              <div style={{ background: p.surf2, borderLeft: `3px solid ${p.muted}`, padding: '8px 10px', marginTop: 4 }}>
+                <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                  <strong>Why:</strong> {currentSpace.Outcome}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -306,21 +468,28 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
             <div style={{ fontSize: 12, color: p.muted, fontStyle: 'italic', marginBottom: 7 }}>No actions authored yet</div>
           )}
           {cardActions.map((a) => (
-            <div key={a.key} style={actionBtn}>{a.icon} {a.label}</div>
+            <Region key={a.key} id={a.regionId} onEdit={onEditRegion} highlight={highlightRegion} style={actionBtn}>
+              {a.icon} {a.label}
+            </Region>
           ))}
           {diceActions.map((a) => (
-            <div key={a.key} style={actionBtn}>{a.icon} {a.label}</div>
+            <Region key={a.key} id="outcomes" onEdit={onEditRegion} highlight={highlightRegion} style={actionBtn}>
+              {a.icon} {a.label}
+            </Region>
           ))}
           {destinations.length > 1 && (
             <>
-              <button
-                type="button"
-                onClick={() => setShowMoveOptions((v) => !v)}
-                aria-expanded={showMoveOptions}
-                style={actionBtn}
-              >
-                <span aria-hidden>{showMoveOptions ? '▾' : '▸'}</span> ➡️ Move — {destinations.length} options
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowMoveOptions((v) => !v)}
+                  aria-expanded={showMoveOptions}
+                  style={actionBtn}
+                >
+                  <span aria-hidden>{showMoveOptions ? '▾' : '▸'}</span> ➡️ Move — {destinations.length} options
+                </button>
+                <EditChip id="destinations" onEdit={onEditRegion} highlight={highlightRegion} accent={p.accent} />
+              </div>
               {showMoveOptions && (
                 <div style={{ marginLeft: 12, paddingLeft: 10, borderLeft: `2px solid ${p.border}`, marginTop: 2 }}>
                   {destinations.map((d) => (
@@ -331,10 +500,78 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
             </>
           )}
           {destinations.length === 1 && (
-            <div style={{ fontSize: 12, color: p.muted, padding: '4px 2px' }}>
+            <Region id="destinations" onEdit={onEditRegion} highlight={highlightRegion}
+              style={{ fontSize: 12, color: p.muted, padding: '4px 2px' }}>
               ➡️ Next: {destinations[0].label} <span style={{ fontSize: 10 }}>(automatic)</span>
-            </div>
+            </Region>
           )}
+          {destinations.length === 0 && (
+            <Region id="destinations" onEdit={onEditRegion} highlight={highlightRegion}
+              style={{ fontSize: 12, color: p.muted, fontStyle: 'italic', padding: '4px 2px' }}>
+              ➡️ Where they go next is not set here
+            </Region>
+          )}
+        </div>
+      )}
+
+      {/* The pop-ups. These words used to be written blind — nothing on this
+          panel showed them at all. Drawn as little windows with a title bar so
+          they read as something that lands ON TOP of the panel, not as another
+          part of it. Each one opens the same wording boxes the rest of this
+          panel opens, through the same map. */}
+      {popups.length > 0 && (
+        <div style={pad}>
+          <p style={zlbl}>Pop-ups players will see</p>
+          <div style={{ fontSize: 11, color: p.muted, marginBottom: 8 }}>
+            These land on top of this panel when they happen.
+          </div>
+          {popups.map((pu) => (
+            <div key={pu.regionId} style={{ marginBottom: 9 }}>
+              <div style={{ fontSize: 10, color: p.muted, marginBottom: 3 }}>
+                {regionById(pu.regionId)?.label}
+              </div>
+              <Region id={pu.regionId} onEdit={onEditRegion} highlight={highlightRegion}
+                style={{
+                  border: `1px solid ${p.borderStrong}`, borderRadius: 9, overflow: 'hidden',
+                  background: p.surf, width: '100%', boxSizing: 'border-box',
+                }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '5px 9px',
+                  background: p.surf2, borderBottom: `1px solid ${p.border}`,
+                }}>
+                  <span aria-hidden style={{ fontSize: 9, letterSpacing: 2, color: p.muted }}>●●●</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: pu.title ? p.text : p.muted, fontStyle: pu.title ? 'normal' : 'italic' }}>
+                    {pu.title || 'Standard heading'}
+                  </span>
+                </div>
+                <div style={{ padding: '8px 10px' }}>
+                  {pu.body ? (
+                    <div style={{ fontSize: 12, lineHeight: 1.5 }}>{pu.body}</div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: p.muted, fontStyle: 'italic' }}>
+                      Standard wording — nothing written for this one yet
+                    </div>
+                  )}
+                  {pu.summary && (
+                    <div style={{ fontSize: 11, color: p.muted, marginTop: 5 }}>{pu.summary}</div>
+                  )}
+                  {pu.extraRolls > 0 && (
+                    <div style={{ fontSize: 10, color: p.muted, marginTop: 5 }}>
+                      {pu.extraRolls} outcome{pu.extraRolls === 1 ? ' has' : 's have'} wording of their own
+                    </div>
+                  )}
+                  <div style={{ marginTop: 7 }}>
+                    <span style={{
+                      display: 'inline-block', padding: '5px 12px', borderRadius: 7,
+                      background: p.accent, color: '#fff', fontSize: 11, fontWeight: 600,
+                    }}>
+                      {pu.button || 'Continue'}
+                    </span>
+                  </div>
+                </div>
+              </Region>
+            </div>
+          ))}
         </div>
       )}
 
@@ -350,37 +587,41 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
             border: `1px solid ${p.borderStrong}`,
             background: p.surf,
           }}>
-            <div style={{ flex: 1, textAlign: 'center', padding: '13px 8px', fontSize: 13, fontWeight: 600, color: p.text }}>
+            <Region id="try-again" onEdit={onEditRegion} highlight={highlightRegion}
+              style={{ flex: 1, textAlign: 'center', padding: '13px 8px', fontSize: 13, fontWeight: 600, color: p.text, width: 'auto' }}>
               {tryAgainLabel}
-            </div>
-            <div style={{
-              flex: 1,
-              textAlign: 'center',
-              padding: '13px 8px',
-              fontSize: 13,
-              fontWeight: 600,
-              color: '#fff',
-              background: p.accent,
-              borderLeft: `1px solid ${p.borderStrong}`,
-            }}>
+            </Region>
+            <Region id="end-turn" onEdit={onEditRegion} highlight={highlightRegion}
+              style={{
+                flex: 1,
+                textAlign: 'center',
+                padding: '13px 8px',
+                fontSize: 13,
+                fontWeight: 600,
+                color: '#fff',
+                background: p.accent,
+                borderLeft: `1px solid ${p.borderStrong}`,
+                width: 'auto',
+              }}>
               {endTurnLabel}
-            </div>
+            </Region>
           </div>
         ) : (
-          <div style={{
-            width: '100%',
-            border: 'none',
-            borderRadius: 11,
-            padding: 13,
-            fontSize: 15,
-            fontWeight: 500,
-            color: '#fff',
-            background: p.accent,
-            textAlign: 'center',
-            boxSizing: 'border-box',
-          }}>
+          <Region id="end-turn" onEdit={onEditRegion} highlight={highlightRegion}
+            style={{
+              width: '100%',
+              border: 'none',
+              borderRadius: 11,
+              padding: 13,
+              fontSize: 15,
+              fontWeight: 500,
+              color: '#fff',
+              background: p.accent,
+              textAlign: 'center',
+              boxSizing: 'border-box',
+            }}>
             {endTurnLabel}
-          </div>
+          </Region>
         )}
       </div>
     </div>

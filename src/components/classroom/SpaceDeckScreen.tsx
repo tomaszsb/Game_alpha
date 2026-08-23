@@ -44,6 +44,7 @@ import { SpaceEditor } from '../editor/SpaceEditor';
 import { PlayerPreviewPanel } from '../editor/PlayerPreviewPanel';
 import { useEditorSource } from '../editor/useEditorSource';
 import { SpaceRow } from '../editor/types/EditorTypes';
+import { firstAnchorOf, regionForAnchor, SpaceRegionAnchor } from '../editor/spaceRegions';
 import { shortName } from '../../utils/boardCommon';
 import { colors } from '../../styles/theme';
 
@@ -79,6 +80,32 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
   const [sourceReloads, setSourceReloads] = useState(0);
   const [versionBusy, setVersionBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // The two directions of "which fields make this bit", both off the one map
+  // in spaceRegions.ts. Clicking a part of the player view sends the editor to
+  // its first field; typing in a field flashes the part it feeds.
+  const [goTo, setGoTo] = useState<{ anchor: SpaceRegionAnchor; nonce: number } | null>(null);
+  const [litRegion, setLitRegion] = useState<string | null>(null);
+  const goToCount = useRef(0);
+  const litTimer = useRef<number | null>(null);
+
+  const handleEditRegion = useCallback((regionId: string) => {
+    const anchor = firstAnchorOf(regionId);
+    // A part the map does not know about simply does nothing, rather than
+    // being special-cased here.
+    if (!anchor) return;
+    goToCount.current += 1;
+    setGoTo({ anchor, nonce: goToCount.current });
+  }, []);
+
+  const handleEdited = useCallback((anchor: SpaceRegionAnchor) => {
+    const region = regionForAnchor(anchor);
+    if (!region) return;
+    setLitRegion(region.id);
+    if (litTimer.current) window.clearTimeout(litTimer.current);
+    litTimer.current = window.setTimeout(() => setLitRegion(null), 1500);
+  }, []);
+
+  useEffect(() => () => { if (litTimer.current) window.clearTimeout(litTimer.current); }, []);
 
   const editor = useEditorSource(selected?.name ?? null, sourceReloads);
 
@@ -424,6 +451,8 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
                     // rows the editor loads are the RESOLVED board, which
                     // already has your version overlaid on them.
                     original={selected.stock}
+                    goTo={goTo}
+                    onEdited={handleEdited}
                   />
                 </div>
                 <div style={{
@@ -434,6 +463,9 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
                     currentSpace={visitType === 'First' ? editor.spaceFirst : editor.spaceSubsequent}
                     visitType={visitType}
                     diceRollData={editor.diceRollData}
+                    modalConfigData={editor.modalConfigData}
+                    onEditRegion={handleEditRegion}
+                    highlightRegion={litRegion}
                   />
                 </div>
               </>
@@ -530,6 +562,7 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
                         currentSpace={row}
                         visitType={visitType}
                         diceRollData={editor.diceRollData}
+                        modalConfigData={editor.modalConfigData}
                       />
                     </div>
 

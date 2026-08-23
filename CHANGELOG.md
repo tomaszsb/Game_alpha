@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.34] - 2026-08-23
+
+### The player view and the editor are now linked both ways, and pop-up copy is finally visible
+Maintainer's idea, in his words: *"Maybe the editor should be able to click on the area they want to change in the side view and the right area in editor will open? and vice versus once you edit something in the editor that area highlights on the player pannel view? and since we can change modals they should be visable too."*
+
+**Click a part of the player view, land on the fields that make it.** The narrative, the cost line, each action, the outcomes, where players go next, the turn buttons — each is now a real control that scrolls the matching fields into view and focuses the first one you can actually type in. That last detail matters: an unfolded pop-up box leads with its collapse button, which would have been a useless place to land.
+
+**Edit a field, see where it lands.** Typing briefly lights the part of the player view that field feeds, then fades. It reuses the pattern the board's click-a-log-entry-to-pulse-a-space uses (component-scoped `<style>` plus a toggled class), with a reduced-motion fallback — not a second mechanism.
+
+**Pop-up copy is visible at last.** The editor could change what a space's pop-up says while the preview showed none of it, so that text was being written blind. A "Pop-ups players will see" block now draws each one as a little window with its own title bar and button, so it reads as something landing *on* the panel rather than part of it. Unwritten ones say so plainly rather than appearing empty.
+
+**One map, deliberately.** Both directions read a single module, `spaceRegions.ts`: region → plain-language label → the editor spots that feed it. 22 regions. Nothing is special-cased on either side; a part the map does not claim simply is not clickable. This project has been bitten repeatedly by one conceptual rule living in two places and the copies drifting — the movement resolvers, `requires_dice_roll` vs `Next Step`, `VALID_OWNER_TIERS` — and this is the shape that would have been next.
+
+Browsing mode is untouched: with no edit handler passed, the panel renders exactly as before, plain text with no controls. Verified live — zero edit controls while browsing, fourteen while editing, each landing on the right field.
+
+Checked in the live DOM rather than assumed: **no buttons inside buttons, none inside labels**, all fourteen controls focusable and named for what they open. That check was worth running — a slice two days ago shipped a nested-button bug where a control inside a `<label>` stole the field's accessible name.
+
+**Two gaps stated rather than buried.** Keyboard reachability was verified structurally (native buttons, no custom key handling, correct tab order, visible focus ring) but not by actually pressing Tab — synthetic keystrokes do not reach the page in this environment. Worth thirty seconds of real tabbing. And the editor's own field labels have never been associated with their inputs (`<label>` as a sibling, no `htmlFor`), so a screen reader announces those fields unnamed — a pre-existing gap across the whole ~1100-line editor, the same family as the nested-button bug, left alone rather than half-fixed inside an unrelated slice.
+
+Full suite 2957/2957 (195 files) including 11 new tests that pin the map both ways — no anchor claimed twice, every anchor on the map exists in the rendered editor, and the editor only reports anchors the map recognises. Typecheck clean (run after the tests, which is how yesterday's broken commit slipped through), production build clean.
+
 ## [3.2.33] - 2026-08-22
 
 ### Fix: a button label you type in the editor now actually reaches the player panel

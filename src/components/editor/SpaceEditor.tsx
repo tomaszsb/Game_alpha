@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { SpaceRow, DiceRollRow, ModalConfigRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS, SHAKE_OPTIONS, TTS_FIELD_OPTIONS } from './types/EditorTypes';
 import { InlineDiceRollEditor } from './InlineDiceRollEditor';
 import { shortName } from '../../utils/boardCommon';
+import { SpaceRegionAnchor } from './spaceRegions';
 
 /**
  * The safe subset a teacher may change: what a space SAYS and what it costs,
@@ -41,6 +42,21 @@ interface SpaceEditorProps {
    * difference is how much of it you can see, not which editor you get.
    */
   visibleFields?: string[] | null;
+  /**
+   * "Take me to the fields that make this bit." Someone clicked a part of the
+   * player view; this names the spot in the editor to scroll to and put the
+   * cursor in. The `nonce` is what makes clicking the same part twice work —
+   * without it the second click looks identical to the first and nothing
+   * happens. See spaceRegions.ts for where these anchors come from.
+   */
+  goTo?: { anchor: SpaceRegionAnchor; nonce: number } | null;
+  /**
+   * "Something here just changed." Reports the anchor of the field or pop-up
+   * box that was typed in, so the player view can flash the part it feeds.
+   * The mapping from anchor to part is spaceRegions.ts's job, not this
+   * component's — this only says what was touched.
+   */
+  onEdited?: (anchor: SpaceRegionAnchor) => void;
 }
 
 // Card type colors matching theme.ts cardTypes
@@ -51,6 +67,12 @@ const CARD_COLORS: Record<string, { primary: string; bg: string; border: string;
   L: { primary: '#dc3545', bg: '#fce4ec', border: '#dc3545', text: '#b71c1c', emoji: '🎲', label: 'Life Event' },
   E: { primary: '#ff9800', bg: '#fff3e0', border: '#ff9800', text: '#e65100', emoji: '⚡', label: 'Expeditor' },
 };
+
+/**
+ * The flash on the field you land on after clicking the player view. Named
+ * here so the scoped stylesheet and the effect that toggles it agree.
+ */
+const GO_TO_CLASS = 'space-editor-field--just-arrived';
 
 // Fieldset border colors
 const SECTION_COLORS = {
@@ -80,8 +102,45 @@ export function SpaceEditor({
   onModalConfigChange,
   original,
   visibleFields,
+  goTo,
+  onEdited,
 }: SpaceEditorProps): JSX.Element {
   const currentSpace = visitType === 'First' ? spaceFirst : spaceSubsequent;
+  const formRef = useRef<HTMLDivElement | null>(null);
+
+  // Someone clicked a part of the player view. Find the spot they meant,
+  // bring it on screen, open it if it is a folded-up pop-up box, and put the
+  // cursor in the first thing they can type in.
+  useEffect(() => {
+    if (!goTo) return;
+    const root = formRef.current;
+    if (!root) return;
+    const find = () => root.querySelector<HTMLElement>(`[data-editor-anchor="${goTo.anchor}"]`);
+    const spot = find();
+    if (!spot) return;
+    spot.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    // A folded-up pop-up box has nothing to type in until it is opened, and
+    // opening it swaps the element out — so everything after this re-finds it
+    // rather than holding on to the one we started with.
+    spot.querySelector<HTMLButtonElement>('[data-anchor-open="true"]')?.click();
+    let lit: HTMLElement | null = null;
+    const settle = window.setTimeout(() => {
+      lit = find();
+      if (!lit) return;
+      lit.classList.add(GO_TO_CLASS);
+      // Something to TYPE IN first — a pop-up box that has just been unfolded
+      // leads with its "collapse" button, and landing there would be useless.
+      const typeable = lit.querySelector<HTMLElement>('input, textarea, select');
+      (typeable ?? lit.querySelector<HTMLElement>('button'))?.focus({ preventScroll: true });
+    }, 0);
+    const fade = window.setTimeout(() => lit?.classList.remove(GO_TO_CLASS), 1800);
+    return () => {
+      window.clearTimeout(settle);
+      window.clearTimeout(fade);
+      lit?.classList.remove(GO_TO_CLASS);
+    };
+  }, [goTo]);
+
   const shows = (field: string): boolean => !visibleFields || visibleFields.includes(field);
   // What the original says for one field, or undefined when the original is
   // not to hand (nothing is marked then, rather than everything).
@@ -108,6 +167,7 @@ export function SpaceEditor({
     diceValue: string = ''
   ) => {
     if (!currentSpace) return;
+    onEdited?.(`modal:${effectAction}`);
     const idx = modalConfigData.findIndex(
       r =>
         r.space_name === currentSpace.space_name &&
@@ -152,6 +212,7 @@ export function SpaceEditor({
 
   const handleChange = (field: keyof SpaceRow, value: string) => {
     onFieldChange(visitType, field, value);
+    onEdited?.(`field:${String(field)}`);
   };
 
   return (
@@ -203,7 +264,25 @@ export function SpaceEditor({
         </div>
       </div>
 
-      <div style={styles.formContainer}>
+      {/* "You just came from the player view" flash on the field you landed
+          on — the same component-scoped <style> + toggled class pattern
+          BoardCanvas uses for its chronicle highlight, rather than a second
+          way of doing the same thing. */}
+      <style>{`
+        @keyframes space-editor-go-to-kf {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
+          50% { box-shadow: 0 0 0 5px rgba(124,58,237,0.45); }
+        }
+        .${GO_TO_CLASS} {
+          border-radius: 6px;
+          animation: space-editor-go-to-kf 0.8s ease-in-out 2;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .${GO_TO_CLASS} { animation: none; box-shadow: 0 0 0 4px rgba(124,58,237,0.5); }
+        }
+      `}</style>
+
+      <div style={styles.formContainer} ref={formRef}>
         {/* Identity & Config. Wholly outside the safe subset: phase, dice and
             negotiation decide how a space BEHAVES, not what it says. */}
         {shows('phase') && <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.identity}` }}>
@@ -218,18 +297,21 @@ export function SpaceEditor({
               onChange={(v) => handleChange('phase', v)}
             />
             <SelectField
+              anchor="field:requires_dice_roll"
               label="Dice Roll?"
               value={currentSpace.requires_dice_roll}
               options={YES_NO_LOWER_OPTIONS as unknown as string[]}
               onChange={(v) => handleChange('requires_dice_roll', v)}
             />
             <Field
+              anchor="field:rolls"
               label="Rolls"
               value={currentSpace.rolls}
               type="number"
               onChange={(v) => handleChange('rolls', v)}
             />
             <SelectField
+              anchor="field:Negotiate"
               label="Negotiate"
               value={currentSpace.Negotiate}
               options={YES_NO_OPTIONS as unknown as string[]}
@@ -242,6 +324,7 @@ export function SpaceEditor({
         <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.story}` }}>
           <legend style={styles.legend}>📖 Story & Narrative</legend>
           <TextareaField
+            anchor="field:Title"
             label="Story title (subtitle, per visit)"
             value={currentSpace.Title}
             onChange={(v) => handleChange('Title', v)}
@@ -249,6 +332,7 @@ export function SpaceEditor({
             rows={1}
           />
           <TextareaField
+            anchor="field:Event"
             label="Event (Story)"
             value={currentSpace.Event}
             onChange={(v) => handleChange('Event', v)}
@@ -256,6 +340,7 @@ export function SpaceEditor({
             rows={2}
           />
           <TextareaField
+            anchor="field:Action"
             label="Action"
             value={currentSpace.Action}
             onChange={(v) => handleChange('Action', v)}
@@ -263,6 +348,7 @@ export function SpaceEditor({
             rows={2}
           />
           <TextareaField
+            anchor="field:Outcome"
             label="Outcome"
             value={currentSpace.Outcome}
             onChange={(v) => handleChange('Outcome', v)}
@@ -313,7 +399,7 @@ export function SpaceEditor({
                 onModalConfigChange={(f, v) => setModalConfigField('draw_E', f, v)} />
             </div>}
             <div style={styles.fieldRow}>
-              <div style={styles.field}>
+              <div style={styles.field} data-editor-anchor="field:Time">
                 <LabelWithRevert
                   label="⏱️ Time"
                   value={currentSpace.Time}
@@ -323,7 +409,7 @@ export function SpaceEditor({
                 <TimeInput value={currentSpace.Time} onChange={(v) => handleChange('Time', v)} />
                 {shows('w_card') && currentSpace.Time && <ModalConfigExpander effectAction="add" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
               </div>
-              <div style={styles.field}>
+              <div style={styles.field} data-editor-anchor="field:Fee">
                 <LabelWithRevert
                   label="💰 Fee"
                   value={currentSpace.Fee}
@@ -341,7 +427,7 @@ export function SpaceEditor({
         {/* Dice Rolls — inline. Outside the safe subset: dice decide where a
             player goes next. */}
         {shows('w_card') && currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
-          <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.dice}` }}>
+          <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.dice}` }} data-editor-anchor="section:outcomes">
             <legend style={styles.legend}>🎲 (D) Actions</legend>
             <InlineDiceRollEditor
               diceRolls={diceRollData}
@@ -395,6 +481,7 @@ export function SpaceEditor({
           <legend style={styles.legend}>🚶 Movement Destinations</legend>
           <div style={{ ...styles.fieldRow, marginBottom: '6px' }}>
             <SelectField
+              anchor="field:path"
               label="Path Type"
               value={currentSpace.path}
               options={PATH_TYPES as unknown as string[]}
@@ -410,11 +497,11 @@ export function SpaceEditor({
             />
           ) : (
             <div style={styles.fieldRow}>
-              <SpaceSelectField label="1" value={currentSpace.space_1} options={allSpaceNames} onChange={(v) => handleChange('space_1', v)} />
-              <SpaceSelectField label="2" value={currentSpace.space_2} options={allSpaceNames} onChange={(v) => handleChange('space_2', v)} />
-              <SpaceSelectField label="3" value={currentSpace.space_3} options={allSpaceNames} onChange={(v) => handleChange('space_3', v)} />
-              <SpaceSelectField label="4" value={currentSpace.space_4} options={allSpaceNames} onChange={(v) => handleChange('space_4', v)} />
-              <SpaceSelectField label="5" value={currentSpace.space_5} options={allSpaceNames} onChange={(v) => handleChange('space_5', v)} />
+              <SpaceSelectField anchor="field:space_1" label="1" value={currentSpace.space_1} options={allSpaceNames} onChange={(v) => handleChange('space_1', v)} />
+              <SpaceSelectField anchor="field:space_2" label="2" value={currentSpace.space_2} options={allSpaceNames} onChange={(v) => handleChange('space_2', v)} />
+              <SpaceSelectField anchor="field:space_3" label="3" value={currentSpace.space_3} options={allSpaceNames} onChange={(v) => handleChange('space_3', v)} />
+              <SpaceSelectField anchor="field:space_4" label="4" value={currentSpace.space_4} options={allSpaceNames} onChange={(v) => handleChange('space_4', v)} />
+              <SpaceSelectField anchor="field:space_5" label="5" value={currentSpace.space_5} options={allSpaceNames} onChange={(v) => handleChange('space_5', v)} />
             </div>
           )}
         </fieldset>}
@@ -463,12 +550,14 @@ export function SpaceEditor({
           <legend style={styles.legend}>🎮 Button Labels</legend>
           <div style={styles.fieldRow}>
             <Field
+              anchor="field:end_turn_label"
               label="End Turn Label"
               value={currentSpace.end_turn_label}
               onChange={(v) => handleChange('end_turn_label', v)}
               placeholder="End Turn"
             />
             <Field
+              anchor="field:try_again_label"
               label="Try Again Label"
               value={currentSpace.try_again_label}
               onChange={(v) => handleChange('try_again_label', v)}
@@ -550,11 +639,13 @@ interface FieldProps {
   readOnly?: boolean;
   type?: string;
   placeholder?: string;
+  /** Where a click on the player view lands. See spaceRegions.ts. */
+  anchor?: string;
 }
 
-function Field({ label, value, onChange, readOnly, type = 'text', placeholder }: FieldProps): JSX.Element {
+function Field({ label, value, onChange, readOnly, type = 'text', placeholder, anchor }: FieldProps): JSX.Element {
   return (
-    <div style={styles.field}>
+    <div style={styles.field} data-editor-anchor={anchor}>
       <label style={styles.label}>{label}</label>
       <input
         type={type}
@@ -586,9 +677,12 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
   const cardTokens = getModalConfigTokens(`draw_${type}`);
   const isPreset = !value || CARD_PRESETS.includes(value);
   const [useCustom, setUseCustom] = useState(!isPreset && !!value);
+  // Anchors so a click on this action in the player view lands here. Derived
+  // from the type rather than passed in, so there is nothing to keep in step.
+  const lower = type.toLowerCase();
 
   return (
-    <div style={styles.cardWithLabel}>
+    <div style={styles.cardWithLabel} data-editor-anchor={`field:${lower}_card`}>
       <label style={{ ...styles.label, color: cc.text }}>
         <span style={{ ...styles.cardBadge, backgroundColor: cc.bg, borderColor: cc.border, color: cc.primary }}>
           {cc.emoji} {type}
@@ -634,22 +728,24 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
             <option value="__custom__">Custom...</option>
           </select>
         )}
-        <input
-          type="text"
-          value={label || ''}
-          onChange={(e) => onLabelChange(e.target.value)}
-          placeholder="Button label..."
-          disabled={!value}
-          style={{
-            ...styles.input,
-            flex: 1,
-            fontSize: '11px',
-            opacity: value ? 1 : 0.4,
-          }}
-        />
+        <span style={{ flex: 1, display: 'flex' }} data-editor-anchor={`field:${lower}_card_label`}>
+          <input
+            type="text"
+            value={label || ''}
+            onChange={(e) => onLabelChange(e.target.value)}
+            placeholder="Button label..."
+            disabled={!value}
+            style={{
+              ...styles.input,
+              flex: 1,
+              fontSize: '11px',
+              opacity: value ? 1 : 0.4,
+            }}
+          />
+        </span>
       </div>
       {value && onNarrativeChange && (
-        <div style={{ marginTop: '2px' }}>
+        <div style={{ marginTop: '2px' }} data-editor-anchor={`field:${lower}_card_narrative`}>
           {showNarrative ? (
             <textarea
               value={narrative || ''}
@@ -667,13 +763,14 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
           ) : (
             <button
               onClick={() => setShowNarrative(true)}
+              data-anchor-open="true"
               style={{ fontSize: '10px', color: '#666', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
             >+ narrative</button>
           )}
         </div>
       )}
       {value && onModalConfigChange && (
-        <div style={{ marginTop: '2px' }}>
+        <div style={{ marginTop: '2px' }} data-editor-anchor={`modal:draw_${type}`}>
           {showModalConfig ? (
             <div style={styles.modalConfigBox}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
@@ -695,6 +792,7 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
           ) : (
             <button
               onClick={() => setShowModalConfig(true)}
+              data-anchor-open="true"
               style={{ fontSize: '10px', color: hasModalConfig ? cc.primary : '#666', fontWeight: hasModalConfig ? 600 : 400, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
             >{hasModalConfig ? '✎ modal config' : '+ modal config'}</button>
           )}
@@ -704,9 +802,9 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
   );
 }
 
-function SelectField({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }): JSX.Element {
+function SelectField({ label, value, options, onChange, anchor }: { label: string; value: string; options: string[]; onChange: (v: string) => void; anchor?: string }): JSX.Element {
   return (
-    <div style={styles.field}>
+    <div style={styles.field} data-editor-anchor={anchor}>
       <label style={styles.label}>{label}</label>
       <select value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.select}>
         <option value="">--</option>
@@ -716,10 +814,10 @@ function SelectField({ label, value, options, onChange }: { label: string; value
   );
 }
 
-function SpaceSelectField({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }): JSX.Element {
+function SpaceSelectField({ label, value, options, onChange, anchor }: { label: string; value: string; options: string[]; onChange: (v: string) => void; anchor?: string }): JSX.Element {
   const isComplex = value && !options.includes(value) && value.length > 0;
   return (
-    <div style={styles.field}>
+    <div style={styles.field} data-editor-anchor={anchor}>
       <label style={styles.label}>{label}</label>
       {isComplex ? (
         <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.input} title="Complex value" />
@@ -733,14 +831,16 @@ function SpaceSelectField({ label, value, options, onChange }: { label: string; 
   );
 }
 
-function TextareaField({ label, value, onChange, rows = 2, original }: {
+function TextareaField({ label, value, onChange, rows = 2, original, anchor }: {
   label: string; value: string; onChange: (v: string) => void; rows?: number;
   /** What the original says, when it is known. Undefined = nothing to compare. */
   original?: string;
+  /** Where a click on the player view lands. See spaceRegions.ts. */
+  anchor?: string;
 }): JSX.Element {
   const differs = original !== undefined && (value || '') !== original;
   return (
-    <div style={styles.textareaField}>
+    <div style={styles.textareaField} data-editor-anchor={anchor}>
       <LabelWithRevert label={label} value={value} original={original} onChange={onChange} />
       <textarea
         value={value || ''}
@@ -939,15 +1039,18 @@ function ModalConfigExpander({ effectAction, diceValue = '', label, getModalConf
 
   if (!expanded) {
     return (
-      <button
-        onClick={() => setExpanded(true)}
-        style={{ fontSize: '10px', color: hasConfig ? '#007bff' : '#666', fontWeight: hasConfig ? 600 : 400, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
-      >{hasConfig ? `✎ ${buttonLabel}` : `+ ${buttonLabel}`}</button>
+      <span data-editor-anchor={`modal:${effectAction}`}>
+        <button
+          onClick={() => setExpanded(true)}
+          data-anchor-open="true"
+          style={{ fontSize: '10px', color: hasConfig ? '#007bff' : '#666', fontWeight: hasConfig ? 600 : 400, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
+        >{hasConfig ? `✎ ${buttonLabel}` : `+ ${buttonLabel}`}</button>
+      </span>
     );
   }
 
   return (
-    <div style={styles.modalConfigBox}>
+    <div style={styles.modalConfigBox} data-editor-anchor={`modal:${effectAction}`}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
         <span style={{ fontSize: '10px', fontWeight: 600, color: '#495057' }}>
           {label ? `${label} Overrides` : 'Modal Overrides'}
