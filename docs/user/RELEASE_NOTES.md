@@ -2,6 +2,13 @@
 
 ---
 
+## v3.2.35–3.2.37 — The space editor now speaks the same language as the player view (August 23, 2026)
+
+- **Nothing here changes what you see as a player.** This is all the screen the person running your classroom uses to change what a space says.
+- **The two halves of that screen now use the same words.** The left side used to name its sections after the way the data is stored, while the right side — the preview of what a player actually meets — named the same things in plain English. Nothing matched. Both sides now read off one list, so "what this costs" on the right is headed "What this costs" on the left.
+- **Sections you aren't using fold away**, so the left side is a short list instead of a long wall. A folded section still tells you whether there's anything in it.
+- **Clicking into a box now shows you where it lands.** The matching part of the player view is marked while you're typing there, and scrolls into view if it's further down. That already worked the other way round — clicking the preview jumps to the boxes behind it.
+
 ## v3.2.17–3.2.34 — Bank loan fees are charged correctly again, and the space editor became one screen (August 23, 2026)
 
 - **The bank's loan fee was being charged at the wrong rate, and now isn't.** The fee is meant to be tiered — 1% on smaller loans, 2% in the middle, 3% on the largest. It was being charged as a single flat rate instead. If a bank loan ever felt cheaper or dearer than the space said it would be, this was why.
