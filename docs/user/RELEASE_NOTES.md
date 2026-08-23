@@ -2,6 +2,12 @@
 
 ---
 
+## v3.2.17–3.2.34 — Bank loan fees are charged correctly again, and the space editor became one screen (August 23, 2026)
+
+- **The bank's loan fee was being charged at the wrong rate, and now isn't.** The fee is meant to be tiered — 1% on smaller loans, 2% in the middle, 3% on the largest. It was being charged as a single flat rate instead. If a bank loan ever felt cheaper or dearer than the space said it would be, this was why.
+- **Some game text had quietly reverted to older wording.** A few pieces of the game's data were being reset every time the game's files were rebuilt, which happens whenever the person running the classroom saves an edit. Everything affected has been restored, and there's now a check that stops it happening again.
+- **Behind the scenes:** almost everything else this session was the admin/teacher tooling for editing spaces, and it changed a lot. What used to be two separate screens that did overlapping jobs is now one: browse your deck of spaces on the left and see each one exactly as a player meets it on the right, then click straight into changing it. Editing a space now also shows you where your words land, and vice versa — click a part of the player view to jump to the fields behind it. Pop-up text is visible while you write it, instead of being edited blind. None of this changes anything you see as a player.
+
 ## v3.2.16 — Tap your history to jump straight to it on the board (August 19, 2026)
 
 - **Your "What's happened" list now does something when you tap it.** Open your history, tap any turn, and the board jumps right to the space where that happened, with a quick highlight so it's easy to spot.

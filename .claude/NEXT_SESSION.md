@@ -1,35 +1,32 @@
-# Next session starter — written 2026-08-19 by /koniec
+# Next session starter — written 2026-08-23 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.16 — pushed to origin/master, **not yet deployed**.
-- **Branch:** master, clean (only untracked scratch file `idea.txt` at repo root — a maintainer draft, not touched).
-- **Last shipped:** v3.2.16 — clicking a Chronicle "What's happened" log entry now closes the modal and pans/pulses the board to the space that turn happened at, reusing the existing camera primitive the TV auto-focus already uses. Closes half of the "Change-legibility P1 remaining" TODO line.
-- **Test suite:** full Golden-Rule coverage green — `npm test` 2801/2801 (189 files), `npm run test:ghost` 33/33 (10 files, ~13.4 min, all 3 bot batches at their win-rate floors, 0 hard failures).
+- **Version:** v3.2.34 — **deployed and confirmed live** (`7a77c65`).
+- **Branch:** master, clean and pushed (only untracked scratch file `idea.txt`, a maintainer draft, untouched).
+- **Last shipped:** the card library — 18 versions in one long session. The two space-editing screens are now one; a card carries all its own content; edits survive restarts; and three hand-edits to generated data files that had already been lost on live were restored, including a bank loan fee that was being charged flat instead of tiered.
+- **Test suite:** `npm test` **2957/2957** (195 files). `npm run test:ghost` **33/33** (10 files, ~13.6 min, 0 hard failures, bot batches at their win-rate floors).
 - **Build/typecheck:** both clean.
 
 ## Top 3 open items
-1. **G160 board-editing suite still has TWO unconfirmed rounds stacked up (v3.1.95 and v3.2.15).** Automated browser tooling in this environment renders zero React Flow board edges at all — confirmed pre-existing tooling limitation, not a regression — so every connector-visual fix was verified via unit tests + code review only, never seen live. Biggest "needs your eyes" item.
-2. **Con-Initiation "Determine Outcome" crash** — unchanged from prior handoffs; still needs a direct repro in your own foregrounded browser, same tooling limitation applies.
-3. **TV-persistent feed (the other half of the P1 line)** — investigated this session: `NotificationService.ts` has no selective-subscription mechanism to build on, and `TVDisplay.tsx` doesn't wire up notifications at all currently. This needs a product decision (what should it look like on a TV screen?) before it's buildable — not just an implementation pass.
+1. **Teachers can no longer edit what a space says** — a regression from v3.2.29, stated at the time rather than found later. The 6-field editor removed there was their only way in, and the remaining save route is admin-only. `SpaceEditor` is already built for it (`visibleFields={SAFE_FIELD_SUBSET}`); it needs a teacher branch on `POST /api/instances/:id/content` writing `individual` cards. **No teachers exist yet**, so nothing is broken in practice — but it is a capability that left.
+2. **`DataService.parseSpaceEffectsCsv` reads SPACE_EFFECTS by column NUMBER, not header name.** Inserting a column mid-header shifted every later field and turned 18 tests red (2026-08-22). New columns must be appended to the end until this is fixed. The editor's own `csvExport` was fixed this way in v2.66.1; this parser never was. Hot path — wants its own pass.
+3. **Two small gaps from v3.2.34.** The editor's field labels have never been associated with their inputs, so a screen reader announces them unnamed (pre-existing across the whole ~1100-line `SpaceEditor`). And the new click-to-edit links were verified structurally but nobody has actually pressed Tab through them — 30 seconds in a real browser.
 
 ## Test failures to address
-None. Full suite green (2801/2801 + 33/33 ghost).
+None. Both suites green — `npm test` 2957/2957 and `npm run test:ghost` 33/33.
 
 ## Decisions waiting on the user
-- **TV-persistent feed design** — see item 3 above. What should a "persistent notification feed" look like on the TV screen (always visible vs. open-on-demand, how many recent items, where it sits in the layout)?
-- **dnd.unravelcodes.com D&D-reskin experiment** — still ON HOLD per the standing engagement-data recommendation (join-friction is the real blocker, not board theme). Revisit only if you want to proceed anyway, or after a few more weeks of traffic firms up the signal.
-- **6 glossary terms in Purgatory** — drafted by the nightly auto-sync robot, awaiting your approve/reject on the dashboard's candidates page.
-
-## Flip after deploy
-- fb:feedback-1781190420890-5a155a1a — fixed in v3.2.13, carried forward unconfirmed again this session (never checked whether that version is actually live); PATCH resolved once confirmed.
+- **Stage 4 of the card library — the group/school tier.** He leaned toward wanting it built ("I am leaning towards I want the tiers built"), was given the sizing, and the thread moved on before he chose. Cards already carry an owner, so this is additive. See [CARD_LIBRARY_DESIGN.md](../docs/core/CARD_LIBRARY_DESIGN.md) "Stage 4" and "Breadcrumbs".
+- **`DataEditor` is now unreachable but deliberately still in the tree** as a fallback if the merged screen misbehaves in real use. Delete it once he has used the new screen for a while.
 
 ## Suggested first move
-Deploy v3.2.16 when convenient (`ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`), then either confirm the G160 board-editor fixes live, or make the TV-persistent-feed design call so it can be built next session.
+Ask him how the merged screen felt in real use — it changed a lot this session and he only saw the first version of it. If it held up, deleting the old `DataEditor` and reopening teacher editing are the two natural follow-ons; if it did not, his reaction is worth more than any of the three items above.
 
 ## Suggested model for next session
-Sonnet 5 — the top-3 is real-browser confirmation work + a design decision, no deep architectural judgment needed.
+Sonnet 5 — the open items are scoped fixes (a teacher branch on one route, a parser reading by name, label associations). No architectural ambiguity left; the design work was done this session and is written down.
 
 ## Reminders
-- Deploy runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Hand this to the maintainer — don't run it yourself (deploy-handoff rule).
-- `idea.txt` at repo root is an untracked maintainer scratch file (an old D&D-reskin system-prompt draft). Left alone, not part of any shipped work.
-- This session was a `/loop /fixloop` autonomous pass (2 iterations: 1 landed, 1 found nothing eligible) followed by `/koniec` — no interactive back-and-forth, so nothing else notable to carry forward.
+- Deploy runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Hand it to the maintainer — don't run it (deploy-handoff rule).
+- **`tests/server/pipelineFaithful.test.ts` is new and load-bearing.** If it fails, fix the pipeline or add a SOURCE column — never edit a generated `CLEAN_FILES` file. Hand-edits there caused three silent production regressions.
+- Editing `Spaces.csv` has real teeth (raw newlines in unquoted fields, positional parsers). Read the CLAUDE.md TACTICAL entry "Editing `Spaces.csv`" before touching it.
+- The local `/fixloop` budget meter is anchored to a stale calibration — a monthly spend limit reset mid-session. Re-anchor with `node scripts/fixloop-usage.mjs --calibrate <official %>` before trusting it.

@@ -555,6 +555,25 @@ v3.0.44 fixed `EffectFactory.createEffectsFromDiceRoll`'s "Player 1 rolled N at 
 
 **Rule:** when fixing a log producer, grep for the message *format* (`rolled.*at|Drew.*Work Packages|entered space`) across `src/`, not just the literal string you found. There will often be 2-3 producers per "event" (one from the orchestrator, one from the effect engine, one from a notification helper). Verify after fix by walking the live game one turn and checking the log entry count vs. expected event count.
 
+### Editing `Spaces.csv`, and why a hand-edit to a CLEAN file is a countdown (2026-08-22/23)
+
+Three values had been typed straight into generated `CLEAN_FILES` and into no source file at all. The pipeline could not reproduce them, so every regeneration deleted them — and the live server regenerates on every content save, so **all three were already gone from production** before anyone noticed:
+- `SPACE_EFFECTS.fee_type`: BANK-FUND-REVIEW's fee is genuinely tiered ("1% up to $1.4M or 2% … or 3% above"), and `FinancialEffectHandler` has a `LOAN_TIERED` branch for it. The pipeline saw one `%` and wrote `LOAN_PERCENTAGE`. **Live was charging a flat rate on a tiered fee** — real money, wrong.
+- `DICE_EFFECTS.fee_category` (which bucket a fee is spent from) — existed in no source file.
+- `GAME_CONFIG.npc_speaker` / `approval_role` — worse than drift: **both had ZERO rows populated since the v3.1.0 CSV-portability lift.** The columns and the code to read them shipped; the data never did. Hardcoded fallbacks gave the right answer for THIS game, so nothing surfaced it, but the portability those columns exist for was inert — a reskin could not move who narrates a space or which space examines a filing.
+
+All fixed v3.2.31–33; regen now reproduces every CLEAN file byte-for-byte, **guarded by `tests/server/pipelineFaithful.test.ts`**. If that test fails, fix the pipeline or add a SOURCE column — never the generated file. CLAUDE.md already carried the rule ("if you're reaching for the CLEAN file because the pipeline doesn't support it, fix the pipeline first"); it had no enforcement, and three silent production regressions is what that cost.
+
+**How to edit `Spaces.csv` safely — this file has real teeth:**
+- It contains **raw newlines inside unquoted fields**. A hand-rolled quote-aware splitter mis-splits it (rows appear 52–53 fields wide against a 55-column header, and `PM` lands in the wrong column) — that reads exactly like a data-integrity disaster and is not one. **`parseCsvWithHeaders` reads all 105 rows at full width and pads short ones.** Measure with the repo's parser, never your own.
+- A naive `python csv` round-trip of the whole file **rewrites ~210 lines and breaks 20 tests**. The repo's own `parseCsvWithHeaders` + `toCsv` round-trip is **field-identical across all 105 rows × 55 columns** (verify before editing; the proof it worked is that regenerated CLEAN then matches committed byte-for-byte). Use that pair for any whole-file edit.
+- For a 1–2 row fix, a targeted edit that preserves every other byte is better than any round-trip.
+
+**Adding a column to `SPACE_EFFECTS.csv`: append it to the END.** `DataService.parseSpaceEffectsCsv` reads that file by fixed column **number**, not header name, so a column inserted mid-header silently shifts every field after it — 18 tests went red proving it. (The editor's own `csvExport` was fixed to index by name in v2.66.1; this parser never was. Fixing it is an open TODO.)
+
+**Watch for column-shifted rows.** `CON-INITIATION` had `e_card_label='negative'` / `shake_on='summary'`, one column left of every other row — harmless while nothing read that label, and it would have printed the word "negative" on a player's button the moment v3.2.33 landed. When a column's value distribution has a handful of outliers that are obviously another column's vocabulary, that's a shift, not a value.
+
+
 > **Also consult the `mcp__memory` knowledge graph** for cross-session patterns.
 > Seeded 2026-05-12 with entities: `Unravel Codes`, `Voice rule override chain`,
 > `SPACE_EFFECTS.csv schema`, `Deploy verification pattern`,
