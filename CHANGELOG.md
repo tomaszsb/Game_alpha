@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.39] - 2026-08-25
+
+### A column added to the middle of a data file no longer scrambles everything after it
+`DataService.parseSpaceEffectsCsv` read SPACE_EFFECTS.csv by **column position** — `values[0]`, `values[1]`, and so on out to `values[14]`. Insert one column anywhere but the end and every field after it shifted by one: the fee type would be read as the narrative, the narrative as a modal title. Nothing warned; it just came out wrong. On 2026-08-22 this turned 18 tests red and the constraint was written down as a rule to work around — *append new columns to the end, never the middle* — which is the kind of rule that holds right up until someone doesn't know it.
+
+It now reads by **header name**, resolved once from the file's own first row. A column can be inserted anywhere, or the whole header reordered, and every field still lands where it belongs. The approach mirrors the header-name indexing the editor's `csvExport` already uses, rather than inventing a third way to read the same file. A missing column now yields `undefined` — which the optional-field guards already handled — instead of silently picking up its neighbour's value.
+
+The stale comment on `button_label` explaining why it *had* to sit last went with it, since it no longer does. The BOM strip on the header's first cell is new and deliberate: positional reads never cared, but name matching would have broken on a BOM-prefixed first column.
+
+Sibling parsers (`parseDiceEffectsCsv` and the rest) have the same shape and the same latent bug. Deliberately left alone — a hot-path parser wants its own pass with the suite green either side, which is exactly what this was.
+
+Five new tests, each one the bug's own shape: canonical order still parses identically, a column inserted **mid-header** no longer shifts later fields, a wholesale reorder parses correctly, a missing optional column yields `undefined` without throwing, and blank optional values stay `undefined` rather than becoming empty strings. Full suite green — 22/22 batches — plus typecheck and production build clean.
+
 ## [3.2.38] - 2026-08-25
 
 ### One history feed everywhere, and on the TV you pick what it shows

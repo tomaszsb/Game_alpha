@@ -1036,44 +1036,68 @@ export class DataService implements IDataService {
 
   private parseSpaceEffectsCsv(csvText: string): SpaceEffect[] {
     const lines = csvText.trim().split('\n');
-    
+
+    // Header-name indexing (not fixed column position) — mirrors the
+    // header.indexOf(name) approach csvExport.ts uses for Spaces.csv /
+    // DiceRoll Info.csv (v2.65.7 header-aware round-trip). This is what
+    // lets a column be inserted or reordered anywhere in SPACE_EFFECTS.csv
+    // without shifting every field that follows it, which is exactly the
+    // bug this rewrite fixes (see TODO.md history — 18 tests went red
+    // proving a mid-header insert silently corrupted every later field).
+    const header = this.parseCsvLine(lines[0]).map(h => h.replace(/^\uFEFF/, ''));
+    const get = (values: string[], name: string): string | undefined => {
+      const i = header.indexOf(name);
+      return i === -1 ? undefined : values[i];
+    };
+
     return lines.slice(1).map(line => {
       const values = this.parseCsvLine(line);
+
+      const rawEffectValue = get(values, 'effect_value');
       const spaceEffect: SpaceEffect = {
-        space_name: values[0],
-        visit_type: values[1] as VisitType,
-        effect_type: values[2] as SpaceEffect['effect_type'],
-        effect_action: values[3],
-        effect_value: isNaN(Number(values[4])) ? values[4] : Number(values[4]),
-        condition: values[5],
-        description: values[6]
+        space_name: get(values, 'space_name') as string,
+        visit_type: get(values, 'visit_type') as VisitType,
+        effect_type: get(values, 'effect_type') as SpaceEffect['effect_type'],
+        effect_action: get(values, 'effect_action') as string,
+        effect_value: isNaN(Number(rawEffectValue)) ? (rawEffectValue as string) : Number(rawEffectValue),
+        condition: get(values, 'condition') as string,
+        description: get(values, 'description') as string
       };
-      
+
       // Add trigger_type if it exists and is not empty
-      if (values[7] && values[7].trim()) {
-        spaceEffect.trigger_type = values[7].trim() as 'manual' | 'auto';
+      const triggerType = get(values, 'trigger_type');
+      if (triggerType && triggerType.trim()) {
+        spaceEffect.trigger_type = triggerType.trim() as 'manual' | 'auto';
       }
 
-      // Add fee_type if it exists (column 8)
-      if (values[8] && values[8].trim()) {
-        spaceEffect.fee_type = values[8].trim() as 'LOAN_PERCENTAGE' | 'SCOPE_PERCENTAGE' | 'FIXED' | 'DICE_BASED' | 'LOAN_TIERED';
+      // Add fee_type if it exists
+      const feeType = get(values, 'fee_type');
+      if (feeType && feeType.trim()) {
+        spaceEffect.fee_type = feeType.trim() as 'LOAN_PERCENTAGE' | 'SCOPE_PERCENTAGE' | 'FIXED' | 'DICE_BASED' | 'LOAN_TIERED';
       }
 
-      // Add narrative if it exists (column 9)
-      if (values[9] && values[9].trim()) {
-        spaceEffect.narrative = values[9].trim();
+      // Add narrative if it exists
+      const narrative = get(values, 'narrative');
+      if (narrative && narrative.trim()) {
+        spaceEffect.narrative = narrative.trim();
       }
 
-      // Add modal config fields (columns 10-13)
-      if (values[10] && values[10].trim()) spaceEffect.modal_title = values[10].trim();
-      if (values[11] && values[11].trim()) spaceEffect.modal_description = values[11].trim();
-      if (values[12] && values[12].trim()) spaceEffect.modal_button_label = values[12].trim();
-      if (values[13] && values[13].trim()) spaceEffect.modal_summary = values[13].trim();
+      // Add modal config fields
+      const modalTitle = get(values, 'modal_title');
+      const modalDescription = get(values, 'modal_description');
+      const modalButtonLabel = get(values, 'modal_button_label');
+      const modalSummary = get(values, 'modal_summary');
+      if (modalTitle && modalTitle.trim()) spaceEffect.modal_title = modalTitle.trim();
+      if (modalDescription && modalDescription.trim()) spaceEffect.modal_description = modalDescription.trim();
+      if (modalButtonLabel && modalButtonLabel.trim()) spaceEffect.modal_button_label = modalButtonLabel.trim();
+      if (modalSummary && modalSummary.trim()) spaceEffect.modal_summary = modalSummary.trim();
 
-      // button_label (column 14) — a label the maintainer typed in the editor.
-      // Appended at the end because this parser reads by fixed column NUMBER,
-      // so a column inserted anywhere earlier shifts every field after it.
-      if (values[14] && values[14].trim()) spaceEffect.button_label = values[14].trim();
+      // button_label — a label the maintainer typed in the editor. Used to be
+      // pinned to the last column because this parser read by fixed column
+      // NUMBER; now resolved by name like everything else above, so it can
+      // live anywhere in the header.
+      const buttonLabel = get(values, 'button_label');
+      if (buttonLabel && buttonLabel.trim()) spaceEffect.button_label = buttonLabel.trim();
 
       return spaceEffect;
     });

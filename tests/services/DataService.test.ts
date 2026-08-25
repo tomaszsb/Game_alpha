@@ -320,4 +320,167 @@ START,First,time,,1 day,2 days,3 days,4 days,5 days,6 days,,time,false,false,`;
     // Rows without the column populated stay undefined (blank -> undefined).
     expect(svc.getDiceEffects('START', 'First')[0].fee_category).toBeUndefined();
   });
+
+  // fb: 2026-08-25 — parseSpaceEffectsCsv used to read SPACE_EFFECTS.csv by
+  // fixed column NUMBER, so inserting a column mid-header silently shifted
+  // every field after it (18 tests went red proving it, see v3.2.33
+  // CHANGELOG entry). Fixed to resolve every field by header NAME instead.
+  // These tests load SPACE_EFFECTS.csv through the real loadData()/
+  // getAllSpaceEffects() path (same as the fee_category test above) so they
+  // exercise the actual parser, not a reimplementation of it.
+  describe('parseSpaceEffectsCsv (header-name indexing)', () => {
+    const loadWithSpaceEffects = async (csv: string) => {
+      global.fetch = vi.fn().mockImplementation((url: string) => {
+        const cleanUrl = url.split('?')[0];
+        if (cleanUrl === '/data/CLEAN_FILES/SPACE_EFFECTS.csv') {
+          return Promise.resolve({ ok: true, text: () => Promise.resolve(csv) });
+        }
+        const csvData = urlMap[cleanUrl];
+        if (!csvData) return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('') });
+        return Promise.resolve({ ok: true, text: () => Promise.resolve(csvData) });
+      });
+      const svc = new DataService();
+      await svc.loadData();
+      return svc;
+    };
+
+    // Canonical CLEAN_FILES/SPACE_EFFECTS.csv column order.
+    const CANONICAL_HEADER = 'space_name,visit_type,effect_type,effect_action,effect_value,condition,description,trigger_type,fee_type,narrative,modal_title,modal_description,modal_button_label,modal_summary,button_label';
+
+    it('parses the current (canonical) header order, pinning a full row incl. optional fields', async () => {
+      const csv = `${CANONICAL_HEADER}
+OWNER-FUND-INITIATION,First,money,add,500,always,Get funding approved,auto,FIXED,Owner secures financing.,Funding Approved,You got the money.,Great!,Summary text,Approve Funding
+CON-INITIATION,Subsequent,cards,draw,DRAW_CARD,scope_change,Draw a change-order card,,,,,,,,`;
+
+      const svc = await loadWithSpaceEffects(csv);
+      const effects = svc.getAllSpaceEffects();
+      expect(effects).toHaveLength(2);
+
+      // Full row: every field pinned, including the optional ones.
+      expect(effects[0]).toEqual({
+        space_name: 'OWNER-FUND-INITIATION',
+        visit_type: 'First',
+        effect_type: 'money',
+        effect_action: 'add',
+        effect_value: 500, // numeric string -> Number()
+        condition: 'always',
+        description: 'Get funding approved',
+        trigger_type: 'auto',
+        fee_type: 'FIXED',
+        narrative: 'Owner secures financing.',
+        modal_title: 'Funding Approved',
+        modal_description: 'You got the money.',
+        modal_button_label: 'Great!',
+        modal_summary: 'Summary text',
+        button_label: 'Approve Funding',
+      });
+
+      // Row with a non-numeric effect_value and every optional column blank.
+      expect(effects[1]).toEqual({
+        space_name: 'CON-INITIATION',
+        visit_type: 'Subsequent',
+        effect_type: 'cards',
+        effect_action: 'draw',
+        effect_value: 'DRAW_CARD', // isNaN(Number(...)) -> stays a string
+        condition: 'scope_change',
+        description: 'Draw a change-order card',
+        // All optional fields blank -> absent from the object entirely.
+      });
+    });
+
+    it('still parses every field correctly when a column is inserted in the MIDDLE of the header', async () => {
+      // A column inserted between `condition` and `description` — exactly
+      // the shape of insert that used to shift description/trigger_type/
+      // fee_type/etc. one slot to the right under positional parsing.
+      const csv = `space_name,visit_type,effect_type,effect_action,effect_value,condition,inserted_mid_column,description,trigger_type,fee_type,narrative,modal_title,modal_description,modal_button_label,modal_summary,button_label
+OWNER-FUND-INITIATION,First,money,add,500,always,ignore_me,Get funding approved,auto,FIXED,Owner secures financing.,Funding Approved,You got the money.,Great!,Summary text,Approve Funding`;
+
+      const svc = await loadWithSpaceEffects(csv);
+      const effects = svc.getAllSpaceEffects();
+      expect(effects).toHaveLength(1);
+      expect(effects[0]).toEqual({
+        space_name: 'OWNER-FUND-INITIATION',
+        visit_type: 'First',
+        effect_type: 'money',
+        effect_action: 'add',
+        effect_value: 500,
+        condition: 'always',
+        description: 'Get funding approved',
+        trigger_type: 'auto',
+        fee_type: 'FIXED',
+        narrative: 'Owner secures financing.',
+        modal_title: 'Funding Approved',
+        modal_description: 'You got the money.',
+        modal_button_label: 'Great!',
+        modal_summary: 'Summary text',
+        button_label: 'Approve Funding',
+      });
+    });
+
+    it('still parses correctly when columns are reordered wholesale', async () => {
+      const csv = `button_label,modal_summary,modal_button_label,modal_description,modal_title,narrative,fee_type,trigger_type,description,condition,effect_value,effect_action,effect_type,visit_type,space_name
+Approve Funding,Summary text,Great!,You got the money.,Funding Approved,Owner secures financing.,FIXED,auto,Get funding approved,always,500,add,money,First,OWNER-FUND-INITIATION`;
+
+      const svc = await loadWithSpaceEffects(csv);
+      const effects = svc.getAllSpaceEffects();
+      expect(effects).toHaveLength(1);
+      expect(effects[0]).toEqual({
+        space_name: 'OWNER-FUND-INITIATION',
+        visit_type: 'First',
+        effect_type: 'money',
+        effect_action: 'add',
+        effect_value: 500,
+        condition: 'always',
+        description: 'Get funding approved',
+        trigger_type: 'auto',
+        fee_type: 'FIXED',
+        narrative: 'Owner secures financing.',
+        modal_title: 'Funding Approved',
+        modal_description: 'You got the money.',
+        modal_button_label: 'Great!',
+        modal_summary: 'Summary text',
+        button_label: 'Approve Funding',
+      });
+    });
+
+    it('leaves an optional field undefined when its header column is missing entirely', async () => {
+      // fee_type column is dropped from the header altogether (not just
+      // blank) — the field must come out undefined, not throw, and every
+      // other field (including button_label, which comes after it) must
+      // still resolve correctly.
+      const csv = `space_name,visit_type,effect_type,effect_action,effect_value,condition,description,trigger_type,narrative,modal_title,modal_description,modal_button_label,modal_summary,button_label
+OWNER-FUND-INITIATION,First,money,add,500,always,Get funding approved,auto,Owner secures financing.,Funding Approved,You got the money.,Great!,Summary text,Approve Funding`;
+
+      const svc = await loadWithSpaceEffects(csv);
+      const effects = svc.getAllSpaceEffects();
+      expect(effects).toHaveLength(1);
+      expect(effects[0].fee_type).toBeUndefined();
+      expect(effects[0].trigger_type).toBe('auto');
+      expect(effects[0].button_label).toBe('Approve Funding');
+      expect(effects[0].modal_summary).toBe('Summary text');
+    });
+
+    it('treats blank and whitespace-only optional values as undefined, not empty string', async () => {
+      const csv = `${CANONICAL_HEADER}
+OWNER-FUND-INITIATION,First,money,add,500,always,Get funding approved,,   ,Owner secures financing.,   ,You got the money.,Great!,,Approve Funding`;
+
+      const svc = await loadWithSpaceEffects(csv);
+      const effects = svc.getAllSpaceEffects();
+      expect(effects).toHaveLength(1);
+      const effect = effects[0];
+      // Blank trigger_type -> undefined, not ''
+      expect(effect.trigger_type).toBeUndefined();
+      // Whitespace-only fee_type -> undefined, not '   '
+      expect(effect.fee_type).toBeUndefined();
+      // Whitespace-only modal_title -> undefined
+      expect(effect.modal_title).toBeUndefined();
+      // Blank modal_summary -> undefined
+      expect(effect.modal_summary).toBeUndefined();
+      // Fields that were actually populated are untouched.
+      expect(effect.narrative).toBe('Owner secures financing.');
+      expect(effect.modal_description).toBe('You got the money.');
+      expect(effect.modal_button_label).toBe('Great!');
+      expect(effect.button_label).toBe('Approve Funding');
+    });
+  });
 });
