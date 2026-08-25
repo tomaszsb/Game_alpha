@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.38] - 2026-08-25
+
+### One history feed everywhere, and on the TV you pick what it shows
+Maintainer, answering the open TV-history-feed question: *"all the feeds should look the same they should just be filtered differently. because it is on tv maybe we should just have the filters visible to users and let them decide what to see?"*
+
+**The TV had no history at all.** During play it showed the board, the player strip and whose turn it was — but nothing that answered "wait, what just happened?" for the people watching. The question had been open since the Project Chronicle's first slice because nobody had decided what it should look like. That decision above settles it, and it settles more than the TV.
+
+**There were three different-looking histories for the same events.** The player panel's "What's happened" grouped events into turn blocks. The shared-screen Log drew a two-level collapsible tree of spaces and visits. The end-of-game viewer drew a flat list behind two dropdowns. Same log, same wording underneath, three different shapes — so a player who learned one learned nothing about the others.
+
+All four surfaces now render the same `HistoryFeed`, and differ only in what it opens filtered to:
+
+- **TV** — a persistent column beside the board, typography scaled up for across-the-room reading, filter chips always on screen. Toggle it off from the header (📜 History) if you want every pixel for the board.
+- **Player panel** — opens on just you; the "Who" chip widens it to the whole table.
+- **Shared screen (Log)** — opens on everyone, with the per-row 🔍 raw detail it always had.
+- **End of game** — same feed under the same export buttons; the old player/type dropdowns became the shared chips.
+
+The chips are **Who** (Everyone, then one per player) and **What** (Everything, then one per kind of event), built from what is actually in this game's log rather than a fixed list, so the D&D skin gets its own chips with no code change.
+
+Two details worth naming. **Turn dividers survive filtering**: they anchor the blocks, so narrowing to one player keeps their turn headers and drops the ones left with nothing under them — but exports leave the dividers out, because a Markdown export scoped to one player should not carry every other player's turn headers. And the **empty state tells the truth**: a surface that opens filtered (the player panel) says "nothing yet" when that player has done nothing, and only says "nothing matches what you picked" once the viewer has actually narrowed past what the surface opened with.
+
+**What was removed:** the shared-screen Log's space→visit→row collapsible tree, and its header's "N visits" count. Its one capability the block feed lacked — per-row raw engine detail (fb:91738221) — moved into the shared feed rather than being dropped. The Log header now counts events only, not turn dividers, so the number matches what a reader can count on screen.
+
+Verified live in the browser at the TV's real 960x540: the column renders at 260px beside a 700px board with no horizontal overflow, clicking a player chip narrows the feed and keeps that player's turn divider, and the header toggle returns the full 944px board. Full suite green — 22/22 batches — with 9 new component tests on the shared feed's chips and empty states, and 6 new unit tests on the filters. Typecheck clean, production build clean.
+
+**Still wants your eyes:** on a real television, whether giving the column 260px of a 960px screen leaves the board readable, or whether the toggle should default to off.
+
 ## [3.2.37] - 2026-08-23
 
 ### Clicking into a field now shows you what it changes, and a folded section stops looking like a box

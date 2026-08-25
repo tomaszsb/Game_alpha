@@ -76,3 +76,66 @@ describe('getDisplayableLogEntries', () => {
     expect(getDisplayableLogEntries([])).toEqual([]);
   });
 });
+
+// 2026-08-25 — the maintainer's rule for the TV history feed: every history
+// surface shows the SAME feed and differs only by which filters are applied.
+// These pin the user-facing filters that rule requires.
+describe('getDisplayableLogEntries — user-facing filters', () => {
+  it('filterPlayerId narrows to one player, and "all" does not narrow', () => {
+    const entries = [
+      makeEntry({ id: 'a', playerId: 'p1' }),
+      makeEntry({ id: 'b', playerId: 'p2' }),
+    ];
+    expect(getDisplayableLogEntries(entries, { filterPlayerId: 'p2' }).map(e => e.id)).toEqual(['b']);
+    expect(getDisplayableLogEntries(entries, { filterPlayerId: 'all' }).map(e => e.id)).toEqual(['a', 'b']);
+  });
+
+  it('filterType narrows to one kind of event, and "all" does not narrow', () => {
+    const entries = [
+      makeEntry({ id: 'move', type: 'player_movement' }),
+      makeEntry({ id: 'money', type: 'resource_change' }),
+    ];
+    expect(getDisplayableLogEntries(entries, { filterType: 'resource_change' }).map(e => e.id)).toEqual(['money']);
+    expect(getDisplayableLogEntries(entries, { filterType: 'all' }).map(e => e.id)).toEqual(['move', 'money']);
+  });
+
+  it('search matches description, player name and details', () => {
+    const entries = [
+      makeEntry({ id: 'desc', description: 'Paid the filing fee' }),
+      makeEntry({ id: 'name', description: 'nothing', playerName: 'Zelda' }),
+      makeEntry({ id: 'details', description: 'nothing', details: { cardId: 'W042' } }),
+      makeEntry({ id: 'miss', description: 'nothing', playerName: 'Bob' }),
+    ];
+    expect(getDisplayableLogEntries(entries, { search: 'filing' }).map(e => e.id)).toEqual(['desc']);
+    expect(getDisplayableLogEntries(entries, { search: 'zeld' }).map(e => e.id)).toEqual(['name']);
+    expect(getDisplayableLogEntries(entries, { search: 'w042' }).map(e => e.id)).toEqual(['details']);
+  });
+
+  it('keepTurnDividers keeps turn_start through the user-facing filters (feed structure)', () => {
+    const entries = [
+      makeEntry({ id: 'divider', type: 'turn_start', playerId: 'p2' }),
+      makeEntry({ id: 'mine', playerId: 'p1' }),
+    ];
+    expect(
+      getDisplayableLogEntries(entries, { filterPlayerId: 'p1', keepTurnDividers: true }).map(e => e.id),
+    ).toEqual(['divider', 'mine']);
+  });
+
+  it('drops turn_start with the filters by default, so exports carry events only', () => {
+    const entries = [
+      makeEntry({ id: 'divider', type: 'turn_start', playerId: 'p2' }),
+      makeEntry({ id: 'mine', playerId: 'p1' }),
+    ];
+    expect(getDisplayableLogEntries(entries, { filterPlayerId: 'p1' }).map(e => e.id)).toEqual(['mine']);
+  });
+
+  it('the hard playerId scope still wins over a wider "who" chip', () => {
+    const entries = [
+      makeEntry({ id: 'mine', playerId: 'p1' }),
+      makeEntry({ id: 'theirs', playerId: 'p2' }),
+    ];
+    expect(
+      getDisplayableLogEntries(entries, { playerId: 'p1', filterPlayerId: 'all' }).map(e => e.id),
+    ).toEqual(['mine']);
+  });
+});

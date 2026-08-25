@@ -1,9 +1,17 @@
 // tests/components/game/GameLog.test.tsx
 //
-// Regression test for grammar bug: the header ("N entries, M visits") and the
-// per-space visit-count badge both hardcoded the plural "visits"/"entries",
-// so a single entry/visit rendered as "1 entries" / "1 visits" instead of
-// "1 entry" / "1 visit" (playtest finding, TODO.md).
+// GameLog is now the shell around the shared <HistoryFeed/> (2026-08-25
+// maintainer decision: every history surface shows the same feed and differs
+// only by filter). What this file pins:
+//
+//  1. The header's singular/plural grammar — the original regression here was
+//     a hardcoded plural rendering "1 entries" (playtest finding, TODO.md).
+//     The per-space "N visits" badge it also covered is gone with the
+//     space-grouped tree the feed replaced.
+//  2. The count excludes turn dividers, which the feed draws as headers rather
+//     than as entries — so the number matches what a reader can actually count
+//     on screen.
+//  3. The panel renders the shared feed, with its filter chips visible.
 
 import React from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
@@ -19,6 +27,10 @@ function wrap(entries: ActionLogEntry[]) {
       subscribe: () => () => {},
       getGameState: () => ({ globalActionLog: entries }),
       getPlayer: () => undefined,
+    },
+    dataService: {
+      getCards: () => [],
+      getCardById: () => undefined,
     },
   } as unknown as IServiceContainer;
 
@@ -52,44 +64,55 @@ function makeTurnStartEntry(overrides: Partial<ActionLogEntry> = {}): ActionLogE
   };
 }
 
-describe('GameLog — singular/plural grammar', () => {
+function makeActionEntry(overrides: Partial<ActionLogEntry> = {}): ActionLogEntry {
+  return {
+    ...makeTurnStartEntry(),
+    id: 'action-1',
+    type: 'space_effect',
+    description: 'Paid the filing fee',
+    ...overrides,
+  };
+}
+
+describe('GameLog — header grammar and count', () => {
   afterEach(() => cleanup());
 
-  it('shows "1 entry, 1 visit" (singular) with exactly one logged turn', () => {
-    wrap([makeTurnStartEntry()]);
-
-    expect(screen.getByText('🗒️ Game Log (1 entry, 1 visit)')).toBeInTheDocument();
-    expect(screen.getByText('1 visit')).toBeInTheDocument();
+  it('shows "1 entry" (singular) with exactly one countable entry', () => {
+    wrap([makeTurnStartEntry(), makeActionEntry()]);
+    expect(screen.getByText('🗒️ Game Log (1 entry)')).toBeInTheDocument();
     expect(screen.queryByText(/1 entries/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/1 visits\b/)).not.toBeInTheDocument();
   });
 
-  it('shows "2 entries, 1 visit" (plural entries, singular visit) with two turns at the same space', () => {
+  it('shows "2 entries" (plural) with two countable entries', () => {
     wrap([
-      makeTurnStartEntry({ id: 'entry-1', globalTurnNumber: 1, playerTurnNumber: 1 }),
-      makeTurnStartEntry({ id: 'entry-2', globalTurnNumber: 2, playerTurnNumber: 2 }),
+      makeTurnStartEntry(),
+      makeActionEntry({ id: 'a1' }),
+      makeActionEntry({ id: 'a2', description: 'Filed the application' }),
     ]);
-
-    expect(screen.getByText('🗒️ Game Log (2 entries, 1 visit)')).toBeInTheDocument();
-    expect(screen.getByText('2 visits')).toBeInTheDocument();
+    expect(screen.getByText('🗒️ Game Log (2 entries)')).toBeInTheDocument();
   });
 
-  it('shows "2 entries, 2 visits" (plural) when the two turns are at different spaces', () => {
-    wrap([
-      makeTurnStartEntry({
-        id: 'entry-1',
-        globalTurnNumber: 1,
-        playerTurnNumber: 1,
-        details: { spaceName: 'OWNER-SCOPE-INITIATION', visitType: 'First' },
-      }),
-      makeTurnStartEntry({
-        id: 'entry-2',
-        globalTurnNumber: 2,
-        playerTurnNumber: 2,
-        details: { spaceName: 'BANK-FUND-REVIEW', visitType: 'First' },
-      }),
-    ]);
+  it('does not count turn dividers, which the feed draws as headers not rows', () => {
+    wrap([makeTurnStartEntry()]);
+    expect(screen.getByText('🗒️ Game Log (0 entries)')).toBeInTheDocument();
+  });
+});
 
-    expect(screen.getByText('🗒️ Game Log (2 entries, 2 visits)')).toBeInTheDocument();
+describe('GameLog — renders the shared feed', () => {
+  afterEach(() => cleanup());
+
+  it('renders HistoryFeed with its filter chips on screen', () => {
+    wrap([makeTurnStartEntry(), makeActionEntry()]);
+    expect(screen.getByTestId('game-log-feed')).toBeInTheDocument();
+    expect(screen.getByTestId('game-log-feed-filters')).toBeInTheDocument();
+    // Opens unfiltered — everyone, everything.
+    expect(screen.getByRole('button', { name: 'Everyone' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Everything' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('shows the entry under its turn divider', () => {
+    wrap([makeTurnStartEntry(), makeActionEntry()]);
+    expect(screen.getByText(/Turn 1 ·/)).toBeInTheDocument();
+    expect(screen.getByText(/Paid the filing fee/)).toBeInTheDocument();
   });
 });

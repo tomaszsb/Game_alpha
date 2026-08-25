@@ -17,6 +17,7 @@ import { PlayerAvatar } from '../common/PlayerAvatar';
 import { AvatarIcon } from '../icons/AvatarIcons';
 import { IconCheck } from '../icons/SetupIcons';
 import { ShutdownNotice } from '../common/ShutdownNotice';
+import { HistoryFeed, HistoryFeedFilters, DEFAULT_HISTORY_FILTERS } from '../game/HistoryFeed';
 import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 
 /**
@@ -52,6 +53,15 @@ export function TVDisplay(): JSX.Element {
   // the turn changes, then auto-dismisses after 2s so the chip's pulsing
   // colored border carries the steady-state "whose turn" signal.
   const [showTurnPill, setShowTurnPill] = useState(true);
+  // Persistent "what just happened" column (TODO change-legibility P1, settled
+  // with the maintainer 2026-08-25). Same <HistoryFeed/> every other surface
+  // renders — it differs only in being always on screen, bigger (10ft reading)
+  // and with its filter chips exposed, because on a TV nobody can open a menu:
+  // "have the filters visible to users and let them decide what to see."
+  // Collapsible so a host who wants every pixel for the board can reclaim the
+  // column (the same reason the QR sidebar was dropped during PLAY, fb:9bedb559).
+  const [showHistory, setShowHistory] = useState(true);
+  const [historyFilters, setHistoryFilters] = useState<HistoryFeedFilters>(DEFAULT_HISTORY_FILTERS);
 
   const gameId = getCurrentGameId();
 
@@ -108,6 +118,12 @@ export function TVDisplay(): JSX.Element {
   // <!-- fb:feedback-1779568265597-9bedb559 -->
   const showSidebar = gamePhase !== 'PLAY';
 
+  // The history column takes the width the QR sidebar gave back, so it only
+  // ever appears during PLAY — never alongside the sidebar. Unlike the sidebar
+  // it starts BELOW the header (`"header header header"`), so the blue band
+  // still runs the full width of the TV.
+  const showHistoryColumn = gamePhase === 'PLAY' && showHistory;
+
   return (
     <div style={{
       ...styles.container,
@@ -115,8 +131,14 @@ export function TVDisplay(): JSX.Element {
       // so the dedicated white strip row is gone and the board reclaims it.
       gridTemplateAreas: showSidebar
         ? `"header header sidebar" "main main sidebar" "footer footer footer"`
-        : `"header header" "main main" "footer footer"`,
-      gridTemplateColumns: showSidebar ? '1fr auto 220px' : '1fr auto',
+        : showHistoryColumn
+          ? `"header header header" "main main history" "footer footer footer"`
+          : `"header header" "main main" "footer footer"`,
+      gridTemplateColumns: showSidebar
+        ? '1fr auto 220px'
+        : showHistoryColumn
+          ? '1fr auto 260px'
+          : '1fr auto',
       gridTemplateRows: 'auto 1fr auto',
     }}>
       {/* Deploy-update warning — fixed-position, self-subscribing. */}
@@ -164,6 +186,25 @@ export function TVDisplay(): JSX.Element {
           >
             📊 Standings
           </button>
+          {/* The persistent history column's on/off switch. Only during PLAY —
+              there is nothing to look back on before the game starts. */}
+          {gamePhase === 'PLAY' && (
+            <button
+              onClick={() => setShowHistory(s => !s)}
+              style={{
+                padding: '8px 16px',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                backgroundColor: showHistory ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)',
+                color: 'white',
+                border: `2px solid ${showHistory ? 'white' : 'rgba(255,255,255,0.5)'}`,
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              📜 History
+            </button>
+          )}
           <button
             onClick={() => {
               const url = new URL(window.location.href);
@@ -360,6 +401,32 @@ export function TVDisplay(): JSX.Element {
           </div>
         )}
       </main>
+
+      {/* Persistent history column — the TV's answer to "what just happened?"
+          It is the SAME <HistoryFeed/> the player panel and the shared-screen
+          Log render; only the scale (10ft reading) and the always-visible
+          filter chips differ. Read-only like the rest of the TV: no
+          onNavigateToSpace, because nobody is standing at the television to
+          click a row. */}
+      {showHistoryColumn && (
+        <aside style={{ ...styles.historyColumn, backgroundColor: tvDarkMode ? '#0f172a' : 'white' }}>
+          <h3 style={{ ...styles.historyTitle, color: tvDarkMode ? '#e2e8f0' : colors.primary.main }}>
+            📜 What&apos;s happened
+          </h3>
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <HistoryFeed
+              gameServices={gameServices}
+              mode={tvMode}
+              scale={1.35}
+              autoScroll
+              filters={historyFilters}
+              onFiltersChange={setHistoryFilters}
+              emptyText="Nothing yet — the game's moves and changes will show up here."
+              testId="tv-history-feed"
+            />
+          </div>
+        </aside>
+      )}
 
       {/* QR Codes sidebar — only during SETUP/END. v3.0.15 dropped it during
           PLAY so the board reclaims 220px of width; per-player info migrated
@@ -742,6 +809,23 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '1.05rem',
     fontWeight: 'bold',
     color: colors.text.primary,
+  },
+  historyColumn: {
+    gridArea: 'history',
+    borderLeft: `2px solid ${colors.secondary.border}`,
+    padding: '0.5rem',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.35rem',
+    overflow: 'hidden',
+    minHeight: 0,
+  },
+  historyTitle: {
+    fontSize: '1.1rem',
+    fontWeight: 'bold',
+    margin: 0,
+    textAlign: 'center',
+    flex: '0 0 auto',
   },
   sidebar: {
     gridArea: 'sidebar',
