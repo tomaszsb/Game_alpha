@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { SpaceRow, DiceRollRow, ModalConfigRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS, SHAKE_OPTIONS, TTS_FIELD_OPTIONS } from './types/EditorTypes';
 import { InlineDiceRollEditor } from './InlineDiceRollEditor';
 import { shortName } from '../../utils/boardCommon';
@@ -117,6 +117,13 @@ export function SpaceEditor({
 }: SpaceEditorProps): JSX.Element {
   const currentSpace = visitType === 'First' ? spaceFirst : spaceSubsequent;
   const formRef = useRef<HTMLDivElement | null>(null);
+  // Ids for the two fields whose visible label (LabelWithRevert) and control
+  // (TimeInput/FeeInput) are separate components — both need the same id to
+  // pair as one accessible field. Generated once per mounted SpaceEditor via
+  // useId, so they stay unique even if this component is ever shown twice on
+  // one page (see the same-file "ids must be unique and stable" note below).
+  const timeFieldId = useId();
+  const feeFieldId = useId();
 
   // Someone clicked a part of the player view. Find the spot they meant,
   // bring it on screen, open it if it is a folded-up pop-up box, and put the
@@ -302,6 +309,7 @@ export function SpaceEditor({
               onChange={(e) => onDisplayLabelChange(e.target.value)}
               placeholder={`Tile label (blank = ${shortName(currentSpace.space_name)})`}
               title="Tile label shown on the board and player panel. Leave blank to auto-name from the space ID."
+              aria-label="Tile label"
               style={styles.titleInline}
               data-testid="space-tile-label-input"
             />}
@@ -487,8 +495,9 @@ export function SpaceEditor({
                 value={currentSpace.Time}
                 original={originalValue('Time')}
                 onChange={(v) => handleChange('Time', v)}
+                htmlFor={timeFieldId}
               />
-              <TimeInput value={currentSpace.Time} onChange={(v) => handleChange('Time', v)} />
+              <TimeInput id={timeFieldId} value={currentSpace.Time} onChange={(v) => handleChange('Time', v)} />
               {shows('w_card') && currentSpace.Time && <ModalConfigExpander effectAction="add" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
             </div>
             <div style={styles.field} data-editor-anchor="field:Fee">
@@ -497,8 +506,9 @@ export function SpaceEditor({
                 value={currentSpace.Fee}
                 original={originalValue('Fee')}
                 onChange={(v) => handleChange('Fee', v)}
+                htmlFor={feeFieldId}
               />
-              <FeeInput value={currentSpace.Fee} onChange={(v) => handleChange('Fee', v)} />
+              <FeeInput id={feeFieldId} value={currentSpace.Fee} onChange={(v) => handleChange('Fee', v)} />
               {shows('w_card') && currentSpace.Fee && <ModalConfigExpander effectAction="deduct" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
             </div>
             <div style={{ flex: 1 }} />
@@ -859,13 +869,17 @@ function ChangedFromOriginal({ original, onRevert }: { original: string; onRever
  * the <label> would take the label's words as its own accessible name and the
  * field itself would be left unlabelled.
  */
-function LabelWithRevert({ label, value, original, onChange }: {
+function LabelWithRevert({ label, value, original, onChange, htmlFor }: {
   label: React.ReactNode; value: string; original?: string; onChange: (v: string) => void;
+  /** Id of the control this label names — supplied by the caller since the
+   * control itself is rendered by a sibling component (TextareaField's own
+   * textarea, or TimeInput/FeeInput next door in the Cost section). */
+  htmlFor?: string;
 }): JSX.Element {
   const differs = original !== undefined && (value || '') !== original;
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-      <label style={styles.label}>{label}</label>
+      <label htmlFor={htmlFor} style={styles.label}>{label}</label>
       {differs && <ChangedFromOriginal original={original} onRevert={() => onChange(original)} />}
     </div>
   );
@@ -889,10 +903,12 @@ interface FieldProps {
 }
 
 function Field({ label, value, onChange, readOnly, type = 'text', placeholder, anchor }: FieldProps): JSX.Element {
+  const id = useId();
   return (
     <div style={styles.field} data-editor-anchor={anchor}>
-      <label style={styles.label}>{label}</label>
+      <label htmlFor={id} style={styles.label}>{label}</label>
       <input
+        id={id}
         type={type}
         value={value || ''}
         onChange={(e) => onChange?.(e.target.value)}
@@ -925,21 +941,30 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
   // Anchors so a click on this action in the player view lands here. Derived
   // from the type rather than passed in, so there is nothing to keep in step.
   const lower = type.toLowerCase();
+  // One id per mounted card column (5 of these render side by side), reused
+  // for the value select/custom-input pair — they are never both on screen
+  // at once, so sharing an id between them is safe. The rest of this card's
+  // controls (button label, narrative, modal overrides) have no visible
+  // label of their own, so they take an aria-label built from the same
+  // words the player view uses for this action instead of an id pairing.
+  const valueId = useId();
+  const actionName = regionShortLabel(`action-${type}`);
 
   return (
     <div style={styles.cardWithLabel} data-editor-anchor={`field:${lower}_card`}>
-      <label style={{ ...styles.label, color: cc.text, display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+      <label htmlFor={valueId} style={{ ...styles.label, color: cc.text, display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
         <span style={{ ...styles.cardBadge, backgroundColor: cc.bg, borderColor: cc.border, color: cc.primary, flexShrink: 0 }}>
           {cc.emoji} {type}
         </span>
         {/* The same words the player view uses for this action. A bare "🏗️ W"
             was most of why the two sides were hard to line up by eye. */}
-        <span style={styles.cardColumnName}>{regionShortLabel(`action-${type}`)}</span>
+        <span style={styles.cardColumnName}>{actionName}</span>
       </label>
       <div style={{ display: 'flex', gap: '3px' }}>
         {useCustom ? (
           <div style={{ ...styles.comboRow, flex: 1 }}>
             <input
+              id={valueId}
               type="text"
               value={value || ''}
               onChange={(e) => onChange(e.target.value)}
@@ -959,6 +984,7 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
           </div>
         ) : (
           <select
+            id={valueId}
             value={value || ''}
             onChange={(e) => {
               if (e.target.value === '__custom__') setUseCustom(true);
@@ -983,6 +1009,7 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
             onChange={(e) => onLabelChange(e.target.value)}
             placeholder="Button label..."
             disabled={!value}
+            aria-label={`${actionName} button label`}
             style={{
               ...styles.input,
               flex: 1,
@@ -999,6 +1026,7 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
               value={narrative || ''}
               onChange={(e) => onNarrativeChange(e.target.value)}
               placeholder="Per-action narrative (shown in modal)..."
+              aria-label={`${actionName} narrative`}
               rows={2}
               style={{
                 ...styles.input,
@@ -1029,13 +1057,13 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
                 Tokens: {cardTokens}
               </div>
               <input type="text" value={modalConfig?.modal_title || ''} onChange={(e) => onModalConfigChange('modal_title', e.target.value)}
-                placeholder="Modal title..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+                placeholder="Modal title..." aria-label={`${actionName} modal title`} style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
               <input type="text" value={modalConfig?.modal_description || ''} onChange={(e) => onModalConfigChange('modal_description', e.target.value)}
-                placeholder={`Description (${cardTokens})...`} style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+                placeholder={`Description (${cardTokens})...`} aria-label={`${actionName} modal description`} style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
               <input type="text" value={modalConfig?.modal_button_label || ''} onChange={(e) => onModalConfigChange('modal_button_label', e.target.value)}
-                placeholder="Button label..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+                placeholder="Button label..." aria-label={`${actionName} modal button label`} style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
               <input type="text" value={modalConfig?.modal_summary || ''} onChange={(e) => onModalConfigChange('modal_summary', e.target.value)}
-                placeholder="Summary text..." style={{ ...styles.input, fontSize: '11px', width: '100%' }} />
+                placeholder="Summary text..." aria-label={`${actionName} modal summary`} style={{ ...styles.input, fontSize: '11px', width: '100%' }} />
             </div>
           ) : (
             <button
@@ -1051,10 +1079,11 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
 }
 
 function SelectField({ label, value, options, onChange, anchor }: { label: string; value: string; options: string[]; onChange: (v: string) => void; anchor?: string }): JSX.Element {
+  const id = useId();
   return (
     <div style={styles.field} data-editor-anchor={anchor}>
-      <label style={styles.label}>{label}</label>
-      <select value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.select}>
+      <label htmlFor={id} style={styles.label}>{label}</label>
+      <select id={id} value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.select}>
         <option value="">--</option>
         {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
       </select>
@@ -1062,15 +1091,20 @@ function SelectField({ label, value, options, onChange, anchor }: { label: strin
   );
 }
 
-function SpaceSelectField({ label, value, options, onChange, anchor }: { label: string; value: string; options: string[]; onChange: (v: string) => void; anchor?: string }): JSX.Element {
+function SpaceSelectField({ label, value, options, onChange, anchor, id: idProp }: { label: string; value: string; options: string[]; onChange: (v: string) => void; anchor?: string; id?: string }): JSX.Element {
+  const generatedId = useId();
+  // A caller with its own visible "Dest N" label (LogicBuilder) passes its
+  // own id down so that label can point here instead of at this
+  // component's own (in that case empty) <label>.
+  const id = idProp ?? generatedId;
   const isComplex = value && !options.includes(value) && value.length > 0;
   return (
     <div style={styles.field} data-editor-anchor={anchor}>
-      <label style={styles.label}>{label}</label>
+      <label htmlFor={id} style={styles.label}>{label}</label>
       {isComplex ? (
-        <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.input} title="Complex value" />
+        <input id={id} type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.input} title="Complex value" />
       ) : (
-        <select value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.select}>
+        <select id={id} value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.select}>
           <option value="">--</option>
           {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
         </select>
@@ -1087,10 +1121,12 @@ function TextareaField({ label, value, onChange, rows = 2, original, anchor }: {
   anchor?: string;
 }): JSX.Element {
   const differs = original !== undefined && (value || '') !== original;
+  const id = useId();
   return (
     <div style={styles.textareaField} data-editor-anchor={anchor}>
-      <LabelWithRevert label={label} value={value} original={original} onChange={onChange} />
+      <LabelWithRevert label={label} value={value} original={original} onChange={onChange} htmlFor={id} />
       <textarea
+        id={id}
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         style={differs ? { ...styles.textarea, ...CHANGED_INPUT } : styles.textarea}
@@ -1101,16 +1137,17 @@ function TextareaField({ label, value, onChange, rows = 2, original, anchor }: {
 }
 
 // Time inline input
-function TimeInput({ value, onChange }: { value: string; onChange: (v: string) => void }): JSX.Element {
+function TimeInput({ value, onChange, id }: { value: string; onChange: (v: string) => void; id?: string }): JSX.Element {
   const timeMatch = value?.match(/^(\d+)\s*days?$/i);
   const isNumeric = !value || timeMatch;
   if (!isNumeric) {
-    return <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.input} />;
+    return <input id={id} type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.input} />;
   }
   const numDays = timeMatch ? parseInt(timeMatch[1]) : 0;
   return (
     <div style={styles.helperRow}>
       <input
+        id={id}
         type="number" min="0" value={numDays || ''}
         onChange={(e) => {
           const n = parseInt(e.target.value);
@@ -1124,15 +1161,16 @@ function TimeInput({ value, onChange }: { value: string; onChange: (v: string) =
 }
 
 // Fee inline input
-function FeeInput({ value, onChange }: { value: string; onChange: (v: string) => void }): JSX.Element {
+function FeeInput({ value, onChange, id }: { value: string; onChange: (v: string) => void; id?: string }): JSX.Element {
   const feeMatch = value?.match(/^(\d+(?:\.\d+)?)\s*%$/);
   const isPercent = !value || feeMatch;
   if (!isPercent) {
-    return <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.input} />;
+    return <input id={id} type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.input} />;
   }
   return (
     <div style={styles.helperRow}>
       <input
+        id={id}
         type="number" min="0" step="0.5" value={feeMatch ? feeMatch[1] : ''}
         onChange={(e) => onChange(e.target.value ? `${e.target.value}%` : '')}
         style={{ ...styles.input, flex: 1 }} placeholder="0"
@@ -1156,25 +1194,35 @@ function LogicBuilder({ currentSpace, allSpaceNames, onFieldChange }: {
 }): JSX.Element {
   const spaceFields = ['space_1', 'space_2', 'space_3', 'space_4', 'space_5'] as const;
   const destOptions = [...allSpaceNames, 'Space 2', 'Space 3', 'Space 4', 'Space 5'];
+  // One id per mounted LogicBuilder, suffixed per destination (up to 5) —
+  // useId can't be called inside the map below, so the loop index becomes
+  // the per-row suffix instead. Stable across renders since idx tracks the
+  // same destination slot every time.
+  const baseId = useId();
 
   return (
     <div style={styles.logicBuilder}>
       {spaceFields.map((field, idx) => {
         const raw = currentSpace[field];
+        const destId = `${baseId}-dest-${idx}`;
         if (!raw && idx > 0) {
           if (!currentSpace.space_1 && idx > 0) return null;
           return (
             <div key={field}>
-              <label style={styles.label}>Dest {idx + 1}</label>
-              <SpaceSelectField label="" value="" options={allSpaceNames} onChange={(v) => onFieldChange(field, v)} />
+              <label htmlFor={destId} style={styles.label}>Dest {idx + 1}</label>
+              <SpaceSelectField id={destId} label="" value="" options={allSpaceNames} onChange={(v) => onFieldChange(field, v)} />
             </div>
           );
         }
         if (!raw) {
+          // No htmlFor here: LogicFieldBuilder below is three separately
+          // labelled fields (Q / Y→ / N→), not one control this heading
+          // could point at — id is passed through only as a stable prefix
+          // for those three.
           return (
             <div key={field}>
               <label style={styles.label}>Dest {idx + 1} (LOGIC)</label>
-              <LogicFieldBuilder value="" allSpaceNames={destOptions} onChange={(v) => onFieldChange(field, v)} />
+              <LogicFieldBuilder id={destId} value="" allSpaceNames={destOptions} onChange={(v) => onFieldChange(field, v)} />
             </div>
           );
         }
@@ -1182,16 +1230,18 @@ function LogicBuilder({ currentSpace, allSpaceNames, onFieldChange }: {
         if (!parsed) {
           return (
             <div key={field} style={{ marginBottom: '4px' }}>
-              <label style={styles.label}>Dest {idx + 1}</label>
-              <input type="text" value={raw} onChange={(e) => onFieldChange(field, e.target.value)} style={styles.input} />
+              <label htmlFor={destId} style={styles.label}>Dest {idx + 1}</label>
+              <input id={destId} type="text" value={raw} onChange={(e) => onFieldChange(field, e.target.value)} style={styles.input} />
               <div style={styles.logicFallback}>Complex — edit as text</div>
             </div>
           );
         }
         return (
           <div key={field} style={{ marginBottom: '4px' }}>
+            {/* No htmlFor: same reasoning as the empty-value LOGIC branch
+                above — three separately labelled fields, not one. */}
             <label style={styles.label}>Dest {idx + 1} (LOGIC)</label>
-            <LogicFieldBuilder value={raw} allSpaceNames={destOptions} onChange={(v) => onFieldChange(field, v)} />
+            <LogicFieldBuilder id={destId} value={raw} allSpaceNames={destOptions} onChange={(v) => onFieldChange(field, v)} />
           </div>
         );
       })}
@@ -1199,13 +1249,22 @@ function LogicBuilder({ currentSpace, allSpaceNames, onFieldChange }: {
   );
 }
 
-function LogicFieldBuilder({ value, allSpaceNames, onChange }: {
+function LogicFieldBuilder({ value, allSpaceNames, onChange, id: idProp }: {
   value: string; allSpaceNames: string[]; onChange: (v: string) => void;
+  /** Stable prefix for this instance's three field ids (Q / Y→ / N→) — a
+   * caller with several of these in a loop (LogicBuilder) passes one so ids
+   * stay stable per destination slot; otherwise generated locally. */
+  id?: string;
 }): JSX.Element {
   const parsed = parseLogicCondition(value);
   const [question, setQuestion] = useState(parsed?.question || '');
   const [yesDest, setYesDest] = useState(parsed?.yes || '');
   const [noDest, setNoDest] = useState(parsed?.no || '');
+  const generatedId = useId();
+  const baseId = idProp ?? generatedId;
+  const qId = `${baseId}-q`;
+  const yesId = `${baseId}-yes`;
+  const noId = `${baseId}-no`;
 
   const rebuild = (q: string, y: string, n: string) => {
     onChange(!q && !y && !n ? '' : `${q} YES - ${y} - NO - ${n}`);
@@ -1214,15 +1273,15 @@ function LogicFieldBuilder({ value, allSpaceNames, onChange }: {
   return (
     <div style={styles.logicBuilder}>
       <div style={styles.logicRow}>
-        <span style={styles.logicLabel}>Q</span>
-        <input type="text" value={question}
+        <label htmlFor={qId} style={styles.logicLabel}>Q</label>
+        <input id={qId} type="text" value={question}
           onChange={(e) => { setQuestion(e.target.value); rebuild(e.target.value, yesDest, noDest); }}
           placeholder="e.g., Is scope ≤ $4M?" style={{ ...styles.input, flex: 1 }}
         />
       </div>
       <div style={styles.logicRow}>
-        <span style={styles.logicYes}>Y→</span>
-        <select value={allSpaceNames.includes(yesDest) ? yesDest : ''}
+        <label htmlFor={yesId} style={styles.logicYes}>Y→</label>
+        <select id={yesId} value={allSpaceNames.includes(yesDest) ? yesDest : ''}
           onChange={(e) => { setYesDest(e.target.value); rebuild(question, e.target.value, noDest); }}
           style={{ ...styles.select, flex: 1 }}
         >
@@ -1232,13 +1291,14 @@ function LogicFieldBuilder({ value, allSpaceNames, onChange }: {
         {yesDest && !allSpaceNames.includes(yesDest) && (
           <input type="text" value={yesDest}
             onChange={(e) => { setYesDest(e.target.value); rebuild(question, e.target.value, noDest); }}
+            aria-label="Yes destination (custom value)"
             style={{ ...styles.input, flex: 1 }}
           />
         )}
       </div>
       <div style={styles.logicRow}>
-        <span style={styles.logicNo}>N→</span>
-        <select value={allSpaceNames.includes(noDest) ? noDest : ''}
+        <label htmlFor={noId} style={styles.logicNo}>N→</label>
+        <select id={noId} value={allSpaceNames.includes(noDest) ? noDest : ''}
           onChange={(e) => { setNoDest(e.target.value); rebuild(question, yesDest, e.target.value); }}
           style={{ ...styles.select, flex: 1 }}
         >
@@ -1248,6 +1308,7 @@ function LogicFieldBuilder({ value, allSpaceNames, onChange }: {
         {noDest && !allSpaceNames.includes(noDest) && (
           <input type="text" value={noDest}
             onChange={(e) => { setNoDest(e.target.value); rebuild(question, yesDest, e.target.value); }}
+            aria-label="No destination (custom value)"
             style={{ ...styles.input, flex: 1 }}
           />
         )}
@@ -1284,6 +1345,18 @@ function ModalConfigExpander({ effectAction, diceValue = '', label, getModalConf
   const [expanded, setExpanded] = useState(!!hasConfig);
   const buttonLabel = label || 'modal config';
   const tokens = getModalConfigTokens(effectAction);
+  // Plain-language name for this group's four inputs below, since they carry
+  // only placeholders — `label` (e.g. "Roll 3") when the caller gave one,
+  // otherwise a name built from what effectAction actually is. Kept apart
+  // from `buttonLabel` above so this never leaks into visible button text.
+  const fieldsLabel = label || (
+    effectAction === 'add' ? 'Time cost'
+      : effectAction === 'deduct' ? 'Fee cost'
+      : effectAction === 'choice' ? 'Choice prompt'
+      : effectAction === 'negotiate' ? 'Negotiation prompt'
+      : effectAction === 'end_game' ? 'End-of-game prompt'
+      : 'Modal'
+  );
 
   if (!expanded) {
     return (
@@ -1309,13 +1382,13 @@ function ModalConfigExpander({ effectAction, diceValue = '', label, getModalConf
         Tokens: {tokens}
       </div>
       <input type="text" value={config?.modal_title || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_title', e.target.value, diceValue)}
-        placeholder="Modal title..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+        placeholder="Modal title..." aria-label={`${fieldsLabel} modal title`} style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
       <input type="text" value={config?.modal_description || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_description', e.target.value, diceValue)}
-        placeholder={`Description (${tokens})...`} style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+        placeholder={`Description (${tokens})...`} aria-label={`${fieldsLabel} modal description`} style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
       <input type="text" value={config?.modal_button_label || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_button_label', e.target.value, diceValue)}
-        placeholder="Button label..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+        placeholder="Button label..." aria-label={`${fieldsLabel} modal button label`} style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
       <input type="text" value={config?.modal_summary || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_summary', e.target.value, diceValue)}
-        placeholder="Summary text..." style={{ ...styles.input, fontSize: '11px', width: '100%' }} />
+        placeholder="Summary text..." aria-label={`${fieldsLabel} modal summary`} style={{ ...styles.input, fontSize: '11px', width: '100%' }} />
     </div>
   );
 }
