@@ -132,12 +132,12 @@ describe('SpaceEditor — ids stay unique across repeated groups', () => {
 });
 
 // The "outcomes" section mounts InlineDiceRollEditor — a different
-// component in a different file, out of scope for this pass (the task is
-// SpaceEditor.tsx only). Excluded here rather than asserted on, so this
-// suite stays honest about what it actually fixed.
+// component in a different file, and it used to be excluded here because it
+// had the same unnamed-control problem. It got the same pass (see
+// InlineDiceRollEditorLabels.test.tsx), so everything SpaceEditor renders is
+// now in scope, subtree included.
 const ownControls = (container: HTMLElement): Element[] =>
-  Array.from(container.querySelectorAll('input, textarea, select'))
-    .filter(el => !el.closest('[data-editor-region="outcomes"]'));
+  Array.from(container.querySelectorAll('input, textarea, select'));
 
 describe('SpaceEditor — nothing rendered is left nameless', () => {
   it('every input, textarea and select has an accessible name', () => {

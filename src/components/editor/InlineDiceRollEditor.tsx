@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { DiceRollRow } from './types/EditorTypes';
 
 interface InlineDiceRollEditorProps {
@@ -15,33 +15,36 @@ const CARD_PRESETS = ['Draw 1', 'Draw 2', 'Draw 3', 'Remove 1', 'Replace 1', 'No
 const QUALITY_PRESETS = ['HIGH', 'MED', 'LOW'];
 const DIE_ROLL_CATEGORIES = ['W Cards', 'I Cards', 'E cards', 'Fees Paid', 'Fee Paid', 'Time outcomes', 'Next Step', 'Quality', 'Multiplier'];
 
-function SmartRollInput({ value, dieRoll, allSpaceNames, onChange }: {
-  value: string; dieRoll: string; allSpaceNames: string[]; onChange: (v: string) => void;
+// One control per die face. `id` comes from the caller (which also owns the
+// visible die-number label) so the two pair up as one named field, whichever
+// of the branches below ends up rendering.
+function SmartRollInput({ id, value, dieRoll, allSpaceNames, onChange }: {
+  id: string; value: string; dieRoll: string; allSpaceNames: string[]; onChange: (v: string) => void;
 }): JSX.Element {
   if (['W Cards', 'I Cards', 'E cards'].includes(dieRoll)) {
     if (!value || CARD_PRESETS.includes(value)) {
       return (
-        <select value={value || ''} onChange={(e) => onChange(e.target.value)} style={s.rollInput}>
+        <select id={id} value={value || ''} onChange={(e) => onChange(e.target.value)} style={s.rollInput}>
           <option value="">—</option>
           {CARD_PRESETS.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
       );
     }
-    return <input type="text" value={value} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
+    return <input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
   }
   if (dieRoll === 'Fees Paid') {
     const m = value?.match(/^(\d+(?:\.\d+)?)\s*%$/);
     if (!value || m) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
-          <input type="number" min="0" step="1" value={m ? m[1] : ''}
+          <input id={id} type="number" min="0" step="1" value={m ? m[1] : ''}
             onChange={(e) => onChange(e.target.value ? `${e.target.value}%` : '')}
             style={{ ...s.rollInput, flex: 1 }} placeholder="0" />
           <span style={{ fontSize: '10px', color: '#495057' }}>%</span>
         </div>
       );
     }
-    return <input type="text" value={value} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
+    return <input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
   }
   if (dieRoll === 'Fee Paid') {
     const m = value?.match(/^\$?\s*(\d+(?:\.\d+)?)$/);
@@ -49,37 +52,37 @@ function SmartRollInput({ value, dieRoll, allSpaceNames, onChange }: {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
           <span style={{ fontSize: '10px', color: '#495057' }}>$</span>
-          <input type="number" min="0" step="0.01" value={m ? m[1] : ''}
+          <input id={id} type="number" min="0" step="0.01" value={m ? m[1] : ''}
             onChange={(e) => onChange(e.target.value ? `$${e.target.value}` : '')}
             style={{ ...s.rollInput, flex: 1 }} placeholder="0.00" />
         </div>
       );
     }
-    return <input type="text" value={value} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
+    return <input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
   }
   if (dieRoll === 'Quality') {
     return (
-      <select value={QUALITY_PRESETS.includes(value) ? value : ''} onChange={(e) => onChange(e.target.value)} style={s.rollInput}>
+      <select id={id} value={QUALITY_PRESETS.includes(value) ? value : ''} onChange={(e) => onChange(e.target.value)} style={s.rollInput}>
         <option value="">—</option>
         {QUALITY_PRESETS.map(p => <option key={p} value={p}>{p}</option>)}
       </select>
     );
   }
   if (dieRoll.trim() === 'Multiplier') {
-    return <input type="number" min="0" step="1" value={value || ''} onChange={(e) => onChange(e.target.value)} style={s.rollInput} placeholder="0" />;
+    return <input id={id} type="number" min="0" step="1" value={value || ''} onChange={(e) => onChange(e.target.value)} style={s.rollInput} placeholder="0" />;
   }
   if (dieRoll === 'Next Step') {
     if (!value || allSpaceNames.includes(value)) {
       return (
-        <select value={value || ''} onChange={(e) => onChange(e.target.value)} style={s.rollInput}>
+        <select id={id} value={value || ''} onChange={(e) => onChange(e.target.value)} style={s.rollInput}>
           <option value="">—</option>
           {allSpaceNames.map(n => <option key={n} value={n}>{n}</option>)}
         </select>
       );
     }
-    return <input type="text" value={value} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
+    return <input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
   }
-  return <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
+  return <input id={id} type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
 }
 
 export function InlineDiceRollEditor({
@@ -87,6 +90,11 @@ export function InlineDiceRollEditor({
   onUpdateDiceRoll, onAddDiceRoll, onDeleteDiceRoll,
 }: InlineDiceRollEditorProps): JSX.Element {
   const [addCategory, setAddCategory] = useState('');
+  // One id per mounted editor, suffixed per roll row and per die face —
+  // useId can't be called inside the maps below, so the row's index into
+  // `diceRolls` (stable: it tracks the same row every render) and the die
+  // number become the suffixes instead.
+  const baseId = useId();
 
   // Filter to this space + visit type
   const filtered = diceRolls
@@ -117,7 +125,9 @@ export function InlineDiceRollEditor({
         </div>
       )}
 
-      {filtered.map(({ roll, idx }) => (
+      {filtered.map(({ roll, idx }) => {
+        const rowId = `${baseId}-roll-${idx}`;
+        return (
         <div key={`${roll.die_roll}-${idx}`} style={s.rollCard}>
           <div style={s.rollHeader}>
             <span style={s.rollCategory}>{roll.die_roll}</span>
@@ -126,8 +136,12 @@ export function InlineDiceRollEditor({
           <div style={s.rollGrid}>
             {([1, 2, 3, 4, 5, 6] as const).map(num => (
               <div key={num} style={s.rollCell}>
-                <span style={s.dieNum}>{num}</span>
+                {/* The die number was already sitting right above its field;
+                    making it a real <label> names the field without moving
+                    or restyling anything. */}
+                <label htmlFor={`${rowId}-die-${num}`} style={s.dieNum}>{num}</label>
                 <SmartRollInput
+                  id={`${rowId}-die-${num}`}
                   value={roll[`roll_${num}` as keyof DiceRollRow] || ''}
                   dieRoll={roll.die_roll}
                   allSpaceNames={allSpaceNames}
@@ -137,8 +151,9 @@ export function InlineDiceRollEditor({
             ))}
           </div>
           <div style={s.labelRow}>
-            <label style={s.labelText}>Button:</label>
+            <label htmlFor={`${rowId}-button`} style={s.labelText}>Button:</label>
             <input
+              id={`${rowId}-button`}
               type="text"
               value={roll.button_label || ''}
               onChange={(e) => onUpdateDiceRoll(idx, 'button_label', e.target.value)}
@@ -147,8 +162,9 @@ export function InlineDiceRollEditor({
             />
           </div>
           <div style={s.labelRow}>
-            <label style={s.labelText}>Roll Group:</label>
+            <label htmlFor={`${rowId}-group`} style={s.labelText}>Roll Group:</label>
             <input
+              id={`${rowId}-group`}
               type="text"
               value={roll.roll_group || ''}
               onChange={(e) => onUpdateDiceRoll(idx, 'roll_group', e.target.value)}
@@ -157,11 +173,14 @@ export function InlineDiceRollEditor({
             />
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {/* Add new row */}
       <div style={s.addRow}>
-        <select value={addCategory} onChange={(e) => setAddCategory(e.target.value)} style={s.addSelect}>
+        {/* No visible label of its own: the placeholder option is all a
+            sighted user gets, so this one takes an aria-label. */}
+        <select aria-label="Add dice roll category" value={addCategory} onChange={(e) => setAddCategory(e.target.value)} style={s.addSelect}>
           <option value="">+ Add dice roll...</option>
           {DIE_ROLL_CATEGORIES.filter(c => !usedCategories.includes(c)).map(cat => (
             <option key={cat} value={cat}>{cat}</option>

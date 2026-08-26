@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.42] - 2026-08-26
+
+### The dice-outcome table's controls have names too — and v3.2.40's claim is now actually true
+v3.2.40 said "every field in the space editor says its own name." That was overstated. The pass covered `SpaceEditor.tsx` and stopped at its edge: the outcomes section mounts `InlineDiceRollEditor`, a different component in a different file, and the test that checks nothing is left nameless **excluded that subtree** rather than asserting on it. The exclusion was written down honestly in the test, but the release note was not that careful.
+
+That subtree had the same problem, and now has the same fix. The six per-die-face outcome fields each had their die number drawn in a `<span>` directly above them — visually a label, programmatically nothing — so a screen reader read six unnamed boxes. The number is now a real `<label htmlFor>` carrying the same style object, and `SmartRollInput` takes an `id` it puts on whichever control its branch renders: preset select, free-text input, the % and $ number inputs, the quality select, the space select. "Button:" and "Roll Group:" had visible labels tied to nothing; they are paired now. The "+ Add dice roll…" select has no visible label at all — only a placeholder option — so it takes an `aria-label`, the same rule `SpaceEditor` already uses for its tile-label and modal-override inputs.
+
+Ids come from one `useId()` per mounted editor, suffixed by the row's index and the die number, following the `LogicBuilder` idiom in `SpaceEditor` — `useId` cannot be called inside the row maps. Two editors side by side stay collision-free, which is pinned rather than assumed.
+
+With the subtree fixed, `SpaceEditorLabels`' exclusion is gone: that suite now covers everything `SpaceEditor` renders, subtree included.
+
+Nine new tests, asserted against a fixture carrying one row per `SmartRollInput` branch so every control shape it can render is on screen at once. Verified they bite: with the component reverted and the tests kept, 10 of 18 fail — the nine new ones plus the newly un-excluded `SpaceEditor` assertion. All pass with the fix. Full suite green 22/22, typecheck, lint and production build clean.
+
+Styling is untouched; the only markup change with any visual surface is `<span style={s.dieNum}>` → `<label style={s.dieNum}>`, and that style sets `display: flex` explicitly, so it renders identically. Not eyeballed in a browser — the smoke test asserts the six values still land in the right fields after the id wiring.
+
 ## [3.2.41] - 2026-08-26
 
 ### A teacher can change what a space says again — on their own shelf, never yours
