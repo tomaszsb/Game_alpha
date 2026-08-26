@@ -15,7 +15,7 @@
 An autonomous `/loop /fixloop` run then landed **v3.2.39** (SPACE_EFFECTS read by header name, so a column added mid-file no longer shifts every field after it) and **v3.2.40** (accessible names across the space editor) before **stopping on judgement rather than budget**: the next item, a teacher branch on the content-save route, needed permission semantics that Stage 4's undecided role model owns. The maintainer then decided it — **skip the group/school tier** — and **v3.2.41** built it: a teacher writes an `individual` card over six wording columns, rebuilt from their own baked board, and an edit on a slot playing an `official` card branches instead of overwriting. **v3.2.42** closed a gap v3.2.40's release note had overstated (see Health).
 
 ## Health
-- **Tests:** typecheck ✅ clean, build ✅ clean, lint ✅ clean on all touched files. `npm test` **3016 tests / 198 files**. `npm run test:ghost` — see NEXT_SESSION for the final number.
+- **Tests:** typecheck ✅ clean, build ✅ clean, lint ✅ clean on all touched files. `npm test` **3016/3016** (198 files). `npm run test:ghost` **33/33** (10 files, ~14.5 min) — smart-bot 47/50 wins, 0 hard failures, deterministic and unchanged from every run since 2026-08-17.
 - **Coverage gap found this session:** `tests/scripts/run-tests-batch-fixed.sh` does **not** cover `tests/components/classroom/`. A v3.2.41 regression (10 failures in `ClassroomSetup.test.tsx`) passed 22/22 batches and was only caught by the full `npm test` at wrap-up. Treat "22/22 batches" as a subset signal, not the full suite.
 - **Security:** `npm audit` 0 vulnerabilities.
 - **Deploy:** v3.2.42 confirmed live (`e6f6330`), verified by version string **and** the `tv-history-feed` marker in the served bundle.

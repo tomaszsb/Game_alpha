@@ -4,7 +4,7 @@
 - **Version:** v3.2.42 — **deployed and confirmed live** (`/health` → `e6f6330`; bundle carries `3.2.42` and the `tv-history-feed` marker). v3.2.39–42 all went out in one deploy.
 - **Branch:** master, clean and pushed (untracked `idea.txt` is the maintainer's own draft — leave it).
 - **Last shipped:** one shared history feed across the TV, phone panel, shared-screen Log and end-of-game viewer, differing only by opening filter (v3.2.38); SPACE_EFFECTS read by header name (v3.2.39); accessible names across the space editor (v3.2.40) and its dice-outcome table (v3.2.42); teachers can change what a space says again, on their own card only (v3.2.41).
-- **Test suite:** `npm test` **3016/3016** (198 files). `npm run test:ghost` — see "Test failures" below.
+- **Test suite:** `npm test` **3016/3016** (198 files). `npm run test:ghost` **33/33** (10 files, 872s). smart-bot 47/50 wins, **0 hard failures**, deterministic — identical numbers to every run since 2026-08-17, so this session's five versions caused no behavioral drift.
 - **Build/typecheck/lint:** all clean.
 
 ## Top 3 open items
