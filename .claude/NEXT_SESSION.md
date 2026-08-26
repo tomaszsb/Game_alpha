@@ -1,35 +1,40 @@
-# Next session starter — written 2026-08-23 by /koniec
+# Next session starter — written 2026-08-26 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.37 — **pending deploy**. v3.2.36 (`e121dd5`) is the last version confirmed live.
+- **Version:** v3.2.42 — **deployed and confirmed live** (`/health` → `e6f6330`; bundle carries `3.2.42` and the `tv-history-feed` marker). v3.2.39–42 all went out in one deploy.
 - **Branch:** master, clean and pushed (untracked `idea.txt` is the maintainer's own draft — leave it).
-- **Last shipped:** three rounds off the maintainer's own use of the merged space-editing screen — the editor now uses the player view's words and folds what is empty (v3.2.35), the four `extract-zip` advisories cleared by upgrading puppeteer forward (v3.2.36), and clicking into a field now marks what it changes while folded sections stopped looking like boxes (v3.2.37).
-- **Test suite:** `npm test` **2963/2963** (195 files). `npm run test:ghost` **33/33** (10 files, ~14.8 min).
-- **Build/typecheck:** both clean. `npm audit` **0 vulnerabilities** (was 4 high).
+- **Last shipped:** one shared history feed across the TV, phone panel, shared-screen Log and end-of-game viewer, differing only by opening filter (v3.2.38); SPACE_EFFECTS read by header name (v3.2.39); accessible names across the space editor (v3.2.40) and its dice-outcome table (v3.2.42); teachers can change what a space says again, on their own card only (v3.2.41).
+- **Test suite:** `npm test` **3016/3016** (198 files). `npm run test:ghost` — see "Test failures" below.
+- **Build/typecheck/lint:** all clean.
 
 ## Top 3 open items
-1. **Deploy v3.2.37 and look at it.** Two things in it were verified by *dispatching* the events a browser sends, not by a real click: the new click-a-field-to-light-the-panel link, and Tab order from v3.2.34. Root cause, established this session and now in CLAUDE.md TACTICAL: the Browser pane never holds keyboard focus — `document.hasFocus()` is false, so `.focus()` moves `activeElement` while the browser fires **zero** focus events. One minute of real clicking and tabbing settles both. He has reacted to this screen three times running; his fourth reaction is worth more than any item below.
-2. **Teachers can no longer edit what a space says** — regression from v3.2.29, stated at the time rather than found later. `SpaceEditor` is already built for it (`visibleFields={SAFE_FIELD_SUBSET}`); it needs a teacher branch on `POST /api/instances/:id/content` writing `individual` cards. **No teachers exist yet**, so nothing is broken in practice.
-3. **`DataService.parseSpaceEffectsCsv` reads SPACE_EFFECTS by column NUMBER, not header name.** Inserting a column mid-header shifted every later field and turned 18 tests red (2026-08-22). New columns must be appended to the end until this is fixed. Hot path — wants its own pass with the suite green either side.
+1. **Look at the TV history column on a real television.** It takes 260px of the TV's 960px width; the 📜 History button in the header hides it. Verified at exactly 960×540 in a browser — 260px column, 700px board, no overflow, chips filter live, toggle returns the full 944px board. What a browser cannot answer is whether the board stays readable *across a room*, and the TV-fit history behind fb:3f9f2831 / fb:28512320 says that matters. If it's tight, the fix is one line: default `showHistory` to false in `TVDisplay.tsx`.
+2. **Two things only a real click settles.** v3.2.37's click-a-field-to-light-the-panel and v3.2.34's Tab order were both verified by *dispatching* the events a browser sends, never by a real click — the Browser pane never holds keyboard focus, so `.focus()` moves `activeElement` while firing zero focus events (root cause in CLAUDE.md TACTICAL). Add a third: v3.2.42 changed a `<span>` to a `<label>` in the dice-outcome table and was deliberately not eyeballed; the style sets `display:flex` explicitly so it should be identical, but that's reasoning, not seeing.
+3. **Teachers reach the new editor through Classroom Setup, not the merged admin screen** — so they get the deck and the six wording fields, but not the player-view preview the admin gets. Tracked as follow-up (ii) on the card-library item in TODO.md. Note also that no teacher account exists in production; the boundary was proven against a throwaway local server, not live.
 
-(Not exhaustive — this is a shortlist. `TODO.md` holds the rest, including the Dockerfile dev-dependency item whose obvious fix is a live outage.)
+(Not exhaustive — this is a shortlist. `TODO.md` holds 15 active items and a 51-item parking lot.)
 
 ## Test failures to address
-None. Both suites green — `npm test` 2963/2963 and `npm run test:ghost` 33/33.
+None outstanding. **One real regression was caught and fixed during this wrap-up:** v3.2.41's `ClassroomSetup` editing pane made the component require the service container, and `ClassroomSetup.test.tsx` renders it bare — all 10 tests threw "must be used within a ServiceProvider". Fixed by wrapping those renders in a `GameContext.Provider`. It is **not** a production bug: `App.tsx` mounts `ServiceProvider` above `AppContent`, and PlayerSetup → AdminToolsPanel → ClassroomSetup sits inside it.
+
+**Worth knowing:** that regression passed **22/22 batches**, because `run-tests-batch-fixed.sh` enumerates test files explicitly and never lists `tests/components/classroom/`. Only the full `npm test` caught it. Filed in TODO; treat "22/22 batches" as a subset signal from now on.
 
 ## Decisions waiting on the user
-- **Stage 4 of the card library — the group/school tier.** He leaned toward wanting it built, was given the sizing, and the thread moved on before he chose. Cards already carry an owner, so this is additive. See [CARD_LIBRARY_DESIGN.md](../docs/core/CARD_LIBRARY_DESIGN.md) "Stage 4".
-- **`DataEditor` is now unreachable but deliberately still in the tree** as a fallback. He has now used the merged screen three times but has not called it good — delete once he does.
-- He said of the Dockerfile question: *"too technical for me i do not know how to make this decision."* Treat infrastructure trade-offs as yours to decide and report, not to put to him.
+- **Card library Stage 4 — the group/school tier.** Explicitly deferred 2026-08-25 ("skip the middle shelf"), not rejected. Revisit when a real school has several teachers retyping the same fix; the `group` tier is a valid value nothing writes, so adding it later is additive, not a migration.
+- **`DataEditor` is unreachable but deliberately still in the tree** as a fallback — delete once the merged screen is confirmed good in real use.
+
+## Held from cleanup
+- `.claude/worktrees/objective-khayyam-7de70a` — **HELD**: 0 unique commits (merged), but 3 dirty files beyond `settings.local.json`. Its content was copied onto master and verified byte-identical before v3.2.42 landed, so nothing is at risk; it was left because the spawned session that owns it may still be open. Once you know it's closed: `git worktree remove --force .claude/worktrees/objective-khayyam-7de70a && git branch -D claude/objective-khayyam-7de70a`.
 
 ## Suggested first move
-Hand him the deploy command, then ask what the folded editor actually looks like once he opens it — specifically whether folding reads as "the clutter is gone" or as "things are being hidden from me." If it is the latter, the fix is small: start every section open and let folding be something he does.
+Two minutes on a real TV settles item 1, and it's the only thing in this batch that could need a change before anyone else sees it. Ask him what the history column does to the board across a room — and whether the filter chips read as an invitation or as clutter, since that's the half no test can measure.
 
 ## Suggested model for next session
-Sonnet 5 — the open items are scoped (a teacher branch on one route, a parser reading by name, label associations). No architectural ambiguity; the design work is done and written down. Raise effort to `xhigh` before reaching for a bigger model.
+Sonnet 5 — the open items are scoped (a one-line default, a batch-script glob, the sibling CSV parsers with a working helper to copy). No architectural ambiguity left; Stage 4 is deferred by decision, not blocked. Raise effort to `xhigh` before reaching for a bigger model.
 
 ## Reminders
-- Deploy runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Hand it over — don't run it.
-- **Patch scripts: preserve each file's line endings.** Several source files are CRLF in HEAD despite `.gitattributes` saying `eol=lf`; a python round-trip flattened two of them this session and turned a 500-line change into a 2500-line diff. And never inline a backtick-bearing script into `python -c` from bash — bash ran `npm ci` out of one's prose. Both in CLAUDE.md TACTICAL now.
+- Deploy runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Hand it over — he ran it himself this session.
+- **`io.open(p,'w')` truncates before it writes.** A patch script that raises mid-write leaves the file EMPTY — it destroyed a 3435-line committed doc this session (recovered via git). Prefer the `Edit` tool; if a script must write, encode-check the string first. Now in CLAUDE.md TACTICAL, along with the surrogate-pair emoji trap that caused the raise.
+- PowerShell here-strings (`@'…'@`) are not Bash. Use a heredoc or `git commit -F <file>` — a stray `@` leaked into a commit subject this session.
 - `tests/server/pipelineFaithful.test.ts` is load-bearing. If it fails, fix the pipeline or add a SOURCE column — never edit a generated `CLEAN_FILES` file.
-- The local `/fixloop` budget meter was re-anchored this session at 89% weekly (`node scripts/fixloop-usage.mjs --calibrate <official %>`). Weekly usage was high; check before starting a long autonomous run.
+- The `/fixloop` budget meter was at ~3.9% of a 28.57% day-2 cap when the loop stopped. It stopped on judgement, not budget — see the memory-graph session entity for why the teacher branch was refused autonomously.

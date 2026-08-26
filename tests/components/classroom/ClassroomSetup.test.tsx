@@ -12,6 +12,21 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { ClassroomSetup } from '../../../src/components/classroom/ClassroomSetup';
+import { GameContext } from '../../../src/context/GameContext';
+import { IServiceContainer } from '../../../src/types/ServiceContracts';
+
+// The screen's editing half (v3.2.41) reads the service container, the same
+// way every other editor surface does — so these renders need the provider the
+// real app already wraps this screen in (App.tsx mounts ServiceProvider above
+// AppContent, and PlayerSetup -> AdminToolsPanel -> here sits inside it).
+// Rendering it bare throws "must be used within a ServiceProvider".
+const testServices = {
+  stateService: { subscribe: () => () => {}, getGameState: () => ({ globalActionLog: [] }), getPlayer: () => undefined },
+  dataService: { reloadAllData: async () => {}, getCards: () => [], getCardById: () => undefined },
+} as unknown as IServiceContainer;
+
+const renderSetup = (ui: React.ReactElement) =>
+  render(<GameContext.Provider value={testServices}>{ui}</GameContext.Provider>);
 
 vi.mock('../../../src/utils/networkDetection', () => ({
   getBackendURL: () => 'http://test-backend',
@@ -127,7 +142,7 @@ describe('ClassroomSetup', () => {
 
   it('renders the full deck from /catalog, including switched-off spaces', async () => {
     fetchMock.mockResolvedValue(jsonResponse(CATALOG));
-    render(<ClassroomSetup onClose={() => {}} />);
+    renderSetup(<ClassroomSetup onClose={() => {}} />);
 
     expect(await screen.findByText('The Middle')).toBeInTheDocument();
     expect(screen.getByText('The Gone One')).toBeInTheDocument();
@@ -142,7 +157,7 @@ describe('ClassroomSetup', () => {
     // Architect's "Fee Review" from the Engineer's. The id underneath used to
     // do the disambiguating and answered the wrong question.
     fetchMock.mockResolvedValue(jsonResponse(CATALOG));
-    render(<ClassroomSetup onClose={() => {}} />);
+    renderSetup(<ClassroomSetup onClose={() => {}} />);
     await screen.findByText('The Middle');
 
     expect(screen.getByText('Architect')).toBeInTheDocument();
@@ -161,7 +176,7 @@ describe('ClassroomSetup', () => {
     // cards ... depending which one you press the data entry fields look
     // different". The small one is gone.
     fetchMock.mockResolvedValue(jsonResponse(CATALOG));
-    render(<ClassroomSetup onClose={() => {}} />);
+    renderSetup(<ClassroomSetup onClose={() => {}} />);
 
     expect(screen.queryByRole('button', { name: /Customize/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Add a copy/ })).toBeNull();
@@ -169,7 +184,7 @@ describe('ClassroomSetup', () => {
 
   it('shows a lock instead of a switch for protected spaces', async () => {
     fetchMock.mockResolvedValue(jsonResponse(CATALOG));
-    render(<ClassroomSetup onClose={() => {}} />);
+    renderSetup(<ClassroomSetup onClose={() => {}} />);
     await screen.findByText('The Start');
 
     expect(screen.getByText('🔒 always on')).toBeInTheDocument();
@@ -189,7 +204,7 @@ describe('ClassroomSetup', () => {
       throw new Error(`unexpected fetch: ${url}`);
     });
 
-    render(<ClassroomSetup onClose={() => {}} />);
+    renderSetup(<ClassroomSetup onClose={() => {}} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Switch off The Middle' }));
 
     // The confirm dialog shows the pre-filled pass-through suggestion.
@@ -219,7 +234,7 @@ describe('ClassroomSetup', () => {
       throw new Error(`unexpected fetch: ${url}`);
     });
 
-    render(<ClassroomSetup onClose={() => {}} />);
+    renderSetup(<ClassroomSetup onClose={() => {}} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Switch on The Gone One' }));
 
     await waitFor(() => {
@@ -237,7 +252,7 @@ describe('ClassroomSetup', () => {
     // every time, so it holds two. Both are shown rather than hidden; nothing
     // makes a third.
     fetchMock.mockResolvedValue(jsonResponse(CATALOG_WITH_CARDS));
-    render(<ClassroomSetup onClose={() => {}} />);
+    renderSetup(<ClassroomSetup onClose={() => {}} />);
     await screen.findByText('The Middle');
 
     // Playing indicator appears exactly once — on copy_1, the one the slot plays.
@@ -262,7 +277,7 @@ describe('ClassroomSetup', () => {
 
   it('attaches a card-keyed drift warning to its own card, not the page banner', async () => {
     fetchMock.mockResolvedValue(jsonResponse(CATALOG_WITH_CARDS));
-    render(<ClassroomSetup onClose={() => {}} />);
+    renderSetup(<ClassroomSetup onClose={() => {}} />);
     await screen.findByText('The Middle');
 
     // The card-keyed warning renders as a badge on copy_1's chip...
@@ -281,7 +296,7 @@ describe('ClassroomSetup', () => {
       throw new Error(`unexpected fetch: ${url}`);
     });
 
-    render(<ClassroomSetup onClose={() => {}} />);
+    renderSetup(<ClassroomSetup onClose={() => {}} />);
     await screen.findByText('The Middle');
 
     // copy_1 is playing, so copy_2 is the only other version to go back to.
@@ -302,7 +317,7 @@ describe('ClassroomSetup', () => {
       throw new Error(`unexpected fetch: ${url}`);
     });
 
-    render(<ClassroomSetup onClose={() => {}} />);
+    renderSetup(<ClassroomSetup onClose={() => {}} />);
     await screen.findByText('The Middle');
 
     fireEvent.click(screen.getByRole('button', { name: 'Go back to the original' }));

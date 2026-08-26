@@ -2,6 +2,14 @@
 
 ---
 
+## v3.2.38–3.2.42 — The TV finally tells you what just happened (August 26, 2026)
+
+- **Playing with the board on a TV? There is now a running list of what just happened, right beside the board.** Whose turn it was, what it cost them, what they drew — it fills in as the game goes, so nobody has to ask "wait, what did I miss?" A **📜 History** button in the top bar hides the list again if you would rather give the whole screen to the board.
+- **You choose what that list shows.** Two rows of buttons sit above it: one for *who* (everyone, or one player) and one for *what* (everything, or just the money, just the moves, just the cards). Tap to narrow it, tap "Everyone" or "Everything" to come back. Nothing is tucked behind a menu, because nobody can open a menu on a television.
+- **Every history list in the game now looks the same.** Your own "What's happened" on your phone, the Log on a shared screen, the list at the end of a game, and the new TV column are all one thing now — they just start on different filters. Learn to read one and you can read all four. Your phone still opens on your own turns; the "Who" buttons widen it to the whole table whenever you want.
+- **For teachers: you can change what a space says again.** Open Classroom Setup, pick a space from your deck, and rewrite its words, its time or its fee in language that suits your class. Your changes belong to your classroom alone — they never touch the original everyone else plays, and they cannot accidentally change where a space leads or what it draws. This had been broken since an earlier tidy-up removed the old editor.
+- **Behind the scenes:** a data file can now have a column added to the middle of it without scrambling every value after it, and every box on the space-editing screen — the dice-outcome table included — now carries a proper name, so a screen reader announces what each one is instead of reading out a row of unlabelled boxes.
+
 ## v3.2.35–3.2.37 — The space editor now speaks the same language as the player view (August 23, 2026)
 
 - **Nothing here changes what you see as a player.** This is all the screen the person running your classroom uses to change what a space says.

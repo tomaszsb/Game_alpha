@@ -5,28 +5,24 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** August 23, 2026
+**Last Updated:** August 26, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.37** — **pending deploy**. v3.2.36 (`e121dd5`) is the last version confirmed live.
+**Current Version:** **3.2.42** — deployed and confirmed live (`/health` → `e6f6330`, bundle carries `3.2.42`). v3.2.39–3.2.42 all shipped in one deploy.
 
 ## Current sprint
-**2026-08-23, continuing the card-library session: the maintainer used the merged space-editing screen and reported back three times.** Every version this stretch came straight off his reaction, not from a plan.
+**2026-08-25/26 — the maintainer answered a design question that had been open since the Project Chronicle's first slice, and the answer settled more than the thing it was asked about.** On the TV history feed: *"all the feeds should look the same, they should just be filtered differently. because it is on tv maybe we should just have the filters visible to users and let them decide what to see?"* **v3.2.38** made that true — one `HistoryFeed` behind the TV column, the phone panel, the shared-screen Log and the end-of-game viewer, differing only in the filter they open on, with Who/What chips on screen because nobody can open a menu on a television.
 
-His first verdict was that the left side was "very big and sparse" and that it was "hard to find things on the left that match things on the player panel on the right." Both halves had one cause: the editor headed its sections after the data model — *(C) Actions*, *Dice Outcome Modals*, *Movement Destinations* — while the player view named the same parts plainly. Ten headings, no shared words. **v3.2.35** made headings come off `spaceRegions.ts`, the one map both directions already read, split two sections so each answers to exactly one clickable part, and folded the empty ones.
-
-His second round: folded sections were still bordered white cards, so twelve one-line rows read as clutter; and clicking into a field still showed nothing, because only *typing* had ever lit the panel. **v3.2.37** made a folded section a quiet borderless row and made the panel mark the part your cursor is in — steadily, scrolled into view — reported from one handler on the form rather than field by field.
-
-Between them, **v3.2.36** cleared the four `extract-zip` advisories his deploy log was printing, by upgrading puppeteer *forward* to 25.8.0 (`@puppeteer/browsers` 3.2.1 dropped the package outright) rather than accepting `npm audit fix`'s proposed six-major downgrade to a 2023 release.
+An autonomous `/loop /fixloop` run then landed **v3.2.39** (SPACE_EFFECTS read by header name, so a column added mid-file no longer shifts every field after it) and **v3.2.40** (accessible names across the space editor) before **stopping on judgement rather than budget**: the next item, a teacher branch on the content-save route, needed permission semantics that Stage 4's undecided role model owns. The maintainer then decided it — **skip the group/school tier** — and **v3.2.41** built it: a teacher writes an `individual` card over six wording columns, rebuilt from their own baked board, and an edit on a slot playing an `official` card branches instead of overwriting. **v3.2.42** closed a gap v3.2.40's release note had overstated (see Health).
 
 ## Health
-- **Tests:** typecheck ✅ clean, build ✅ clean. `npm test` **2963/2963** (195 files, +6 this stretch). `npm run test:ghost` **33/33** (10 files, ~14.8 min, 0 hard failures, bot batches at their win-rate floors).
-- **Security:** `npm audit` **0 vulnerabilities** (was 4 high).
-- **Lint:** not touched this session (41 problems / 6 errors, unchanged baseline, all pre-existing `react/no-unescaped-entities`).
-- **Deploy:** v3.2.36 confirmed live by the maintainer (`/health` → `e121dd5`). **v3.2.37 is built and pushed but not deployed.**
-- **Dashboard feedback:** untouched this session — these three versions came from direct reports, not filed ones. 6–7 open, per the last live count.
+- **Tests:** typecheck ✅ clean, build ✅ clean, lint ✅ clean on all touched files. `npm test` **3016 tests / 198 files**. `npm run test:ghost` — see NEXT_SESSION for the final number.
+- **Coverage gap found this session:** `tests/scripts/run-tests-batch-fixed.sh` does **not** cover `tests/components/classroom/`. A v3.2.41 regression (10 failures in `ClassroomSetup.test.tsx`) passed 22/22 batches and was only caught by the full `npm test` at wrap-up. Treat "22/22 batches" as a subset signal, not the full suite.
+- **Security:** `npm audit` 0 vulnerabilities.
+- **Deploy:** v3.2.42 confirmed live (`e6f6330`), verified by version string **and** the `tv-history-feed` marker in the served bundle.
+- **Dashboard feedback:** no flips pending — this session's fixes came from design decisions and code investigation, not filed reports.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Deploy v3.2.37, then look at the folded editor with your own eyes.** Two things in it could only be verified by dispatching the events a browser would send: the click-to-light link, and Tab order. The Browser pane never holds keyboard focus (`document.hasFocus()` is false, so *zero* focus events fire) — root-caused this session and now in CLAUDE.md TACTICAL. One minute of real clicking settles both.
-2. **Teachers can no longer edit what a space says** — a regression from v3.2.29, stated at the time rather than discovered later. `SpaceEditor` is already built to show them the safe subset (`visibleFields={SAFE_FIELD_SUBSET}`); it needs a teacher branch on `POST /content` writing `individual` cards. **No teachers exist yet**, so nothing is broken in practice.
-3. **`DataService.parseSpaceEffectsCsv` reads a CSV by column number, not header name** — inserting a column mid-header shifted every later field and turned 18 tests red. New columns must be appended to the end until it reads by name. The editor's own `csvExport` was fixed this way in v2.66.1; this parser never was.
-4. **The Dockerfile ships devDependencies into the running image** — and the obvious one-line fix is a live outage. `express`/`cors`/`ws` were filed as devDependencies (moved to `dependencies` in v3.2.37, so the prerequisite is done), but `npm prune --omit=dev` still needs a real container build to prove before it goes near a deploy. Full trap written into TODO.md.
+1. **Look at the TV history column on a real television.** It takes 260px of the TV's 960px width. Verified at that exact resolution in a browser (no overflow, chips work, board renders), but whether the board stays *readable across a room* is what the browser can't answer — and the TV-fit history behind fb:3f9f2831 / fb:28512320 says it matters. If it's tight, the fix is one line: default `showHistory` to false.
+2. **Two things only a real click settles.** v3.2.37's click-a-field-to-light-the-panel and v3.2.34's Tab order were both verified by *dispatching* the events a browser sends. Root cause, now in CLAUDE.md TACTICAL: the Browser pane never holds keyboard focus, so `.focus()` moves `activeElement` while firing zero focus events. Also worth a glance: v3.2.42 changed a `<span>` to a `<label>` in the dice-outcome table and was not eyeballed.
+3. **Teachers reach the new editor through Classroom Setup, not the merged admin screen** — so they get the deck and the fields without the player-view preview. Tracked as follow-up (ii) on the card-library item.
+4. **`DataService`'s sibling CSV parsers still read by column number.** v3.2.39 fixed `parseSpaceEffectsCsv` only; `parseDiceEffectsCsv` and the rest share the shape and the latent bug. Deliberately left — a hot-path parser wants its own pass.
