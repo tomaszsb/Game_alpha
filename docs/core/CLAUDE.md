@@ -272,7 +272,7 @@ Your mission is to maintain and enhance Game Alpha, a fully functional multi-pla
 
 ### **Code Quality Standards:**
 - **All code:** TypeScript with strict type checking. `npm run typecheck` must return 0 errors.
-- **Testing:** All 23 batches in `./tests/scripts/run-tests-batch-fixed.sh` must be green. Ghost Player strict + try-again-happy variants both pass.
+- **Testing:** `npm test` must be green — that is the real gate (198 files). `./tests/scripts/run-tests-batch-fixed.sh` is a fast **subset**: it enumerates test files explicitly rather than globbing, so whole directories can be invisible to it (`tests/components/classroom/` is, as of 2026-08-26 — a regression there passed 22/22 batches). Use the batch runner mid-session; run `npm test` before committing. Ghost Player strict + try-again-happy variants both pass (`npm run test:ghost`, ~15 min, run separately since v3.1.11).
 - **Components:** Single responsibility. No line-count budget — split when a specific method becomes painful, not on size alone (see [BETA_PLAN_V3.md Workstream 4](./BETA_PLAN_V3.md) for the dropped-line-budget rationale).
 - **Services:** Same — large stable services (TurnService ~2,100, StateService ~1,890) are accepted as cohesive. Setter injection only for the two documented real cycles.
 - **Architecture:** Follow established patterns (see ARCHITECTURE.md). New per-space behavior should live in Spaces.csv flags, not hardcoded space-ID checks (Workstream 6 invariant).
