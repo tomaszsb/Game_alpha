@@ -17,6 +17,7 @@
 
 import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
 import { parseSpacesCSV, parseDiceRollCSV, parseModalConfigCSV } from './utils/csvExport';
+import { DEFAULT_INSTANCE_ID } from '../board/saveBoardPosition';
 
 export interface EditorSource {
   spaces: SpaceRow[];
@@ -24,12 +25,27 @@ export interface EditorSource {
   modalConfigs: ModalConfigRow[];
 }
 
-export async function loadEditorSource(): Promise<EditorSource> {
+/**
+ * Where one classroom's baked board is served from.
+ *
+ * The default classroom is served at `/data` (server.js `resolvedStatic`);
+ * every other classroom has its own tree at `/data/i/<id>`. A teacher editing
+ * THEIR classroom must read THEIR board — reading the default one would show
+ * them someone else's spaces and, worse, hand the save route a baseline from a
+ * different classroom, which is what the content diff measures every edit
+ * against.
+ */
+export function editorSourceBase(instanceId: string = DEFAULT_INSTANCE_ID): string {
+  return instanceId === DEFAULT_INSTANCE_ID ? '/data' : `/data/i/${encodeURIComponent(instanceId)}`;
+}
+
+export async function loadEditorSource(instanceId: string = DEFAULT_INSTANCE_ID): Promise<EditorSource> {
   const bust = Date.now();
+  const base = editorSourceBase(instanceId);
   const [spacesResponse, diceRollResponse, modalConfigResponse] = await Promise.all([
-    fetch('/data/SOURCE_FILES/Spaces.csv?_=' + bust),
-    fetch('/data/SOURCE_FILES/DiceRoll Info.csv?_=' + bust),
-    fetch('/data/SOURCE_FILES/ModalConfig.csv?_=' + bust),
+    fetch(`${base}/SOURCE_FILES/Spaces.csv?_=` + bust),
+    fetch(`${base}/SOURCE_FILES/DiceRoll Info.csv?_=` + bust),
+    fetch(`${base}/SOURCE_FILES/ModalConfig.csv?_=` + bust),
   ]);
 
   if (!spacesResponse.ok || !diceRollResponse.ok) {

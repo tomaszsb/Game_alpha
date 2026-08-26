@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.41] - 2026-08-26
+
+### A teacher can change what a space says again — on their own shelf, never yours
+When CopyEditor was removed in v3.2.29 it took a teacher's only editor with it, and the one remaining save route was admin-only. The regression was written down at the time rather than found later, and it stayed open because fixing it meant answering a question nobody had answered: when a teacher saves, whose card does it become?
+
+The maintainer settled it on 2026-08-25: **skip the middle shelf.** No school or group tier for now — a teacher's save is theirs alone, and only he touches the official deck. The `group` tier stays a valid value that nothing writes, so adding schools later is additive rather than a migration.
+
+**Who you are decides which shelf, not whether you may write.** `POST /api/instances/:id/content` no longer refuses non-admins outright. The admin password still mints `official` cards — the curated deck every classroom gets — and a classroom owner, co-teacher or write-token holder now writes an `individual` card instead. Someone with neither is still refused by the shared mutation flow before anything loads, mutates, saves or bakes.
+
+**A teacher's payload is rebuilt, not merely validated.** Every row comes back from the classroom's own baked board with only six columns taken from the submission — `Title`, `Event`, `Action`, `Outcome`, `Time`, `Fee`. So the result never depends on what was posted: a payload that re-routed a destination, added a card draw, invented a visit row or added a column produces exactly the same card as one that changed nothing. That is deliberately stronger than rejecting bad submissions — rejection has to enumerate everything a payload could say wrong, while rebuilding enumerates the six things it may say right, so a column added to Spaces.csv next year is structural by default instead of editable by default. Dice and modal rows come from the baseline too, and are carried rather than dropped: a card with no `diceRows` key falls back to stock at bake, so dropping them would silently revert dice a classroom had already changed.
+
+**A teacher's edit branches off an official card, never over it.** If the slot is playing an `official` card, saving mints a new `individual` card and switches the slot to it; the official card stays untouched in the library. Editing in place is allowed only on a card that is already the classroom's own — otherwise a classroom screen could rewrite the deck every other classroom receives.
+
+**The way back in.** Classroom Setup now shows the deck beside an editor limited to those same six fields, so a teacher picks a space and rewrites it in their class's own words. The editor hook learned two things it never needed while there was only one caller: which classroom to read (`/data/i/<id>` — reading the default board would have handed the save route a baseline from someone else's classroom) and which credential to send.
+
+Verified against a running server with a real teacher account and a real classroom, because none existed before and unit tests cannot prove a permission boundary: a stranger is refused 401; a teacher's save lands as `individual`; a payload carrying new wording **and** a re-routed destination applies the wording and reverts the route; a structure-only payload mints nothing at all; a teacher editing a space playing an official card branches a second card while the official one keeps its text verbatim; and saving twice updates one card instead of piling up a second. Full suite green — 22/22 batches — with 13 new unit tests on the restriction and 4 rewritten route-boundary tests. Typecheck, lint and production build clean.
+
+**Still open, deliberately:** teachers reach this through Classroom Setup, not the merged admin screen, so they get the deck and the editor without the player-view preview. Tracked separately.
+
 ## [3.2.40] - 2026-08-25
 
 ### Every field in the space editor now says its own name

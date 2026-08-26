@@ -50,7 +50,7 @@ import {
   findCardForSlot,
   updateCardContent,
 } from './instanceStore.js';
-import { diffSubmittedContent } from './instanceContentDiff.js';
+import { diffSubmittedContent, restrictChangesToWording } from './instanceContentDiff.js';
 import { validateConfig } from './instanceValidation.js';
 import { buildCatalog } from './instanceCatalog.js';
 import { parseCsvWithHeaders } from './processGameData.js';
@@ -1556,28 +1556,32 @@ app.post('/api/instances/:id/content', (req, res) => {
   if (!spacesCSV || !diceRollCSV) {
     return res.status(400).json({ success: false, error: 'spacesCSV and diceRollCSV are required' });
   }
-  // PRIVILEGE BOUNDARY — the same one POST /copies draws for `tier:'official'`,
-  // for the same reason: this route MINTS official cards, the curated deck
-  // every classroom gets, so it is an admin act rather than something
-  // classroom write access grants. handleInstanceMutation authorizes through
-  // checkInstanceWriteAccess, which also passes on the instance write token or
-  // a classroom-owning teacher session — not enough here. Checked BEFORE
-  // handleInstanceMutation runs, so a refused save never loads, mutates,
-  // saves or re-bakes the classroom. It deliberately does not gate on
-  // checkInstanceWriteAccess's `via`: that helper short-circuits on the write
-  // token first, so an admin who also carries a token reports via:'token' and
-  // would be wrongly refused.
+  // PRIVILEGE BOUNDARY — who is saving decides WHICH SHELF the save lands on,
+  // not whether it is allowed at all.
+  //
+  // Admin mints `official` cards: the curated deck every classroom gets, the
+  // same act POST /copies gates on `tier:'official'`. That still requires the
+  // admin password and nothing else grants it.
+  //
+  // A teacher (classroom owner, co-teacher, or instance write token) writes an
+  // `individual` card — their own classroom's copy — and only ever over
+  // TEACHER_EDITABLE_COLUMNS. Before v3.2.41 this route refused them outright,
+  // which took away the only way a teacher had to change what a space says
+  // (the regression noted when CopyEditor was removed in v3.2.29).
+  //
+  // The maintainer settled the shape on 2026-08-25: no school/group shelf for
+  // now — a teacher's save is theirs alone, and only he touches official. The
+  // `group` tier stays a valid value nothing writes, so adding schools later
+  // is additive rather than a migration.
+  //
+  // A wrong admin password does NOT fail the request here: it simply is not an
+  // admin, and the caller falls through to handleInstanceMutation, which is
+  // the one place classroom write access is decided. Someone with neither is
+  // refused there with a 401 before anything loads, mutates, saves or bakes.
   const admin = checkAdminPassword(
     req.headers['x-admin-password'] || (req.body && req.body.password),
     CONFIG.ADMIN_PASSWORD_HASH
   );
-  if (!admin.ok) {
-    logVisitor(req, 'CONTENT_SAVE_DENIED', { instanceId: req.params.id });
-    return res.status(403).json({
-      success: false,
-      error: 'Saving space content requires admin authentication',
-    });
-  }
   handleInstanceMutation(req, res, (config) => {
     const { stockSpacesCsv, diceCsv, modalCsv, stockVersion } = readStockForValidation();
     // The baseline is the board the editor LOADED, not the shipped stock.
@@ -1594,6 +1598,8 @@ app.post('/api/instances/:id/content', (req, res) => {
       try { return fs.readFileSync(path.join(bakedSource, name), 'utf-8'); } catch { return null; }
     };
     const baselineSpacesCsv = readBaked('Spaces.csv');
+    const baselineDiceCsv = baselineSpacesCsv ? readBaked('DiceRoll Info.csv') : null;
+    const baselineModalCsv = baselineSpacesCsv ? readBaked('ModalConfig.csv') : null;
     const diff = diffSubmittedContent({
       submittedSpacesCsv: spacesCSV,
       submittedDiceCsv: diceRollCSV,
@@ -1602,13 +1608,35 @@ app.post('/api/instances/:id/content', (req, res) => {
       stockDiceCsv: diceCsv,
       stockModalCsv: modalCsv,
       baselineSpacesCsv,
-      baselineDiceCsv: baselineSpacesCsv ? readBaked('DiceRoll Info.csv') : null,
-      baselineModalCsv: baselineSpacesCsv ? readBaked('ModalConfig.csv') : null,
+      baselineDiceCsv,
+      baselineModalCsv,
     });
+    // A teacher's payload is rebuilt from the baseline with only the wording
+    // columns taken from it, so nothing structural can ride in on a save.
+    // Restriction happens BEFORE the upsert loop, which means a payload that
+    // only changed structure has already collapsed to nothing here and mints
+    // no card at all. The admin's payload is used as posted — he owns the
+    // structure.
+    const changes = admin.ok
+      ? diff.changed
+      : restrictChangesToWording({
+          changed: diff.changed,
+          baselineSpacesCsv,
+          baselineDiceCsv,
+          baselineModalCsv,
+          stockSpacesCsv,
+          stockDiceCsv: diceCsv,
+          stockModalCsv: modalCsv,
+        });
+    // What the teacher asked for that this route would not do. Reported back
+    // so the client can say so plainly rather than claiming a clean save.
+    const refusedStructural = admin.ok ? 0 : diff.changed.length - changes.length;
+    const tier = admin.ok ? 'official' : 'individual';
+
     const created = [];
     const updated = [];
     const unchangedCards = [];
-    for (const change of diff.changed) {
+    for (const change of changes) {
       // Written onto the card the slot is PLAYING, whatever tier it belongs
       // to — NOT filtered to `official`. Load-bearing: this route's diff
       // compares the submission against STOCK, while the editor loads the
@@ -1618,7 +1646,19 @@ app.post('/api/instances/:id/content', (req, res) => {
       // every single save. And a save onto a classroom's own copy is improving
       // THEIR card, not silently promoting it into the curated deck.
       const existing = findCardForSlot(config, change.slot);
-      if (existing) {
+      // A teacher may only write IN PLACE onto a card that is already theirs.
+      // If the slot is playing an `official` card, editing it in place would
+      // rewrite the curated deck from a classroom screen — the exact escalation
+      // this route's admin gate used to prevent by refusing teachers entirely.
+      // Instead the save BRANCHES: a new `individual` card is minted from the
+      // baseline, the slot switches to play it, and the official card stays
+      // untouched in the library, which is what "editing branches instead of
+      // overwriting" means in CARD_LIBRARY_DESIGN.md.
+      const existingTier = existing
+        ? (config.teacherCopies || {})[existing]?.owner?.tier
+        : null;
+      const mayEditInPlace = existing && (admin.ok || existingTier === 'individual');
+      if (mayEditInPlace) {
         const changedId = updateCardContent(config, existing, {
           rows: change.rows,
           diceRows: change.diceRows,
@@ -1642,7 +1682,7 @@ app.post('/api/instances/:id/content', (req, res) => {
           stockDiceRows: change.diceRows,
           stockModalRows: change.modalRows,
           stockVersion,
-          tier: 'official',
+          tier,
         });
         created.push(change.slot);
       }
@@ -1650,6 +1690,10 @@ app.post('/api/instances/:id/content', (req, res) => {
     return {
       created,
       updated,
+      // Which shelf this save landed on, and what it declined to do. Both are
+      // reported so the client never has to infer them from who is logged in.
+      tier,
+      refusedStructural,
       // Spaces that matched stock outright plus spaces that matched the card
       // already playing them — from the maintainer's side both are "I didn't
       // change this one", so they are one number.

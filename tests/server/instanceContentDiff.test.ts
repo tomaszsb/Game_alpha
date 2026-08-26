@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { diffSubmittedContent } from '../../server/instanceContentDiff.js';
+import { diffSubmittedContent, restrictChangesToWording, TEACHER_EDITABLE_COLUMNS } from '../../server/instanceContentDiff.js';
 import {
   parseSpacesCSV,
   exportSpacesCSV,
@@ -270,5 +270,149 @@ describe('a save on a classroom whose tiles have been arranged', () => {
     });
     expect(r.changed.map(c => c.slot)).toEqual(['ALPHA']);
     expect(r.unchanged).toEqual(['BETA']);
+  });
+});
+
+// ===== What a TEACHER is allowed to change (v3.2.41) =====
+//
+// The maintainer settled the shape on 2026-08-25: no school/group shelf. A
+// teacher's save writes their own classroom's card and may only change what a
+// space SAYS. These pin the enforcement — the client's SAFE_FIELD_SUBSET is
+// presentation, and a client can be edited by whoever is holding it.
+//
+// The load-bearing property is that every result row is rebuilt FROM THE
+// BASELINE. A test that only checked "the destination did not change" would
+// pass against a weaker implementation that special-cased a few known columns;
+// these check that a column nobody has ever heard of is structural too.
+
+describe('restrictChangesToWording', () => {
+  const changedRow = (over: Record<string, string> = {}) => ({
+    space_name: 'BETA-MIDDLE',
+    phase: 'SETUP',
+    visit_type: 'First',
+    Title: 'Middle',
+    Event: 'Mid.',
+    Action: 'Go',
+    Outcome: 'Done',
+    Time: '2',
+    Fee: '50',
+    space_1: 'ZETA-END',
+    ...over,
+  });
+
+  const restrict = (rows: Array<Record<string, string>>) =>
+    restrictChangesToWording({
+      changed: [{ slot: 'BETA-MIDDLE', rows }],
+      baselineSpacesCsv: STOCK_SPACES,
+      baselineDiceCsv: STOCK_DICE,
+      baselineModalCsv: STOCK_MODAL,
+      ...stock,
+    });
+
+  it('keeps a wording edit', () => {
+    const out = restrict([changedRow({ Event: 'A story in our own words.' })]);
+    expect(out).toHaveLength(1);
+    expect(out[0].slot).toBe('BETA-MIDDLE');
+    expect(out[0].rows[0].Event).toBe('A story in our own words.');
+  });
+
+  it('keeps a Time or Fee edit — the cost is part of what a space says', () => {
+    const out = restrict([changedRow({ Time: '9', Fee: '999' })]);
+    expect(out).toHaveLength(1);
+    expect(out[0].rows[0].Time).toBe('9');
+    expect(out[0].rows[0].Fee).toBe('999');
+  });
+
+  it('throws away a re-routed destination and mints nothing for it', () => {
+    // Structure only: after restriction this change asks for nothing.
+    const out = restrict([changedRow({ space_1: 'ALPHA-START' })]);
+    expect(out).toEqual([]);
+  });
+
+  it('keeps the wording but reverts the routing when a payload changes both', () => {
+    const out = restrict([changedRow({ Event: 'Rewritten.', space_1: 'ALPHA-START' })]);
+    expect(out).toHaveLength(1);
+    expect(out[0].rows[0].Event).toBe('Rewritten.');
+    expect(out[0].rows[0].space_1).toBe('ZETA-END');
+  });
+
+  it('treats a column it has never heard of as structural, not editable', () => {
+    // The point of rebuilding from the baseline: a column added to Spaces.csv
+    // later is refused by default rather than editable by default.
+    const out = restrict([changedRow({ Event: 'Rewritten.', brand_new_column: 'smuggled' })]);
+    expect(out).toHaveLength(1);
+    expect(out[0].rows[0].brand_new_column).toBeUndefined();
+  });
+
+  it('cannot add a visit row the baseline does not have', () => {
+    const out = restrict([
+      changedRow({ Event: 'Rewritten.' }),
+      changedRow({ visit_type: 'Third', Event: 'Invented.' }),
+    ]);
+    expect(out[0].rows.map(r => r.visit_type)).toEqual(['First', 'Subsequent']);
+  });
+
+  it('cannot delete a visit row by omitting it', () => {
+    // BETA-MIDDLE has First and Subsequent in the baseline; submit only First.
+    const out = restrict([changedRow({ Event: 'Rewritten.' })]);
+    expect(out[0].rows.map(r => r.visit_type)).toEqual(['First', 'Subsequent']);
+    expect(out[0].rows[1].Event).toBe('Again.');
+  });
+
+  it('carries the baseline dice and modal rows rather than dropping them', () => {
+    // Dropping is not neutral: a card with no diceRows key falls back to STOCK
+    // at bake, so a wording edit would silently revert dice already changed.
+    const out = restrict([changedRow({ Event: 'Rewritten.' })]);
+    expect(out[0].diceRows).toHaveLength(1);
+    expect(out[0].diceRows[0].space_name).toBe('BETA-MIDDLE');
+    expect(out[0].modalRows).toEqual([]);
+  });
+
+  it('ignores dice rows the teacher submitted — a teacher does not author outcomes', () => {
+    const out = restrictChangesToWording({
+      changed: [{
+        slot: 'BETA-MIDDLE',
+        rows: [changedRow({ Event: 'Rewritten.' })],
+        diceRows: [{ space_name: 'BETA-MIDDLE', die_roll: 'Next Step', visit_type: 'First', 1: 'ALPHA-START' }],
+      }],
+      baselineSpacesCsv: STOCK_SPACES,
+      baselineDiceCsv: STOCK_DICE,
+      baselineModalCsv: STOCK_MODAL,
+      ...stock,
+    });
+    expect(out[0].diceRows[0]['1']).toBe('ZETA-END');
+  });
+
+  it('drops a change whose wording already matches the baseline', () => {
+    expect(restrict([changedRow()])).toEqual([]);
+  });
+
+  it('refuses a slot the baseline has no row for, rather than trusting the payload', () => {
+    const out = restrictChangesToWording({
+      changed: [{ slot: 'GHOST', rows: [changedRow({ space_name: 'GHOST' })] }],
+      baselineSpacesCsv: STOCK_SPACES,
+      baselineDiceCsv: STOCK_DICE,
+      baselineModalCsv: STOCK_MODAL,
+      ...stock,
+    });
+    expect(out).toEqual([]);
+  });
+
+  it('falls back to stock when the classroom has never been baked', () => {
+    const out = restrictChangesToWording({
+      changed: [{ slot: 'BETA-MIDDLE', rows: [changedRow({ Event: 'Rewritten.' })] }],
+      ...stock,
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].rows[0].Event).toBe('Rewritten.');
+    expect(out[0].rows[0].space_1).toBe('ZETA-END');
+  });
+
+  it('lists exactly the six editable columns', () => {
+    // If this list grows, it is a decision about what a teacher may change —
+    // not a refactor. Pinned so it cannot drift quietly.
+    expect([...TEACHER_EDITABLE_COLUMNS]).toEqual(
+      ['Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee']
+    );
   });
 });

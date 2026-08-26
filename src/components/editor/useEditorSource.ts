@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGameContext } from '../../context/GameContext';
 import { getBackendURL } from '../../utils/networkDetection';
 import { getAdminPassword } from '../../utils/adminAuth';
+import { getTeacherSession } from '../../utils/teacherAuth';
 import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
 import { exportSpacesCSV, exportDiceRollCSV, exportModalConfigCSV } from './utils/csvExport';
 import { loadEditorSource } from './loadEditorSource';
@@ -62,16 +63,40 @@ export interface UseEditorSource {
 }
 
 /**
+ * Who is editing, and whose classroom.
+ *
+ * `admin` sends the admin password and the server mints `official` cards —
+ * the curated deck every classroom gets. `teacher` sends the classroom
+ * session and the server writes an `individual` card over the wording columns
+ * only (server.js, POST /api/instances/:id/content). The client does not get
+ * to decide which of those happens; it only says who it is, and the server
+ * decides. This field exists so the right credential is sent, not to grant
+ * anything.
+ */
+export type EditorAuth = 'admin' | 'teacher';
+
+export interface EditorSourceOptions {
+  /** Which classroom is being edited. Defaults to the public default one. */
+  instanceId?: string;
+  auth?: EditorAuth;
+}
+
+/**
  * @param selectedSpaceName which space the field handlers write to; null when
  *   nothing is picked yet.
  * @param reloadToken change this to make the three CSVs be read again — after
  *   a change made somewhere else (switching a space to another version, say)
  *   the rows on screen are stale until they are re-read.
+ * @param options whose classroom, and with whose credential. Omit for the
+ *   maintainer's own editor, which is what every caller was before v3.2.41.
  */
 export function useEditorSource(
   selectedSpaceName: string | null,
-  reloadToken: number = 0
+  reloadToken: number = 0,
+  options: EditorSourceOptions = {}
 ): UseEditorSource {
+  const instanceId = options.instanceId || DEFAULT_INSTANCE_ID;
+  const auth: EditorAuth = options.auth || 'admin';
   const { dataService } = useGameContext();
 
   const [spacesData, setSpacesData] = useState<SpaceRow[]>([]);
@@ -91,7 +116,7 @@ export function useEditorSource(
       try {
         // Shared with the browse screen (loadEditorSource.ts) so the two can
         // never read the same three CSVs in two slightly different ways.
-        const source = await loadEditorSource();
+        const source = await loadEditorSource(instanceId);
         if (cancelled) return;
         setSpacesData(source.spaces);
         setDiceRollData(source.diceRolls);
@@ -106,7 +131,7 @@ export function useEditorSource(
     };
     void loadData();
     return () => { cancelled = true; };
-  }, [dataService, reloadToken]);
+  }, [dataService, reloadToken, instanceId]);
 
   const allSpaceNames = useMemo(() => {
     const names = new Set<string>();
@@ -206,10 +231,24 @@ export function useEditorSource(
   }, []);
 
   const handleSave = useCallback(async () => {
-    const password = getAdminPassword();
-    if (!password) {
-      setSaveStatus({ type: 'error', message: 'Admin session expired. Please re-open the editor.' });
-      return;
+    // Whichever credential this screen was opened with. Checked here so an
+    // expired session says so in words instead of coming back as a bare 401
+    // from the save.
+    let credential: Record<string, string>;
+    if (auth === 'teacher') {
+      const session = getTeacherSession();
+      if (!session) {
+        setSaveStatus({ type: 'error', message: 'Your sign-in has expired. Please sign in again.' });
+        return;
+      }
+      credential = { 'x-teacher-session': session };
+    } else {
+      const password = getAdminPassword();
+      if (!password) {
+        setSaveStatus({ type: 'error', message: 'Admin session expired. Please re-open the editor.' });
+        return;
+      }
+      credential = { 'x-admin-password': password };
     }
 
     setIsSaving(true);
@@ -225,12 +264,18 @@ export function useEditorSource(
       // stage 1, docs/core/CARD_LIBRARY_DESIGN.md). The old target,
       // /api/admin/save-source-files, wrote the writable stock — which the
       // server re-seeds from the shipped copy on every restart, so every edit
-      // saved here quietly went away. Same three CSVs, same password header:
-      // the server works out which spaces actually changed and stores just
-      // those as cards, which survive restarts and deploys by construction.
-      const response = await fetch(`${backendURL}/api/instances/${DEFAULT_INSTANCE_ID}/content`, {
+      // saved here quietly went away. Same three CSVs: the server works out
+      // which spaces actually changed and stores just those as cards, which
+      // survive restarts and deploys by construction.
+      //
+      // The credential says WHO, and the server decides what that buys: the
+      // admin password mints `official` cards, a teacher session writes an
+      // `individual` card over the wording columns only. Sending the teacher
+      // header does not ask for anything — the server would refuse a session
+      // that does not own this classroom.
+      const response = await fetch(`${backendURL}/api/instances/${instanceId}/content`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        headers: { 'Content-Type': 'application/json', ...credential },
         body: JSON.stringify({ spacesCSV, diceRollCSV, modalConfigCSV })
       });
 
@@ -275,7 +320,7 @@ export function useEditorSource(
     } finally {
       setIsSaving(false);
     }
-  }, [spacesData, diceRollData, modalConfigData, dataService]);
+  }, [spacesData, diceRollData, modalConfigData, dataService, auth, instanceId]);
 
   const handleResetToBaseline = useCallback(async () => {
     const confirmed = window.confirm(

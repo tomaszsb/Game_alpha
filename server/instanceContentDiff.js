@@ -170,3 +170,115 @@ export function diffSubmittedContent({
   // something a content save may do silently.
   return { changed, unchanged, unknown };
 }
+
+/**
+ * The columns a teacher may change: what a space SAYS, and what it costs.
+ *
+ * Mirrors `SAFE_FIELD_SUBSET` in SpaceEditor.tsx, which is the field set the
+ * editor already shows a non-admin. The two must agree, but they are not
+ * shared code on purpose — this one is the ENFORCEMENT and the client one is
+ * the presentation. A client can be edited by whoever is holding it; this
+ * list is the boundary, so it lives on the server and is checked there.
+ *
+ * Everything absent from this list is structural — where the space leads
+ * (`space_1`..`space_5`, `path`), what it draws (`w_card`..`e_card`),
+ * whether it rolls, whether it is a lock point, the tile's position. A
+ * teacher rewriting a space into their classroom's own words has no business
+ * changing any of it, and letting them would put board topology behind a
+ * text box (CARD_LIBRARY_DESIGN.md, "a card owns the wording; routing stays
+ * fixed").
+ */
+export const TEACHER_EDITABLE_COLUMNS = Object.freeze([
+  'Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee',
+]);
+
+/**
+ * Cut a set of submitted changes down to what a teacher is allowed to make.
+ *
+ * Each change comes back rebuilt from the BASELINE row — the board this
+ * classroom is playing right now — with only TEACHER_EDITABLE_COLUMNS taken
+ * from the submission. So the shape of the result never depends on what was
+ * posted: a payload that renamed a destination, added a visit row, moved a
+ * tile or invented a column produces exactly the same card as one that
+ * changed nothing, because every structural value is read from the baseline
+ * rather than from the request.
+ *
+ * That is deliberately stronger than validating the submission and rejecting
+ * it. A reject has to enumerate every bad thing a payload could say; this
+ * enumerates the six good things and ignores the rest, so a column added to
+ * Spaces.csv next year is structural by default instead of editable by
+ * default.
+ *
+ * `diceRows` and `modalRows` come from the baseline too, never from the
+ * submission — a teacher does not author dice outcomes. They are carried
+ * rather than dropped because dropping them is not neutral: a card with no
+ * `diceRows` key falls back to STOCK at bake time, so a teacher's wording
+ * edit would silently revert dice their classroom had already changed
+ * (createTeacherCopy's "ABSENT, never []" rule).
+ *
+ * A change whose editable columns all already match the baseline is dropped
+ * from the result — after restriction it asks for nothing, and minting a
+ * card that says what the board already says is how a deck fills with
+ * meaningless versions.
+ *
+ * @param {{ changed: Array<{ slot: string, rows: Array<Object<string, string>>,
+ *     diceRows?: Array<Object<string, string>>, modalRows?: Array<Object<string, string>> }>,
+ *   baselineSpacesCsv?: string|null, baselineDiceCsv?: string|null,
+ *   baselineModalCsv?: string|null, stockSpacesCsv: string,
+ *   stockDiceCsv?: string|null, stockModalCsv?: string|null }} args
+ * @returns {Array<{ slot: string, rows: Array<Object<string, string>>,
+ *   diceRows: Array<Object<string, string>>, modalRows: Array<Object<string, string>> }>}
+ */
+export function restrictChangesToWording({
+  changed,
+  baselineSpacesCsv,
+  baselineDiceCsv,
+  baselineModalCsv,
+  stockSpacesCsv,
+  stockDiceCsv,
+  stockModalCsv,
+}) {
+  // Same baseline-or-stock choice diffSubmittedContent makes, for the same
+  // reason: a classroom that has never been baked has no baked board to read.
+  const baseSpaces = baselineSpacesCsv ? rowsBySpace(baselineSpacesCsv) : rowsBySpace(stockSpacesCsv);
+  const baseDice = baselineSpacesCsv ? rowsBySpace(baselineDiceCsv) : rowsBySpace(stockDiceCsv);
+  const baseModal = baselineSpacesCsv ? rowsBySpace(baselineModalCsv) : rowsBySpace(stockModalCsv);
+
+  const allowed = [];
+  for (const change of changed || []) {
+    const baselineRows = baseSpaces.get(change.slot);
+    // No baseline row means no slot to rebuild from. diffSubmittedContent has
+    // already dropped names stock never heard of, so this is the narrow case
+    // of a slot present in stock but absent from a stale bake — refuse it
+    // rather than fall back to the submission, which is the untrusted side.
+    if (!baselineRows || baselineRows.length === 0) continue;
+
+    const submittedByVisit = new Map();
+    for (const row of change.rows || []) {
+      submittedByVisit.set(String(row.visit_type || ''), row);
+    }
+
+    let differs = false;
+    const rows = baselineRows.map(base => {
+      const submitted = submittedByVisit.get(String(base.visit_type || ''));
+      const next = { ...base };
+      if (!submitted) return next;
+      for (const column of TEACHER_EDITABLE_COLUMNS) {
+        if (!(column in submitted)) continue;
+        const value = String(submitted[column] ?? '');
+        if (String(base[column] ?? '') !== value) differs = true;
+        next[column] = value;
+      }
+      return next;
+    });
+
+    if (!differs) continue;
+    allowed.push({
+      slot: change.slot,
+      rows,
+      diceRows: baseDice.get(change.slot) || [],
+      modalRows: baseModal.get(change.slot) || [],
+    });
+  }
+  return allowed;
+}

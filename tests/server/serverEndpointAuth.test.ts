@@ -253,36 +253,49 @@ describe('server.js endpoint auth wiring', () => {
     return source.slice(start, end);
   }
 
-  it('POST /api/instances/:id/content requires ADMIN auth (it mints official cards)', () => {
-    // Same privilege boundary POST /copies draws for tier:'official', for the
-    // same reason. handleInstanceMutation's own check also passes on the
-    // instance write token or a classroom-owning teacher session, neither of
-    // which is admin.
+  it('only ADMIN auth mints official cards on POST /api/instances/:id/content', () => {
+    // Same privilege boundary POST /copies draws for tier:'official'. Since
+    // v3.2.41 a non-admin is no longer refused outright — they write their own
+    // `individual` card instead — but the tier they get is decided by this
+    // check and nothing else.
     const body = contentRouteBody();
     expect(body).toContain('checkAdminPassword(');
     expect(body).toContain('CONFIG.ADMIN_PASSWORD_HASH');
-    expect(body).toContain('res.status(403)');
+    expect(body).toContain("const tier = admin.ok ? 'official' : 'individual';");
   });
 
-  it('the content-save admin check runs BEFORE the mutation flow (a refusal must not touch the config)', () => {
-    const body = contentRouteBody();
-    const denial = body.indexOf('res.status(403)');
-    const mutation = body.indexOf('handleInstanceMutation(req, res');
-    // Guard against a vacuous pass: indexOf returns -1 for a missing needle.
-    expect(denial).toBeGreaterThan(-1);
-    expect(mutation).toBeGreaterThan(-1);
-    expect(denial).toBeLessThan(mutation);
-  });
-
-  it('POST /api/instances/:id/content routes through the guarded mutation flow', () => {
-    // Validate + bake + 422-on-error come from the shared flow, so a bad edit
-    // is rejected with the usual report and never half-applied.
+  it('a teacher save is authorized by the shared mutation flow, not waved through', () => {
+    // The route no longer refuses non-admins itself. That makes
+    // handleInstanceMutation — which runs checkInstanceWriteAccess — the ONLY
+    // thing standing between a stranger and a classroom's content, so it must
+    // still be what this route goes through. Validate + bake + 422-on-error
+    // come from the same flow, so a bad edit is rejected with the usual report
+    // and never half-applied.
     expect(contentRouteBody()).toContain('handleInstanceMutation(req, res');
   });
 
-  it("content saves mint cards at the 'official' tier and EDIT the card a space already has", () => {
+  it('a non-admin save is cut down to the wording columns before anything is minted', () => {
+    // The restriction rebuilds each row from the baseline, so a teacher's
+    // payload cannot carry structure (destinations, card draws, dice) into a
+    // card. It must happen BEFORE the upsert loop — restricting afterwards
+    // would mean the structural values had already been written.
     const body = contentRouteBody();
-    expect(body).toContain("tier: 'official'");
+    const restrict = body.indexOf('restrictChangesToWording(');
+    const loop = body.indexOf('for (const change of changes)');
+    expect(restrict).toBeGreaterThan(-1);
+    expect(loop).toBeGreaterThan(-1);
+    expect(restrict).toBeLessThan(loop);
+    // Applied to non-admins only — the maintainer owns the structure.
+    expect(body).toMatch(/const changes = admin\.ok\s*\?\s*diff\.changed\s*:\s*restrictChangesToWording\(/);
+  });
+
+  it('a teacher may not edit an official card in place — the save branches instead', () => {
+    // The escalation this route's old blanket refusal prevented: editing the
+    // card a slot plays, when that card is `official`, would rewrite the
+    // curated deck every classroom gets from a classroom screen.
+    const body = contentRouteBody();
+    expect(body).toContain("admin.ok || existingTier === 'individual'");
+    expect(body).toContain('const mayEditInPlace =');
     // Written onto the card the slot PLAYS, whatever tier it belongs to —
     // a tier-filtered lookup would mint a brand-new card on every save for
     // any slot playing a teacher copy (see the route comment).
