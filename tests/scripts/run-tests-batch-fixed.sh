@@ -1,190 +1,191 @@
 #!/bin/bash
 
-# Batch test runner to avoid resource accumulation issues
-# This script runs tests in smaller batches to prevent hanging
+# Batch test runner — runs the suite in smaller chunks to keep memory and
+# handle usage flat across a long run.
+#
+# WHY THIS FILE GLOBS RATHER THAN ENUMERATING (rewritten 2026-08-30)
+# ------------------------------------------------------------------
+# It used to list every test file by hand: 23 named batches, 60 files. The
+# suite had grown to 198. The other 138 — including all of tests/server/,
+# tests/components/editor/ and tests/utils/ — were never run by this script at
+# all, and nothing said so. A v3.2.41 change broke all 10 tests in
+# tests/components/classroom/ and this script still reported "22/22 batches
+# PASSED", because that directory was simply not on the list. Only the full
+# `npm test` caught it, at /koniec, a whole session later.
+#
+# A hand-maintained list of test files is a promise to update it every time
+# somebody adds a file, and that promise was silently broken for months. So
+# the list is now DERIVED: the same include/exclude rules as
+# vitest.config.dev.ts, applied by find. A new test file — or a whole new
+# directory — is picked up the moment it exists.
+#
+# Keep the rules below in sync with vitest.config.dev.ts's include/exclude.
+# The self-check at the end of discovery is what tells you if they drift.
+#
+# `npm test` is the commit gate (CLAUDE.md). This script is for chunked runs
+# with readable per-group progress, and is now a true superset check rather
+# than an unlabelled subset of it.
+#
+# Env knobs:
+#   BATCH_SIZE=10   files per batch
+#   BATCH_TIMEOUT=300  seconds per batch
+#   DRY_RUN=1       list what would run, run nothing
+
+set -uo pipefail
+
+cd "$(dirname "$0")/../.." || exit 1
+
+BATCH_SIZE="${BATCH_SIZE:-10}"
+BATCH_TIMEOUT="${BATCH_TIMEOUT:-300}"
+DRY_RUN="${DRY_RUN:-0}"
+
+LOG_DIR="${TMPDIR:-/tmp}/game-alpha-batch-tests"
+mkdir -p "$LOG_DIR"
 
 echo "🚀 Starting batch test execution..."
+
+# ---------------------------------------------------------------------------
+# Discovery. Mirrors vitest.config.dev.ts:
+#   include: tests/**/*.test.ts, tests/**/*.test.tsx
+#   exclude: tests/**/*.lightweight.test.ts, tests/**/*.optimized.test.ts,
+#            tests/debug-*.test.ts, tests/ghost/**
+# tests/ghost/** is the 20-30-minute regression gate; it has its own runner
+# (`npm run test:ghost`) and has never belonged in a "fast feedback" batch.
+# ---------------------------------------------------------------------------
+ALL_FILES=()
+while IFS= read -r f; do
+    [ -n "$f" ] && ALL_FILES+=("$f")
+done < <(find tests -type f \( -name '*.test.ts' -o -name '*.test.tsx' \) \
+    ! -path 'tests/ghost/*' \
+    ! -name '*.lightweight.test.ts' \
+    ! -name '*.optimized.test.ts' \
+    ! -path 'tests/debug-*.test.ts' \
+    | sort)
+
+TOTAL_FILES=${#ALL_FILES[@]}
+
+if [ "$TOTAL_FILES" -eq 0 ]; then
+    echo "❌ Discovered 0 test files. The glob rules above no longer match the"
+    echo "   repo layout — fix them before trusting any result from this script."
+    exit 1
+fi
+
+echo "🔎 Discovered $TOTAL_FILES test files (batch size $BATCH_SIZE, ${BATCH_TIMEOUT}s per batch)"
 
 # Track results
 TOTAL_PASSED=0
 TOTAL_FAILED=0
+FILES_RUN=0
 FAILED_BATCHES=()
+# Every file actually handed to a batch, so the summary can prove the set that
+# ran IS the set that was discovered — not merely the same size as it.
+RAN_FILES=()
 
-# Function to run a batch of tests
+# Run one batch of test files.
+#   $1 = batch label, rest = files
 run_batch() {
     local batch_name="$1"
     shift
     local test_files=("$@")
+    local log_file="$LOG_DIR/${batch_name}.log"
 
     echo ""
-    echo "📋 Running batch: $batch_name"
-    echo "   Files: ${test_files[*]}"
+    echo "📋 Running batch: $batch_name (${#test_files[@]} files)"
+    # `_tf`, not `f`: bash has no block scope, and this function is called from
+    # inside the main `for file in ...` loop. A loop variable named `f` here
+    # would overwrite the caller's — which is exactly the bug this script
+    # shipped with for one run: the group-change flush clobbered the current
+    # filename, so each group's first batch re-ran the previous group's last
+    # file and the real one was dropped. Same file count, wrong files.
+    local _tf
+    for _tf in "${test_files[@]}"; do echo "      $_tf"; RAN_FILES+=("$_tf"); done
 
-    if timeout 120s npm test "${test_files[@]}" > /tmp/test_output_$batch_name.log 2>&1; then
+    if timeout "${BATCH_TIMEOUT}s" npm test "${test_files[@]}" > "$log_file" 2>&1; then
         echo "✅ $batch_name: PASSED"
-        local passed=$(grep "Tests.*passed" /tmp/test_output_$batch_name.log | tail -1)
+        local passed
+        passed=$(grep "Tests.*passed" "$log_file" | tail -1)
         echo "   $passed"
         TOTAL_PASSED=$((TOTAL_PASSED + 1))
     else
-        echo "❌ $batch_name: FAILED or TIMEOUT"
+        echo "❌ $batch_name: FAILED or TIMEOUT  (log: $log_file)"
         FAILED_BATCHES+=("$batch_name")
         TOTAL_FAILED=$((TOTAL_FAILED + 1))
-        # Show error details
-        tail -10 /tmp/test_output_$batch_name.log
+        tail -20 "$log_file"
     fi
+    FILES_RUN=$((FILES_RUN + ${#test_files[@]}))
 }
 
-# Batch 1: Core Services
-run_batch "core-services" \
-    "tests/services/StateService.test.ts" \
-    "tests/services/DataService.test.ts" \
-    "tests/services/LoggingService.test.ts"
+# ---------------------------------------------------------------------------
+# Group by directory so a failure names a recognisable area, then chunk each
+# group to BATCH_SIZE. Grouping is cosmetic; coverage comes from the glob.
+# ---------------------------------------------------------------------------
+current_group=""
+group_index=0
+chunk=()
 
-# Batch 2: Game Logic Services
-run_batch "game-logic" \
-    "tests/services/GameRulesService.test.ts" \
-    "tests/services/CardService.test.ts" \
-    "tests/services/ResourceService.test.ts"
+flush_chunk() {
+    [ ${#chunk[@]} -eq 0 ] && return
+    group_index=$((group_index + 1))
+    local label
+    label=$(echo "$current_group" | sed -e 's|^tests$|root|' -e 's|^tests/||' -e 's|/|-|g')
+    if [ "$DRY_RUN" = "1" ]; then
+        echo ""
+        echo "📋 [dry run] ${label}-${group_index} (${#chunk[@]} files)"
+        local _cf
+        for _cf in "${chunk[@]}"; do echo "      $_cf"; RAN_FILES+=("$_cf"); done
+        FILES_RUN=$((FILES_RUN + ${#chunk[@]}))
+    else
+        run_batch "${label}-${group_index}" "${chunk[@]}"
+    fi
+    chunk=()
+}
 
-# Batch 3: Advanced Services
-run_batch "advanced-services" \
-    "tests/services/TurnService.test.ts" \
-    "tests/services/EffectEngineService.test.ts" \
+for f in "${ALL_FILES[@]}"; do
+    d=$(dirname "$f")
+    if [ "$d" != "$current_group" ]; then
+        flush_chunk
+        current_group="$d"
+        group_index=0
+    fi
+    chunk+=("$f")
+    if [ ${#chunk[@]} -ge "$BATCH_SIZE" ]; then
+        flush_chunk
+    fi
+done
+flush_chunk
 
-# Batch 4: Support Services
-run_batch "support-services" \
-    "tests/services/MovementService.test.ts" \
-    "tests/services/ChoiceService.test.ts" \
-    "tests/services/TargetingService.test.ts"
-
-# Batch 5: Communication Services
-run_batch "communication-services" \
-    "tests/services/NotificationService.test.ts" \
-    "tests/services/NegotiationService.test.ts" \
-    "tests/services/TurnService-tryAgainOnSpace.test.ts"
-
-# Batch 6: Utilities
-run_batch "utilities" \
-    "tests/utils/EffectFactory.test.ts" \
-    "tests/utils/FormatUtils.test.ts" \
-    "tests/utils/NotificationUtils.test.ts" \
-    "tests/utils/actionLogFormatting.test.ts" \
-    "tests/utils/buttonFormatting.test.ts"
-
-# Batch 7: Isolated Tests
-run_batch "isolated" \
-    "tests/isolated/gameLogic.test.ts" \
-    "tests/isolated/utils.test.ts"
-
-# Batch 8: E2E Tests (Group 1)
-run_batch "e2e-tests-1" \
-    "tests/E2E-05_MultiPlayerEffects.test.ts" \
-    "tests/E2E-01_HappyPath.test.tsx" \
-    "tests/E2E-04_EdgeCases.test.ts"
-
-# Batch 9: E2E Tests (Group 2)
-run_batch "e2e-tests-2" \
-    "tests/E2E-02_ComplexCard.test.ts" \
-    "tests/E2E-03_ComplexSpace.test.ts" \
-    "tests/E2E-04_SpaceTryAgain.test.ts"
-
-# Batch 10: Integration Tests
-run_batch "integration-tests" \
-    "tests/E012-integration.test.ts" \
-    "tests/E066-reroll-integration.test.ts" \
-    "tests/E2E-Lightweight.test.ts"
-
-# Batch 11: Component Tests - Core
-# (CardPortfolioDashboard/TurnControlsWithActions deleted in the classic-panel removal;
-#  swapped for their V2 successors, 2026-08-01)
-run_batch "core-components" \
-    "tests/components/player/PlayerCardDetailV2.test.tsx" \
-    "tests/components/player/TurnCommitControl.test.tsx"
-
-# Batch 12: Component Tests - Game Components
-# (DiceRoller/GameSpace/MovementPathVisualization deleted in the classic-panel removal;
-#  swapped for the service/board-layer tests that now cover this ground, 2026-08-01)
-run_batch "game-components" \
-    "tests/services/DiceService.test.ts" \
-    "tests/components/board/BoardCanvas.test.ts" \
-    "tests/services/MovementService-unifiedResolver.test.ts"
-
-# Batch 13: Component Tests - Game Components (Group 2)
-run_batch "game-components-2" \
-    "tests/components/game/ProjectProgress.test.tsx" \
-    "tests/components/game/SpaceExplorerPanel.test.tsx"
-
-# Batch 14: Component Tests - Modal Components (Group 1)
-run_batch "modal-components-1" \
-    "tests/components/modals/DiceResultModal.test.tsx" \
-    "tests/components/modals/EndGameModal.test.tsx"
-
-# Batch 15: Component Tests - Modal Components (Group 2)
-run_batch "modal-components-2" \
-    "tests/components/CardDetailsModal.test.tsx" \
-    "tests/components/ChoiceModal.test.tsx" \
-    "tests/components/NegotiationModal.test.tsx"
-
-# Batch 16: Component Tests - Modal Components (Group 3)
-# (DiscardedCardsModal deleted pre-beta, superseded by DiscardPileModal below, 2026-08-01)
-run_batch "modal-components-3" \
-    "tests/components/modals/CardReplacementModal.test.tsx" \
-    "tests/components/modals/DiscardPileModal.test.tsx"
-
-# Batch 17: Component Tests - Player Panel (Group 1)
-# (PlayerPanel/PlayerPanel.integration deleted in the classic-panel removal;
-#  swapped for their V2 successors, 2026-08-01)
-run_batch "player-components-1" \
-    "tests/components/player/PlayerPanelV2.test.tsx" \
-    "tests/components/player/PlayerPanelWrapper.test.tsx" \
-    "tests/components/player/ExpandableSection.test.tsx"
-
-# Batch 18: Component Tests - Player Panel (Group 2)
-# (FinancesSection/TimeSection were classic-panel accordion tabs, deleted in the panel
-#  removal; swapped for the V2 components that now show that same money/summary info, 2026-08-01)
-run_batch "player-components-2" \
-    "tests/components/player/PlayerNumbersV2.test.tsx" \
-    "tests/components/player/ScoreboardV2.test.tsx"
-
-# Batch 19: Component Tests - Player Panel (Group 3)
-# (NextStepButton deleted alongside TurnControlsWithActions, superseded by TurnCommitControl
-#  in batch 11; CurrentCardSection deleted with the classic panel. Swapped for two other
-#  real, currently-uncovered player-component test files, 2026-08-01)
-run_batch "player-components-3" \
-    "tests/components/player/PlayerChronicleV2.test.tsx" \
-    "tests/components/player/pendingActionsCollapse.test.ts"
-
-# Batch 20: Regression Tests (Group 1)
-run_batch "regression-tests-1" \
-    "tests/regression/ButtonNesting.regression.test.tsx" \
-    "tests/regression/CardCountNaN.regression.test.tsx" \
-    "tests/services/ActionSequenceRegression.test.ts"
-
-# Batch 21: Regression Tests (Group 2)
-run_batch "regression-tests-2" \
-    "tests/services/GameLogRegression.test.ts" \
-    "tests/services/SpaceProgressionRegression.test.ts" \
-    "tests/services/TransactionalLogging.test.ts"
-
-# Batch 22: Feature Tests
-# (E2E-MultiPathMovement deleted in the classic-panel removal; swapped for another
-#  currently-uncovered movement test, 2026-08-01)
-run_batch "feature-tests" \
-    "tests/services/MovementService-visitTypeInvariant.test.ts" \
-    "tests/features/ManualFunding.test.ts" \
-    "tests/P1_AutomaticFunding_Fix.test.ts"
-
-# Batch 23 (Performance Tests) removed 2026-08-01: its only file, LoadTimeOptimization.test.ts,
-# no longer exists and there's no real successor — the closest thing (tests/isolated/gameLogic.test.ts's
-# "Performance benchmarks") is wall-clock assertions already flagged in TODO.md as non-diagnostic,
-# and it's already covered via batch 7 ("isolated") anyway.
-
-# Summary
+# ---------------------------------------------------------------------------
+# Summary. Reports FILES, not just batches — "22/22 batches passed" was the
+# exact shape of the old lie, and a batch count alone cannot expose a gap.
+# ---------------------------------------------------------------------------
 echo ""
 echo "📊 BATCH TEST SUMMARY"
 echo "========================"
+echo "🔎 Test files run: $FILES_RUN of $TOTAL_FILES discovered"
 echo "✅ Passed batches: $TOTAL_PASSED"
 echo "❌ Failed batches: $TOTAL_FAILED"
+
+# Set equality, not just count equality. A count check alone is too weak: the
+# first version of this rewrite dropped one file per directory and duplicated
+# another, which kept the total at exactly 198 and looked perfectly healthy.
+DISCOVERED_SORTED=$(printf '%s\n' "${ALL_FILES[@]}" | sort)
+RAN_SORTED=$(printf '%s\n' "${RAN_FILES[@]}" | sort -u)
+if [ "$FILES_RUN" -ne "$TOTAL_FILES" ] || [ "$DISCOVERED_SORTED" != "$RAN_SORTED" ]; then
+    echo ""
+    echo "❌ Batching did not run exactly the discovered set — this is a bug in THIS SCRIPT, not in the tests."
+    echo "   discovered: $TOTAL_FILES   dispatched: $FILES_RUN   distinct: $(printf '%s\n' "${RAN_FILES[@]}" | sort -u | wc -l)"
+    echo "   never run:"
+    comm -23 <(printf '%s\n' "$DISCOVERED_SORTED") <(printf '%s\n' "$RAN_SORTED") | sed 's/^/     /'
+    echo "   run more than once:"
+    printf '%s\n' "${RAN_FILES[@]}" | sort | uniq -d | sed 's/^/     /'
+    exit 1
+fi
+
+if [ "$DRY_RUN" = "1" ]; then
+    echo ""
+    echo "🔍 Dry run — nothing executed."
+    exit 0
+fi
 
 if [ ${#FAILED_BATCHES[@]} -gt 0 ]; then
     echo ""
@@ -195,6 +196,6 @@ if [ ${#FAILED_BATCHES[@]} -gt 0 ]; then
     exit 1
 else
     echo ""
-    echo "🎉 All batches completed successfully!"
+    echo "🎉 All batches completed successfully! ($TOTAL_FILES files)"
     exit 0
 fi

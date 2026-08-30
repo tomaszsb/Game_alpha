@@ -178,12 +178,45 @@ export function PlayerPreviewPanel({
   const p = panelPalettes[mode];
   // Collapsed by default, same as PlayerPanelV2's "What to do & why" and
   // "Move" toggles — approximating the first-look state a player actually sees.
-  const [showWhy, setShowWhy] = useState(false);
-  const [showMoveOptions, setShowMoveOptions] = useState(false);
+  // Unless the panel is mounted already editing that very section, which the
+  // change-detector below cannot catch (on the first render there is no
+  // change to detect), so the initial value has to cover it.
+  const [showWhy, setShowWhy] = useState(editingRegion === 'guidance');
+  const [showMoveOptions, setShowMoveOptions] = useState(editingRegion === 'destinations');
+
+  // A part folded away is lit where nobody can see it. Both fold-outs start
+  // shut (that is the first-look state a player gets), so clicking into a
+  // field that feeds one used to mark the fold-out's little pencil and stop
+  // there — technically an answer, practically a whisper. Working in a
+  // section's fields is a clear statement that you want to see that section,
+  // so it opens itself. It is never re-closed here: closing something the
+  // moment the cursor moves on would be its own kind of rude.
+  // (fb 2026-08-30: "it does not expand the view if it was colappsed".)
+  //
+  // Adjusted during render rather than in an effect, which is React's own
+  // guidance for state that follows a prop change (and what
+  // react-hooks/set-state-in-effect asks for). It is not only about the lint:
+  // an effect would commit the shut section first and reopen it a frame
+  // later, and — the real bug — it would re-run and force the section back
+  // open every time anything else re-rendered while the cursor sat in those
+  // fields, so the fold-out's own button could not close it. Setting the same
+  // state the button sets, once per change of `editingRegion`, leaves the
+  // button working exactly as before.
+  const [lastEditingRegion, setLastEditingRegion] = useState<string | null | undefined>(editingRegion);
+  if (editingRegion !== lastEditingRegion) {
+    setLastEditingRegion(editingRegion);
+    if (editingRegion === 'guidance') setShowWhy(true);
+    if (editingRegion === 'destinations') setShowMoveOptions(true);
+  }
 
   // Lighting a part that is scrolled out of sight tells nobody anything, and
   // this panel is taller than its box on most spaces. `block: 'nearest'` so a
   // part already on screen does not jump.
+  //
+  // Depends on both fold-out flags, not just editingRegion: when the effect
+  // above opens a section, the element to scroll to does not exist yet on
+  // this pass. Re-running once the section is open is what actually brings it
+  // into view.
   useEffect(() => {
     if (!editingRegion) return;
     const root = rootRef.current;
@@ -191,7 +224,7 @@ export function PlayerPreviewPanel({
     root
       .querySelector<HTMLElement>(`[data-region-id="${editingRegion}"]`)
       ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [editingRegion]);
+  }, [editingRegion, showWhy, showMoveOptions]);
 
   const toggleBtn: React.CSSProperties = {
     border: `1px solid ${p.borderStrong}`,
@@ -322,6 +355,54 @@ export function PlayerPreviewPanel({
   const endGamePopup = popupFor('popup-end-game', 'end_game', '');
   if (endGamePopup.authored) popups.push(endGamePopup);
 
+  // ── The part you are working in, when the panel would not otherwise draw it.
+  //
+  // This panel shows what a PLAYER would see, and a player never sees a thing
+  // that isn't set up — an action with no card behind it, a pop-up the space
+  // never raises. So those simply were not drawn, and clicking into their
+  // (blank) fields lit nothing at all. That is backwards: a field with words
+  // already in it can usually be guessed from its own contents, and the EMPTY
+  // one is where "what does this even feed?" actually gets asked.
+  // (fb 2026-08-30: "it displays only if it already exists. if the item is
+  // currently blank it does not open up a new area to show".)
+  //
+  // Note which regions are NOT in this problem: story, cost and destinations
+  // already draw their own "nothing here yet" line and light up correctly
+  // while blank. The fix below is to give the rest the same courtesy, not to
+  // invent a new idiom.
+  //
+  // Only the region being edited gets one. Permanently ghosting all five
+  // unset actions would park five grey rows on screen for good — the exact
+  // crowding the maintainer objected to in v3.2.35 ("now it feels a little
+  // crowded when folded"). This appears where the cursor is and leaves with it.
+  const renderedRegionIds = new Set<string>([
+    ...cardActions.map(a => a.regionId),
+    ...popups.map(pu => pu.regionId),
+    ...(diceActions.length > 0 ? ['outcomes'] : []),
+    ...(showTryAgain ? ['try-again'] : []),
+    // Drawn whether or not they hold anything, each with its own empty state.
+    'story', 'cost', 'guidance', 'destinations', 'end-turn',
+  ]);
+  const ghostRegionId = editingRegion && !renderedRegionIds.has(editingRegion) ? editingRegion : null;
+
+  // A missing pop-up needs no special shape: the pop-ups block already draws
+  // "Standard wording — nothing written for this one yet" properly. It just
+  // has to be in the list. The effect_action comes off the region's own
+  // `modal:` anchor rather than a second hand-written mapping — spaceRegions
+  // stays the one map, which is the whole point of that file.
+  if (ghostRegionId && ghostRegionId.startsWith('popup-')) {
+    const modalAnchor = (regionById(ghostRegionId)?.anchors ?? []).find(a => a.startsWith('modal:'));
+    if (modalAnchor) popups.push(popupFor(ghostRegionId, modalAnchor.slice('modal:'.length), ''));
+  }
+
+  // The two that need a placeholder drawn: an unset action (and the outcome
+  // table, which is an action row here), and the negotiate button on a space
+  // that does not offer negotiating.
+  const ghostActionId = ghostRegionId && (ghostRegionId.startsWith('action-') || ghostRegionId === 'outcomes')
+    ? ghostRegionId
+    : null;
+  const ghostTryAgain = ghostRegionId === 'try-again';
+
   // --- shared style tokens, matching PlayerPanelV2's own constants --------
   const pad: React.CSSProperties = { padding: '11px 13px', borderBottom: `0.5px solid ${p.border}` };
   const zlbl: React.CSSProperties = {
@@ -350,6 +431,17 @@ export function PlayerPreviewPanel({
     cursor: 'default',
   };
   const subActionBtn: React.CSSProperties = { ...actionBtn, padding: '7px 10px', fontSize: 12, marginBottom: 5 };
+  // A slot that does not exist yet, shown only while its fields hold the
+  // cursor. Dashed and muted so it reads as an outline of something that
+  // could be here — never mistakable for a real action a player would see.
+  const ghostBtn: React.CSSProperties = {
+    ...actionBtn,
+    background: 'transparent',
+    border: `1px dashed ${p.borderStrong}`,
+    color: p.muted,
+    fontStyle: 'italic',
+    fontWeight: 400,
+  };
 
   return (
     <div ref={rootRef} style={{ width: '100%', height: '100%', overflow: 'auto', background: p.bg, color: p.text, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -502,12 +594,21 @@ export function PlayerPreviewPanel({
         )}
       </div>
 
-      {/* Things you can do — card + outcome actions, plus movement. */}
-      {hasThingsToDo && (
+      {/* Things you can do — card + outcome actions, plus movement.
+          Also drawn for a ghost slot alone: editing an unset action on a space
+          with nothing else to do must still have somewhere to point. */}
+      {(hasThingsToDo || ghostActionId) && (
         <div style={pad}>
           <p style={zlbl}>Things you can do</p>
-          {cardActions.length === 0 && diceActions.length === 0 && (
+          {cardActions.length === 0 && diceActions.length === 0 && !ghostActionId && (
             <div style={{ fontSize: 12, color: p.muted, fontStyle: 'italic', marginBottom: 7 }}>No actions authored yet</div>
+          )}
+          {ghostActionId && (
+            <Region id={ghostActionId} onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
+              style={ghostBtn}>
+              <span aria-hidden>⬚</span>
+              {regionById(ghostActionId)?.shortLabel || regionById(ghostActionId)?.label} — nothing set here yet
+            </Region>
           )}
           {cardActions.map((a) => (
             <Region key={a.key} id={a.regionId} onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion} style={actionBtn}>
@@ -649,21 +750,33 @@ export function PlayerPreviewPanel({
             </Region>
           </div>
         ) : (
-          <Region id="end-turn" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
-            style={{
-              width: '100%',
-              border: 'none',
-              borderRadius: 11,
-              padding: 13,
-              fontSize: 15,
-              fontWeight: 500,
-              color: '#fff',
-              background: p.accent,
-              textAlign: 'center',
-              boxSizing: 'border-box',
-            }}>
-            {endTurnLabel}
-          </Region>
+          <>
+            {/* Negotiating is off for this space, so a player would see no
+                such button — but its wording is still editable, and editing it
+                has to point somewhere. */}
+            {ghostTryAgain && (
+              <Region id="try-again" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
+                style={{ ...ghostBtn, justifyContent: 'center', textAlign: 'center', marginBottom: 9 }}>
+                <span aria-hidden>⬚</span>
+                {tryAgainLabel} — negotiating is off for this space
+              </Region>
+            )}
+            <Region id="end-turn" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
+              style={{
+                width: '100%',
+                border: 'none',
+                borderRadius: 11,
+                padding: 13,
+                fontSize: 15,
+                fontWeight: 500,
+                color: '#fff',
+                background: p.accent,
+                textAlign: 'center',
+                boxSizing: 'border-box',
+              }}>
+              {endTurnLabel}
+            </Region>
+          </>
         )}
       </div>
     </div>

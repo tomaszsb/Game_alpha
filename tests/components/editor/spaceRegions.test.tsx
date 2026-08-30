@@ -205,3 +205,162 @@ describe('what the pop-ups say is visible', () => {
     expect(firstAnchorOf('popup-fee')).toBe('modal:deduct');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Working in a field the panel would not otherwise be showing.
+//
+// The preview draws what a PLAYER would see, so anything unset was simply not
+// drawn — and clicking into its (blank) fields lit nothing. Reported
+// 2026-08-30: "it displays only if it already exists. if the item is currently
+// blank it does not open up a new area to show. and it does not expand the
+// view if it was colappsed."
+//
+// Two fixes, pinned here: a placeholder slot for the region being edited, and
+// a fold-out that opens itself when its own fields take the cursor.
+// ---------------------------------------------------------------------------
+describe('the part being edited is always somewhere you can see it', () => {
+  const preview = (over: Partial<SpaceRow>, editingRegion?: string | null, modalConfigData: ModalConfigRow[] = []) =>
+    render(
+      <PlayerPreviewPanel
+        currentSpace={row(over)}
+        visitType="First"
+        diceRollData={[]}
+        modalConfigData={modalConfigData}
+        onEditRegion={vi.fn()}
+        editingRegion={editingRegion}
+      />
+    );
+
+  const regionEl = (c: HTMLElement, id: string) => c.querySelector(`[data-region-id="${id}"]`);
+
+  describe('a slot that does not exist yet', () => {
+    it('stays out of the way while nothing is being edited', () => {
+      // All five actions blank. The panel must look exactly as it did: a
+      // player sees no scope-worktypes action here, so neither does the editor.
+      const { container } = preview({ w_card: '', b_card: '', i_card: '', l_card: '', e_card: '' }, null);
+      expect(regionEl(container, 'action-W')).toBeNull();
+      expect(container.textContent).not.toContain('nothing set here yet');
+    });
+
+    it('appears, lit, for the blank action whose fields hold the cursor', () => {
+      const { container } = preview({ w_card: '', b_card: '', i_card: '', l_card: '', e_card: '' }, 'action-W');
+      const ghost = regionEl(container, 'action-W');
+      expect(ghost).toBeTruthy();
+      expect(ghost!.textContent).toContain('nothing set here yet');
+      // Lit the same way every other edited part is — one mechanism, not two.
+      expect(ghost!.className).toContain('space-region--being-edited');
+    });
+
+    it('appears for ONLY that one, never for every unset action at once', () => {
+      // The whole reason this is scoped to the edited region: five permanent
+      // grey rows is the crowding v3.2.35 was told off for.
+      const { container } = preview({ w_card: '', b_card: '', i_card: '', l_card: '', e_card: '' }, 'action-W');
+      expect(container.querySelectorAll('[data-region-id^="action-"]')).toHaveLength(1);
+      expect(regionEl(container, 'action-B')).toBeNull();
+      expect(regionEl(container, 'action-E')).toBeNull();
+    });
+
+    it('does not double up when the action is actually set', () => {
+      const { container } = preview({ w_card: 'Draw 1' }, 'action-W');
+      expect(container.querySelectorAll('[data-region-id="action-W"]')).toHaveLength(1);
+      expect(container.textContent).not.toContain('nothing set here yet');
+    });
+
+    it('gives a blank space somewhere to point even with nothing else to do', () => {
+      // No actions, no destinations — "Things you can do" would not render at
+      // all, so the ghost has to bring its own section with it.
+      const { container } = preview(
+        { w_card: '', b_card: '', i_card: '', l_card: '', e_card: '', space_1: '', space_2: '' },
+        'action-B',
+      );
+      expect(screen.getByText('Things you can do')).toBeTruthy();
+      expect(regionEl(container, 'action-B')).toBeTruthy();
+    });
+
+    it('shows a pop-up the space never raises, so its wording can still be aimed at something', () => {
+      // No l_card, so the life-event pop-up is not in the panel own list.
+      const { container } = preview({ l_card: '' }, 'popup-L');
+      const ghost = regionEl(container, 'popup-L');
+      expect(ghost).toBeTruthy();
+      expect(screen.getByText('Pop-ups players will see')).toBeTruthy();
+      expect(ghost!.className).toContain('space-region--being-edited');
+    });
+
+    it('shows the negotiate button on a space where negotiating is off', () => {
+      const { container } = preview({ Negotiate: 'NO' }, 'try-again');
+      const ghost = regionEl(container, 'try-again');
+      expect(ghost).toBeTruthy();
+      expect(ghost!.textContent).toContain('negotiating is off for this space');
+    });
+
+    it('leaves again when the cursor moves to a part that is really there', () => {
+      const blank = { w_card: '', b_card: '', i_card: '', l_card: '', e_card: '' };
+      const { container, rerender } = preview(blank, 'action-W');
+      expect(regionEl(container, 'action-W')).toBeTruthy();
+
+      rerender(
+        <PlayerPreviewPanel
+          currentSpace={row(blank)}
+          visitType="First"
+          diceRollData={[]}
+          modalConfigData={[]}
+          onEditRegion={vi.fn()}
+          editingRegion="story"
+        />
+      );
+      expect(regionEl(container, 'action-W')).toBeNull();
+    });
+  });
+
+  describe('a section folded away', () => {
+    it('opens itself when its own fields take the cursor', () => {
+      // "What to do & why" starts shut, matching what a player first sees.
+      const { container } = preview({}, null);
+      expect(container.textContent).not.toContain('What to do:');
+
+      const opened = preview({}, 'guidance');
+      expect(opened.container.textContent).toContain('What to do:');
+      expect(opened.container.textContent).toContain('Pay the fee, or push back.');
+    });
+
+    it('opens the movement list when a destination field takes the cursor', () => {
+      // Two destinations, so the panel draws the collapsible "Move — N options".
+      const { container } = preview({ space_1: 'ARCH-SCOPE-CHECK', space_2: 'ARCH-DONE' }, null);
+      expect(container.textContent).toContain('Move — 2 options');
+
+      const opened = preview({ space_1: 'ARCH-SCOPE-CHECK', space_2: 'ARCH-DONE' }, 'destinations');
+      // The individual destinations are now visible rather than folded away.
+      expect(opened.container.textContent).toMatch(/Scope Check/);
+    });
+
+    it('can still be closed by its own button afterwards', () => {
+      // The reason auto-opening adjusts state during render instead of in an
+      // effect. An effect re-runs on every re-render while the cursor sits in
+      // those fields, forcing the section back open and making the fold-out's
+      // own button useless. Opening once, by setting the same state the button
+      // sets, leaves the button working.
+      const { container } = preview({}, 'guidance');
+      expect(container.textContent).toContain('What to do:');
+
+      fireEvent.click(screen.getByRole('button', { name: /What to do & why/ }));
+      expect(container.textContent).not.toContain('What to do:');
+    });
+
+    it('stays open when the cursor moves on, rather than snapping shut', () => {
+      const { container, rerender } = preview({}, 'guidance');
+      expect(container.textContent).toContain('What to do:');
+
+      rerender(
+        <PlayerPreviewPanel
+          currentSpace={row()}
+          visitType="First"
+          diceRollData={[]}
+          modalConfigData={[]}
+          onEditRegion={vi.fn()}
+          editingRegion="story"
+        />
+      );
+      expect(container.textContent).toContain('What to do:');
+    });
+  });
+});

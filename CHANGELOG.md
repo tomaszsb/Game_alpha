@@ -2,6 +2,59 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.43] - 2026-08-30
+
+*Four fixes in one version rather than four, because the first one is what makes the other three's test results mean anything. Ordered by the maintainer's instruction to work in technical order: fix the measuring instrument, then the settled one-liner, then the silent-corruption landmine, then the reported UX bug.*
+
+### The batch test runner was checking 60 files out of 198 and reporting "22/22 batches PASSED"
+Recorded on 2026-08-26 as "`tests/components/classroom/` is missing." It was **138 files across 19 directories**: all of `tests/server/` (18, including the load-bearing `pipelineFaithful` test), all of `tests/utils/` (37), all of `tests/components/editor/` (8), and the rest. The script enumerated test files by hand — 23 named batches written out one path at a time — which is a promise to update the list every time somebody adds a file, and that promise had been quietly broken for months. A v3.2.41 change broke all 10 tests in `ClassroomSetup.test.tsx` and this script still said 22/22, because that directory was simply not on the list.
+
+The list is now **derived**: the same `include`/`exclude` rules as `vitest.config.dev.ts`, applied by `find`, grouped by directory for readable progress and chunked to `BATCH_SIZE`. A new test file — or a whole new directory — is picked up the moment it exists. `DRY_RUN=1` lists what would run without running it.
+
+**The guard is set equality, not a count, and that is not pedantry.** The first cut of this rewrite had a bug of its own: `flush_chunk` printed its files with `for f in …`, and bash has no block scope, so it clobbered the caller's loop variable — each group's first batch re-ran the previous group's last file and dropped the real one. Every directory lost exactly one file and gained one duplicate, so the total stayed at exactly 198 and a count-based check passed happily while 179 distinct files ran. Caught by diffing the dispatched list against the discovered list. Every run now ends by comparing those two sets and, on a mismatch, names the files that never ran and the ones that ran twice. Verified by reintroducing the bug: it fails with `dispatched: 198  distinct: 179` and lists `ClassroomSetup.test.tsx` — the file from the original report — among the never-run.
+
+`npm test` remains the commit gate; this is now a true superset check of it rather than an unlabelled subset. CLAUDE.md's testing note, which described the old behaviour as a known limitation, is updated.
+
+### The TV history column is off by default
+Shipped v3.2.38 defaulting on, verified only at 960x540 in a browser: the column takes 260px of the TV's 960px and leaves the board 700px, no overflow, chips filtering live. Fitting is not the same as readable across a room, and that was the one question the browser could not answer.
+
+The maintainer tested it on the real television and filed fb:93449bf2 — *"It is on but should be off."* `showHistory` now starts `false`, so the board keeps all 944px and the header's 📜 History button turns the column on for whoever wants it. This also puts it in line with `showScoreboard` and `showQRPanel` directly above it in the same file, both of which already default off "so the live TV layout is unchanged until the host chooses to show it." It was the odd one out.
+
+No test — `TVDisplay` has none at all, and standing up a harness for one boolean default would be disproportionate. The reasoning and the fb id are in the comment instead, so the next person doesn't helpfully flip it back.
+
+### Twelve more data files could be silently scrambled by inserting a column
+v3.2.39 fixed `parseSpaceEffectsCsv` to read by header name and said plainly that its siblings shared the same latent bug. They did: `parseMovementCsv`, `parseDiceOutcomesCsv`, `parseDiceEffectsCsv`, `parseSpaceContentCsv`, `parseLogicQuestionsCsv`, `parseModalConfigCsv`, `parseGameConfigCsv`, `parseCardTypeLabelsCsv`, `parseCharactersCsv`, `parseViolationRulesCsv`, `parseUIStringsCsv` and `parsePathChoiceRulesCsv` all read `values[0]`, `values[1]`, … Insert one column anywhere but the end and every field after it shifts one slot — a fee read as a narrative, a narrative as a modal title — with nothing thrown and nothing logged.
+
+All twelve now resolve columns by name through **one** `csvFieldReader()` helper, which `parseSpaceEffectsCsv` was refactored onto as well, so this file holds a single implementation of the rule rather than thirteen copies free to drift. A column the file does not have yields `undefined`, exactly as a missing trailing column did before, which is what the optional-field guards at every call site already expect. Every field name was checked against the real CSV headers on disk, not inferred.
+
+`parseCardsCsv` is deliberately left positional. It is the one that validates its header against `expectedColumns` and throws a named error on drift, so it fails loudly rather than silently — an acceptable design, and not the bug being fixed here.
+
+One real behaviour change fell out: `parseSpaceContentCsv` read `values[6].toUpperCase()` with no guard and threw outright on a short row. Name lookup can legitimately return `undefined`, so `can_negotiate` now comes back `false` instead of crashing.
+
+15 new tests, each pinning the property that actually matters and is easy to state — **inserting a column changes nothing**. Each parses a canonical header, parses the same rows with a junk column spliced into the middle, and requires the two results to be deep-equal, plus an explicit value assertion so a parser returning garbage both times cannot pass by matching itself. Verified they bite: all 15 fail against the old parsers, while the 19 pre-existing tests in that file still pass.
+
+### Clicking into a blank field lit nothing, and a folded section stayed folded
+Maintainer, testing v3.2.37's click-to-light-the-panel by hand: *"it displays only if it already exists. if the item is currently blank it does not open up a new area to show. and it does not expand the view if it was colappsed."*
+
+Two separate causes.
+
+**The panel draws what a player would see, and a player never sees a thing that isn't set up.** An action with no card behind it, a pop-up the space never raises — not drawn, so there was nothing to light. That is backwards: a field with words already in it can usually be guessed from its own contents, and the empty one is where "what does this even feed?" actually gets asked. The region being edited now gets a dashed, muted placeholder — and **only** that one. Ghosting all five unset actions permanently would park five grey rows on screen for good, which is the crowding v3.2.35 was told off for; this appears where the cursor is and leaves with it. A missing pop-up needs no new shape at all, since the pop-ups block already renders "nothing written for this one yet" properly — it just had to be in the list, and its `effect_action` comes off the region's own `modal:` anchor rather than a second hand-written mapping, so `spaceRegions.ts` stays the one map. Note which regions never had this problem: story, cost and destinations already drew their own empty state and lit correctly while blank. This gives the rest the same courtesy rather than inventing an idiom.
+
+**Both fold-outs start shut**, so a field feeding one lit its little pencil under the fold — technically an answer, practically a whisper. The section now opens itself.
+
+That second fix is done as a **render-phase adjustment, not an effect**, and the reason is a bug the effect version shipped with: an effect re-runs on every re-render, so it forced the section back open while the cursor sat in those fields and the fold-out's own button could no longer close it. Setting the same state the button sets, once per change of `editingRegion`, leaves the button working — and satisfies `react-hooks/set-state-in-effect`, which is what surfaced it. There is now a test for exactly that.
+
+11 new tests. 9 fail against the old panel; the other 2 are deliberate no-regression guards that must pass both ways (the panel stays quiet when nothing is being edited, and a real action never gets a duplicate ghost).
+
+Also added: `Element.prototype.scrollIntoView` is stubbed in `tests/vitest.setup.ts`. jsdom implements no scrolling at all, so the method is simply absent and any test setting `editingRegion` threw inside the effect — which is why this code path had never been exercised by a test before. The stub goes in the environment rather than a guard going in the components, since both `PlayerPreviewPanel` and `SpaceEditor` do real, wanted browser things there.
+
+**Not verified by a real click, and that is the honest state of it.** `editingRegion` is driven by focus events, and the session's Browser pane never holds keyboard focus — `document.hasFocus()` is false, so `.focus()` moves `activeElement` while dispatching zero focus events (measured: 0 listeners). The tests drive the real React path by passing the prop, which is as close as anything here reaches. Whether the dashed ghost reads as a placeholder rather than as a real action is a judgement no test makes; flagged in TODO for the maintainer's own eyes.
+
+### Verification
+`npm test` **3043/3043 across 198 files**. The rewritten batch runner: 32 batches, 198 of 198 files, 0 failed. Typecheck, lint and production build clean — the 5 lint errors in the touched files are pre-existing, confirmed by re-running against HEAD with these changes stashed. 26 new tests total, 24 of which fail against the code they were written for.
+
+Line endings on two files had drifted from their committed form during editing (one to LF, one to CRLF), inflating the diff by roughly 880 lines of pure noise; both were normalised back to match their blobs before committing. Normalising the repo's remaining pre-existing CRLF blobs is a separate job and was left alone.
+
 ## [3.2.42] - 2026-08-26
 
 ### The dice-outcome table's controls have names too — and v3.2.40's claim is now actually true

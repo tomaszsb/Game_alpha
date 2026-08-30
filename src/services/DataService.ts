@@ -703,12 +703,13 @@ export class DataService implements IDataService {
   private parseCardTypeLabelsCsv(csvText: string): CardTypeLabel[] {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
+    const get = this.csvFieldReader(lines[0]);
     return lines.slice(1)
       .map(line => {
         const values = this.parseCsvLine(line);
         return {
-          card_type: (values[0] || '').trim(),
-          label: (values[1] || '').trim()
+          card_type: (get(values, 'card_type') || '').trim(),
+          label: (get(values, 'label') || '').trim()
         };
       })
       .filter(r => r.card_type && r.label);
@@ -746,17 +747,18 @@ export class DataService implements IDataService {
   private parseCharactersCsv(csvText: string): CharacterCsvRow[] {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
+    const get = this.csvFieldReader(lines[0]);
     return lines.slice(1)
       .map(line => {
         const values = this.parseCsvLine(line);
         return {
-          id: (values[0] || '').trim(),
-          emoji: (values[1] || '').trim(),
-          name: (values[2] || '').trim(),
-          phase: (values[3] || '').trim(),
-          color: (values[4] || '').trim(),
-          image_roles: (values[5] || '').trim(),
-          short_label: (values[6] || '').trim()
+          id: (get(values, 'id') || '').trim(),
+          emoji: (get(values, 'emoji') || '').trim(),
+          name: (get(values, 'name') || '').trim(),
+          phase: (get(values, 'phase') || '').trim(),
+          color: (get(values, 'color') || '').trim(),
+          image_roles: (get(values, 'image_roles') || '').trim(),
+          short_label: (get(values, 'short_label') || '').trim()
         };
       })
       .filter(r => r.id);
@@ -796,16 +798,17 @@ export class DataService implements IDataService {
   private parseViolationRulesCsv(csvText: string): ViolationRuleCsvRow[] {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
+    const get = this.csvFieldReader(lines[0]);
     return lines.slice(1)
       .map(line => {
         const values = this.parseCsvLine(line);
         return {
-          tier: (values[0] || '').trim(),
-          threshold: (values[1] || '').trim(),
-          deadline_days: (values[2] || '').trim(),
-          fee_rate_ontime: (values[3] || '').trim(),
-          fee_rate_late: (values[4] || '').trim(),
-          daily_rate: (values[5] || '').trim()
+          tier: (get(values, 'tier') || '').trim(),
+          threshold: (get(values, 'threshold') || '').trim(),
+          deadline_days: (get(values, 'deadline_days') || '').trim(),
+          fee_rate_ontime: (get(values, 'fee_rate_ontime') || '').trim(),
+          fee_rate_late: (get(values, 'fee_rate_late') || '').trim(),
+          daily_rate: (get(values, 'daily_rate') || '').trim()
         };
       })
       .filter(r => r.tier);
@@ -843,12 +846,13 @@ export class DataService implements IDataService {
   private parseUIStringsCsv(csvText: string): UIStringCsvRow[] {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
+    const get = this.csvFieldReader(lines[0]);
     return lines.slice(1)
       .map(line => {
         const values = this.parseCsvLine(line);
         return {
-          key: (values[0] || '').trim(),
-          template: (values[1] || '').trim()
+          key: (get(values, 'key') || '').trim(),
+          template: (get(values, 'template') || '').trim()
         };
       })
       .filter(r => r.key);
@@ -868,14 +872,15 @@ export class DataService implements IDataService {
   private parsePathChoiceRulesCsv(csvText: string): PathChoiceRule[] {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
+    const get = this.csvFieldReader(lines[0]);
     return lines.slice(1)
       .map(line => {
         const values = this.parseCsvLine(line);
         return {
-          affected_space: (values[0] || '').trim(),
-          memory_key: (values[1] || '').trim(),
-          chosen_value: (values[2] || '').trim(),
-          excluded_destination: (values[3] || '').trim()
+          affected_space: (get(values, 'affected_space') || '').trim(),
+          memory_key: (get(values, 'memory_key') || '').trim(),
+          chosen_value: (get(values, 'chosen_value') || '').trim(),
+          excluded_destination: (get(values, 'excluded_destination') || '').trim()
         };
       })
       .filter(r => r.affected_space && r.memory_key && r.chosen_value && r.excluded_destination);
@@ -904,66 +909,67 @@ export class DataService implements IDataService {
   // CSV parsing methods
   private parseGameConfigCsv(csvText: string): GameConfig[] {
     const lines = csvText.trim().split('\n');
+    const get = this.csvFieldReader(lines[0]);
 
     return lines.slice(1).map(line => {
       const values = this.parseCsvLine(line);
       // Workstream 6 #2: parse min_w_cards_to_leave (numeric, default 0).
-      const parsedMinW = parseInt(values[10], 10);
+      const parsedMinW = parseInt(get(values, 'min_w_cards_to_leave') as string, 10);
       const minWCardsToLeave = Number.isFinite(parsedMinW) && parsedMinW >= 0 ? parsedMinW : 0;
       // Workstream 6 #7: parse fee_calculation_method (only 'percentage_of_scope'
       // takes effect; everything else falls back to 'flat').
       const feeCalculationMethod: 'flat' | 'percentage_of_scope' =
-        values[11] === 'percentage_of_scope' ? 'percentage_of_scope' : 'flat';
-      const feeLabel = values[12] || '';
+        get(values, 'fee_calculation_method') === 'percentage_of_scope' ? 'percentage_of_scope' : 'flat';
+      const feeLabel = get(values, 'fee_label') || '';
       // Workstream 6 #3: parse auto-handling flags. auto_trigger_card_types is
       // a comma-separated string in CSV → string[] in memory.
-      const autoApplyFunding = values[13] === 'Yes';
-      const autoTriggerCardTypes = (values[14] || '').split(',').map(s => s.trim()).filter(Boolean);
+      const autoApplyFunding = get(values, 'auto_apply_funding') === 'Yes';
+      const autoTriggerCardTypes = (get(values, 'auto_trigger_card_types') || '').split(',').map(s => s.trim()).filter(Boolean);
       // Workstream 6 #4: parse path-choice memory flags.
-      const pathChoiceMemoryKey = values[15] || '';
-      const isPathChoiceLockPoint = values[16] === 'Yes';
+      const pathChoiceMemoryKey = get(values, 'path_choice_memory_key') || '';
+      const isPathChoiceLockPoint = get(values, 'is_path_choice_lock_point') === 'Yes';
       // Workstream 6 Phase 6.3: cosmetic per-space overrides. Empty string when
       // missing — callers fall back to existing hardcoded behavior.
-      const displayLabelOverride = values[17] || '';
-      const reviewLoopMessage = values[18] || '';
+      const displayLabelOverride = get(values, 'display_label_override') || '';
+      const reviewLoopMessage = get(values, 'review_loop_message') || '';
       // Workstream 3: Living Map coordinates. Default to 0 if missing/blank
       // so the parsing never produces NaN (which would break BoardCanvas).
-      const posX = parseFloat(values[19]);
-      const posY = parseFloat(values[20]);
+      const posX = parseFloat(get(values, 'pos_x') as string);
+      const posY = parseFloat(get(values, 'pos_y') as string);
       // 2026-05-18 audit: funding_source enum ('owner'/'bank'/'investor' or '').
-      const rawFundingSource = (values[21] ?? '').trim();
+      const rawFundingSource = (get(values, 'funding_source') ?? '').trim();
       const fundingSource: 'owner' | 'bank' | 'investor' | '' =
         rawFundingSource === 'owner' || rawFundingSource === 'bank' || rawFundingSource === 'investor'
           ? rawFundingSource
           : '';
       // 2026-06-02: Workstream 7 Phase 7.4 — Stage-1 gate flag. Older CLEAN_FILES
       // without this column produce undefined → falsy at the use site.
-      const hasFinalReviewGate = values[22] === 'Yes';
+      const hasFinalReviewGate = get(values, 'has_final_review_gate') === 'Yes';
       // 2026-07-16: CSV-portability lift — approval_role enum. Older CLEAN_FILES
       // without this column produce '' (no space claims a role, ApprovalService
       // keeps its built-in defaults).
-      const rawApprovalRole = (values[23] ?? '').trim();
+      const rawApprovalRole = (get(values, 'approval_role') ?? '').trim();
       const approvalRole: 'dob_exam' | 'fdny_exam' | 'dob_audit' | '' =
         rawApprovalRole === 'dob_exam' || rawApprovalRole === 'fdny_exam' || rawApprovalRole === 'dob_audit'
           ? rawApprovalRole
           : '';
       // 2026-07-16: CSV-portability lift — npc_speaker override. Empty for
       // spaces that keep the legacy prefix-heuristic default.
-      const npcSpeaker = (values[24] ?? '').trim();
+      const npcSpeaker = (get(values, 'npc_speaker') ?? '').trim();
 
       return {
-        space_name: values[0],
-        phase: values[1],
-        path_type: values[2],
-        is_starting_space: values[3] === 'Yes',
-        is_ending_space: values[4] === 'Yes',
-        min_players: parseInt(values[5]),
-        max_players: parseInt(values[6]),
-        requires_dice_roll: values[7] === 'Yes',
+        space_name: get(values, 'space_name') as string,
+        phase: get(values, 'phase') as string,
+        path_type: get(values, 'path_type') as string,
+        is_starting_space: get(values, 'is_starting_space') === 'Yes',
+        is_ending_space: get(values, 'is_ending_space') === 'Yes',
+        min_players: parseInt(get(values, 'min_players') as string),
+        max_players: parseInt(get(values, 'max_players') as string),
+        requires_dice_roll: get(values, 'requires_dice_roll') === 'Yes',
         // Workstream 6 #5+#6: resume-mechanic flags. Older CLEAN_FILES without
         // these columns produce undefined → falsy at the use site.
-        is_resume_hub: values[8] === 'Yes',
-        is_point_of_no_return: values[9] === 'Yes',
+        is_resume_hub: get(values, 'is_resume_hub') === 'Yes',
+        is_point_of_no_return: get(values, 'is_point_of_no_return') === 'Yes',
         // Workstream 6 #2: minimum W cards required to leave (0 = no guard).
         min_w_cards_to_leave: minWCardsToLeave,
         // Workstream 6 #7: design fee mechanic.
@@ -995,41 +1001,43 @@ export class DataService implements IDataService {
 
   private parseMovementCsv(csvText: string): Movement[] {
     const lines = csvText.trim().split('\n');
-    
+    const get = this.csvFieldReader(lines[0]);
+
     return lines.slice(1).map(line => {
       const values = this.parseCsvLine(line);
       return {
-        space_name: values[0],
-        visit_type: values[1] as VisitType,
-        movement_type: values[2] as 'fixed' | 'choice' | 'dice' | 'logic' | 'none',
-        destination_1: values[3] || undefined,
-        destination_2: values[4] || undefined,
-        destination_3: values[5] || undefined,
-        destination_4: values[6] || undefined,
-        destination_5: values[7] || undefined,
-        condition_1: values[8] || undefined,
-        condition_2: values[9] || undefined,
-        condition_3: values[10] || undefined,
-        condition_4: values[11] || undefined,
-        condition_5: values[12] || undefined
+        space_name: get(values, 'space_name') as string,
+        visit_type: get(values, 'visit_type') as VisitType,
+        movement_type: get(values, 'movement_type') as 'fixed' | 'choice' | 'dice' | 'logic' | 'none',
+        destination_1: get(values, 'destination_1') || undefined,
+        destination_2: get(values, 'destination_2') || undefined,
+        destination_3: get(values, 'destination_3') || undefined,
+        destination_4: get(values, 'destination_4') || undefined,
+        destination_5: get(values, 'destination_5') || undefined,
+        condition_1: get(values, 'condition_1') || undefined,
+        condition_2: get(values, 'condition_2') || undefined,
+        condition_3: get(values, 'condition_3') || undefined,
+        condition_4: get(values, 'condition_4') || undefined,
+        condition_5: get(values, 'condition_5') || undefined
       };
     });
   }
 
   private parseDiceOutcomesCsv(csvText: string): DiceOutcome[] {
     const lines = csvText.trim().split('\n');
-    
+    const get = this.csvFieldReader(lines[0]);
+
     return lines.slice(1).map(line => {
       const values = this.parseCsvLine(line);
       return {
-        space_name: values[0],
-        visit_type: values[1] as VisitType,
-        roll_1: values[2] || undefined,
-        roll_2: values[3] || undefined,
-        roll_3: values[4] || undefined,
-        roll_4: values[5] || undefined,
-        roll_5: values[6] || undefined,
-        roll_6: values[7] || undefined
+        space_name: get(values, 'space_name') as string,
+        visit_type: get(values, 'visit_type') as VisitType,
+        roll_1: get(values, 'roll_1') || undefined,
+        roll_2: get(values, 'roll_2') || undefined,
+        roll_3: get(values, 'roll_3') || undefined,
+        roll_4: get(values, 'roll_4') || undefined,
+        roll_5: get(values, 'roll_5') || undefined,
+        roll_6: get(values, 'roll_6') || undefined
       };
     });
   }
@@ -1044,11 +1052,9 @@ export class DataService implements IDataService {
     // without shifting every field that follows it, which is exactly the
     // bug this rewrite fixes (see TODO.md history — 18 tests went red
     // proving a mid-header insert silently corrupted every later field).
-    const header = this.parseCsvLine(lines[0]).map(h => h.replace(/^\uFEFF/, ''));
-    const get = (values: string[], name: string): string | undefined => {
-      const i = header.indexOf(name);
-      return i === -1 ? undefined : values[i];
-    };
+    // The reader itself now lives in csvFieldReader() so this file holds one
+    // implementation of the rule rather than a copy inside each parser.
+    const get = this.csvFieldReader(lines[0]);
 
     return lines.slice(1).map(line => {
       const values = this.parseCsvLine(line);
@@ -1105,46 +1111,51 @@ export class DataService implements IDataService {
 
   private parseDiceEffectsCsv(csvText: string): DiceEffect[] {
     const lines = csvText.trim().split('\n');
-    
+    const get = this.csvFieldReader(lines[0]);
+
     return lines.slice(1).map(line => {
       const values = this.parseCsvLine(line);
       return {
-        space_name: values[0],
-        visit_type: values[1] as VisitType,
-        effect_type: values[2],
-        card_type: values[3] || undefined,
-        roll_1: values[4] || undefined,
-        roll_2: values[5] || undefined,
-        roll_3: values[6] || undefined,
-        roll_4: values[7] || undefined,
-        roll_5: values[8] || undefined,
-        roll_6: values[9] || undefined,
-        roll_group: values[10] || undefined,
-        roll_action: values[11] || undefined,
-        roll_is_percentage: values[12] === 'true',
-        roll_numeric_only: values[13] === 'true',
-        fee_category: values[14] || undefined
+        space_name: get(values, 'space_name') as string,
+        visit_type: get(values, 'visit_type') as VisitType,
+        effect_type: get(values, 'effect_type') as string,
+        card_type: get(values, 'card_type') || undefined,
+        roll_1: get(values, 'roll_1') || undefined,
+        roll_2: get(values, 'roll_2') || undefined,
+        roll_3: get(values, 'roll_3') || undefined,
+        roll_4: get(values, 'roll_4') || undefined,
+        roll_5: get(values, 'roll_5') || undefined,
+        roll_6: get(values, 'roll_6') || undefined,
+        roll_group: get(values, 'roll_group') || undefined,
+        roll_action: get(values, 'roll_action') || undefined,
+        roll_is_percentage: get(values, 'roll_is_percentage') === 'true',
+        roll_numeric_only: get(values, 'roll_numeric_only') === 'true',
+        fee_category: get(values, 'fee_category') || undefined
       };
     });
   }
 
   private parseSpaceContentCsv(csvText: string): SpaceContent[] {
     const lines = csvText.trim().split('\n');
-    
+    const get = this.csvFieldReader(lines[0]);
+
     return lines.slice(1).map(line => {
       const values = this.parseCsvLine(line);
       return {
-        space_name: values[0],
-        visit_type: values[1] as VisitType,
-        title: values[2],
-        story: values[3],
-        action_description: values[4],
-        outcome_description: values[5],
-        can_negotiate: values[6].toUpperCase() === 'YES',
-        end_turn_label: values[7] || 'End Turn',
-        try_again_label: values[8] || 'Try Again',
-        shake_on: values[9] || '',
-        tts_field: values[10] || ''
+        space_name: get(values, 'space_name') as string,
+        visit_type: get(values, 'visit_type') as VisitType,
+        title: get(values, 'title') as string,
+        story: get(values, 'story') as string,
+        action_description: get(values, 'action_description') as string,
+        outcome_description: get(values, 'outcome_description') as string,
+        // Was `values[6].toUpperCase()` — a positional read that threw outright
+        // if the row was short. Name lookup can legitimately return undefined
+        // for a column the file does not have, so this guards instead.
+        can_negotiate: (get(values, 'can_negotiate') || '').toUpperCase() === 'YES',
+        end_turn_label: get(values, 'end_turn_label') || 'End Turn',
+        try_again_label: get(values, 'try_again_label') || 'Try Again',
+        shake_on: get(values, 'shake_on') || '',
+        tts_field: get(values, 'tts_field') || ''
       };
     });
   }
@@ -1177,21 +1188,22 @@ export class DataService implements IDataService {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
 
+    const get = this.csvFieldReader(lines[0]);
     const result: LogicQuestion[] = [];
     for (let i = 1; i < lines.length; i++) {
       const values = this.parseCsvLine(lines[i]);
-      const spaceName = (values[0] || '').trim();
+      const spaceName = (get(values, 'space_name') || '').trim();
       if (!spaceName) continue; // skip blanks/trailing rows
       result.push({
         space_name: spaceName,
-        visit_type: (values[1] as VisitType) || 'First',
-        question_id: (values[2] || '').trim(),
-        question_text: (values[3] || '').trim(),
-        yes_target: (values[4] || '').trim(),
-        no_target: (values[5] || '').trim(),
-        auto_answer_from: (values[6] || '').trim() || undefined,
-        yes_reason: (values[7] || '').trim() || undefined,
-        no_reason: (values[8] || '').trim() || undefined,
+        visit_type: (get(values, 'visit_type') as VisitType) || 'First',
+        question_id: (get(values, 'question_id') || '').trim(),
+        question_text: (get(values, 'question_text') || '').trim(),
+        yes_target: (get(values, 'yes_target') || '').trim(),
+        no_target: (get(values, 'no_target') || '').trim(),
+        auto_answer_from: (get(values, 'auto_answer_from') || '').trim() || undefined,
+        yes_reason: (get(values, 'yes_reason') || '').trim() || undefined,
+        no_reason: (get(values, 'no_reason') || '').trim() || undefined,
       });
     }
     return result;
@@ -1202,18 +1214,19 @@ export class DataService implements IDataService {
     if (!csvText) return map;
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return map;
+    const get = this.csvFieldReader(lines[0]);
     for (let i = 1; i < lines.length; i++) {
       const cols = this.parseCsvLine(lines[i]);
-      const spaceName = (cols[0] || '').trim();
-      const visitType = (cols[1] || '').trim();
-      const effectAction = (cols[2] || '').trim();
+      const spaceName = (get(cols, 'space_name') || '').trim();
+      const visitType = (get(cols, 'visit_type') || '').trim();
+      const effectAction = (get(cols, 'effect_action') || '').trim();
       if (!spaceName || !effectAction) continue;
-      const diceValue = (cols[7] || '').trim(); // Phase 4: optional filter
+      const diceValue = (get(cols, 'dice_value') || '').trim(); // Phase 4: optional filter
       const overrides: ModalConfigOverrides = {
-        modal_title: (cols[3] || '').trim() || undefined,
-        modal_description: (cols[4] || '').trim() || undefined,
-        modal_button_label: (cols[5] || '').trim() || undefined,
-        modal_summary: (cols[6] || '').trim() || undefined,
+        modal_title: (get(cols, 'modal_title') || '').trim() || undefined,
+        modal_description: (get(cols, 'modal_description') || '').trim() || undefined,
+        modal_button_label: (get(cols, 'modal_button_label') || '').trim() || undefined,
+        modal_summary: (get(cols, 'modal_summary') || '').trim() || undefined,
       };
       map.set(`${spaceName}|${visitType}|${effectAction}|${diceValue}`, overrides);
     }
@@ -1240,6 +1253,40 @@ export class DataService implements IDataService {
     
     result.push(current.trim());
     return result;
+  }
+
+  /**
+   * Build a field reader that resolves columns by HEADER NAME rather than by
+   * position, from the CSV's own first row.
+   *
+   * Why this exists (2026-08-30): every parser below used to read
+   * `values[0]`, `values[1]`, … Insert one column anywhere but the end and
+   * every field after it shifted by one — a fee read as a narrative, a
+   * narrative read as a modal title — silently, with nothing thrown and
+   * nothing logged. It is not hypothetical: on 2026-08-22 it turned 18 tests
+   * red, and the response at the time was a rule to work around it ("append
+   * new columns to the end, never the middle"), which is the kind of rule
+   * that holds right up until somebody doesn't know it.
+   * `parseSpaceEffectsCsv` was converted first (v3.2.39); this generalises
+   * that fix so its dozen siblings cannot drift back apart.
+   *
+   * A column the file does not have yields `undefined`, which is what the
+   * optional-field guards at every call site already expect — the same
+   * behaviour a missing trailing column had before. `parseCsvLine` already
+   * trims each cell (so CRLF `\r` is gone); the BOM strip is what name
+   * matching adds, because Excel and the admin Data Editor both round-trip
+   * these files and either can prepend one to the first header cell.
+   *
+   * Not used by `parseCardsCsv`: that one is positional too, but it is not
+   * silent — it validates its header against `expectedColumns` and throws a
+   * named error on drift. Loud is an acceptable design; silent was not.
+   */
+  private csvFieldReader(headerLine: string): (values: string[], name: string) => string | undefined {
+    const header = this.parseCsvLine(headerLine).map(h => h.replace(/^\uFEFF/, '').trim());
+    return (values: string[], name: string): string | undefined => {
+      const i = header.indexOf(name);
+      return i === -1 ? undefined : values[i];
+    };
   }
 
   private parseCardsCsv(csvText: string): Card[] {

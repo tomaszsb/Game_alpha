@@ -60,7 +60,17 @@ export function TVDisplay(): JSX.Element {
   // "have the filters visible to users and let them decide what to see."
   // Collapsible so a host who wants every pixel for the board can reclaim the
   // column (the same reason the QR sidebar was dropped during PLAY, fb:9bedb559).
-  const [showHistory, setShowHistory] = useState(true);
+  //
+  // OFF by default (2026-08-30, fb:93449bf2 — "It is on but should be off").
+  // It shipped v3.2.38 defaulting on, verified only at 960x540 in a browser:
+  // the column takes 260px of the TV's 960px and leaves the board 700px, which
+  // fits without overflow. Fitting is not the same as readable across a room,
+  // and that is the one thing a browser cannot answer — the maintainer checked
+  // it on the real television and the board wants those pixels back. The
+  // header's 📜 History button turns it on for anyone who asks, which now
+  // matches how showScoreboard and showQRPanel above already behave: the live
+  // TV layout stays as it was until the host chooses to change it.
+  const [showHistory, setShowHistory] = useState(false);
   const [historyFilters, setHistoryFilters] = useState<HistoryFeedFilters>(DEFAULT_HISTORY_FILTERS);
 
   const gameId = getCurrentGameId();

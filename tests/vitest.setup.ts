@@ -70,6 +70,16 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }));
 
+// jsdom implements no scrolling at all, so Element.scrollIntoView is simply
+// absent and any component that calls it throws inside an effect. Two do:
+// PlayerPreviewPanel scrolls the part being edited into view, and SpaceEditor
+// scrolls to the field a click on the player view landed on. Both are real
+// browser behaviour worth keeping, so the environment gets the method rather
+// than the components getting a guard they would not need in a browser.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = vi.fn();
+}
+
 // Global cleanup after each test
 afterEach(async () => {
   // Standard vitest cleanup (handles fake timers)
