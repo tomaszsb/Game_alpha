@@ -3023,6 +3023,26 @@ app.get('/api/public/feedback/open', (req, res) => {
           createdAt: data.createdAt,
           whatDoing: data.whatDoing,
           whatWrong: data.whatWrong,
+          // The in-game form has always captured `extra`, and the file on
+          // disk has always stored it — only this triage view dropped it, so
+          // the longest and most considered part of a report was the one part
+          // nobody reviewing the open list ever saw.
+          //
+          // That is not hypothetical. fb:93449bf2 arrived with whatWrong "It
+          // is on but should be off" and an `extra` explaining that the TV
+          // reports a phone-sized layout despite being a 4K panel and could
+          // fit far more if the screen were laid out for it. v3.2.43 fixed
+          // the one-liner, marked the report resolved, and never saw the
+          // paragraph — which was the substantive half. Found 2026-09-01 only
+          // because the maintainer remembered filing it.
+          //
+          // Truncated rather than omitted, the same trade `consoleSummary`
+          // above makes: 2000 chars is far above any real report (the one
+          // that exposed this was ~220) while a pathological paste still
+          // can't bloat the sweep.
+          extra: typeof data.extra === 'string' && data.extra.trim()
+            ? data.extra.slice(0, 2000)
+            : null,
           contact: data.contact || null,
           // Promote version + gitCommit from metadata to top-level so the
           // dashboard can tell at a glance whether a report is pre-fix or

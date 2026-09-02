@@ -82,7 +82,13 @@ curl -sS --max-time 10 "https://game.unravelcodes.com/api/public/feedback/open?t
 
 Use `curl` not WebFetch (Cloudflare blocks WebFetch on this domain). Non-200 → print status code, skip to step 5. Never block on fetch failures.
 
-Response shape: `{ reports: [{ id, createdAt, whatDoing, whatWrong, contact, version, gitCommit }, ...], count }`.
+Response shape: `{ reports: [{ id, createdAt, whatDoing, whatWrong, extra, contact, version, gitCommit, consoleSummary }, ...], count }`.
+
+⚠️ **`extra` is the free-text "anything else?" box, and it is often the substantive half of the report — READ IT.** It was added to this endpoint 2026-09-01 (v3.2.44) because it had never been returned at all: the form captured it and the file on disk stored it, but this view — the one `/start` triages from — silently dropped it. Nothing failed; a response missing a key looks identical to one that never had it. The cost was real: fb:93449bf2 was fixed and closed in v3.2.43 on its one-line `whatWrong` while its `extra` (a correct diagnosis of the TV's layout budget) went unread for a version. Restoring it found **42 of 222 reports carry `extra` text, 4 of them still open**, including an entirely separate feature request buried in a report that had been investigated for two months on its first line alone.
+
+Two consequences for the steps below:
+- When drafting a candidate bullet in 4d, base it on `whatDoing` + `whatWrong` **+ `extra`**, not the summary line alone. A one-line `whatWrong` with a long `extra` is the exact shape that gets under-scoped.
+- **"Already tracked" does not mean "already read."** An id appearing in TODO.md/CHANGELOG.md only proves someone logged the headline. If a tracked report has `extra` the TODO entry plainly doesn't reflect, say so — that is a real finding, not noise.
 
 ### 4d. Reconcile + draft
 

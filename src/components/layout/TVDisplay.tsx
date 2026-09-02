@@ -18,6 +18,8 @@ import { AvatarIcon } from '../icons/AvatarIcons';
 import { IconCheck } from '../icons/SetupIcons';
 import { ShutdownNotice } from '../common/ShutdownNotice';
 import { HistoryFeed, HistoryFeedFilters, DEFAULT_HISTORY_FILTERS } from '../game/HistoryFeed';
+import { TvScaleCalibration } from './TvScaleCalibration';
+import { applyStoredTvLayoutWidth, tvScaleIsAvailable } from '../../utils/tvScale';
 import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 
 /**
@@ -72,6 +74,26 @@ export function TVDisplay(): JSX.Element {
   // TV layout stays as it was until the host chooses to change it.
   const [showHistory, setShowHistory] = useState(false);
   const [historyFilters, setHistoryFilters] = useState<HistoryFeedFilters>(DEFAULT_HISTORY_FILTERS);
+  // The other half of fb:93449bf2 — the half v3.2.43 never saw, because the
+  // triage API drops a report's `extra` field. His full words: "the resolution
+  // on the screen is very low as if on the phone but this TV is capable of
+  // doing 4K so if we readjust the entire screen for 4K resolution you could
+  // fit a lot more things on it." See utils/tvScale.ts for why that is right
+  // about the cause, why going all the way to 4K would backfire, and why the
+  // viewer picks rather than us guessing.
+  const [showScaleCalibration, setShowScaleCalibration] = useState(false);
+  // Re-applied on mount rather than once at boot: this screen is the only one
+  // the override is scoped to, and a viewer arriving straight at a TV URL has
+  // not passed through anything else that would have applied it.
+  //
+  // Deliberately NOT undone on unmount. The viewport meta is document-wide,
+  // so if the game drops back to SETUP the setup screen keeps the width — and
+  // that is the wanted behaviour, not a leak: the viewer chose a size for
+  // THIS television, and it should hold across the whole app on it. Tearing
+  // it down would also re-flow the entire page mid-session. A real exit
+  // ("Back to PC") is a full page load, which reloads index.html's own meta
+  // tag and resets this for free.
+  useEffect(() => { applyStoredTvLayoutWidth(); }, []);
 
   const gameId = getCurrentGameId();
 
@@ -161,37 +183,33 @@ export function TVDisplay(): JSX.Element {
       <header style={styles.header}>
         <div style={styles.headerTopRow}>
         <div style={styles.logoSection}>
-          <h1 style={styles.title}>Unravel Codes</h1>
-          {gameId && (
+          {/* Title and game code are both SETUP-only, and both for the same
+              reason: measured at 960px, the one header row has to hold five
+              buttons (625px) plus a player chip (~180px) plus gaps, and the
+              title alone was 145px of the 896 available — enough to push the
+              player chip onto a second row and keep this header at 121px.
+              Neither is load-bearing once play starts: the footer already
+              carries the joinable URL with the code in it, and the branding
+              has had the whole setup screen to do its job. Dropping them
+              during PLAY is what gets the header to one row.
+              Still shown at SETUP, where reading the code off the TV across
+              a room is the entire point of the screen. */}
+          {gamePhase !== 'PLAY' && <h1 style={styles.title}>Unravel Codes</h1>}
+          {gameId && gamePhase !== 'PLAY' && (
             <span style={styles.gameCode}>Game: {gameId}</span>
           )}
           <ClassroomBadge style={{ fontSize: '1rem', padding: '0.35rem 0.9rem' }} />
           <button
             onClick={() => setIsRulesOpen(true)}
-            style={{
-              padding: '8px 16px',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              color: 'white',
-              border: '2px solid rgba(255,255,255,0.5)',
-              borderRadius: '8px',
-              cursor: 'pointer'
-            }}
+            style={styles.tvHeaderButton}
           >
             📋 Rules
           </button>
           <button
             onClick={() => setShowScoreboard(s => !s)}
             style={{
-              padding: '8px 16px',
-              fontSize: '1rem',
-              fontWeight: 'bold',
+              ...styles.tvHeaderButton,
               backgroundColor: showScoreboard ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)',
-              color: 'white',
-              border: '2px solid rgba(255,255,255,0.5)',
-              borderRadius: '8px',
-              cursor: 'pointer'
             }}
           >
             📊 Standings
@@ -202,14 +220,9 @@ export function TVDisplay(): JSX.Element {
             <button
               onClick={() => setShowHistory(s => !s)}
               style={{
-                padding: '8px 16px',
-                fontSize: '1rem',
-                fontWeight: 'bold',
+                ...styles.tvHeaderButton,
                 backgroundColor: showHistory ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)',
-                color: 'white',
                 border: `2px solid ${showHistory ? 'white' : 'rgba(255,255,255,0.5)'}`,
-                borderRadius: '8px',
-                cursor: 'pointer'
               }}
             >
               📜 History
@@ -221,16 +234,7 @@ export function TVDisplay(): JSX.Element {
               url.searchParams.delete('mode');
               window.location.href = url.toString();
             }}
-            style={{
-              padding: '8px 16px',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              color: 'white',
-              border: '2px solid rgba(255,255,255,0.5)',
-              borderRadius: '8px',
-              cursor: 'pointer'
-            }}
+            style={styles.tvHeaderButton}
           >
             🖥️ Back to PC
           </button>
@@ -241,14 +245,9 @@ export function TVDisplay(): JSX.Element {
             <button
               onClick={() => setShowQRPanel(v => !v)}
               style={{
-                padding: '8px 16px',
-                fontSize: '1rem',
-                fontWeight: 'bold',
+                ...styles.tvHeaderButton,
                 backgroundColor: showQRPanel ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)',
-                color: 'white',
                 border: `2px solid ${showQRPanel ? 'white' : 'rgba(255,255,255,0.5)'}`,
-                borderRadius: '8px',
-                cursor: 'pointer'
               }}
             >
               📱 Connect Phone
@@ -624,7 +623,27 @@ export function TVDisplay(): JSX.Element {
             <span>game.unravelcodes.com?g={gameId}</span>
           </>
         )}
+        {/* Lives in the footer, not the header, for two reasons: the header
+            is the thing fb:93449bf2 is about running out of room, and this is
+            a set-it-once room setting rather than something touched during
+            play. Only shown on a screen that actually has unspent pixels —
+            a laptop or a phone never sees it. */}
+        {tvScaleIsAvailable() && (
+          <>
+            <span style={styles.footerDot}>•</span>
+            <button
+              onClick={() => setShowScaleCalibration(true)}
+              style={styles.footerLinkButton}
+            >
+              Adjust screen size
+            </button>
+          </>
+        )}
       </footer>
+
+      {showScaleCalibration && (
+        <TvScaleCalibration onClose={() => setShowScaleCalibration(false)} />
+      )}
     </div>
   );
 }
@@ -655,22 +674,59 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    // fb:93449bf2 — the ROW may wrap; nothing inside it may.
+    //
+    // A 960-wide TV leaves 896px here after padding. The old arrangement was
+    // the opposite of this one — a non-wrapping row whose children were free
+    // to wrap — so when the content overran, each BUTTON broke its own label
+    // instead: "Back to PC" over three lines, "Connect Phone" over two, the
+    // title over two, the game code over three. Measured on the reporter's
+    // own screenshot, that inflated this header to 129px of the TV's 540
+    // (23.9%) and STILL clipped the last player chip off the right edge.
+    // Wrapping the row instead keeps every label on one line and spends a
+    // second row only when there truly isn't room for one — one player fits
+    // on a single ~59px row; four wrap to two rows without clipping.
+    flexWrap: 'wrap',
+    gap: '0.5rem',
   },
   logoSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: '1.5rem',
+    // Was 1.5rem: eight items with 24px between them spent ~170px of the 896
+    // on gap alone, more than a whole button.
+    gap: '0.6rem',
+    flexWrap: 'wrap',
+    minWidth: 0,
   },
   title: {
     margin: 0,
-    fontSize: '2rem',
+    // Was 2rem. At the TV's 4 device-pixels-per-layout-pixel this is still
+    // ~1.6in tall on a 75" panel — the size was never the constraint, the
+    // wrapping was.
+    fontSize: '1.5rem',
     fontWeight: 'bold',
+    whiteSpace: 'nowrap',
   },
   gameCode: {
-    fontSize: '1.25rem',
-    padding: '0.5rem 1rem',
+    fontSize: '1.1rem',
+    padding: '0.4rem 0.8rem',
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: '8px',
+    whiteSpace: 'nowrap',
+  },
+  // One definition for the five header buttons, which carried five identical
+  // inline copies of this before — and would have needed five separate edits
+  // to add the `whiteSpace: nowrap` that is the actual fix above.
+  tvHeaderButton: {
+    padding: '6px 12px',
+    fontSize: '0.95rem',
+    fontWeight: 'bold',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    color: 'white',
+    border: '2px solid rgba(255,255,255,0.5)',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
   },
   // Horizontal player strip — replaces the legacy currentPlayerBanner +
   // sidebar per-player cards in PLAY mode. fb:608bb670 — now sits inside the
@@ -680,6 +736,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     gap: '0.75rem',
     alignItems: 'center',
+    // fb:93449bf2 — the note below ("there's enough horizontal room") was
+    // written for a 1920-wide TV and is false at 960: the reporter's own
+    // screenshot shows the last chip clipped mid-word at the right edge
+    // ("$540K · 5 reso"). The chips keep `flex: '0 0 auto'` (a squashed chip
+    // is unreadable at 10ft), so the strip wraps to the next line instead —
+    // which the wrapping headerTopRow above now allows it to do.
+    flexWrap: 'wrap',
+    minWidth: 0,
     // v3.0.60 (fb:608bb670 follow-up) — `overflowX: 'auto'` from v3.0.59
     // caused phantom scrollbars on both axes even when the chip clearly
     // fit. With 4 max players sharing the top row alongside the buttons,
@@ -961,6 +1025,17 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   footerDot: {
     opacity: 0.5,
+  },
+  // Reads as part of the footer sentence rather than as a control, because
+  // during play it is not one — it is a thing the host sets up once.
+  footerLinkButton: {
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    font: 'inherit',
+    color: 'inherit',
+    textDecoration: 'underline',
+    cursor: 'pointer',
   },
 };
 

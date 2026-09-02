@@ -2,6 +2,16 @@
 
 ---
 
+## v3.2.44 — More television, less top bar (September 1, 2026)
+
+- **The bar across the top of the TV has shrunk by nearly half, and the board got the space back.** It was taking up almost a quarter of the whole screen, mostly because the buttons had run out of room and started stacking their own labels three lines high — "Back to PC" was three separate lines. The buttons now stay on one line each, and the row moves down a step only if it genuinely has to. During a game the title and the game code step aside too, since the address along the bottom of the screen already tells anyone how to join.
+- **The player card at the far right no longer gets its edge cut off.** With the top bar overflowing, the last player's money and resources were being sliced off at the side of the screen.
+- **New: you can tell the game how big your television is.** Look for **"Adjust screen size"** along the bottom of the TV screen. It shows you four sample lines of real game text, one under the other, and asks which is the smallest you can still read comfortably from your chair. Pick one and the whole screen adjusts — smaller text means more of the board fits at once, larger means less. It remembers your answer for that television.
+  - Why ask instead of just working it out? Because the one thing that actually matters here is something no television can tell us: how big the screen is and how far away you're sitting. A small monitor on a desk and a big TV across a classroom report themselves to us in exactly the same way, and they need very different sizes. So we show you the text and let you point at it.
+  - The setting only appears on screens that have room to spare. On a laptop or a phone you will never see it.
+- **The board no longer shrinks the spaces until you can't read them.** When the spaces you could move to were spread far apart, the board would zoom out as far as it needed to fit them all in, which on a TV left the names too small to read from a sofa. It now keeps the spaces at a readable size and shows fewer of them instead. You can still zoom out by hand whenever you want the whole picture.
+- **Behind the scenes:** bug reports sent from the game now include what your screen really is, and — importantly — the longer "anything else?" box you fill in now actually reaches us. It had been getting dropped on the way, which means some reports were answered on their first line only. We went back through every report ever sent and found the ones that had more to say.
+
 ## v3.2.38–3.2.42 — The TV finally tells you what just happened (August 26, 2026)
 
 - **Playing with the board on a TV? There is now a running list of what just happened, right beside the board.** Whose turn it was, what it cost them, what they drew — it fills in as the game goes, so nobody has to ask "wait, what did I miss?" A **📜 History** button in the top bar hides the list again if you would rather give the whole screen to the board.

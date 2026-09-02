@@ -16,6 +16,7 @@ import {
   BOARD_VIEWPORT_STORAGE_KEY,
   TARGET_MIN_TILE_PX,
   TARGET_MAX_TILE_PX,
+  TV_TARGET_MIN_TILE_PX,
 } from '../../src/utils/boardCommon';
 
 const bounds1 = { x: 0, y: 0, width: 1000, height: 800 };
@@ -95,6 +96,21 @@ describe('tile-size zoom targets', () => {
     expect(maxZoom).toBeCloseTo(1.333, 2);
     expect(minZoom).toBeLessThan(1);
     expect(maxZoom).toBeGreaterThan(1);
+  });
+
+  // fb:93449bf2 — the TV had no floor at all, so a scattered focus set could
+  // zoom out to whatever it took to fit, landing on ~80px tiles that are fine
+  // at a desk and unreadable across a room.
+  it('gives TV mode a much higher floor than the desk-distance one', () => {
+    expect(TV_TARGET_MIN_TILE_PX).toBeGreaterThan(TARGET_MIN_TILE_PX);
+  });
+
+  it('keeps the TV floor below the max, so it is a floor and not a fixed zoom', () => {
+    expect(TV_TARGET_MIN_TILE_PX).toBeLessThan(TARGET_MAX_TILE_PX);
+    const tvMinZoom = TV_TARGET_MIN_TILE_PX / 150;
+    expect(tvMinZoom).toBeCloseTo(0.867, 2);
+    // Must stay under the fitView maxZoom of 1.5 or the two would conflict.
+    expect(tvMinZoom).toBeLessThan(1.5);
   });
 });
 

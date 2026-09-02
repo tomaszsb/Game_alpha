@@ -2,6 +2,63 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.44] - 2026-09-01
+
+*One report's second half, months late. fb:93449bf2 was filed with a one-line `whatWrong` ("It is on but should be off") and a longer `extra` explaining that the TV lays out like a phone despite being a 4K panel. v3.2.43 fixed the one-liner and marked the report resolved. The paragraph was never seen, because the triage API does not return `extra` at all. This version fixes the pipe, then does the work the paragraph asked for.*
+
+### The triage API dropped the `extra` field, so a report could be closed on half its content
+`GET /api/public/feedback/open` is what the `/start` sweep reads. It returned `whatDoing`, `whatWrong`, `contact`, `version`, `gitCommit` and `consoleSummary` — never `extra`. The in-game form has always captured it and the file on disk has always stored it; only this view lost it. Nothing failed when the field went missing, which is why it survived months: a response object quietly missing a key looks identical to one that never had it.
+
+Now returned, truncated at 2000 chars — the same trade `consoleSummary` makes, and far above any real report (the one that exposed this was ~220 chars). Empty or whitespace-only comes back `null` rather than `""`, so a reader can tell "nothing written" from "something written".
+
+**Swept the other 222 reports the moment it worked, and it paid for itself immediately: 42 carry `extra` text, and 4 of those are still open.** Three were new information, now tracked in TODO:
+
+- **fb:f22035af** — the expeditor report's `extra` contains an actual design, not a complaint: expeditors with real tradeoffs ("one is cheap but slow, one is fast but high fee, one is great with Plan Exam but weak at Prof Cert") plus later events where one underperforms or leaves. The Parking-lot entry described this as "bigger design change" and nothing else.
+- **fb:8ad42b52** — the jargon report's `extra` frames a fork nothing in TODO recorded: decide whether the audience is insiders (keep the jargon, lean into edge-case events) or broader players (tutorial, tooltips, story-based micro-lessons). "Onboarding Phase C" had silently assumed the second answer.
+- **fb:ae480630** — a **second, separate** request buried in the report that has been chased since July on its disappearing-highlight theory alone: "when actions are completed the negotiate and/or accept buttons should become the highlighted buttons." Never tracked, never built.
+
+A source-fingerprint test now pins that `extra` is returned, capped, and null-on-empty — server.js auto-listens so it cannot be imported, same approach as `serverEndpointAuth.test.ts`.
+
+### The TV header was eating a quarter of the television, and still clipping
+Measured off the reporter's own 960x540 screenshot: 129px of 540, **23.9%**, with the last player chip cut mid-word at the right edge ("$540K · 5 reso").
+
+The cause was the arrangement being exactly backwards. `headerTopRow` was a **non-wrapping row whose children were free to wrap**, so when eight items overran the 896px of usable width, each button broke its own label instead of the row breaking: "Back to PC" over three lines, "Connect Phone" over two, the title over two, the game code over three. Height doubled and the overflow still happened.
+
+Now the **row** wraps and nothing inside it does. Title and game code are SETUP-only — the footer already carries the joinable URL with the code in it, and the title alone was 145px of a row that has to hold five buttons (625px) plus a player chip (~180px). The five buttons' five identical inline style copies became one `tvHeaderButton` definition, which is also what made the one-line `whiteSpace: nowrap` fix a single edit instead of five.
+
+Verified live at 960x540: **129px → 77px (23.9% → 14.2%), zero clipped elements, every label on one line.** 52px handed back to the board — about a tenth of the screen.
+
+### Bug reports now say what the screen actually is
+`screenSize` was `innerWidth x innerHeight` and nothing else, which is actively misleading on a TV: fb:93449bf2 reports `960x540` from a panel that is genuinely 3840x2160, and that reads as "a low-resolution screen" when the truth is the opposite — every glyph is drawn at 4 device pixels per layout pixel. Two sessions were spent inferring the ratio rather than reading it.
+
+Added `devicePixelRatio`, `screenPixels` (the screen, not the window) and `physicalPixels`. `screenSize` keeps its old meaning so nothing on the dashboard shifts under it.
+
+### The viewer now picks how much fits on the TV
+The reporter's actual request: "if we readjust the entire screen for 4K resolution you could fit a lot more things on it." Right about the cause — the layout budget is 960px wide, not the panel. Wrong about the remedy if taken literally, and the geometry says why. For a 75" 4K panel at 10 feet with 16px body text:
+
+| layout width | room gained | visual angle at 10ft |
+|---|---|---|
+| 960 (today) | — | 0.52° — generous |
+| **1280** | **+78%** | **0.39° — comfortable** |
+| 1920 | +300% | 0.26° — marginal |
+| 3840 ("true 4K") | +1500% | 0.13° — unreadable |
+
+True 4K would fit sixteen times as much and make all of it illegible — the exact complaint v3.0.138–142 was fixing. So this is a choice, not a constant, and it is the viewer's: the one input that settles it is the one no browser API reports. A 32" monitor at arm's length and a 75" TV across a classroom return **identical** width, ratio and screen numbers.
+
+New `utils/tvScale.ts` plus a calibration screen reached from the TV footer — not the header, since the header is the thing that ran out of room and this is a set-once room setting. Four options, each previewing a real line from the game at the size that choice actually produces: previewing layout 1280 on a 960 device means drawing the sample at 12px, so the samples differ honestly instead of all looking the same. The whole mechanism is one viewport meta tag, which is also why it is safe — desktop browsers ignore that tag entirely, and the option is gated to devices with unspent pixels (ratio ≥1.5, native width 600–1280), so a laptop or a phone never sees it. Deliberately not undone on unmount: the viewer chose a size for *this* television and it should hold across the app on it, and a real exit ("Back to PC") is a full page load, which reloads index.html's own meta tag and resets it for free.
+
+### The TV board had a zoom ceiling but no floor
+Measured on the same screenshot: **8.3% ink coverage** — the board area was 92% empty white space holding ~80px tiles. 80px is exactly the PC minimum, which is legible at a desk at 50cm and not across a room. The TV's `fitView` passed `maxZoom` and no minimum, so a space whose valid moves are scattered would zoom out as far as it took to fit them all in.
+
+New `TV_TARGET_MIN_TILE_PX = 130` gives the TV its own floor (~0.87 zoom). On a television the right trade is the opposite of the desk one: fewer spaces at a readable size beats every space at an unreadable one. The viewer can still zoom out by hand.
+
+### Verification
+`npm test` **3082/3082 across 201 files** (was 3043/198). 39 new tests. Typecheck, lint and production build clean; the one remaining lint warning in `TVDisplay.tsx` is pre-existing, confirmed against HEAD.
+
+New tests were checked to bite: breaking `previewFontPx` to return a constant failed 4 of them, including "the four samples are four different sizes" — the failure that would otherwise look perfectly fine on screen while leaving the calibration question unanswerable.
+
+**Two of these five are NOT verified on real hardware, and that is the honest state.** The header fix and the API fix were both measured directly. The scale calibration could not be clicked in the session's browser at all: it is deliberately hidden on any device without unspent pixels, and a desktop reports ratio 1, so it correctly refused to render — that gating working is the only part actually seen. The board zoom floor is worse off: the board camera never ran in this environment (the React Flow transform stayed at the untouched identity matrix `matrix(1,0,0,1,0,0)`), so the changed `fitView` call never executed at all. `minZoom` was confirmed to be a real option in the installed `@xyflow/system` and the constant is unit-tested, but whether either *feels* right needs the actual television.
+
 ## [3.2.43] - 2026-08-30
 
 *Four fixes in one version rather than four, because the first one is what makes the other three's test results mean anything. Ordered by the maintainer's instruction to work in technical order: fix the measuring instrument, then the settled one-liner, then the silent-corruption landmine, then the reported UX bug.*

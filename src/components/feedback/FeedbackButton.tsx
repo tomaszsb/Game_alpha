@@ -184,7 +184,25 @@ export function FeedbackButton(): JSX.Element {
     const urlParams = new URLSearchParams(window.location.search);
     const metadata = {
       userAgent: navigator.userAgent,
+      // Kept as-is (the LAYOUT viewport) — every historical report means this
+      // by `screenSize`, so the name doesn't change under the dashboard.
       screenSize: `${window.innerWidth}x${window.innerHeight}`,
+      // The three fields below exist because `screenSize` alone was actively
+      // misleading on TVs. fb:93449bf2 came from a genuine 4K panel reporting
+      // `screenSize: "960x540"`, which reads as "a low-resolution screen" and
+      // is not: the panel is 3840x2160 and every glyph is drawn at 4 device
+      // pixels per layout pixel. What's small is the LAYOUT BUDGET, not the
+      // picture. Without devicePixelRatio there is no way to tell that TV
+      // apart from an actual 960x540 display, and a session spent two rounds
+      // inferring the ratio rather than reading it. `screenPixels` is the
+      // screen (not the window) in layout px; `physicalPixels` is what the
+      // panel actually has. Guarded because jsdom and older WebViews leave
+      // parts of `screen` undefined.
+      devicePixelRatio: typeof window.devicePixelRatio === 'number' ? window.devicePixelRatio : null,
+      screenPixels: window.screen?.width ? `${window.screen.width}x${window.screen.height}` : null,
+      physicalPixels: window.screen?.width && window.devicePixelRatio
+        ? `${Math.round(window.screen.width * window.devicePixelRatio)}x${Math.round(window.screen.height * window.devicePixelRatio)}`
+        : null,
       url: window.location.href,
       timestamp: new Date().toISOString(),
       gameId: getCurrentGameId() || urlParams.get('g') || 'none',

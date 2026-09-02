@@ -1,42 +1,45 @@
-# Next session starter — written 2026-08-31 by /koniec
-
-> **This session did no game work.** It was spent on the Unraid server (Tower outage, dashboard auth, credential permissions) and on memory files outside this repo. Nothing in `src/`, `server/`, `public/data/` or `tests/` changed. The open items below are carried forward from the 2026-08-26 handoff, corrected against what v3.2.43 actually shipped — don't go hunting for this session's code changes, there are none.
+# Next session starter — written 2026-09-01 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.43 — **deployed and confirmed live** (`/health` → `c88b222`; live bundle `index-CjDqcCm6.js` carries `3.2.43`, and a local `npm run build` this session produced that identical hash, so master == live).
-- **Branch:** master, clean and pushed. Two untracked files: `idea.txt` (the maintainer's own draft — leave it) and **`h`** (4KB of `git log` output from a stray redirect during the v3.2.43 session, 2026-08-30 — junk, safe to delete, but ask first).
-- **Last shipped:** v3.2.43 (2026-08-30) — batch runner rewritten to derive its file list (was checking 60 of 198 while reporting 22/22); TV history column now defaults off; twelve data files hardened against silent column-insert corruption; the editor panel now lights blank fields and opens its own fold-out.
-- **v3.2.43 shipped without a `/koniec` pass** — its CHANGELOG entry exists, but `NEXT_SESSION.md` was never updated (this file was 5 days stale). `/start`'s skipped-`/koniec` check would have flagged it.
-- **Test suite:** `npm test` **3043/3043 across 198 files** (v3.2.43's own run). `npm run test:ghost` **33/33 across 10 files** (812s) — run this session because v3.2.43 had shipped without one despite touching `src/` and twelve CSV parsers. Green, no exceptions, both 50-game bots cleared their win-rate floors. (The raw win count wasn't in the captured output, so it isn't recorded here — only what was actually observed.)
-- **Build/typecheck:** both clean, re-verified 2026-08-31 against untouched master.
+- **Version:** v3.2.44 — **PENDING DEPLOY.** Live is still v3.2.43 (`c88b222`).
+- **Branch:** master, clean and pushed. One untracked file: `idea.txt` (the maintainer's own draft — leave it).
+- **Last shipped:** v3.2.44 — a bug report's unread second half, and the four fixes it was asking for. The triage API never returned `extra`, so fb:93449bf2 was fixed and closed on its one-line summary while the substantive paragraph went unread. Fixed the pipe, then: TV header 129px→77px (was clipping the last player chip), `devicePixelRatio` now in bug reports, a viewer-facing TV screen-size choice, and a zoom floor for the TV board.
+- **Test suite:** `npm test` **3082/3082 across 201 files** (was 3043/198). `npm run test:ghost` **33/33 across 10 files** (856s) — green, both 50-game bots cleared their win-rate floors. No failures, none pre-existing.
+- **Build/typecheck/lint:** all clean. The one `TVDisplay.tsx` lint warning is pre-existing (confirmed against HEAD).
 
 ## Top 3 open items
-1. **Look at the TV history column on a real television.** v3.2.43 changed the default to **off**, so it now fails safe — but the actual question is still unanswered: across a room, does the 260px column crowd the 700px board, and do the filter chips read as an invitation or as clutter? A browser verified it *fits* at 960x540; fitting is not reading.
-2. **Two things only a real click can settle.** **Tab order is closed** — the maintainer confirmed it good 2026-08-30, so drop it from this thread. What remains: (a) v3.2.43's click-to-light fix, which came *from* his hand-test finding a real bug and is now fixed but **not re-confirmed by a real click**, and (b) v3.2.42's `<span>`→`<label>` swap in the dice-outcome table, never eyeballed. Same wall as ever: the Browser pane never holds keyboard focus (`document.hasFocus()` is false), so `.focus()` moves `activeElement` while firing **zero** focus events — measured, 0 listeners — and `editingRegion` is driven entirely by focus events. Root cause in CLAUDE.md TACTICAL.
-3. **Teachers reach the new editor through Classroom Setup, not the merged admin screen** — so they get the deck and six wording fields but not the admin's player-view preview. Tracked as follow-up (ii) on the card-library item in TODO.md. No teacher account exists in production; the boundary was proven against a throwaway local server.
+1. **Deploy v3.2.44, then actually look at the TV.** Four of its five changes only mean anything on real hardware, and **two are explicitly unverified**: the screen-size calibration correctly refuses to render on a desktop (ratio 1, no headroom), so only its gating was seen; and the board zoom floor never executed at all — the React Flow camera stayed at the untouched identity transform, the documented board-camera wall. New footer link: **"Adjust screen size."**
+2. **Decide who the game is for.** From fb:8ad42b52's newly-readable `extra`: insiders (keep the jargon, lean into edge-case events) or broader players (tutorial, tooltips, plain-language micro-lessons). "Onboarding Phase C" in the Parking lot silently assumed the second answer, and this gates it. **This is his call, not a technical one.**
+3. **Engagement tracking cannot tell the maintainer apart from a real player.** The 2026-08-15 "join-friction is the bottleneck" verdict is **RETRACTED** — his words: *"the games are usually one player because i usually have one person testing them out."* The filter excludes only the Claude/agent UA. Until sessions are attributable (a test flag at game creation, or excluding his home IP the way the foreign-game alert already does), this dataset answers nothing. Don't cite the old read.
 
-(Not exhaustive — `TODO.md` holds the full list at 180 lines.)
+(Not exhaustive — `TODO.md` holds the full list; 79 active lines after this session's prune.)
 
 ## Test failures to address
 None outstanding.
 
 ## Decisions waiting on the user
-- **Card library Stage 4 — the group/school tier.** Deferred 2026-08-25 ("skip the middle shelf"), not rejected. Revisit when a real school has several teachers retyping the same fix; `group` is a valid tier nothing writes, so adding it later is additive, not a migration.
+- **The audience fork above (item 2)** — the one that unblocks real work.
+- **Card library Stage 4, the group/school tier.** Deferred 2026-08-25 ("skip the middle shelf"), not rejected. `group` is a valid tier nothing writes, so adding it later is additive.
 - **`DataEditor` is unreachable but deliberately still in the tree** as a fallback — delete once the merged screen is confirmed good in real use.
-- **Delete the stray `h` file?** Trivial, but it's in his working tree.
+
+## Flip after deploy
+- **fb:93449bf2 — do NOT flip on deploy alone.** It was deliberately **re-opened** this session: v3.2.43 had resolved it on half its content. v3.2.44 addresses the other half, but the whole point is that a browser cannot judge it — flip only after he confirms the TV reads well across a room.
+- Nothing else pending. Three reports whose `extra` surfaced new work (fb:f22035af, fb:8ad42b52, fb:ae480630) are now tracked in TODO and stay open as real work, not as unflipped fixes.
 
 ## Held from cleanup
-- `.claude/worktrees/objective-khayyam-7de70a` — **still HELD, but the question is now settled.** Gates: 0 unique commits vs master, cold since 2026-08-26. It holds 3 dirty files beyond `settings.local.json`, which is what trips gate 2 — but all three (`InlineDiceRollEditor.tsx`, `SpaceEditorLabels.test.tsx`, `InlineDiceRollEditorLabels.test.tsx`) were **diffed against master this session and are byte-identical**. Nothing is at risk. Remove it whenever you like: `git -C <wt> restore .claude/settings.local.json`, then `git worktree remove --force <wt>`, then `git branch -D claude/objective-khayyam-7de70a`, then `git worktree prune`. Held only because the gates say hold, not because anything is unresolved.
+- `.claude/worktrees/objective-khayyam-7de70a` — **still held**, third session running. Gates: 0 unique commits, cold since 2026-08-25, but 3 dirty files trip gate 2. All three were re-verified byte-identical to master **again** this session, so nothing is at risk; the gate is mechanical, not a real doubt. Clear it whenever: `git -C <wt> restore .claude/settings.local.json`, `git worktree remove <wt>`, `git branch -d claude/objective-khayyam-7de70a`, `git worktree prune`.
 
 ## Suggested first move
-Item 1 is still the only thing here that a person, not a test, has to answer — and it now costs two minutes rather than a code change, since the column already defaults off. Ask him what the board looks like across a room with history toggled on, and whether he'd want it on by default for a classroom.
+Hand him the deploy command, then ask what the TV looks like — specifically whether the top bar now leaves the board enough room, and what he picks in "Adjust screen size." That single answer decides whether the 1280 default is right. Item 2 is worth raising in the same breath, since it's a question only he can answer and it's blocking real work.
 
 ## Suggested model for next session
-Sonnet 5 — the open items are scoped and unambiguous (a default value, two real-click verifications, a documented editor-routing follow-up). No architectural ambiguity. Raise effort to `xhigh` before reaching for a bigger model.
+Sonnet 5 — the open items are a deploy, a look at a television, and a product question for the maintainer. No architectural ambiguity. Raise effort to `xhigh` before reaching for a bigger model.
 
 ## Reminders
 - Deploy runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Hand it over — don't run it.
-- **`io.open(p,'w')` truncates before it writes.** A patch script that raises mid-write leaves the file EMPTY — it destroyed a 3435-line committed doc. Prefer `Edit`; if a script must write, encode-check the string first. In CLAUDE.md TACTICAL with the surrogate-pair emoji trap that caused it.
-- PowerShell here-strings (`@'…'@`) are not Bash. Use a heredoc or `git commit -F <file>`.
+- **The TV reporting `960x540` is NOT low resolution.** `screen.width × devicePixelRatio` = 3840; the panel is 4K and nothing is blurry. What's small is the layout budget. Corrected in CLAUDE.md 3.84 — the old note said "renders at reduced resolution" and that wrong model cost two sessions.
+- **Reaching TVDisplay locally:** navigating to `?g=<id>&mode=tv` resets the game to SETUP (TV mode hard-blocks until a phone joins). What works is finding a game already in PLAY in `server/data/games.json` and using its stored `token` in the URL.
+- **`io.open(p,'w')` truncates before it writes.** A patch script that raises mid-write leaves the file EMPTY. Prefer `Edit`; encode-check the string first if a script must write.
+- PowerShell here-strings (`@'…'@`) are not Bash. Use a heredoc or `git commit -F <file>` — and a heredoc carrying markdown with backticks/quotes can still break; write the file with `Write` and splice it instead.
 - `tests/server/pipelineFaithful.test.ts` is load-bearing. If it fails, fix the pipeline or add a SOURCE column — never edit a generated `CLEAN_FILES` file.
-- `npm test` is the commit gate. As of v3.2.43 the batch runner is a true superset of it, not the old unlabelled subset.
+- `npm test` is the commit gate; `npm run test:ghost` is separate and also required for any `src/`/`server/` change.

@@ -734,6 +734,23 @@ export function uniqueDiceDestinations(
 
 export const TARGET_MIN_TILE_PX = 80;
 export const TARGET_MAX_TILE_PX = 200;
+
+/** TV mode's own floor, and it is much higher than the PC one on purpose.
+ *
+ *  80px is a legible tile on a desk at ~50cm. It is not one across a room:
+ *  measured off the reporter's own 960x540 TV screenshot (fb:93449bf2), the
+ *  board was drawing ~80px tiles — sitting exactly on the PC minimum — with
+ *  8.3% ink coverage, i.e. 92% of the board area was empty white space
+ *  holding tiles whose labels nobody could read from a couch.
+ *
+ *  The cause is that the TV's fitView had a maxZoom but NO minimum, so a
+ *  spread-out focus set (a space whose valid moves are scattered across the
+ *  board) would zoom out arbitrarily far to fit them all in. On a TV the
+ *  right trade is the opposite one: show fewer spaces at a readable size
+ *  rather than every space at an unreadable one. 130px of a 150px-wide tile
+ *  is ~0.87 zoom — still wide enough to hold a space's name and its
+ *  neighbours, and roughly 9 inches across on a 75" panel. */
+export const TV_TARGET_MIN_TILE_PX = 130;
 export const BOARD_VIEWPORT_STORAGE_KEY = 'ucBoardViewport';
 
 /** Minimal shape needed from a React Flow node bounds computation —
