@@ -137,7 +137,13 @@ If nothing new to append — skip. Don't write a "no changes" line.
 
 1. Read the *current* (about-to-be-overwritten) `NEXT_SESSION.md`'s "Flip after deploy" section, if present. Collect its fb ids.
 2. Also grep this session's own new CHANGELOG entries for `fb:<id>` markers (both forms — see `/start`'s "match BOTH marker forms" gotcha, same trap applies here) — a report can be fixed and confirmed deployed within a single session.
-3. For each id collected: is the version that fixed it confirmed live? Trust only hard evidence from *this* session or the current one being closed out — a bundle-verification check (`curl .../assets/index-*.js | grep '"X.Y.Z"'`), the user stating they deployed and confirming, or an equivalent direct check. Never assume "probably deployed by now."
+3. For each id collected: is the version that fixed it confirmed live? Trust only hard evidence from *this* session or the current one being closed out — a bundle-verification check, the user stating they deployed and confirming, or an equivalent direct check. Never assume "probably deployed by now."
+
+   **(2026-09-03 fix — the recipe this step used to give is incomplete and produces false "deploy failed" reads.)** It said `curl .../assets/index-*.js | grep '"X.Y.Z"'`. That works for the **version string**, which lives in `index-*.js`, and for nothing else. The build is code-split: this session's changed UI strings landed in `assets/services-*.js`, so grepping `index-*.js` for them returned **0 while the deploy was completely fine** — it looked exactly like a shipped-old-version failure. Correct procedure when verifying *content* rather than a version number:
+   1. `curl -s https://game.unravelcodes.com/health` → confirms the running **commit** (cheapest real check; deploy.sh also prints its own image check, but verify independently — a deploy can report success and still serve the old build).
+   2. Find which chunk carries the string **locally first**: `grep -rl "<the string>" dist/assets/*.js`.
+   3. Fetch *that* chunk from the live host by name and grep it there.
+   A zero hit in `index-*.js` is evidence of nothing until step 2 says the string was supposed to be there.
 4. Confirmed-live ids: check `.env` for `FEEDBACK_TOKEN`. If present, list them and ask the user once — **"PATCH these N confirmed-deployed reports resolved? (yes/no)"** — then run the recipe (`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}`) on a yes. If `.env` has no token, skip silently (same rule as `/start` step 4c — optional infrastructure, don't prompt).
 5. Everything NOT confirmed live rolls forward unchanged into the new `NEXT_SESSION.md`'s "Flip after deploy" section (step 5) — this step only ever *shrinks* that list with hard evidence, never guesses one off it.
 

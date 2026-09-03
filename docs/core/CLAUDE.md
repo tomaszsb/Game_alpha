@@ -1923,6 +1923,17 @@ The cause is RNG-stream alignment. `ghostPlayer.ts:619` replaces the **global** 
 
 **Rule: before concluding a ghost-gate swing is a regression, check whether the change altered how many times `Math.random` is consumed.** The fix is to give `generateActionId()` and `generatePlayerId()` (`StateService.ts:1629`) a monotonic counter — ids stay unique, nothing parses their format. Full evidence in `TODO.md` and on branch `hold/v3.2.46-session-log`.
 
+### Verifying a deploy by grepping `index-*.js` gives false failures — the build is code-split (2026-09-03)
+
+`/koniec`'s documented bundle check was `curl .../assets/index-*.js | grep '"X.Y.Z"'`. That works for the **version string** and nothing else. Verifying v3.2.47's changed UI strings that way returned **0 hits on a deploy that was completely fine** — they had landed in `assets/services-*.js`. A zero hit in `index-*.js` looks identical to "the deploy shipped the old build", and this project has genuinely been bitten by that failure before, so the false read is expensive.
+
+**Procedure when verifying live CONTENT rather than a version number:**
+1. `curl -s https://game.unravelcodes.com/health` → the running commit hash. Cheapest real check. `deploy.sh` prints its own image verification too, but confirm independently.
+2. `grep -rl "<the string>" dist/assets/*.js` → find which chunk carries it **locally**.
+3. Fetch *that* chunk by name from the live host and grep it there.
+
+A zero hit in `index-*.js` is evidence of nothing until step 2 says the string belonged there. `/koniec` step 4a was corrected the same day.
+
 ### Two Claude sessions can share one repo — and git cannot tell them apart (2026-09-03)
 
 Every commit in this repo is authored `Claude AI <claude@game-alpha.local>` regardless of which session made it. On 2026-09-03 a second session (the Jarvis/Hermes one, working out of `E:\Documents\People\AI\Hermes - Jarvis Biel`) committed this session's *uncommitted* working-tree changes in Game_Alpha. It looked like tampering until checked line by line — it wasn't; the content was faithful and the commit message was its own.
