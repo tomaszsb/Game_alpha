@@ -25,6 +25,16 @@ Four runs of `ghostPlayerSmartBot`, same seed (`baseSeed=100001`):
 
 47/3/0/86.9 had been stable across 23 runs since 2026-08-26. Nothing in the bot or any decision path reads `globalActionLog` — it is write-only for decisions. The swing is RNG-stream alignment, not behaviour. **⚠️ Corollary: any cosmetic "tidy the log noise" change silently re-deals every seeded game.** Fix the coupling first.
 
+## Post-wrap addendum — v3.2.45 is CONFIRMED WORKING, and the next trap is named
+The first playtest run against deployed v3.2.45 landed after the sweep. Verified off the server (`G-5RJ3-XFQW`), not from the bot's own account:
+
+| | this morning, v3.2.43, 6 games | run 5, v3.2.45, 1 game |
+|---|---|---|
+| Try Agains at `OWNER-SCOPE-INITIATION` | **11** | **0** |
+| committed moves | 16 total (2.7/game) | **7 in one game** |
+
+The opening-space trap is gone. The bot then burned **5 Try Agains at ARCH-FEE-REVIEW at 50 days each — 250 of its 272 total days on one space.** New TODO item covers that plus a "Return Expeditor" wording problem (it is a layoff, not a return). One game only, and no bot has yet finished a full game.
+
 ## Test failures to address
 None outstanding on master. The one hard ghost failure above appears only with the *held* guard applied, and is a symptom of item 1, not a game regression. Worth a look once the noise is gone: it was a LOOP at `OWNER-DECISION-REVIEW` — a bot pressing Try Again out to 4,259 days. That loop was always reachable; the re-deal just walked into it. Same shape as the trap v3.2.45 fixed in the UI.
 
