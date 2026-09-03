@@ -288,7 +288,15 @@ describe('E2E-01: Happy Path with New UI', () => {
     // branch), so matching the label IS the readiness check — TurnCommitControl
     // renders this as role="tab" (not a native <button>), so it's never
     // natively disabled; there's nothing separate to wait on beyond the label.
-    const endTurnTab = await screen.findByRole('tab', { name: /Lock the scope/i }, { timeout: 5000 });
+    // Match the READY accessible name specifically: since 2026-09-02 the tab
+    // shows "Lock the scope" even while gated (with a "Finish N things above
+    // first" reason), so a bare /Lock the scope/ would resolve before the two
+    // manual effects finish. Only the ready branch carries the hold hint.
+    const endTurnTab = await screen.findByRole(
+      'tab',
+      { name: /Lock the scope — tap to compare/i },
+      { timeout: 5000 },
+    );
 
     // UI Interaction 3: press-and-hold end-turn to trigger movement (a plain
     // click no longer commits — see pressAndHoldToCommit above).

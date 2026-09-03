@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.45] - 2026-09-02
+
+*A 9-billion-parameter local model played the game and, for the first time, recorded why it pressed each button. Its move list looks like a stuck bot. Its reasoning shows something worse and more useful: a player searching hard, and failing, for the way forward — because the way forward had no name on it.*
+
+### The forward move was the only control on screen without a name
+
+At OWNER-SCOPE-INITIATION the commit spine showed two controls: **"Push back"**, and **"2 actions left"**. The second one is the End side — but `PlayerPanelV2` replaced its caption with the gate reason whenever the turn was not yet endable, so the space's own forward label ("Lock the scope") did not exist on screen until the player had already done the right thing. The only *named* control was the one that costs a day and returns you to the same space.
+
+The playtest spent **11 of its 17 moves** in exactly that trap, alternating between the two action buttons and Push back, inventing a fresh rationalisation for the same button each time — "the logical first step", then "I need to acquire more resources", then "aligns with the goal of progressing", then "directly advances your progress". Four theories, one button, nothing learned. At step 12 it clicked "Lock the scope" and its stated reason was that this "explores a new action instead of repeating previous steps" — it had just noticed the label appear.
+
+The caption is now always the space's forward label. The reason moves to a small second line underneath: **"Lock the scope" / "Finish 2 things above first"**. Screen readers get both halves in one accessible name (`Lock the scope — Finish 2 things above first`); the ready state is unchanged and still carries the hold hint. The plain-button fallback (spaces with no negotiate option) got the same treatment.
+
+This also fixes a caption that could read **"0 actions left"**: `canEndTurn` is false either when actions remain *or* when a movement destination has not been picked, and the old label only knew about the first case. The gated sub-line now distinguishes them — "Pick where you're going first".
+
+`E2E-01_HappyPath` used `/Lock the scope/` as its readiness check, which now matches while the turn is still gated; it matches the ready accessible name specifically. The TODO cost-strip artifact test — the one that proves `"1 action leftthis turn"` is a `textContent` concatenation and not a real merged line — still proves it, with the new strings.
+
+I first wrote up four further findings from the same run. The maintainer challenged three of them within the hour and was right on all three, verified in code: **Push back does state its cost** (`startHold` reveals the bubble on pointer down, before the 650ms hold commits), **finished actions are already greyed** (`doneActionRow` — muted text, dimmer ground, `cursor:default`, identical footprint by request, fb:44df6d5d), and **putting glossary links on action buttons would be actively harmful** — `TextWithTerms` renders `<span role="button">` with `stopPropagation()`, so a term inside a real `<button>` would swallow the click and the action would never fire. All three withdrawn.
+
+One is left, and it needs a foregrounded browser rather than a code read: at PM-DECISION-CHECK the bot pressed "Replace Expeditor" three times and gave up. That action opens a "which one?" choice modal, and `ManualActionProcessor` has no `awaitingChoice` guard — so the question is only whether the modal blocks the pointer. Almost certainly it does.
+
+The general lesson, recorded in TODO: this model acts on what the screen literally *says* at a given instant, which makes it a sharp detector of missing words and a poor one of visual state — grey versus live, modal versus panel. It found the one thing no amount of looking at the screen would have surfaced, and hallucinated the rest.
+
 ## [3.2.44] - 2026-09-01
 
 *One report's second half, months late. fb:93449bf2 was filed with a one-line `whatWrong` ("It is on but should be off") and a longer `extra` explaining that the TV lays out like a phone despite being a 4K panel. v3.2.43 fixed the one-liner and marked the report resolved. The paragraph was never seen, because the triage API does not return `extra` at all. This version fixes the pipe, then does the work the paragraph asked for.*

@@ -412,7 +412,16 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   };
 
   // --- commit (single spine button) ---------------------------------------
-  let commit: { label: string; ready: boolean; onClick?: () => void };
+  // The End caption is ALWAYS the space's own forward label ("Lock the scope"),
+  // even when the turn isn't endable yet — the reason it's not endable goes on
+  // a second line instead of replacing the name. Until 2026-09-02 the caption
+  // read "2 actions left" and the forward move had no name on screen, so the
+  // only named control was "Push back" (which costs a day and returns you to
+  // the same space). A local-model playtest burned 11 of 17 moves alternating
+  // between the two action buttons and Push back before it ever discovered
+  // "Lock the scope" existed. Also fixes the "0 actions left" caption that
+  // showed when the turn was gated on an unpicked destination, not on actions.
+  let commit: { label: string; ready: boolean; subLabel?: string; onClick?: () => void };
   if (!isMyTurn) {
     commit = { label: `Waiting for ${currentPlayerName || 'the other player'}`, ready: false };
   } else if (showMovementDiceButton) {
@@ -424,7 +433,16 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   } else if (canEndTurn) {
     commit = { label: isEndingTurn ? 'Ending…' : content?.end_turn_label || 'End turn', ready: true, onClick: handleEndTurn };
   } else {
-    commit = { label: `${remaining} action${remaining === 1 ? '' : 's'} left`, ready: false };
+    commit = {
+      label: content?.end_turn_label || 'End turn',
+      ready: false,
+      subLabel:
+        remaining > 0
+          ? `Finish ${remaining} thing${remaining === 1 ? '' : 's'} above first`
+          : showMovementOptions && !selectedDestination
+          ? 'Pick where you’re going first'
+          : 'Not ready yet',
+    };
   }
   const showGreenDot = isMyTurn && commit.ready && player.visitType === 'First';
   // First-visit nudge: the action buttons themselves glow so a new player's eye
@@ -1125,6 +1143,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             tryAgainLabel={content.try_again_label || 'Negotiate again'}
             endLabel={commit.label}
             endActionable={commit.ready}
+            endSubLabel={commit.subLabel}
             endTurnRows={endTurnCostRows}
             tryAgainRows={tryAgainCostRows}
             onCommitEnd={commit.onClick}
@@ -1168,6 +1187,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               )}
               {commit.label}
             </span>
+            {!commit.ready && commit.subLabel && (
+              <small style={{ display: 'block', fontSize: 10, fontWeight: 400, color: p.muted }}>
+                {commit.subLabel}
+              </small>
+            )}
             {turnCostLine && (
               <small
                 data-testid="turn-cost-line"

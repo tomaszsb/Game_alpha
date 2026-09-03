@@ -116,8 +116,29 @@ describe('TurnCommitControl (dark-mode merged control)', () => {
     expect(onCommitEnd).not.toHaveBeenCalled();
   });
 
+  // The forward move keeps its NAME while it's gated — the reason goes on a
+  // second line instead of replacing the caption. Before 2026-09-02 the caption
+  // itself became "2 actions left", so "Lock the scope" had no name on screen
+  // until the player had already done the right thing, leaving "Push back"
+  // (which costs a day and returns you to the same space) as the only named
+  // control. A local-model playtest spent 11 of 17 moves in that loop.
+  it('keeps the End caption and adds the reason underneath while gated', () => {
+    setup({ endActionable: false, endSubLabel: 'Finish 2 things above first' });
+    expect(screen.getByText('Lock the scope')).toBeInTheDocument();
+    expect(screen.getByText('Finish 2 things above first')).toBeInTheDocument();
+    // Screen readers get both halves in one accessible name.
+    expect(
+      screen.getByRole('tab', { name: 'Lock the scope — Finish 2 things above first' }),
+    ).toBeInTheDocument();
+  });
+
+  it('drops the reason line once the End side is actionable', () => {
+    setup({ endActionable: true, endSubLabel: 'Finish 2 things above first' });
+    expect(screen.queryByText('Finish 2 things above first')).not.toBeInTheDocument();
+  });
+
   it('ignores a hold on the End side when it is not actionable', () => {
-    const { endBtn, onCommitEnd } = setup({ endActionable: false, endLabel: '2 actions left' });
+    const { endBtn, onCommitEnd } = setup({ endActionable: false, endSubLabel: 'Finish 2 things above first' });
     act(() => {
       fireEvent.pointerDown(endBtn);
       vi.advanceTimersByTime(700);

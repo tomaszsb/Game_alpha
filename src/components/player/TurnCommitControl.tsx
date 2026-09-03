@@ -72,6 +72,10 @@ export interface TurnCommitControlProps {
   endLabel: string;
   /** Whether the End side can actually be committed right now (commit.ready). */
   endActionable: boolean;
+  /** Small second line under the End caption explaining why it isn't holdable
+   *  yet ("Finish 2 things above first"). Only rendered when the End side is
+   *  not actionable — see the jarvis-playtest note in the header comment. */
+  endSubLabel?: string;
   endTurnRows: CostPreviewRow[];
   tryAgainRows: CostPreviewRow[];
   onCommitEnd?: () => void;
@@ -89,6 +93,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
   tryAgainLabel,
   endLabel,
   endActionable,
+  endSubLabel,
   endTurnRows,
   tryAgainRows,
   onCommitEnd,
@@ -216,7 +221,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
     } as React.CSSProperties;
   };
 
-  const renderSide = (side: Side, label: string, withDot: boolean) => (
+  const renderSide = (side: Side, label: string, withDot: boolean, subLabel?: string) => (
     <button
       type="button"
       role="tab"
@@ -224,6 +229,8 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
       aria-label={
         actionableFor(side)
           ? `${label} — tap to compare, press and hold to confirm`
+          : subLabel
+          ? `${label} — ${subLabel}`
           : label
       }
       onPointerDown={() => startHold(side)}
@@ -243,6 +250,26 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         )}
         {label}
       </span>
+      {/* Why this side isn't holdable yet. Before this line the caption itself
+          was replaced by the reason ("2 actions left"), so the destination —
+          "Lock the scope" — had no name on screen until the player had already
+          done the right thing, and the only named control was the one that
+          loops you back a day. A local-model playtest (2026-09-02) spent 11 of
+          its 17 moves in exactly that loop. Keep the name; add the reason. */}
+      {subLabel && (
+        <span
+          style={{
+            display: 'block',
+            marginTop: 2,
+            fontSize: 10,
+            fontWeight: 500,
+            opacity: 0.75,
+            lineHeight: 1.2,
+          }}
+        >
+          {subLabel}
+        </span>
+      )}
       {/* Hold-progress indicator: sweeps around the button's OUTLINE (not a
           bottom bar) so it stays visible past the player's own thumb, which
           covers whatever's directly under where they're pressing. */}
@@ -405,7 +432,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         }}
       >
         {renderSide('tryAgain', tryAgainLabel, false)}
-        {renderSide('end', endLabel, true)}
+        {renderSide('end', endLabel, true, endActionable ? undefined : endSubLabel)}
       </div>
     </div>
   );

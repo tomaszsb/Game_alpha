@@ -686,14 +686,16 @@ describe('PlayerPanelV2 — this-turn cost line on the commit spine (fb:06f7da3b
     const button = costLine.closest('button') as HTMLButtonElement;
     expect(button).not.toBeNull();
 
-    // Sanity: this really is the reported pairing — "1 action left" shown
-    // together with "this turn: ..." in the same commit control.
-    expect(button.textContent).toMatch(/^1 action left/);
+    // Sanity: this really is the reported pairing — the not-ready commit
+    // caption shown together with "this turn: ..." in the same control. The
+    // caption is now the space's forward label plus a reason sub-line (was
+    // "1 action left" until 2026-09-02 — see PlayerPanelV2's commit block).
+    expect(button.textContent).toMatch(/^End turnFinish 1 thing above first/);
 
-    // This is what reading raw `.textContent` sees: the TODO's exact string,
+    // This is what reading raw `.textContent` sees: the TODO's exact shape,
     // because textContent ignores block/flex layout and just concatenates
     // text nodes in DOM order with no separator.
-    expect(button.textContent).toContain('1 action leftthis turn:');
+    expect(button.textContent).toContain('Finish 1 thing above firstthis turn:');
 
     // But the real DOM keeps them as two distinct elements...
     const labelSpan = button.querySelector('span');
