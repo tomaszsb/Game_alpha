@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.47 — Letting someone go is not the same as giving them back (September 3, 2026)
+
+- **The button that used to say "Return Expeditor" now says "Let one expeditor go."** At the architect's fee space you have to cut staff to afford the fee, and one of your expeditors has to go — for good. The old wording made it sound like handing something back, the way you'd return a borrowed tool, when what actually happens is you lose them. The screen that asks which one now matches: *"Choose an expeditor to let go."*
+- **How we found it:** the same robot that found last night's problem got much further this time — seven spaces instead of dying on the first — and this was the thing that confused it most once it arrived. Fix the first wall and it walks far enough to show you the next one.
+
 ## v3.2.45 — The button that moves you forward now has a name on it (September 2, 2026)
 
 - **The main button at the bottom of your panel now always says where it takes you.** Before, whenever you still had something left to do on a space, that button stopped saying "Lock the scope" (or "Take the check", or whatever the space calls it) and just said "2 actions left" instead. So the only button on screen with an actual name was **Push back** — the one that costs you a day and puts you right back where you started. The forward move had no name until you'd already done the right thing without being told.

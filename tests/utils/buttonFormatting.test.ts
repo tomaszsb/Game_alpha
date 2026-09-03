@@ -105,12 +105,17 @@ describe('buttonFormatting', () => {
       });
     });
 
+    // Wording changed 2026-09-03: "Return Expeditor" -> "Let one expeditor go".
+    // It is a layoff, not a return, and the neutral/reversible reading was the
+    // top confusion (5 hits) in the first playtest run to reach ARCH-FEE-REVIEW.
+    // The regression these tests actually guard is below and is unchanged: the
+    // raw action name must never leak into the label.
     // Regression: dashboard reports 2026-05-15
     // feedback-1778863570521-1c7c050c + feedback-1778865475889-89d9f101 both
     // flagged "button says return1 return_E - that makes no sense". The
     // prefix-extraction switch was missing a return_ case, so cardType
     // became "RETURN_E" and the cardType==='E' branch never matched.
-    it('should format return_e button as "Return Expeditor" for single', () => {
+    it('should format return_e button as "Let one expeditor go" for single', () => {
       const effect: SpaceEffect = {
         space_name: 'CHEAT-BYPASS',
         visit_type: 'First',
@@ -123,12 +128,12 @@ describe('buttonFormatting', () => {
 
       const result = formatManualEffectButton(effect);
       expect(result).toEqual({
-        text: 'Return Expeditor',
+        text: 'Let one expeditor go',
         icon: '⚡'
       });
     });
 
-    it('should format return_e button as "Return N Expeditors" for plural', () => {
+    it('should format return_e button as "Let N expeditors go" for plural', () => {
       const effect: SpaceEffect = {
         space_name: 'CHEAT-BYPASS',
         visit_type: 'First',
@@ -141,7 +146,7 @@ describe('buttonFormatting', () => {
 
       const result = formatManualEffectButton(effect);
       expect(result).toEqual({
-        text: 'Return 2 Expeditors',
+        text: 'Let 2 expeditors go',
         icon: '⚡'
       });
     });

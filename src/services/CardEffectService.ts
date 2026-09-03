@@ -293,7 +293,12 @@ export class CardEffectService implements ICardEffectService {
           const selectedCardId = await this.choiceService.createChoice(
             playerId,
             'CARD_SELECTION',
-            `Select ${this.getTypeName(cardType)} to return (${i + 1} of ${returnCount}):`,
+            // Expeditors are being let go, not handed back — matches the
+            // "Let one expeditor go" button (buttonFormatting.ts). Other card
+            // types genuinely are returned, so they keep the old wording.
+            cardType === 'E'
+              ? `Choose an expeditor to let go (${i + 1} of ${returnCount}):`
+              : `Select ${this.getTypeName(cardType)} to return (${i + 1} of ${returnCount}):`,
             options
           );
 

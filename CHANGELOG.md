@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.47] - 2026-09-03
+
+*Version 3.2.46 is deliberately skipped — it belongs to the held commit on `hold/v3.2.46-session-log`, and two things sharing a number is the exact confusion this session spent hours untangling.*
+
+### "Return Expeditor" was describing a layoff as if it were a library book
+
+The manual `return_e` action rendered as **"Return Expeditor"**. It is not a return. The expeditor is gone, permanently, and the space's own narration says so without hedging: *"You're cutting staff to save budget. One of your expeditors has to go — pick carefully, they're hard to replace."* The button read as neutral and reversible while the effect is a loss.
+
+Found by the first playtest run that got deep enough to reach ARCH-FEE-REVIEW — it was the top confusion there, 5 hits, stated plainly: *"'returning' suggests giving it back, which might be wrong if I need to keep it."* That run only reached the space at all because v3.2.45 cleared the opening-space trap, so this is the second-order find: fix the first wall, and the bot walks far enough to show you the next one.
+
+Now **"Let one expeditor go"** / **"Let N expeditors go"**. Also drops mechanic-language for real-world language, per the voice rule.
+
+`CardEffectService`'s selection prompt was reworded in the same change — *"Choose an expeditor to let go"* instead of *"Select Expeditor to return"*. Button and modal have to agree; a comment in `buttonFormatting.ts` records that they were deliberately matched after fb report #4, and changing one without the other would have quietly recreated that bug. Only the `E` branch changed — other card types genuinely are returned and keep the old wording.
+
+The two `buttonFormatting` tests that pinned the old strings were updated rather than deleted. The regression they actually guard is unrelated and still enforced: a 2026-05-15 pair of dashboard reports ("button says return1 return_E — that makes no sense") caused by a missing `return_` case in the prefix-extraction switch. A comment now separates the wording from the regression so the rename doesn't read as drift later.
+
 ## [3.2.45] - 2026-09-02
 
 *A 9-billion-parameter local model played the game and, for the first time, recorded why it pressed each button. Its move list looks like a stuck bot. Its reasoning shows something worse and more useful: a player searching hard, and failing, for the way forward — because the way forward had no name on it.*

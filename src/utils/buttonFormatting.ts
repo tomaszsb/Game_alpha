@@ -125,9 +125,19 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
         const direction = effect.condition === 'left' ? 'left' : 'right';
         text = `Expeditor Reassigned (${direction})`;
       } else if (actionLower.startsWith('return_')) {
-        // Action verb matching the modal ("Return Expeditor"), not a status
-        // ("Expeditor Left" read like state, not a button — fb report #4).
-        text = count > 1 ? `Return ${count} Expeditors` : 'Return Expeditor';
+        // Action verb, not a status ("Expeditor Left" read like state, not a
+        // button — fb report #4). Renamed from "Return Expeditor" 2026-09-03:
+        // this is a layoff, not a return. The space's own narration already
+        // says so ("You're cutting staff to save budget. One of your
+        // expeditors has to go — pick carefully, they're hard to replace"),
+        // but the button read as neutral and reversible while the effect is a
+        // permanent loss. It was the top confusion (5 hits) in the first
+        // playtest run that got deep enough to reach ARCH-FEE-REVIEW:
+        // "'returning' suggests giving it back, which might be wrong if I need
+        // to keep it." Also drops mechanic-language for real-world language,
+        // per the voice rule. CardEffectService's choice prompt was reworded to
+        // match in the same change — button and modal must agree (fb #4).
+        text = count > 1 ? `Let ${count} expeditors go` : 'Let one expeditor go';
       } else {
         text = 'Expeditor Action';
       }

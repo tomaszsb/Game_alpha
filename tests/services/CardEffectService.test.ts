@@ -311,7 +311,9 @@ describe('CardEffectService', () => {
       expect(mockChoiceService.createChoice).toHaveBeenCalledWith(
         'player1',
         'CARD_SELECTION',
-        'Select Expeditor to return (1 of 1):',
+        // Expeditors are let go, not handed back (v3.2.47). Only the E branch
+        // was reworded — other card types keep "Select ... to return".
+        'Choose an expeditor to let go (1 of 1):',
         expect.any(Array)
       );
     });
