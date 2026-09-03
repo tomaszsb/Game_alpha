@@ -2,6 +2,13 @@
 
 ---
 
+## v3.2.45 — The button that moves you forward now has a name on it (September 2, 2026)
+
+- **The main button at the bottom of your panel now always says where it takes you.** Before, whenever you still had something left to do on a space, that button stopped saying "Lock the scope" (or "Take the check", or whatever the space calls it) and just said "2 actions left" instead. So the only button on screen with an actual name was **Push back** — the one that costs you a day and puts you right back where you started. The forward move had no name until you'd already done the right thing without being told.
+- **Now it keeps its name, and the reason it's waiting goes underneath it**, in smaller text: *"Lock the scope"* with *"Finish 2 things above first"* below. You can see where you're heading from the moment you arrive, and why you can't go yet.
+- **How we found it.** A robot played the game overnight and, for the first time, wrote down *why* it pressed each button. It spent eleven of its seventeen moves stuck on the very first space, going back and forth between the two actions and Push back, inventing a new reason each time for a button it had already pressed. It wasn't broken — it was looking for the way out, and the way out had nothing written on it. Checking the games on the server showed the same thing: six games, all dying in the same corner.
+- **Also fixed:** the button could say *"0 actions left"* when you'd finished everything but hadn't yet picked where to go next. It now says *"Pick where you're going first."*
+
 ## v3.2.44 — More television, less top bar (September 1, 2026)
 
 - **The bar across the top of the TV has shrunk by nearly half, and the board got the space back.** It was taking up almost a quarter of the whole screen, mostly because the buttons had run out of room and started stacking their own labels three lines high — "Back to PC" was three separate lines. The buttons now stay on one line each, and the row moves down a step only if it genuinely has to. During a game the title and the game code step aside too, since the address along the bottom of the screen already tells anyone how to join.

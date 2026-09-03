@@ -1,45 +1,51 @@
-# Next session starter — written 2026-09-01 by /koniec
+# Next session starter — written 2026-09-03 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.44 — **PENDING DEPLOY.** Live is still v3.2.43 (`c88b222`).
-- **Branch:** master, clean and pushed. One untracked file: `idea.txt` (the maintainer's own draft — leave it).
-- **Last shipped:** v3.2.44 — a bug report's unread second half, and the four fixes it was asking for. The triage API never returned `extra`, so fb:93449bf2 was fixed and closed on its one-line summary while the substantive paragraph went unread. Fixed the pipe, then: TV header 129px→77px (was clipping the last player chip), `devicePixelRatio` now in bug reports, a viewer-facing TV screen-size choice, and a zoom floor for the TV board.
-- **Test suite:** `npm test` **3082/3082 across 201 files** (was 3043/198). `npm run test:ghost` **33/33 across 10 files** (856s) — green, both 50-game bots cleared their win-rate floors. No failures, none pre-existing.
-- **Build/typecheck/lint:** all clean. The one `TVDisplay.tsx` lint warning is pre-existing (confirmed against HEAD).
+- **Version:** v3.2.45 — **DEPLOYED and independently verified live** (`curl https://game.unravelcodes.com/health` → `2fdf9e5`). v3.2.44 shipped in the same deploy.
+- **Branch:** master, clean and pushed. Untracked: `idea.txt` (the maintainer's own draft — leave it).
+- **Held branch:** `hold/v3.2.46-session-log` (`12d9ee1`). Correct fix, deliberately NOT merged — read its commit message before touching it.
+- **Last shipped:** v3.2.45 — the commit spine replaced its caption with the gate reason, so "Lock the scope" had no name on screen until you'd already done the right thing, leaving "Push back" (costs a day, returns you to the same space) as the only *named* control. A local-model playtest burned 11 of 17 moves in that trap; the server transcript showed all six of that night's games dying in the same corner.
+- **Test suite:** `npm test` **3084/3084 across 201 files**, 0 failures. Typecheck ✅ build ✅. `test:ghost` NOT re-run at wrap — it was measured 4× during the session instead (table below). Note: the held branch reports **3085** — it carries the new Try-Again regression test.
+- **Git ownership:** the maintainer assigned **Game_Alpha's git to the Claude Code session**, not the Jarvis/Hermes one. That session shares the repo and committed here once on 2026-09-03.
 
 ## Top 3 open items
-1. **Deploy v3.2.44, then actually look at the TV.** Four of its five changes only mean anything on real hardware, and **two are explicitly unverified**: the screen-size calibration correctly refuses to render on a desktop (ratio 1, no headroom), so only its gating was seen; and the board zoom floor never executed at all — the React Flow camera stayed at the untouched identity transform, the documented board-camera wall. New footer link: **"Adjust screen size."**
-2. **Decide who the game is for.** From fb:8ad42b52's newly-readable `extra`: insiders (keep the jargon, lean into edge-case events) or broader players (tutorial, tooltips, plain-language micro-lessons). "Onboarding Phase C" in the Parking lot silently assumed the second answer, and this gates it. **This is his call, not a technical one.**
-3. **Engagement tracking cannot tell the maintainer apart from a real player.** The 2026-08-15 "join-friction is the bottleneck" verdict is **RETRACTED** — his words: *"the games are usually one player because i usually have one person testing them out."* The filter excludes only the Claude/agent UA. Until sessions are attributable (a test flag at game creation, or excluding his home IP the way the foreign-game alert already does), this dataset answers nothing. Don't cite the old read.
+1. **Decouple log-entry ids from the game RNG, then land the held v3.2.46.** `StateService.generateActionId()` (:1836) builds ids with `Math.random()`; `DiceService` (:67) rolls from the same global; `tests/ghost/ghostPlayer.ts:619` replaces that global with `mulberry32(seed)`. So **one draw is burned per log line and log volume decides dice values.** Fix: monotonic counter for `generateActionId()` + `generatePlayerId()` (:1629) — ids stay unique, nothing parses their format. Then `npm run test:ghost` and expect 47/3/0 to return *with* the guard in place. **This is measured, not a hypothesis** — see below.
+2. **Look at the TV.** v3.2.44's screen-size calibration ("Adjust screen size" in the footer) and the board zoom floor are now live but were **never verified on real hardware** — both only execute on a real panel. fb:93449bf2 flips only after the maintainer confirms the TV reads well across a room; a browser cannot judge it.
+3. **Decide who the game is for.** From fb:8ad42b52's `extra`: insiders (keep the jargon, lean into edge-case events) or broader players (tutorial, tooltips, plain-language micro-lessons). **His call, not a technical one**, and it gates the onboarding work.
 
-(Not exhaustive — `TODO.md` holds the full list; 79 active lines after this session's prune.)
+## The RNG finding — measured, not inferred
+Four runs of `ghostPlayerSmartBot`, same seed (`baseSeed=100001`):
+
+| when (UTC) | TurnService guard | result |
+|---|---|---|
+| 2026-09-02 23:26 | absent | 47 / 3 / **0 hard** / 86.9 — pass |
+| 2026-09-03 00:16 | present | 48 / 2 / **1 hard** / 94.9 — fail |
+| 2026-09-03 00:33 | present | 48 / 2 / **1 hard** / 94.9 — fail |
+| 2026-09-03 00:46 | absent | 47 / 3 / **0 hard** / 86.9 — pass |
+
+47/3/0/86.9 had been stable across 23 runs since 2026-08-26. Nothing in the bot or any decision path reads `globalActionLog` — it is write-only for decisions. The swing is RNG-stream alignment, not behaviour. **⚠️ Corollary: any cosmetic "tidy the log noise" change silently re-deals every seeded game.** Fix the coupling first.
 
 ## Test failures to address
-None outstanding.
+None outstanding on master. The one hard ghost failure above appears only with the *held* guard applied, and is a symptom of item 1, not a game regression. Worth a look once the noise is gone: it was a LOOP at `OWNER-DECISION-REVIEW` — a bot pressing Try Again out to 4,259 days. That loop was always reachable; the re-deal just walked into it. Same shape as the trap v3.2.45 fixed in the UI.
 
 ## Decisions waiting on the user
-- **The audience fork above (item 2)** — the one that unblocks real work.
-- **Card library Stage 4, the group/school tier.** Deferred 2026-08-25 ("skip the middle shelf"), not rejected. `group` is a valid tier nothing writes, so adding it later is additive.
+- **The audience fork (item 3)** — the one that unblocks real work.
+- **Card library Stage 4, the group/school tier.** Deferred 2026-08-25 ("skip the middle shelf"), not rejected; `group` is a valid tier nothing writes, so adding it later is additive.
 - **`DataEditor` is unreachable but deliberately still in the tree** as a fallback — delete once the merged screen is confirmed good in real use.
 
 ## Flip after deploy
-- **fb:93449bf2 — do NOT flip on deploy alone.** It was deliberately **re-opened** this session: v3.2.43 had resolved it on half its content. v3.2.44 addresses the other half, but the whole point is that a browser cannot judge it — flip only after he confirms the TV reads well across a room.
-- Nothing else pending. Three reports whose `extra` surfaced new work (fb:f22035af, fb:8ad42b52, fb:ae480630) are now tracked in TODO and stay open as real work, not as unflipped fixes.
-
-## Held from cleanup
-- `.claude/worktrees/objective-khayyam-7de70a` — **still held**, third session running. Gates: 0 unique commits, cold since 2026-08-25, but 3 dirty files trip gate 2. All three were re-verified byte-identical to master **again** this session, so nothing is at risk; the gate is mechanical, not a real doubt. Clear it whenever: `git -C <wt> restore .claude/settings.local.json`, `git worktree remove <wt>`, `git branch -d claude/objective-khayyam-7de70a`, `git worktree prune`.
+- **fb:93449bf2 — do NOT flip on deploy alone.** v3.2.44 is now live, but the whole point is that a browser cannot judge it: flip only after he confirms the TV reads well across a room. Rolled forward deliberately, not forgotten.
 
 ## Suggested first move
-Hand him the deploy command, then ask what the TV looks like — specifically whether the top bar now leaves the board enough room, and what he picks in "Adjust screen size." That single answer decides whether the 1280 default is right. Item 2 is worth raising in the same breath, since it's a question only he can answer and it's blocking real work.
+Item 1 is small, fully diagnosed, and unblocks a finished fix — a counter in two functions, then one `npm run test:ghost` to confirm 47/3/0 returns with the guard in place. Ask whether he wants that first, or whether he'd rather look at the TV while it's on his mind, since item 2 needs him and not you.
 
 ## Suggested model for next session
-Sonnet 5 — the open items are a deploy, a look at a television, and a product question for the maintainer. No architectural ambiguity. Raise effort to `xhigh` before reaching for a bigger model.
+Sonnet 5 — item 1 is a two-line change with a clear verification step, and items 2–3 need the maintainer, not deeper reasoning. Raise effort to `xhigh` before reaching for a bigger model.
 
 ## Reminders
-- Deploy runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Hand it over — don't run it.
-- **The TV reporting `960x540` is NOT low resolution.** `screen.width × devicePixelRatio` = 3840; the panel is 4K and nothing is blurry. What's small is the layout budget. Corrected in CLAUDE.md 3.84 — the old note said "renders at reduced resolution" and that wrong model cost two sessions.
-- **Reaching TVDisplay locally:** navigating to `?g=<id>&mode=tv` resets the game to SETUP (TV mode hard-blocks until a phone joins). What works is finding a game already in PLAY in `server/data/games.json` and using its stored `token` in the URL.
-- **`io.open(p,'w')` truncates before it writes.** A patch script that raises mid-write leaves the file EMPTY. Prefer `Edit`; encode-check the string first if a script must write.
-- PowerShell here-strings (`@'…'@`) are not Bash. Use a heredoc or `git commit -F <file>` — and a heredoc carrying markdown with backticks/quotes can still break; write the file with `Write` and splice it instead.
-- `tests/server/pipelineFaithful.test.ts` is load-bearing. If it fails, fix the pipeline or add a SOURCE column — never edit a generated `CLEAN_FILES` file.
-- `npm test` is the commit gate; `npm run test:ghost` is separate and also required for any `src/`/`server/` change.
+- **Deploy runs from a Windows terminal, not WSL:** `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Hand it over — don't run it.
+- **Say which folder you are in, every time.** Two Claude sessions share repos and git cannot tell them apart — every commit here is authored `Claude AI <claude@game-alpha.local>`. The reliable fingerprint is the **test count**: `npm test` ≈ 201 files/3085 tests (ghost excluded); a run *including* `tests/ghost/**` ≈ 211/3118.
+- **`npm test` ≠ the full suite.** It excludes `tests/ghost/**` by config. A green `npm test` says nothing about the ghost gates.
+- **The Browser pane reports `document.visibilityState: "hidden"` until you `tabs_select` the tab** — then it goes `visible` at 1280x720. This is what blocked the Con-Initiation crash repro in two prior sessions; it is now unblocked, and that bug remains untested.
+- **Never pipe a backgrounded suite through `tail`** — the failing test's identity prints *above* the counts and is destroyed.
+- `io.open(path,'w')` truncates before writing; a patch script that raises mid-write leaves the file EMPTY.
