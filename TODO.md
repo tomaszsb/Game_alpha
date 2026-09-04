@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** September 3, 2026 — v3.2.44–v3.2.48 since the last header update. Highlights: the opening-space trap ("Lock the scope" had no name on screen until you'd already done the right thing, v3.2.45); "Return Expeditor" renamed to "Let one expeditor go" because it is a layoff, not a return (v3.2.47); and writing to the log no longer changes what the dice do — log-entry ids were minting from the same `Math.random` the dice roll from (v3.2.48). Full detail: CHANGELOG v3.2.44–48.
+**Last Updated:** September 3, 2026 — v3.2.44–v3.2.49 since the last header update. Highlights: the opening-space trap ("Lock the scope" had no name on screen until you'd already done the right thing, v3.2.45); "Return Expeditor" renamed to "Let one expeditor go" because it is a layoff, not a return (v3.2.47); and writing to the log no longer changes what the dice do — log-entry ids were minting from the same `Math.random` the dice roll from (v3.2.48). Full detail: CHANGELOG v3.2.44–49.
 **Status:** Beta — v3.2.47 deployed and confirmed live (48d8549, 2026-09-03). v3.2.48 and v3.2.49 are committed locally and NOT yet deployed.
 **Current Version:** 3.2.49 (committed, awaiting deploy). 3.2.46 was skipped in numbering and the commit that claimed it shipped as 3.2.49.
 

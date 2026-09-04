@@ -595,9 +595,27 @@ export class TurnService implements ITurnService {
   /**
    * COMMIT a turn transaction: finalize the log session AND fold TEMP into REAL.
    * Called when a turn ends normally.
+   *
+   * Try Again lands here too, and legitimately has nothing to commit: it calls
+   * discardTurnTransaction (closing the session) and then returns
+   * shouldAdvanceTurn, so GameLayout.handleTryAgain follows it with
+   * endTurnWithMovement, which reaches this. Committing a closed session is
+   * already a no-op inside LoggingService — but it warns, and LoggingService's
+   * warn() writes into `globalActionLog`, the game's PERMANENT record. So every
+   * Try Again stamped "Attempted to commit session but no current session
+   * exists" into the log the player and the transcript tool both read. Six
+   * playtest games on 2026-09-02 carried 11 copies of it between them, which
+   * made a completely normal action look like an engine fault while reading
+   * transcripts.
+   *
+   * Guarding the CALL rather than softening the warning keeps the warning
+   * meaningful for the case it was written for: a session that went missing
+   * when one was genuinely expected.
    */
   private commitTurnTransaction(playerId: string): void {
-    this.loggingService.commitCurrentSession();
+    if (this.loggingService.getCurrentSessionId()) {
+      this.loggingService.commitCurrentSession();
+    }
     const commitResult = this.stateService.commitTempToReal(playerId);
     if (!commitResult.success) {
       debugWarn(`⚠️ Failed to commit TEMP state: ${commitResult.error}`);

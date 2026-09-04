@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.49] - 2026-09-03
+
+*Held on `hold/v3.2.46-session-log` since 2026-09-03 and landed here renumbered: 3.2.46 was skipped, and v3.2.47 shipped ahead of it. It was held because it exposed the RNG coupling fixed in v3.2.48 above — with that fixed, this now changes nothing about what the dice do (verified: the ghost smart-bot batch is identical with and without it).*
+
+### Every Try Again stamped a fake engine fault into the permanent game log
+
+`LoggingService.warn()` does not write to the console — it writes into `globalActionLog`, the record the in-game log panel and `scripts/playtest-transcript.mjs` both read. So when `commitCurrentSession()` found no open session and warned about it, that warning became part of the game's own history.
+
+Try Again reaches that state legitimately, every single time. `tryAgainOnSpace` calls `discardTurnTransaction` (closing the session) and then returns `shouldAdvanceTurn`, so `GameLayout.handleTryAgain` follows it with `endTurnWithMovement` → `commitTurnTransaction` → a commit of a session that was deliberately just thrown away. Harmless to state, and a no-op inside LoggingService — but it left **"Attempted to commit session but no current session exists"** in the log next to a normal player action.
+
+The six playtest games of 2026-09-02 carried **11 copies of it between them**, one per Try Again, which is what made reading those transcripts feel like reading a crash report.
+
+`commitTurnTransaction` now checks `getCurrentSessionId()` before committing. Guarding the *call* rather than softening the warning keeps the warning meaningful for the case it was written for — a session that went missing when one was genuinely expected. Pinned by a test that fails against the old code.
+
+Verified on landing: `npm test` **3089/3089 across 201 files**, typecheck clean, production build clean. The ghost suite was run with this guard applied on top of v3.2.48 — **33/33 across 10 files**, smart-bot 50 wins / 0 failures / 0 hard / avgTurns 70.8, byte-identical to the run without it. That equivalence is what the hold was waiting for.
+
 ## [3.2.48] - 2026-09-03
 
 *Version 3.2.46 stays skipped; the commit that claimed it lands next as 3.2.49.*
@@ -40,7 +56,7 @@ The gate this had to clear is specific: run the ghost suite **with** the held Tr
 
 **Identical with the guard and without it** — down to `longGames: 21` — where before the fix those two configurations disagreed. That is the proof the coupling is gone, and it is a stronger one than the old signature returning would have been. The old 47/3/0/86.9 did **not** come back, and could not have: this change removes draws from the shared stream rather than restoring a previous alignment, so the 50 games are dealt from a sequence that matches neither prior baseline. **The new baseline signature for `baseSeed=100001` is 50 wins / 0 failures / 0 hard / avgTurns 70.8 / longGames 21.** Both runs are in `.claude/ghost-history.jsonl`.
 
-Gate assertions unchanged and passing (0 hard failures primary, win floor 43). Full ghost suite 33/33 across 10 files. `npm test` 3085/3085 across 201 files (3084 + the guard's own regression test, applied for the run). Typecheck clean, production build clean.
+Gate assertions unchanged and passing (0 hard failures primary, win floor 43). Full ghost suite 33/33 across 10 files. `npm test` 3085/3085 across 201 files for the guard-applied run (3084 + the guard's own regression test), and 3088/3088 across 201 for the guard-absent run (3084 + the 4 new pins below). Typecheck clean, production build clean.
 
 Pinned by 4 new tests in `tests/services/StateService.test.ts`: two assert that `logToActionHistory` and `addPlayer` consume **zero** `Math.random` draws (both fail against the old code — verified by putting `Math.random()` back and watching them go red), two assert id uniqueness with `Date.now()` frozen — 500 log entries in one millisecond, and players minted from two service instances in the same millisecond.
 

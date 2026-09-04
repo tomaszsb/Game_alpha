@@ -139,6 +139,49 @@ describe('TurnService.tryAgainOnSpace', () => {
     expect(stateService.hasActiveTempState(player1.id)).toBe(false);
   });
 
+  // Try Again closes its own log session (discardTurnTransaction) and then
+  // returns shouldAdvanceTurn, so GameLayout follows it with
+  // endTurnWithMovement → commitTurnTransaction. That used to commit a session
+  // that no longer existed — a no-op inside LoggingService, but one that WARNS,
+  // and LoggingService.warn() writes into globalActionLog, the game's permanent
+  // record. Six playtest games on 2026-09-02 carried 11 copies of "Attempted to
+  // commit session but no current session exists" between them, which made a
+  // completely normal action read as an engine fault in the transcripts.
+  it('leaves no "no current session exists" warning in the permanent log after Try Again', async () => {
+    stateService.addPlayer('Player 1');
+    stateService.startGame();
+    const initialGameState = stateService.getGameStateDeepCopy();
+    const player1 = initialGameState.players[0];
+    player1.currentSpace = 'OWNER-SCOPE-INITIATION';
+    player1.visitType = 'First';
+    stateService.setGameState(initialGameState);
+
+    // A real turn opens a log session first — that's what Try Again discards.
+    loggingService.startNewExplorationSession();
+    stateService.createTempStateFromReal({
+      playerId: player1.id,
+      spaceName: 'OWNER-SCOPE-INITIATION',
+      visitType: 'First',
+    });
+
+    (dataService.getSpaceContent as any).mockReturnValue({ can_negotiate: true });
+    (dataService.getSpaceEffects as any).mockReturnValue([
+      { effect_type: 'time', effect_action: 'add', effect_value: 1 },
+    ]);
+
+    const result = await turnService.tryAgainOnSpace(player1.id);
+    expect(result.success).toBe(true);
+    expect(result.shouldAdvanceTurn).toBe(true);
+
+    // The session is gone by now — this is exactly the state endTurnWithMovement
+    // reaches next, so drive the same private step it would.
+    expect(loggingService.getCurrentSessionId()).toBeNull();
+    (turnService as any).commitTurnTransaction(player1.id);
+
+    const log = stateService.getGameState().globalActionLog;
+    expect(JSON.stringify(log)).not.toContain('no current session exists');
+  });
+
   it('should fail if no active TEMP state exists', async () => {
     stateService.addPlayer('Player 1');
     stateService.startGame();
