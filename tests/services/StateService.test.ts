@@ -1022,4 +1022,87 @@ describe('StateService', () => {
       expect(healthy).toHaveBeenCalledTimes(1);
     });
   });
+
+  // Writing to the log must not perturb the game's randomness.
+  //
+  // The ghost regression bot replaces the GLOBAL Math.random with a seeded
+  // mulberry32 stream (tests/ghost/ghostPlayer.ts) — the same global
+  // DiceService.rollDice() and the deck shuffles draw from. generateActionId()
+  // used to take one draw off it PER LOG ENTRY, so the number of lines written
+  // to the log decided what the dice rolled: dropping a single warn() per Try
+  // Again re-dealt all 50 seeded smart-bot games (47/3/0 hard/86.9 turns ->
+  // 48/2/1 hard/94.9, twice, and back exactly on revert, 2026-09-03).
+  describe('log and player ids do not draw from the shared Math.random stream', () => {
+    const logEntry = (description: string) => ({
+      type: 'system_log' as const,
+      playerId: 'system',
+      playerName: 'System',
+      description,
+      isCommitted: true,
+      explorationSessionId: 'session_test',
+      gameRound: 1,
+      turnWithinRound: 1,
+      globalTurnNumber: 1,
+      playerTurnNumber: 1,
+      visibility: 'system' as const
+    });
+
+    it('logToActionHistory consumes zero Math.random draws', () => {
+      const spy = vi.spyOn(Math, 'random');
+      try {
+        for (let i = 0; i < 25; i++) {
+          stateService.logToActionHistory(logEntry(`entry ${i}`));
+        }
+        expect(spy).not.toHaveBeenCalled();
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('addPlayer consumes zero Math.random draws', () => {
+      const spy = vi.spyOn(Math, 'random');
+      try {
+        stateService.addPlayer('Player 1');
+        stateService.addPlayer('Player 2');
+        expect(spy).not.toHaveBeenCalled();
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('mints unique action ids even when the clock does not move', () => {
+      const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+      try {
+        for (let i = 0; i < 500; i++) {
+          stateService.logToActionHistory(logEntry(`entry ${i}`));
+        }
+      } finally {
+        nowSpy.mockRestore();
+      }
+
+      const ids = stateService.getGameState().globalActionLog.map(e => e.id);
+      expect(ids).toHaveLength(500);
+      expect(new Set(ids).size).toBe(500);
+    });
+
+    it('mints unique player ids across players and across service instances', () => {
+      const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+      let ids: string[];
+      try {
+        const otherService = new StateService(mockDataService);
+        stateService.addPlayer('Player 1');
+        stateService.addPlayer('Player 2');
+        otherService.addPlayer('Player 1');
+        ids = [
+          ...stateService.getGameState().players.map(p => p.id),
+          ...otherService.getGameState().players.map(p => p.id)
+        ];
+      } finally {
+        nowSpy.mockRestore();
+      }
+
+      expect(ids).toHaveLength(3);
+      expect(new Set(ids).size).toBe(3);
+    });
+  });
 });

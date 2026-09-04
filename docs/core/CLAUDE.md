@@ -1921,7 +1921,15 @@ The cause is RNG-stream alignment. `ghostPlayer.ts:619` replaces the **global** 
 2. **It is not test-only.** Seeded games are unreproducible across any logging change, and playtest reports carry a seed (`seed=558616687`, 2026-09-02 run).
 3. **The ghost gate's `deterministic: true` is true but brittle** — calibrated to an exact *count* of RNG draws. It can go red on a provably inert change, and green on a genuinely broken one, purely by luck of the re-deal.
 
-**Rule: before concluding a ghost-gate swing is a regression, check whether the change altered how many times `Math.random` is consumed.** The fix is to give `generateActionId()` and `generatePlayerId()` (`StateService.ts:1629`) a monotonic counter — ids stay unique, nothing parses their format. Full evidence in `TODO.md` and on branch `hold/v3.2.46-session-log`.
+**Rule: before concluding a ghost-gate swing is a regression, check whether the change altered how many times `Math.random` is consumed.**
+
+**FIXED in v3.2.48** — `generateActionId()`, `generatePlayerId()` and *two* generators in `LoggingService` now mint ids from a process-wide monotonic counter (`src/utils/sequentialId.ts`) instead of `Math.random()`. Three things worth carrying forward from doing it:
+
+- **The diagnosis named two call sites; there were four.** `LoggingService.log()` mints a `system_…` session id for every session-less log line — a *second* draw on top of the action id, and the held guard's `warn()` is exactly a session-less warn. Fixing only the two `StateService` functions would have left log volume shifting the stream and the whole exercise would have looked like the fix not working. **When you unpick an RNG-coupling defect, grep `Math.random` across the whole logging path, not just the id generator the evidence pointed at.**
+- **The old signature does not come back, and expecting it is a trap.** Decoupling *removes* draws; it does not restore a previous alignment. The 50 games are dealt from a sequence that matches neither prior baseline. The real proof is that the run is now **identical with the guard and without it** (it was 47/3/0/86.9 vs 48/2/1/94.9 before) — that is what "log volume no longer moves the dice" looks like, and it is stronger evidence than a familiar number returning.
+- **New baseline for `baseSeed=100001`: 50 wins / 0 failures / 0 hard / avgTurns 70.8 / longGames 21.** Do not chase 47/3/0/86.9; it belongs to the coupled era.
+
+`DiceService.rollDice()`'s unreachable `if (roll < 1 || roll > 6)` re-roll went in the same change — one draw per roll, always, by construction. Full evidence in CHANGELOG v3.2.48.
 
 ### Verifying a deploy by grepping `index-*.js` gives false failures — the build is code-split (2026-09-03)
 

@@ -1,5 +1,6 @@
 import { IStateService, IDataService, IGameRulesService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
+import { sequentialId } from '../utils/sequentialId';
 import {
   GameState,
   Player,
@@ -1626,7 +1627,10 @@ export class StateService implements IStateService {
   }
 
   private generatePlayerId(): string {
-    return `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Counter, NOT Math.random() — see src/utils/sequentialId.ts. The ghost bot
+    // seeds the global Math.random that DiceService also rolls from, so any
+    // draw taken for bookkeeping shifts the dice.
+    return sequentialId('player');
   }
 
   private generateShortPlayerId(): string {
@@ -1833,7 +1837,10 @@ export class StateService implements IStateService {
   }
 
   private generateActionId(): string {
-    return `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Counter, NOT Math.random() — see src/utils/sequentialId.ts. This one is
+    // the reason that file exists: it runs once PER LOG ENTRY, so drawing from
+    // the shared stream here made log volume decide what the dice rolled.
+    return sequentialId('action');
   }
 
   // Dice roll completion methods

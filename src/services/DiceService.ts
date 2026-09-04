@@ -64,15 +64,14 @@ export class DiceService implements IDiceService {
    * @returns A number between 1 and 6
    */
   rollDice(): number {
-    const roll = Math.floor(Math.random() * 6) + 1;
-
-    // Safety check - dice should never be 0 or greater than 6
-    if (roll < 1 || roll > 6) {
-      console.error(`Invalid dice roll generated: ${roll}. Rolling again.`);
-      return Math.floor(Math.random() * 6) + 1;
-    }
-
-    return roll;
+    // EXACTLY ONE draw off the global Math.random per roll, deliberately.
+    // Math.random() is [0, 1), so floor(x * 6) + 1 is 1-6 by construction and
+    // the old "safety check" below this line was unreachable. It was removed
+    // (2026-09-03) because if it ever HAD fired it would have taken a second
+    // draw — and the ghost bot seeds this global (tests/ghost/ghostPlayer.ts),
+    // so a variable number of draws per roll is exactly the coupling that made
+    // seeded games unreproducible. Keep this one-draw-per-roll property.
+    return Math.floor(Math.random() * 6) + 1;
   }
 
   /**

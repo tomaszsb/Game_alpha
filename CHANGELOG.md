@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.48] - 2026-09-03
+
+*Version 3.2.46 stays skipped; the commit that claimed it lands next as 3.2.49.*
+
+### Writing to the log changed what the dice did
+
+`StateService.generateActionId()` built every log entry's id with `Math.random()`. That reads as inert. It is not. The ghost regression bot replaces the **global** `Math.random` with a seeded `mulberry32` stream ([ghostPlayer.ts:619](tests/ghost/ghostPlayer.ts)) — the same global `DiceService.rollDice()` and the deck shuffles draw from. One draw per log entry meant **the number of lines written to the log decided what the dice rolled.**
+
+Measured, not inferred. The held Try-Again guard removes exactly one `warn()` per Try Again, and that alone re-dealt all 50 seeded smart-bot games: 47 wins / 3 failures / 0 hard / 86.9 turns became 48 / 2 / **1 hard** / 94.9, twice identically, and returned to 47/3/0/86.9 the moment the guard came back out. The 47/3/0/86.9 signature had held across 23 runs since 2026-08-26. Not test-only either: playtest reports carry a seed (`seed=558616687`, 2026-09-02), so no seeded game was reproducible across any logging change.
+
+**Four id generators moved off the shared stream** onto a process-wide monotonic counter ([src/utils/sequentialId.ts](src/utils/sequentialId.ts)):
+
+- `StateService.generateActionId()` — once per log entry. The main offender.
+- `StateService.generatePlayerId()`.
+- `LoggingService.log()`'s `system_…` session-id fallback — **not in the original diagnosis, and fixing it was required.** It fires for every session-less log line, which is a *second* draw on top of the action id — and the held guard's `warn()` is precisely a session-less warn. Fixing `generateActionId()` alone would have left the guard still shifting the stream by one draw per Try Again, and the whole exercise would have failed for a reason that looked like the fix not working.
+- `LoggingService.startNewExplorationSession()`'s `session_…` id — one per turn.
+
+Ids stay unique, and more strictly than before: the counter is module-level rather than per-instance, so two services — or two `StateService` instances in one process — cannot mint the same id even inside a single millisecond where `Date.now()` collides. Nothing parses these strings; all 5 `split('_')` sites in `src/` operate on `cardId`. Shape is unchanged (`prefix_digits_alphanumerics`), which is what `TransactionalLogging.test.ts` and `LoggingService.test.ts` assert.
+
+Deliberately **not** moved: the deck shuffles (`CardService`, `StateService`) and `ownerSeedMoney` — that randomness is *supposed* to come from the seeded stream — and the gameplay-event ids in `ResourceService`/`EffectEngineService`/`ChoiceService`/`NegotiationService`, which are minted per game action rather than per log line and so cannot make log volume a variable. They still take draws; if a future change needs a fully log-independent stream they are the next candidates.
+
+### `DiceService.rollDice()`'s unreachable safety check, removed
+
+`Math.random()` is `[0, 1)`, so `Math.floor(x * 6) + 1` is 1-6 by construction and the `if (roll < 1 || roll > 6)` branch below it could never run. Removed rather than left, because if it ever *had* run it would have taken a **second** draw for one roll — a variable number of draws per roll is the same class of defect as the one above. `rollDice()` now takes exactly one draw, always, and a comment says to keep it that way.
+
+### Verification
+
+The gate this had to clear is specific: run the ghost suite **with** the held Try-Again guard applied and show that log volume no longer moves the dice.
+
+| run | TurnService guard | smart-bot result |
+|---|---|---|
+| before, 2026-09-02 23:26 | absent | 47 / 3 / 0 hard / 86.9 |
+| before, 2026-09-03 00:16 and 00:33 | present | 48 / 2 / **1 hard** / 94.9 |
+| **after, this change** | **present** | **50 / 0 / 0 hard / 70.8** |
+| **after, this change** | **absent** | **50 / 0 / 0 hard / 70.8** |
+
+**Identical with the guard and without it** — down to `longGames: 21` — where before the fix those two configurations disagreed. That is the proof the coupling is gone, and it is a stronger one than the old signature returning would have been. The old 47/3/0/86.9 did **not** come back, and could not have: this change removes draws from the shared stream rather than restoring a previous alignment, so the 50 games are dealt from a sequence that matches neither prior baseline. **The new baseline signature for `baseSeed=100001` is 50 wins / 0 failures / 0 hard / avgTurns 70.8 / longGames 21.** Both runs are in `.claude/ghost-history.jsonl`.
+
+Gate assertions unchanged and passing (0 hard failures primary, win floor 43). Full ghost suite 33/33 across 10 files. `npm test` 3085/3085 across 201 files (3084 + the guard's own regression test, applied for the run). Typecheck clean, production build clean.
+
+Pinned by 4 new tests in `tests/services/StateService.test.ts`: two assert that `logToActionHistory` and `addPlayer` consume **zero** `Math.random` draws (both fail against the old code — verified by putting `Math.random()` back and watching them go red), two assert id uniqueness with `Date.now()` frozen — 500 log entries in one millisecond, and players minted from two service instances in the same millisecond.
+
 ## [3.2.47] - 2026-09-03
 
 *Version 3.2.46 is deliberately skipped — it belongs to the held commit on `hold/v3.2.46-session-log`, and two things sharing a number is the exact confusion this session spent hours untangling.*

@@ -1,6 +1,7 @@
 import { IStateService, LogLevel, LogPayload, ILoggingService } from '../types/ServiceContracts';
 import { ActionLogEntry } from '../types/StateTypes';
 import { debugLog, debugWarn, debugDebug } from '../utils/debugLog';
+import { sequentialId } from '../utils/sequentialId';
 
 export class LoggingService implements ILoggingService {
   private stateService: IStateService;
@@ -41,7 +42,11 @@ export class LoggingService implements ILoggingService {
 
     // Get current session ID or generate a default one for system logs
     const currentSessionId = this.getCurrentSessionId();
-    const sessionId = currentSessionId || `system_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    // Counter, NOT Math.random() — see src/utils/sequentialId.ts. This fallback
+    // fires for every session-less log line (system logs, and every warn() the
+    // engine emits outside a turn), so it was a SECOND draw off the shared RNG
+    // stream per such entry, on top of StateService.generateActionId().
+    const sessionId = currentSessionId || sequentialId('system');
 
     // Determine if this should be immediately committed
     // Check if payload explicitly specifies isCommitted, otherwise use default logic
@@ -220,7 +225,8 @@ export class LoggingService implements ILoggingService {
    * This should be called when a player starts a turn or begins exploring actions.
    */
   startNewExplorationSession(): string {
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Counter, NOT Math.random() — see src/utils/sequentialId.ts.
+    const sessionId = sequentialId('session');
 
     // Update the current exploration session ID in game state
     const gameState = this.stateService.getGameState();
