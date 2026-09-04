@@ -1550,6 +1550,8 @@ This closes half of the long-standing "Notification storm" item in TODO.md's Par
 
 **Honest limitation:** the agent could not force the exact race through scripted UI clicks in the time available, so this is a well-evidenced *probable* cause for `fb:ae480630`, not a confirmed reproduction of it. The report stays open pending the maintainer's own confirmation in real play. What is confirmed is that the notify gap itself is real: 5 new regression tests were written, then validated by `git stash`-ing the fix — 4 of the 5 fail against the old code and all 5 pass with it.
 
+**CONFIRMED FIXED, 2026-09-03.** Asked directly whether the highlight still goes stale in real play, the maintainer's answer was *"highlight is fine."* That closes the limitation above: the probable cause was the cause, and the item is closed out of TODO.md after six weeks of "awaiting real-play confirmation". Note this closes only the *stale highlight* half of `fb:ae480630` — the second, separate request buried in the same report (completed actions should promote Negotiate/Accept to the highlighted buttons) has never been built and stays open.
+
 Verified: typecheck clean, production build clean. `tests/services/` 905/905 across 39 files and `tests/components/` 438/438 across 42 files — run wider than usual on purpose, since this touches the notification spine that ~15 components subscribe to. Live-verified in a real 3-player game: the glow renders and clears per-button as each first-visit action completes, and the same player's state reads consistently from both their own per-player view and the shared view.
 
 ## [3.1.62] - 2026-07-27
