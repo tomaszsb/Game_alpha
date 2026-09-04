@@ -1,7 +1,7 @@
 # Next session starter — written 2026-09-04 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.50 — **deployed and live**, verified independently: `/health` → `b4765b5`, which is HEAD. Nothing awaits deploy.
+- **Version:** v3.2.50 — **deployed and live**, verified independently: `/health` → `b4765b5`. **Nothing awaits deploy.** Note `/health` will read *behind* HEAD: the only commits on top of `b4765b5` are this wrap-up's docs-only changes, which the app does not serve. A `/health` ≠ HEAD mismatch here is expected, not a failed deploy — check whether the gap contains any `src/`, `server/` or `public/data/` change before treating it as one.
 - **Branch:** master, clean and pushed. Untracked: `idea.txt` (the maintainer's own draft — leave it).
 - **Last shipped:** v3.2.50 — **12 of 27 board tiles shared a label with another tile.** `shortName()` strips the NPC prefix, so four spaces all read "Fee Review", three "Scope Check", three "Initiation", two "Plan Exam". Every space now carries a plain-English name in the maintainer's own words. Edited in `SOURCE_FILES/Spaces.csv` + `node scripts/regen-clean-files.mjs` — **never** `CLEAN_FILES/GAME_CONFIG.csv` directly, which is generated and guarded by `tests/server/pipelineFaithful.test.ts`.
 - **Test suite:** v3.2.50 baseline — `npm test` **3091/3091 across 201 files**, `npm run test:ghost` **33/33 across 10 files**, 0 failures. **This session ran neither** (no `src/`/`server/`/data changes — docs only); typecheck ✅ and production build ✅ were re-run 2026-09-04 and are clean.
