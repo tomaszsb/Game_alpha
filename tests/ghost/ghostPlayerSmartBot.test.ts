@@ -11,7 +11,31 @@
 import { describe, it, expect } from 'vitest';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { runGhostBatch, isHardFailure, type GhostGameResult } from './ghostPlayer';
+
+// Which CODE produced this row? Until 2026-09-04 the history recorded only the
+// numbers, so two identical rows were equally consistent with "two different
+// configurations now agree" (a proof) and "the same configuration ran twice"
+// (proof of nothing) — that ambiguity blocked verifying the v3.2.48 RNG fix.
+// `head` is the commit; `tree` hashes the uncommitted delta (tracked diff +
+// porcelain status, so untracked scratch files count too). Two rows with the
+// same head+tree are the SAME code; different tree = different code.
+function codeFingerprint(): { head: string; tree: string } {
+  try {
+    const git = (args: string[]): string =>
+      execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const head = git(['rev-parse', '--short', 'HEAD']).trim();
+    const delta = git(['status', '--porcelain']) + git(['diff', 'HEAD']);
+    const tree = delta.trim() === ''
+      ? 'clean'
+      : createHash('sha1').update(delta).digest('hex').slice(0, 12);
+    return { head, tree };
+  } catch {
+    return { head: 'unknown', tree: 'unknown' };
+  }
+}
 
 // Append one ghost-batch result (one JSON object per line) to
 // .claude/ghost-history.jsonl so the win count is NEVER lost — vitest swallows
@@ -21,7 +45,11 @@ function recordGhostHistory(entry: Record<string, unknown>): void {
   try {
     const path = '.claude/ghost-history.jsonl';
     mkdirSync(dirname(path), { recursive: true });
-    appendFileSync(path, JSON.stringify({ ts: new Date().toISOString(), ...entry }) + '\n');
+    const { head, tree } = codeFingerprint();
+    appendFileSync(
+      path,
+      JSON.stringify({ ts: new Date().toISOString(), head, tree, ...entry }) + '\n'
+    );
   } catch {
     // Non-fatal: history logging must never break the test.
   }
