@@ -80,12 +80,12 @@ describe('Space entry log ordering regression (PM-DECISION-CHECK)', () => {
     const enteredIndex = log.findIndex(
       (e) =>
         e.details?.action === 'space_effect' &&
-        /entered .*PM Check.*\(first visit\)/i.test(e.description)
+        /entered .*Pick Your Path.*\(first visit\)/i.test(e.description)
     );
     const outcomeIndex = log.findIndex(
       (e) =>
         e.details?.action === 'dice_roll' &&
-        /outcome came back at .*PM Check/i.test(e.description)
+        /outcome came back at .*Pick Your Path/i.test(e.description)
     );
 
     // Both lines must actually be present (sanity check that this arrival
@@ -97,7 +97,7 @@ describe('Space entry log ordering regression (PM-DECISION-CHECK)', () => {
     // (i.e. was appended to globalActionLog earlier) than "outcome came back".
     expect(enteredIndex).toBeLessThan(outcomeIndex);
 
-    expect(log[enteredIndex].description).toBe('OrderTester entered PM Check (first visit)');
-    expect(log[outcomeIndex].description).toBe("OrderTester's outcome came back at PM Check");
+    expect(log[enteredIndex].description).toBe('OrderTester entered Pick Your Path (first visit)');
+    expect(log[outcomeIndex].description).toBe("OrderTester's outcome came back at Pick Your Path");
   });
 });

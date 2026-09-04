@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.50] - 2026-09-04
+
+### Twelve of the twenty-seven board tiles shared a label with another tile
+
+`shortName()` ([boardCommon.ts:84](src/utils/boardCommon.ts)) strips the NPC prefix, so `ARCH-FEE-REVIEW`, `ENG-FEE-REVIEW`, `REG-DOB-FEE-REVIEW` and `REG-FDNY-FEE-REVIEW` all rendered as **"Fee Review"**. Three spaces collapsed to "Scope Check", three to "Initiation", two to "Plan Exam". Only 5 of 27 spaces set `display_label_override`, so the other 22 fell through to that helper — and a beginner standing on one of four identical "Fee Review" tiles had nothing on screen telling them which one.
+
+Every space now carries a plain-English label, per the maintainer's 2026-09-03 decision that **the game is for beginners, not insiders**. The wording is his, applied verbatim: "Meet the Owner", "Owner's Money", "Pick Your Path", "Lender Review", "Find an Architect", "Architect's Fee", "See the Design", "Find an Engineer", "Engineer's Fee", "Check the Structure", "Owner Decides", "Cut a Corner", "City Filing Fee", "Choose How to File", "City Checks Plans", "Self-Certify", "The Audit", "Fire Dept. Intake", "Fire Dept. Review", "Hire a Builder", "Trouble On Site", "Site Inspection", "Final Approval". "Quick Play", "Bank Review", "Investor Review" and "Finish" were already plain and are unchanged; `PM-DECISION-CHECK` moved off the insider "PM Check".
+
+The label is not only the board tile — the same `display_label_override || shortName()` chain feeds `PlayerPanelV2`'s space header and move-confirmation copy, `MovementService`/`DiceRollProcessor`'s destination names, and `logFormatting.friendlySpaceName`, so the log now reads "entered Pick Your Path (first visit)".
+
+**This was NOT a CLEAN-file edit, contrary to how the change was scoped.** `GAME_CONFIG.csv` is generated: `display_label_override` is column 48 of `SOURCE_FILES/Spaces.csv`, `processGameData.processGameConfig` copies it through, and `tests/server/pipelineFaithful.test.ts` requires the pipeline to reproduce every CLEAN file byte-for-byte. Editing `CLEAN_FILES/GAME_CONFIG.csv` directly would have failed that guard and been erased by the next content save on the live server — the exact failure mode that cost three silent production regressions on 2026-08-22. The edit went into `Spaces.csv` (44 rows: First + Subsequent for each space, the pairing `useEditorSource.handleDisplayLabelChange` also maintains), followed by `node scripts/regen-clean-files.mjs`; only `GAME_CONFIG.csv` changed, 23 rows. The `dist/` and `server/data/` copies are gitignored build artifacts and regenerate.
+
+**Guard against recurrence:** `tests/utils/boardCommon.test.ts` now resolves all 27 spaces out of the real `GAME_CONFIG.csv` using the render path's own chain and fails if any two collide, naming the label and the colliding spaces. Verified against a seeded duplicate before being trusted: blanking the two architect/engineer fee overrides makes it fail with `"Fee Review" <- ARCH-FEE-REVIEW, ENG-FEE-REVIEW`.
+
+**Fit on the tile, measured not eyeballed.** A compact tile is 150px of content (`BOARD_TILE_COMPACT`) with the title at 12px/700 `system-ui`. Rendered at those exact metrics, the widest new label — "Check the Structure" — is **111px**, and "Choose How to File" is 109px. All 26 rendered tiles (START-QUICK-PLAY-GUIDE is filtered out of the board) stay on one line; no tile grows past its 60px min-height, so nothing wraps, clips, or encroaches on a neighbour. No shorter wording is needed.
+
+Note on scope: this closes the **tile-label half** of "Onboarding Phase C". Jargon inside story prose (expeditor, standpipe, egress) is the glossary's job and was deliberately left alone. Also unchanged: `shortName()` itself, which stays the fallback for any space without an override, and the disambiguated `Discipline: Short Name` form used by the restore-list and edge labels.
+
+### Verification
+
+`npm test` **3091/3091 across 201 files** (3089 + the 2 new uniqueness assertions), `npm run test:ghost` **33/33 across 10 files**, typecheck clean, production build clean. Three tests asserted on the old wording and were updated, not worked around: `processGameData.test.ts` (now checks all 27 spaces carry a label, and that `PM-DECISION-CHECK` reads "Pick Your Path"), and `SpaceEntryLogDedup` / `SpaceEntryLogOrder`, whose log-line expectations track the label.
+
+### The v3.2.48 RNG fix, independently verified
+
+v3.2.48's proof was that two ghost runs agreed. `.claude/ghost-history.jsonl` records no field saying which code produced a row, so that agreement was equally consistent with "the same configuration ran twice". The property was therefore tested directly instead: a temporary `warn()` on `TurnService.startTurn` — one extra session-less log line per turn, ~3,500 per 50-game batch, each of which burned a draw off the shared seeded stream before v3.2.48.
+
+| run | configuration | fingerprint | result |
+|---|---|---|---|
+| clean tree | no probe | `bd43926` / `831302f37ac7` | 50 wins / 0 failures / 0 hard / avgTurns 70.8 / longGames 21 |
+| probe applied | +1 log line per turn | `bd43926` / `d700c44a0dde` | **50 / 0 / 0 / 70.8 / 21** — identical |
+
+Two demonstrably different trees, byte-identical results. Before the fix, removing a handful of `warn()`s per *game* re-dealt the whole batch. The coupling is gone.
+
+**50/0/0 is the baseline, not a lucky deal.** The same batch options at two seeds other than 100001: `baseSeed=200003` → 50 wins / 0 failures / 0 hard / avgTurns 79.5 / longGames 20; `baseSeed=770077` → 50 / 0 / 0 / avgTurns 73.4 / longGames 20. Win count and hard-failure count are stable across all three seeds; only avgTurns varies (70.8–79.5), and all three sit well below the old 86.9.
+
+`recordGhostHistory` now stamps every row with `head` (short commit) and `tree` (a hash of `git status --porcelain` + `git diff HEAD`, or `clean`), so "same numbers" can never again be ambiguous between "two configurations agree" and "one configuration ran twice".
+
 ## [3.2.49] - 2026-09-03
 
 *Held on `hold/v3.2.46-session-log` since 2026-09-03 and landed here renumbered: 3.2.46 was skipped, and v3.2.47 shipped ahead of it. It was held because it exposed the RNG coupling fixed in v3.2.48 above — with that fixed, this now changes nothing about what the dice do (verified: the ghost smart-bot batch is identical with and without it).*

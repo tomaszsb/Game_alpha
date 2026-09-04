@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, formatEdgeLabel, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
 
 // fb:97fa9c75 — five-step tile size hierarchy. Was a 3-step ladder where the
@@ -123,6 +125,74 @@ describe('shortName fallback (used by ActionCenterPanel space header)', () => {
 
   it('handles short tokens (≤2 chars) without uppercasing them awkwardly', () => {
     expect(shortName('CON-INITIATION')).toBe('Initiation');
+  });
+});
+
+// v3.2.50 — every tile on the board must be tellable apart by its label alone.
+//
+// shortName() strips the NPC prefix, so it collapses whole families of spaces:
+// ARCH-/ENG-/REG-DOB-/REG-FDNY-FEE-REVIEW all became "Fee Review", three
+// spaces became "Scope Check", three "Initiation", two "Plan Exam". With only
+// 5 of 27 spaces setting display_label_override, 12 of 27 tiles shared a label
+// with another tile — a beginner had no way to tell which "Fee Review" they
+// were standing on. The fix is data (display_label_override in GAME_CONFIG),
+// so the guard has to read the real CSV, not a fixture: a future space added
+// without an override, or an override typed twice, must fail here.
+//
+// Resolution order is the render path's, verbatim — BoardCanvas.tsx:1157
+// `titleOverride || shortName(cfg.space_name)`. The same chain is used by
+// PlayerPanelV2, MovementService, DiceRollProcessor and
+// logFormatting.friendlySpaceName.
+describe('board tile labels are unique across every space (GAME_CONFIG.csv)', () => {
+  const csv = readFileSync(
+    join(process.cwd(), 'public', 'data', 'CLEAN_FILES', 'GAME_CONFIG.csv'),
+    'utf-8',
+  ).replace(/^﻿/, '');
+
+  // Header-order lookup rather than a fixed column number: GAME_CONFIG has
+  // grown columns before (npc_speaker, approval_role) and a positional read
+  // would silently start asserting on the wrong field.
+  const lines = csv.trim().split('\n').map(l => l.replace(/\r$/, ''));
+  const splitRow = (line: string): string[] => {
+    const out: string[] = [];
+    let cur = '', inQ = false;
+    for (const ch of line) {
+      if (ch === '"') inQ = !inQ;
+      else if (ch === ',' && !inQ) { out.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    out.push(cur.trim());
+    return out;
+  };
+  const headers = splitRow(lines[0]);
+  const nameCol = headers.indexOf('space_name');
+  const labelCol = headers.indexOf('display_label_override');
+  const rows = lines.slice(1).filter(l => l.trim()).map(splitRow);
+
+  it('finds the expected columns and every space in the real CSV', () => {
+    expect(nameCol).toBeGreaterThanOrEqual(0);
+    expect(labelCol).toBeGreaterThanOrEqual(0);
+    expect(rows.length).toBe(27);
+  });
+
+  it('resolves every space to a label no other space shares', () => {
+    const bySpace = rows.map(r => ({
+      space: r[nameCol],
+      label: r[labelCol] || shortName(r[nameCol]),
+    }));
+
+    const byLabel = new Map<string, string[]>();
+    for (const { space, label } of bySpace) {
+      expect(label, `${space} resolved to an empty label`).not.toBe('');
+      byLabel.set(label, [...(byLabel.get(label) ?? []), space]);
+    }
+
+    const collisions = [...byLabel.entries()].filter(([, spaces]) => spaces.length > 1);
+    expect(
+      collisions,
+      collisions.map(([label, spaces]) => `"${label}" <- ${spaces.join(', ')}`).join('\n'),
+    ).toEqual([]);
+    expect(byLabel.size).toBe(bySpace.length);
   });
 });
 

@@ -365,7 +365,11 @@ describe('processGameData — engine-data separation: cosmetic overrides', () =>
     return fs.readFileSync(path.join(tmpDir, 'GAME_CONFIG.csv'), 'utf-8').trim().split('\n');
   }
 
-  it('real Spaces.csv migrates the 5 SPECIAL_NAMES + 4 review-loop messages into data', () => {
+  // v3.2.50: this used to check the 5 migrated SPECIAL_NAMES. Every space now
+  // carries a plain-English label (the beginner-audience decision of
+  // 2026-09-03), so the assertion moved from "the 5 are present" to "all 27
+  // are, and PM-DECISION-CHECK carries the new wording, not 'PM Check'".
+  it('real Spaces.csv migrates a display label for every space + the review-loop messages into data', () => {
     const realSpacesCsv = fs.readFileSync(
       path.join(process.cwd(), 'public/data/SOURCE_FILES/Spaces.csv'), 'utf-8'
     );
@@ -396,15 +400,17 @@ describe('processGameData — engine-data separation: cosmetic overrides', () =>
     const finish = dataRows.find(r => r.startsWith('FINISH,'));
     const pmCheck = dataRows.find(r => r.startsWith('PM-DECISION-CHECK,'));
     expect(fieldAt(finish!, 17)).toBe('Finish');
-    expect(fieldAt(pmCheck!, 17)).toBe('PM Check');
+    expect(fieldAt(pmCheck!, 17)).toBe('Pick Your Path');
 
     const dobPlanExam = dataRows.find(r => r.startsWith('REG-DOB-PLAN-EXAM,'));
     expect(fieldAt(dobPlanExam!, 18)).toContain('examiner found minor issues');
 
-    // Sanity: roughly the right counts of each.
+    // Every space carries a label now, not just the 5 that had one before —
+    // the board-wide uniqueness guard in tests/utils/boardCommon.test.ts is
+    // what keeps them distinct; this just proves the pipeline carries them.
     const labelCount = dataRows.filter(r => fieldAt(r, 17).length > 0).length;
     const msgCount = dataRows.filter(r => fieldAt(r, 18).length > 0).length;
-    expect(labelCount).toBeGreaterThan(0);
+    expect(labelCount).toBe(dataRows.length);
     expect(msgCount).toBeGreaterThan(0);
   });
 
