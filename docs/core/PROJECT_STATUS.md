@@ -7,7 +7,7 @@
 
 **Last Updated:** September 4, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.50** — **deployed and verified live** (`/health` returns `b4765b5`, matching HEAD). v3.2.48, v3.2.49 and v3.2.50 all shipped and deployed the same night. **3.2.46 stays permanently skipped** — its commit landed renumbered as v3.2.49, and `hold/v3.2.46-session-log` still exists locally (deleting it is the maintainer's call).
+**Current Version:** **3.2.50** — **deployed and verified live** (`/health` returns `b4765b5`, matching HEAD). v3.2.48, v3.2.49 and v3.2.50 all shipped and deployed the same night. **3.2.46 stays permanently skipped** — its commit landed renumbered as v3.2.49, and the `hold/v3.2.46-session-log` branch was deleted 2026-09-04 once its source was verified byte-identical to master.
 
 ## Current sprint
 **The audience question is settled, and the first onboarding work has shipped.** Asked directly on 2026-09-03, the maintainer answered the fork that had been gating everything: the game is for **beginners, not insiders** — a real tutorial, tooltips and story-based micro-lessons that explain each term in one or two plain sentences. The opposite branch (keep the jargon, lean into insider edge-case events) is rejected. **The jargon evidence is spent — the next move is to build the teaching layer, not gather more proof that it's needed.**

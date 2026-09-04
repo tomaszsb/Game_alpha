@@ -5,7 +5,7 @@
 - **Branch:** master, clean and pushed. Untracked: `idea.txt` (the maintainer's own draft — leave it).
 - **Last shipped:** v3.2.50 — **12 of 27 board tiles shared a label with another tile.** `shortName()` strips the NPC prefix, so four spaces all read "Fee Review", three "Scope Check", three "Initiation", two "Plan Exam". Every space now carries a plain-English name in the maintainer's own words. Edited in `SOURCE_FILES/Spaces.csv` + `node scripts/regen-clean-files.mjs` — **never** `CLEAN_FILES/GAME_CONFIG.csv` directly, which is generated and guarded by `tests/server/pipelineFaithful.test.ts`.
 - **Test suite:** v3.2.50 baseline — `npm test` **3091/3091 across 201 files**, `npm run test:ghost` **33/33 across 10 files**, 0 failures. **This session ran neither** (no `src/`/`server/`/data changes — docs only); typecheck ✅ and production build ✅ were re-run 2026-09-04 and are clean.
-- **Held branch:** `hold/v3.2.46-session-log` still exists locally. Its commit **already landed** as v3.2.49 — the branch is now redundant, and deleting it is the maintainer's call.
+- **Held branch:** `hold/v3.2.46-session-log` is **deleted** (2026-09-04, on the maintainer's instruction). Its content had already landed as v3.2.49: `src/services/TurnService.ts` and `tests/services/TurnService-tryAgainOnSpace.test.ts` were verified **byte-identical** to master before deleting, with only the CHANGELOG/version numbering differing (the intentional 3.2.46→3.2.49 renumber). `git branch -d` refused — the commit was cherry-picked, so its SHA was never an ancestor of master — and `-D` was used only after that content check. The old tip `12d9ee1` stays recoverable by SHA until gc.
 
 ## ⚠️ Read this before running the ghost gates
 **The baseline changed and the old numbers are a trap.** `ghostPlayerSmartBot` at `baseSeed=100001` is now **50 wins / 0 failures / 0 hard / avgTurns 70.8** (win + hard-failure counts stable at seeds 200003 and 770077). The old **47/3/0/86.9 cannot return by construction** — v3.2.48 *removed* draws from the shared stream, which yields a new sequence rather than restoring a prior alignment. Anyone chasing 47/3/0/86.9 is chasing a ghost; a stale copy of that number was still in `PROJECT_STATUS.md` until today. `.claude/ghost-history.jsonl` now stamps each row with `head` + `tree`, so a run's code is identifiable.
@@ -20,7 +20,6 @@ None. Green on master at v3.2.50.
 
 ## Decisions waiting on the user
 - **The ARCH-FEE-REVIEW 50-day disclosure question** (item 2) — the one that unblocks real work.
-- **Delete `hold/v3.2.46-session-log`?** Its content shipped as v3.2.49; the branch is redundant.
 - **Card library Stage 4, the group/school tier.** Deferred 2026-08-25 ("skip the middle shelf"), not rejected; `group` is a valid tier nothing writes, so adding it later is additive.
 - **`DataEditor` is unreachable but deliberately still in the tree** as a fallback — delete once the merged screen is confirmed good in real use.
 
