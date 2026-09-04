@@ -2,6 +2,18 @@
 
 ---
 
+## v3.2.51 — Every button now says what it does (September 4, 2026)
+
+- **The buttons you press have been rewritten in plain English.** You were landing on a space called "Cut a Corner" and being asked to *"Determine Fee Amount."* Now it says **"See what the fine is."** The most common button in the whole game used to say *"Determine Time Impact"* — it now says things like **"See how long the inspection takes"** or **"See how long you're stopped,"** depending on where you are.
+- **Every button is written for the space you're actually standing on.** The architect asking for money gives you *"See what he's asking."* The same button at the engineer gives you *"See what the fee is."* The city counter gives you *"See how long the counter takes."* Eighty-one buttons, each one written for its own moment instead of one generic phrase reused everywhere.
+- **"Expeditor" is gone from the buttons.** It's a real word from the construction world and it stays in the story and the dictionary — but it is now taught there rather than used as an instruction. Where a button used to say *"Hire 3 Expeditors"* it now says **"Bring in extra help."** *"Let one expeditor go"* became **"Cut back your help."** Same for the others: *"Add Work Package"* is now **"Add work to the job,"** and *"Get Bank Loan"* is **"Borrow from the bank."**
+- **Why the buttons in particular.** A hard word anywhere else in the game can be tapped to see what it means. On a button it can't — tapping would fire the action instead of opening the dictionary. So a button is the one place in the game where a difficult word has no way of explaining itself, which is why they're the place the plain words matter most.
+
+## v3.2.50 — Twelve board spaces had the same name as another space (September 4, 2026)
+
+- **Every space on the board now has its own name.** Four different spaces were all just called "Fee Review." Three were called "Scope Check," three more "Initiation," and two "Plan Exam." If you were standing on one of the four "Fee Review" tiles, nothing on the screen told you which one.
+- **The names are plain now too:** "Meet the Owner," "Pick Your Path," "Find an Architect," "See the Design," "Check the Structure," "City Checks Plans," "The Audit," "Fire Dept. Review," "Hire a Builder," "Trouble On Site," "Final Approval." The same name follows you into your panel, the move confirmation, and the game log — so the log now reads "entered Pick Your Path" instead of a code.
+
 ## v3.2.47 — Letting someone go is not the same as giving them back (September 3, 2026)
 
 - **The button that used to say "Return Expeditor" now says "Let one expeditor go."** At the architect's fee space you have to cut staff to afford the fee, and one of your expeditors has to go — for good. The old wording made it sound like handing something back, the way you'd return a borrowed tool, when what actually happens is you lose them. The screen that asks which one now matches: *"Choose an expeditor to let go."*
