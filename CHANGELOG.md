@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.51] - 2026-09-04
+
+### Every action button spoke bureaucrat, and none of them had ever been written
+
+v3.2.50 gave the 27 board tiles plain-English names. The buttons underneath them did not change, so a player landed on **"Cut a Corner"** and was asked to **"Determine Fee Amount"**. `Determine …` covered 31 of the 45 dice buttons, and `Determine Time Impact` alone is on **23 of the 80** manual effect rows — the most-pressed button in the game.
+
+Underneath the wording was the same structural defect the tiles had: **0 of 80 manual rows carried an authored `button_label`.** Every player-facing button fell through to the generated wording in [buttonFormatting.ts](src/utils/buttonFormatting.ts), exactly as 22 of 27 tiles had fallen through `shortName()`. The column to fix it already existed and was simply empty — so, as with the tiles, **no schema change was needed**: `w_card_label`/`b_card_label`/`i_card_label`/`e_card_label` in `SOURCE_FILES/Spaces.csv` and `button_label` in `SOURCE_FILES/DiceRoll Info.csv`, all 0% populated, all already read by the pipeline.
+
+**81 labels are now authored** — 35 card buttons and 46 dice buttons, the maintainer's wording applied verbatim after review. The register follows the two button types he had *already* written: `end_turn_label` was filled on 50 of 105 rows and `try_again_label` on 27 ("Lock the scope", "Take the check", "Push back on the fee"), while the card and dice columns sat at zero. So the voice was not invented for this change, it was matched.
+
+**The rule, in his words:** *"buttons say what you're doing, in everyday words. No trade jargon on buttons."* The deciding reason is structural rather than stylistic — `TextWithTerms` renders `<span role="button">` with `stopPropagation()`, so a glossary link inside a real `<button>` swallows the click and the action never fires (settled finding, previously withdrawn and re-confirmed). **A button is the one surface where a hard word can never explain itself.** Vocabulary is taught in the story prose and the glossary, where a link works; the button only names the action.
+
+That rule took "expeditor" off every button, **including `return_e`**. v3.2.47's "Let one expeditor go" fixed the *direction* problem — the old "Return Expeditor" read as reversible when the effect is permanent — but a run against live v3.2.47 then surfaced 8 hits of *"the term 'expeditor' is unclear jargon."* Keeping the word is what produced that, so it was redrafted here rather than used as the template. "Work Package", "Bank Loan" and "Investment" got the same treatment on buttons only; the card **type** names are untouched, since renaming those would reach the log, card details and outcome banners and is a separate decision.
+
+### The dice labels were inert on first attempt — a real gap in the generator
+
+Authoring all 81 and regenerating produced 35 labelled buttons, not 81. `processGameData` routed the authored dice label into `SPACE_EFFECTS.description` and nowhere else:
+
+```js
+description: entry.button_label || `Roll for ${entry.die_roll}`,
+```
+
+But `formatManualEffectButton`'s dice branch **deliberately ignores `description`** — that column's auto-generated fallback is game-language ("Roll for W Cards") which used to leak onto the button, and not reading it is the fix that stopped that. The branch reads `button_label`, which the generator never emitted for dice rows. So all 46 dice labels were written, stored, regenerated and completely inert.
+
+The card branch had already solved this years earlier, and the dice branch now matches it: `description` keeps its old meaning for every other consumer, `button_label` carries the authored label to the button, and it stays empty unless a human wrote one — so this can never reintroduce the leak.
+
+### Guard
+
+[tests/utils/buttonLabels.test.ts](tests/utils/buttonLabels.test.ts) reads the **real** generated `SPACE_EFFECTS.csv` and fails if any manual row loses its label, if any label contains a term from a short jargon blocklist, or if one grows past 40 characters. Two further tests pin the *wiring* rather than the data — that `formatManualEffectButton` honours an authored label on a dice row, and that an unauthored dice row still falls back to the friendly generated wording instead of the raw `description`.
+
+**Verified against seeded failures before being trusted**, the same discipline v3.2.50's uniqueness guard used: blanking one `button_label` and putting "Let one expeditor go" in another makes it fail with both offenders named. A first seeding attempt did *not* trip it and was my error, not the guard's — `description` and `button_label` now hold identical text, so a naive first-occurrence replace hit `description` and left the real column intact.
+
+### Notes
+
+- **`uiStrings.ts` is a decoy for this work.** All 15 `DICE_BUTTON` keys are *also* rows in `UI_STRINGS.csv` with identical values, and the CSV wins. Editing the code file alone would have shipped a change that does nothing on screen while looking correct in review — the same false-confidence shape as grepping the wrong code-split chunk to verify a deploy.
+- **Edits went into the two SOURCE files, never CLEAN.** `SPACE_EFFECTS.csv` is generated and guarded by `tests/server/pipelineFaithful.test.ts`; a direct edit would have been erased by the next content save on the live server.
+- **`DiceRoll Info.csv` byte-safety.** That file's rows end `\r,\n` with `button_label` as the trailing empty field, and it carries a BOM. The apply script preserved both exactly — 73 changed rows across the two SOURCE files, 73 insertions and 73 deletions, no whole-file rewrite.
+- **The editor's live preview agrees.** `PlayerPreviewPanel` mirrors the label logic instead of calling it, which looked like a drift risk — but it already resolves `customLabel || default…` and `dr?.button_label || default…`, so with all 81 authored it now shows exactly what the game shows, and its copies are reached only for unauthored rows.
+- **Still open, deliberately not done here:** `formatDiceRollButton` is dead code (74 lines, zero call sites, and six `DICE_BUTTON` keys reachable only through it), and `DiceRoll Info.csv` carries one malformed row (blank `space_name`, `die_roll` set to the literal string `button_label`) that renders no button. Both were surfaced for the maintainer as decisions rather than folded into a wording change.
+
+### Verification
+
+`npm test` **3096/3096 across 202 files** (3091 + the 5 new label/wiring assertions, in 1 new file), `npm run test:ghost` **33/33 across 10 files**, typecheck clean, production build clean. The labels were confirmed present in `dist/data/` after the build, not just in the repo.
+
+**The ghost smart-bot batch is byte-identical to the baseline: 50 wins / 0 failures / 0 hard / avgTurns 70.8 / longGames 21** on a new tree (`bde932fc04ac`) — the fourth distinct tree to produce those exact numbers since v3.2.48. That was the predicted result rather than a hoped-for one: this change adds CSV strings and one generator field, consumes no `Math.random` draws, and v3.2.48 moved id minting off the seeded stream entirely. A deviation here would have meant something changed behaviour and needed investigating, not accepting.
+
+**One test asserted the old wording and was updated, not worked around.** `E2E-01_HappyPath` looked for `/Hire 3 Expeditors/i` and `/Get Work Packages/i` at `OWNER-SCOPE-INITIATION` — the generated wording from when no row had an authored label. It now asserts the authored "Bring in extra help" and "See what he wants built", with a comment saying where those come from. Three other test files mention old label strings and were correctly left alone: they use them as their own fixtures (a collapse-algorithm input, a panel prop, an editor's self-contained CSV), not as claims about the real data.
+
+
 ## [3.2.50] - 2026-09-04
 
 ### Twelve of the twenty-seven board tiles shared a label with another tile

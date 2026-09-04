@@ -269,9 +269,12 @@ describe('E2E-01: Happy Path with New UI', () => {
     // Mock dice roll to return 4 consistently for controlled movement
     const rollDiceSpy = vi.spyOn(gameServices.turnService, 'rollDice').mockReturnValue(4);
 
-    // Wait for manual action buttons to appear (ActionCenterPanel renders these as text buttons)
-    const pickUpCardsButton = await screen.findByRole('button', { name: /Hire 3 Expeditors/i }, { timeout: 5000 });
-    const rollForWCardsButton = await screen.findByRole('button', { name: /Get Work Packages/i });
+    // Wait for manual action buttons to appear (ActionCenterPanel renders these as text buttons).
+    // Both labels are CSV-driven and were authored in v3.2.51 — OWNER-SCOPE-INITIATION/First's
+    // `e_card_label` and its `W Cards` dice `button_label`. They read as the generated
+    // "Hire 3 Expeditors" / "Get Work Packages" before that, when no row had an authored label.
+    const pickUpCardsButton = await screen.findByRole('button', { name: /Bring in extra help/i }, { timeout: 5000 });
+    const rollForWCardsButton = await screen.findByRole('button', { name: /See what he wants built/i });
 
     // UI Interaction 1: Execute Manual Action: hire expeditors
     fireEvent.click(pickUpCardsButton);

@@ -527,6 +527,15 @@ function processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup = new Map
         effect_value: entry.die_roll,
         condition: '',
         description: entry.button_label || `Roll for ${entry.die_roll}`,
+        // Same split as the card branch above: `description` keeps its old
+        // meaning for every other consumer, while `button_label` carries the
+        // authored label to the player-facing button. It has to be its own
+        // column because formatManualEffectButton's DICE branch deliberately
+        // ignores `description` — that column's auto-generated fallback is
+        // game-language ("Roll for W Cards") and used to leak onto the button,
+        // which is exactly why the branch stopped reading it. Empty unless a
+        // human wrote one, so this can never reintroduce that leak.
+        button_label: entry.button_label,
         trigger_type: 'manual'
       });
     }
