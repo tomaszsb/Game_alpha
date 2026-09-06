@@ -1,7 +1,7 @@
 # Next session starter — written 2026-09-04 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.51 — **committed and pushed, PENDING DEPLOY.** Live is still v3.2.50 (`/health` → `b4765b5`). Hand over: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
+- **Version:** v3.2.51 — **LIVE.** Corrected 2026-09-05: `/health` → `e5cc6a0`, which equals master HEAD. This line said "pending deploy" for a day after it shipped and sent two sessions toward a pointless redeploy. **Check `/health` before believing any version claim in this file.**
 - **Branch:** master, clean and pushed. Untracked: `idea.txt` (the maintainer's own draft — leave it).
 - **Last shipped:** v3.2.51 — **81 plain-English button labels**, the button half of Onboarding Phase C. A player was landing on the tile "Cut a Corner" and being asked to "Determine Fee Amount"; `Determine …` covered 31 of the 45 dice buttons. Under the wording sat the tiles' own defect: **0 of 80 manual rows had ever carried an authored `button_label`**. No schema change was needed — every label column already existed at 0% populated.
 - **Test suite:** `npm test` **3096/3096 across 202 files**, `npm run test:ghost` **33/33 across 10 files**, 0 failures either way. Typecheck ✅ build ✅.

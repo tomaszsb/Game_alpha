@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { formatManualEffectButton } from '../../src/utils/buttonFormatting';
+import { COLLAPSED_DICE_LABEL } from '../../src/components/player/pendingActionsCollapse';
 
 /**
  * Guard for the plain-English button labels (v3.2.51).
@@ -135,6 +136,32 @@ describe('player-facing button labels', () => {
     const text = formatManualEffectButton(effect).text;
     expect(text).not.toBe('Roll for Time outcomes');
     expect(text).toBeTruthy();
+  });
+
+  // The CSV guards above CANNOT see this one. On the 8 space/visit combinations
+  // that have two dice rows sharing a roll (CHEAT-BYPASS, CON-INITIATION,
+  // INVESTOR-FUND-REVIEW, OWNER-DECISION-REVIEW × First/Subsequent),
+  // collapsePairedDiceActions merges them into ONE button and OVERWRITES the
+  // authored label with COLLAPSED_DICE_LABEL. So 16 of v3.2.51's 46 authored
+  // dice labels never reach the screen, and until v3.2.52 the constant they were
+  // replaced by was the bureaucrat "Determine Outcome" — the single most-quoted
+  // confusing string in the 2026-09-05 playtest at 22 hits. Every CSV row passed
+  // the guard while the button a player actually saw failed the rule.
+  it('the collapsed dice label obeys the same button rule as the authored ones', () => {
+    const hit = JARGON.find(term => COLLAPSED_DICE_LABEL.toLowerCase().includes(term));
+    expect(hit, `COLLAPSED_DICE_LABEL contains jargon: "${hit}"`).toBeUndefined();
+
+    // The wording this constant is allowed to be is plain English. These are the
+    // bureaucrat verbs v3.2.51 took off every other button; the collapsed button
+    // is the one place they survived.
+    const BUREAUCRAT = ['determine', 'outcome', 'assess', 'impact', 'process'];
+    const offender = BUREAUCRAT.find(w => COLLAPSED_DICE_LABEL.toLowerCase().includes(w));
+    expect(
+      offender,
+      `COLLAPSED_DICE_LABEL is "${COLLAPSED_DICE_LABEL}" — the word "${offender}" is the ` +
+      `trade-desk register v3.2.51 removed from every authored label. This constant is ` +
+      `what the player reads on 8 space/visit combinations, so it has to follow the same rule.`
+    ).toBeUndefined();
   });
 
   it('button labels are short enough to read on a tile', () => {

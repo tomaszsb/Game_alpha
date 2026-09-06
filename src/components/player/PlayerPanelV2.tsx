@@ -272,6 +272,21 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // its own reversible checkmark below; these one-shot actions can't be undone.
   const doneActionTraces = pendingActions.filter((a) => a.isCompleted);
 
+  // Name the action that is blocking, instead of stating a rule with no subject.
+  // 2026-09-05 playtest: "Finish your other actions first, then pick where to go."
+  // drew 6 hits — "unclear which specific actions count as 'other'" — and it was
+  // the largest cluster's through-line (the game states a RULE without naming its
+  // SUBJECT). Names up to two; past that a list would outrun the row.
+  const blockingActionLabels = visiblePendingActions.map((a) => a.label.replace(/^\u{1F3B2}\s*/u, ''));
+  const blockingActionPhrase =
+    blockingActionLabels.length === 1
+      ? `“${blockingActionLabels[0]}”`
+      : blockingActionLabels.length === 2
+      ? `“${blockingActionLabels[0]}” and “${blockingActionLabels[1]}”`
+      : blockingActionLabels.length > 2
+      ? `the ${blockingActionLabels.length} actions above`
+      : 'your other actions';
+
   const movement = gameServices.dataService.getMovement(player.currentSpace, player.visitType);
   const isDiceMovementSpace = movement?.movement_type === 'dice';
   const hasPlayerRolledDice = gameState.hasPlayerRolledDice;
@@ -305,6 +320,17 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       || selectedMovementOption.label
       || shortName(selectedMovementOption.id)
     : null;
+  // Name the destinations on the collapsed toggle instead of only counting them.
+  // 2026-09-05 playtest: "Move — 2 options" drew 8 hits — "states there are two
+  // options but does not list what those specific options are". Both names fit at
+  // two; past that the row would run long, so it says how many and they open
+  // below. MOVEMENT.csv has 8 two-option spaces, 1 three- and 3 four-option.
+  const movementOptionLabels = (movementChoice?.options ?? []).map(
+    (o) =>
+      gameServices.dataService.getGameConfigBySpace(o.id)?.display_label_override
+      || o.label
+      || shortName(o.id),
+  );
   const showMovementDiceButton = shouldShowMovementDiceButton(visiblePendingActions, {
     isDiceMovementSpace,
     hasPlayerRolledDice,
@@ -438,7 +464,9 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       ready: false,
       subLabel:
         remaining > 0
-          ? `Finish ${remaining} thing${remaining === 1 ? '' : 's'} above first`
+          ? remaining === 1 && blockingActionLabels.length === 1
+            ? `Finish “${blockingActionLabels[0]}” above first`
+            : `Finish ${remaining} thing${remaining === 1 ? '' : 's'} above first`
           : showMovementOptions && !selectedDestination
           ? 'Pick where you’re going first'
           : 'Not ready yet',
@@ -850,7 +878,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                 aria-expanded={showMoveOptions}
                 // Distinct accessible name from any individual destination's own
                 // label — the visible text below can echo a destination name
-                // ("Moving to: Fee Review"), which would otherwise collide with
+                // ("you picked Fee Review"), which would otherwise collide with
                 // that destination's own button in accessible-name lookups.
                 aria-label="Move — where to go next"
                 className={
@@ -862,8 +890,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               >
                 <span aria-hidden>{showMoveOptions ? '▾' : '▸'}</span>{' '}
                 {selectedDestination
-                  ? `✅ Moving to: ${selectedMovementLabel}`
-                  : `➡️ Move — ${movementChoice!.options.length} options`}
+                  ? `➡️ Move — you picked ${selectedMovementLabel}`
+                  : movementOptionLabels.length === 2
+                  ? `➡️ Move — ${movementOptionLabels[0]} or ${movementOptionLabels[1]}`
+                  : `➡️ Move — ${movementChoice!.options.length} places to pick from`}
               </button>
               {showMoveOptions && (
                 // Indented + connector line so the options read as sliding out
@@ -895,17 +925,28 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                   })}
                   {!movementChoiceUnlocked && (
                     <p style={{ fontSize: 10, color: p.muted, margin: '1px 0 6px' }}>
-                      Finish your other actions first, then pick where to go.
+                      Finish {blockingActionPhrase} first, then pick where to go.
                     </p>
                   )}
                   {movementChoiceUnlocked && selectedDestination && (
                     <p style={{ fontSize: 10, color: p.muted, margin: '1px 0 6px' }}>
-                      You can switch until you end your turn.
+                      You can change where you’re going until you end your turn.
                     </p>
                   )}
                 </div>
               )}
             </>
+          )}
+          {doneActionTraces.length > 0 && (
+            // Finished actions used to sit directly under "Things you can do",
+            // a header that then listed things you could NOT do — the literal
+            // contradiction behind that header's 16 playtest hits ("might not
+            // understand that this header lists available actions rather than
+            // being a status report") and behind the ✓ rows reading as buttons.
+            // The group header is also the a11y "colour AND a word" rule this
+            // file already applies to the money cue: done was signalled only by
+            // gray + a ✓ glyph, and "Done" existed solely in aria-label.
+            <p style={{ ...zlbl, margin: '9px 0 6px' }}>Already done this turn</p>
           )}
           {doneActionTraces.map((a) => (
             // Outcome actions carry the resolved result as a hover/long-press

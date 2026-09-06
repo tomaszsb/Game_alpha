@@ -18,7 +18,18 @@ export interface CollapsibleAction {
 // established in-character verb "Determine Outcome".
 // Voice rule (no game language): player-facing copy avoids game-machinery words
 // like "roll" / "dice" / "card(s)" / "game" AND the 🎲 icon — dropped here too.
-export const COLLAPSED_DICE_LABEL = 'Determine Outcome';
+//
+// v3.2.52: "Determine Outcome" was the single most-quoted confusing string in the
+// 2026-09-05 playtest (22 hits). v3.2.51 authored 46 plain-English dice labels, but
+// this constant OVERWRITES the authored label whenever two dice rows collapse into
+// one button — so on the 8 space/visit combinations that collapse (CHEAT-BYPASS,
+// CON-INITIATION, INVESTOR-FUND-REVIEW, OWNER-DECISION-REVIEW × First/Subsequent)
+// v3.2.51's wording never reached the screen and the bureaucrat wording survived.
+// Same shape as v3.2.51's own generator bug: an authored value that a later stage
+// silently throws away. This stays a generic label ON PURPOSE — the one button
+// fires BOTH outcome rows, so naming only the first would misdescribe it — but the
+// generic wording is now plain English, per the maintainer's button rule.
+export const COLLAPSED_DICE_LABEL = 'See what happens';
 
 export function collapsePairedDiceActions<T extends CollapsibleAction>(actions: T[]): T[] {
   const collapsed: T[] = [];

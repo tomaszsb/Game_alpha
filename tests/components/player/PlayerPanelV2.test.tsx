@@ -364,7 +364,8 @@ describe('PlayerPanelV2 — movement check/uncheck (Pile 2: fb:c2e489dc / fb:45c
     // Both options still rendered so the player can change their mind.
     expect(screen.getByRole('button', { name: /Go to A/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Go to B/i })).toBeInTheDocument();
-    expect(screen.getByText(/switch until you end your turn/i)).toBeInTheDocument();
+    // v3.2.52 named the subject of this rule ("switch" what?) — 14 playtest hits.
+    expect(screen.getByText(/change where you.re going until you end your turn/i)).toBeInTheDocument();
   });
 
   it('unchecks the picked destination when tapped again (reversible)', () => {

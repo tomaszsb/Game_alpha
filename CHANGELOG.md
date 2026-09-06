@@ -2,6 +2,63 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.52] - 2026-09-06
+
+### v3.2.51's dice labels were deleted before they reached the screen, on 4 spaces
+
+The 2026-09-05 robot playtest quoted **`✓ Determine Outcome` 22 times** — the second-most confusing string in the run, and bureaucrat wording that v3.2.51 was supposed to have removed from every button in the game. It had not been missed. It was being **re-applied after the fact**.
+
+`collapsePairedDiceActions` merges two dice rows that share one physical roll into a single button — correct, and the reason it exists (v2.70.1: rendering them separately made a player think each fired its own roll). But on merging it also **overwrote the surviving row's label** with a hardcoded `COLLAPSED_DICE_LABEL = 'Determine Outcome'`. That fires on 8 space/visit combinations — `CHEAT-BYPASS`, `CON-INITIATION`, `INVESTOR-FUND-REVIEW`, `OWNER-DECISION-REVIEW` × First/Subsequent — so **16 of v3.2.51's 46 authored dice labels never reached a player**, and the wording the maintainer's rule exists to forbid survived in the one slot his spreadsheet could not reach.
+
+This is the same failure shape as v3.2.51's own generator bug, one stage later: an authored value that a downstream step silently discards, with no error and nothing failing. There, the generator wrote the wrong column; here, the renderer overwrites the right one.
+
+The constant stays **generic on purpose** — the merged button fires *both* outcome rows, so naming only the first would misdescribe what pressing it does — but it is now plain English: **"See what happens"** (maintainer's call 2026-09-06, choosing the generic line over four per-space rewrites).
+
+**Guard:** [tests/utils/buttonLabels.test.ts](tests/utils/buttonLabels.test.ts) now checks `COLLAPSED_DICE_LABEL` against the same jargon blocklist as the authored labels, plus a bureaucrat-verb list (`determine`, `outcome`, `assess`, `impact`, `process`). The CSV guards structurally **cannot** see this string — every row passed while the button a player actually read failed the rule. Verified against a seeded failure: restoring `'Determine Outcome'` fails the test and names `determine` as the offender.
+
+### "Cut back your help" — the #1 confusion, and one of v3.2.51's own labels
+
+57 hits, up from 15 two nights earlier. The complaint: *"would not know if 'cutting back' means stopping help entirely or reducing it, nor who will receive the saved help."* The effect returns exactly **one** expeditor, and the label said neither *one* nor that they are gone.
+
+Maintainer's wording, applied verbatim to `e_card_label` in `SOURCE_FILES/Spaces.csv` and regenerated:
+
+- `return_e` — "Cut back your help" → **"Let one helper go"** (6 rows: `LEND-SCOPE-CHECK`, `BANK-FUND-REVIEW`, `ARCH-FEE-REVIEW`, `CHEAT-BYPASS` ×2, `CON-INSPECT`)
+- `replace_e` — "Swap in different help" → **"Swap one helper for another"** (4 rows)
+
+This is v3.2.47's direction fix ("Let one expeditor go" — the old "Return Expeditor" read as reversible when the effect is permanent) carrying v3.2.51's plain vocabulary. Both halves were needed: v3.2.47 kept the hard word and drew 8 hits of *"expeditor is unclear jargon"*; v3.2.51 dropped the word but lost the count and the finality.
+
+### The checkmark finding: 25 of its 28 hits were a false positive, and the 26th was real
+
+`✓ Determine Outcome` and `✓ Meet the Expediting Team` are **not** buttons. `doneActionTraces` renders a `<div>` with `doneActionRow` — muted, `cursor: default`, no handler. "Live buttons look finished" is not what was happening, and this is the third finding from this dataset to dissolve under inspection. **It was checked before being acted on, not after.**
+
+Two real defects sat next to it:
+
+- **`✅ Moving to: Bank Review`** (3 hits) *is* a live `<button>`, and the move has **not** happened — `moveIntent` is only applied at `endTurn`, and the pick is reversible until then. A live control was announcing a completed state. Now **`➡️ Move — you picked Bank Review`**.
+- **Finished actions were listed under the header "Things you can do."** A list of available actions that contained unavailable ones — a literal contradiction, and the most likely reason that header itself drew 16 hits (*"might not understand that this header lists available actions rather than being a status report"*). They now sit under **"Already done this turn."** That also closes an a11y gap this same file already legislates for the money cue (*"Redundant coding: colour AND a word, never colour alone"*): done was signalled by gray plus a ✓ glyph, and the word "Done" existed **only** in `aria-label`, never on screen.
+
+### The sequencing cluster: every rule now names its subject
+
+The report's largest group by volume, and its through-line was one thing — **the game stated a RULE without naming the SUBJECT of the rule.**
+
+| Before | After | Hits |
+|---|---|---|
+| `➡️ Move — 2 options` | `➡️ Move — Bank Review or Investor Review` | 8 |
+| `You can switch until you end your turn.` | `You can change where you're going until you end your turn.` | 14 |
+| `Finish your other actions first, then pick where to go.` | `Finish "See what the plan covers" first, then pick where to go.` | 6 |
+| `Finish 1 thing above first` (commit spine) | `Finish "See what the plan covers" above first` | — |
+
+Destinations are named at two options and counted above that (`MOVEMENT.csv`: 8 two-option spaces, 1 three-, 3 four-) — four names would outrun the row. The blocking-action phrase names one or two actions and falls back to the old "your other actions" at three or more, and when `visiblePendingActions` is empty, so the string can never render worse than it did before.
+
+### Notes
+
+- **The report's counts were treated as soft and its quoted strings as solid**, per its own trust check: 81 model errors (up from 24), 3 clicks that would not land, 17 findings dropped for not quoting the screen. Every item was confirmed in the code before any of it was changed, and one of the four dissolved.
+- **`docs/core/PROJECT_STATUS.md` and `.claude/NEXT_SESSION.md` both claimed v3.2.51 was "pending deploy" for a full day after it went live**, and had already sent two sessions toward a redundant redeploy. Corrected, with a line in each saying `/health` is the authority. Verified 2026-09-05: `/health` → `e5cc6a0` = master HEAD.
+- **`DICE_BUTTON.OUTCOME` in `UI_STRINGS.csv` still reads "Determine Outcome"** and is deliberately untouched. It is the *fallback* for an unauthored dice row, and all 46 are authored, so it is unreachable in the shipped data — but it is also what the editor's live preview shows for a row a maintainer has not labelled yet, where naming the absence is the point.
+
+### Verification
+
+`npx vitest run` — the **whole** suite including ghost, not the `npm test` subset — **3130/3130 across 212 files**, 0 failures. Typecheck clean. The four ghost suites passed, win-rate floor included.
+
 ## [3.2.51] - 2026-09-04
 
 ### Every action button spoke bureaucrat, and none of them had ever been written

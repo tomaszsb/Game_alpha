@@ -16,7 +16,7 @@ OWNER-SCOPE-INITIATION,First,dice,dice_outcome,W Cards,,See what he wants built,
 OWNER-SCOPE-INITIATION,First,time,add,1,,Spend 1 day,auto,,,,,,,
 OWNER-FUND-INITIATION,First,time,add,1,,Spend 1 day,auto,,,,,,,
 PM-DECISION-CHECK,First,cards,draw_L,1,dice_roll_1,Draw 1 if you roll a 1 L cards,auto,,,,,,,
-PM-DECISION-CHECK,First,cards,replace_e,1,,Swap in different help,manual,,,,,,,Swap in different help
+PM-DECISION-CHECK,First,cards,replace_e,1,,Swap one helper for another,manual,,,,,,,Swap one helper for another
 PM-DECISION-CHECK,First,time,add,5,,Spend 5 days,auto,,,,,,,
 PM-DECISION-CHECK,Subsequent,cards,draw_L,1,dice_roll_2,Draw 1 if you roll a 2 L cards,auto,,,,,,,
 PM-DECISION-CHECK,Subsequent,cards,draw_E,The person to your right takes a card.,,Pass help to your right,manual,,,,,,,Pass help to your right
@@ -26,7 +26,7 @@ LEND-SCOPE-CHECK,First,cards,draw_E,1,,Bring in extra help,manual,,,,,,,Bring in
 LEND-SCOPE-CHECK,First,dice,dice_outcome,W Cards,,See what the plan covers,manual,,,,,,,See what the plan covers
 LEND-SCOPE-CHECK,First,time,add,5,,Spend 5 days,auto,,,,,,,
 LEND-SCOPE-CHECK,Subsequent,cards,draw_L,1,dice_roll_4,Draw 1 if you roll a 4 L cards,auto,,,,,,,
-LEND-SCOPE-CHECK,Subsequent,cards,return_e,1,,Cut back your help,manual,,,,,,,Cut back your help
+LEND-SCOPE-CHECK,Subsequent,cards,return_e,1,,Let one helper go,manual,,,,,,,Let one helper go
 LEND-SCOPE-CHECK,Subsequent,dice,dice_outcome,W Cards,,See what he'll cover now,manual,,,,,,,See what he'll cover now
 LEND-SCOPE-CHECK,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
 BANK-FUND-REVIEW,First,cards,draw_B,1,,See the bank's terms,manual,,,,,Accept Bank Loan,,See the bank's terms
@@ -34,11 +34,11 @@ BANK-FUND-REVIEW,First,cards,draw_E,2,,Bring in extra help,manual,,,,,,,Bring in
 BANK-FUND-REVIEW,First,time,add,1,,Spend 1 day per $200K,auto,,,,,,,
 BANK-FUND-REVIEW,First,fee,deduct,1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M,,Pay 1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M fees,auto,LOAN_TIERED,,,,,,
 BANK-FUND-REVIEW,Subsequent,cards,draw_B,1,,See the new terms,manual,,,,,Accept Bank Loan,,See the new terms
-BANK-FUND-REVIEW,Subsequent,cards,return_e,1,,Cut back your help,manual,,,,,,,Cut back your help
+BANK-FUND-REVIEW,Subsequent,cards,return_e,1,,Let one helper go,manual,,,,,,,Let one helper go
 BANK-FUND-REVIEW,Subsequent,time,add,1,,Spend 1 day per $200K,auto,,,,,,,
 BANK-FUND-REVIEW,Subsequent,fee,deduct,1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M,,Pay 1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M fees,auto,LOAN_TIERED,,,,,,
 INVESTOR-FUND-REVIEW,First,cards,draw_L,1,dice_roll_5,Draw 1 if you roll a 5 L cards,auto,,,,,,,
-INVESTOR-FUND-REVIEW,First,cards,replace_e,1,,Swap in different help,manual,,,,,,,Swap in different help
+INVESTOR-FUND-REVIEW,First,cards,replace_e,1,,Swap one helper for another,manual,,,,,,,Swap one helper for another
 INVESTOR-FUND-REVIEW,First,dice,dice_outcome,I Cards,,See what they'll put in,manual,,,,,,,See what they'll put in
 INVESTOR-FUND-REVIEW,First,dice,dice_outcome,Time outcomes,,See how long they take,manual,,,,,,,See how long they take
 INVESTOR-FUND-REVIEW,First,fee,deduct,5% of amount borrowed,,Pay 5% of amount borrowed fees,auto,LOAN_PERCENTAGE,,,,,,
@@ -52,7 +52,7 @@ ARCH-INITIATION,First,time,add,5,,Spend 5 days,auto,,,,,,,
 ARCH-INITIATION,Subsequent,cards,draw_L,1,dice_roll_2,Draw 1 if you roll a 2 L cards,auto,,,,,,,
 ARCH-INITIATION,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
 ARCH-FEE-REVIEW,First,cards,draw_L,1,dice_roll_3,Draw 1 if you roll a 3 L cards,auto,,You've been on this job a while — sometimes things just happen. Keep your head down and hope today isn't one of those days.,,,,,
-ARCH-FEE-REVIEW,First,cards,return_e,1,,Cut back your help,manual,,"You're cutting staff to save budget. One of your expeditors has to go — pick carefully, they're hard to replace.",,,,,Cut back your help
+ARCH-FEE-REVIEW,First,cards,return_e,1,,Let one helper go,manual,,"You're cutting staff to save budget. One of your expeditors has to go — pick carefully, they're hard to replace.",,,,,Let one helper go
 ARCH-FEE-REVIEW,First,dice,dice_outcome,Fees Paid,,See what he's asking,manual,,,,,,,See what he's asking
 ARCH-FEE-REVIEW,First,time,add,50,,Spend 50 days,auto,,,,,,,
 ARCH-FEE-REVIEW,Subsequent,cards,draw_L,1,dice_roll_4,Draw 1 if you roll a 4 L cards,auto,,"Back again, and life doesn't stop throwing curveballs. Roll the dice and see what lands.",,,,,
@@ -60,7 +60,7 @@ ARCH-FEE-REVIEW,Subsequent,cards,draw_E,1,,Bring in more help,manual,,Your archi
 ARCH-FEE-REVIEW,Subsequent,dice,dice_outcome,Fees Paid,,See what the extra costs,manual,,,,,,,See what the extra costs
 ARCH-FEE-REVIEW,Subsequent,time,add,15,,Spend 15 days,auto,,,,,,,
 ARCH-SCOPE-CHECK,First,cards,draw_L,1,dice_roll_5,Draw 1 if you roll a 5 L cards,auto,,,,,,,
-ARCH-SCOPE-CHECK,First,cards,replace_e,1,,Swap in different help,manual,,,,,,,Swap in different help
+ARCH-SCOPE-CHECK,First,cards,replace_e,1,,Swap one helper for another,manual,,,,,,,Swap one helper for another
 ARCH-SCOPE-CHECK,First,dice,dice_outcome,W Cards,,See what the design adds,manual,,,,,,,See what the design adds
 ARCH-SCOPE-CHECK,First,time,add,50,,Spend 50 days,auto,,,,,,,
 ARCH-SCOPE-CHECK,Subsequent,cards,draw_L,1,dice_roll_6,Draw 1 if you roll a 6 L cards,auto,,,,,,,
@@ -92,11 +92,11 @@ OWNER-DECISION-REVIEW,Subsequent,dice,dice_outcome,W Cards,,See the owner's call
 OWNER-DECISION-REVIEW,Subsequent,dice,dice_outcome,E cards,,See who he sends you,manual,,,,,,,See who he sends you
 OWNER-DECISION-REVIEW,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
 CHEAT-BYPASS,First,cards,draw_L,1,dice_roll_3,Draw 1 if you roll a 3 L cards,auto,,,,,,,
-CHEAT-BYPASS,First,cards,return_e,1,,Cut back your help,manual,,,,,,,Cut back your help
+CHEAT-BYPASS,First,cards,return_e,1,,Let one helper go,manual,,,,,,,Let one helper go
 CHEAT-BYPASS,First,dice,dice_outcome,Time outcomes,,See if it costs you time,manual,,,,,,,See if it costs you time
 CHEAT-BYPASS,First,dice,dice_outcome,Fees Paid,,See what the fine is,manual,,,,,,,See what the fine is
 CHEAT-BYPASS,Subsequent,cards,draw_L,1,dice_roll_4,Draw 1 if you roll a 4 L cards,auto,,,,,,,
-CHEAT-BYPASS,Subsequent,cards,return_e,1,,Cut back your help,manual,,,,,,,Cut back your help
+CHEAT-BYPASS,Subsequent,cards,return_e,1,,Let one helper go,manual,,,,,,,Let one helper go
 CHEAT-BYPASS,Subsequent,dice,dice_outcome,Time outcomes,,See how long it sets you back,manual,,,,,,,See how long it sets you back
 CHEAT-BYPASS,Subsequent,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
 REG-DOB-FEE-REVIEW,First,cards,draw_L,1,dice_roll_5,Draw 1 if you roll a 5 L cards,auto,,,,,,,
@@ -105,7 +105,7 @@ REG-DOB-FEE-REVIEW,First,dice,dice_outcome,Time outcomes,,See how long the count
 REG-DOB-FEE-REVIEW,First,time,add,10,,Spend 10 days,auto,,,,,,,
 REG-DOB-FEE-REVIEW,First,fee,deduct,1%,,Pay 1% fees,auto,LOAN_PERCENTAGE,,,,,,
 REG-DOB-FEE-REVIEW,Subsequent,cards,draw_L,1,dice_roll_6,Draw 1 if you roll a 6 L cards,auto,,,,,,,
-REG-DOB-FEE-REVIEW,Subsequent,cards,replace_e,1,,Swap in different help,manual,,,,,,,Swap in different help
+REG-DOB-FEE-REVIEW,Subsequent,cards,replace_e,1,,Swap one helper for another,manual,,,,,,,Swap one helper for another
 REG-DOB-FEE-REVIEW,Subsequent,dice,dice_outcome,Time outcomes,,See how long the counter takes,manual,,,,,,,See how long the counter takes
 REG-DOB-FEE-REVIEW,Subsequent,time,add,10,,Spend 10 days,auto,,,,,,,
 REG-DOB-FEE-REVIEW,Subsequent,fee,deduct,Based on dice roll,,Pay Based on dice roll fees,auto,DICE_BASED,,,,,,
@@ -153,7 +153,7 @@ CON-ISSUES,Subsequent,cards,draw_L,1,dice_roll_6,Draw 1 if you roll a 6 L cards,
 CON-ISSUES,Subsequent,cards,draw_E,The person to your right takes a card.,,Pass help to your right,manual,,,,,,,Pass help to your right
 CON-ISSUES,Subsequent,dice,dice_outcome,Time outcomes,,See how long it slows you,manual,,,,,,,See how long it slows you
 CON-INSPECT,First,cards,draw_L,1,dice_roll_1,Draw 1 if you roll a 1 L cards,auto,,,,,,,
-CON-INSPECT,First,cards,return_e,1,,Cut back your help,manual,,,,,,,Cut back your help
+CON-INSPECT,First,cards,return_e,1,,Let one helper go,manual,,,,,,,Let one helper go
 CON-INSPECT,First,dice,dice_outcome,Time outcomes,,See how long the inspection takes,manual,,,,,,,See how long the inspection takes
 CON-INSPECT,Subsequent,cards,draw_L,1,dice_roll_2,Draw 1 if you roll a 2 L cards,auto,,,,,,,
 CON-INSPECT,Subsequent,cards,draw_E,2,,Bring in extra hands,manual,,,,,,,Bring in extra hands
