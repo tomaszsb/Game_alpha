@@ -5,24 +5,24 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** September 4, 2026
+**Last Updated:** September 6, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.51 — LIVE.** Verified 2026-09-05: `/health` → `e5cc6a0`, equal to master HEAD. (This line claimed "pending deploy" for a full day after v3.2.51 went live and misled two sessions into nearly redeploying it — `/health` is the authority, never this file.) 3.2.46 stays permanently skipped; its commit landed renumbered as v3.2.49 and the `hold/` branch was deleted 2026-09-04 once its source was verified byte-identical to master.
+**Current Version:** **3.2.52 — LIVE and verified.** `/health` → `648e212` (contains v3.2.52's `c091b5c`; `648e212` is a docs-only commit the Manager session added on top). Both halves confirmed against the live host: the data file serves the new labels, and the live `index-*.js` chunk carries the new code strings with `Determine Outcome` and `Moving to:` at zero. 3.2.46 stays permanently skipped; its commit landed renumbered as v3.2.49.
 
 ## Current sprint
-**Onboarding Phase C — teaching a beginner the game instead of testing whether they already know it.** The audience fork was answered 2026-09-03 (**beginners, not insiders**), and two halves have now shipped against it. v3.2.50 gave the 27 board tiles distinct plain-English names, closing a defect nobody had logged: 12 of 27 tiles shared a label with another tile because `shortName()` strips the NPC prefix. **v3.2.51 did the same for the buttons** — a player was landing on "Cut a Corner" and being asked to "Determine Fee Amount", and `Determine …` covered 31 of the 45 dice buttons.
+**Onboarding Phase C — teaching a beginner the game instead of testing whether they already know it.** Three halves have now shipped against the 2026-09-03 audience fork (**beginners, not insiders**): v3.2.50 named the 27 board tiles, v3.2.51 authored 81 button labels, and **v3.2.52 fixed the places those labels never actually reached.**
 
-Underneath the wording, both halves turned out to be the *same structural defect*: **0 of 80 manual effect rows had ever carried an authored `button_label`**, exactly as 22 of 27 tiles had fallen through `shortName()`. And in both cases **no schema change was needed** — `w_/b_/i_/e_card_label` in `Spaces.csv` and `button_label` in `DiceRoll Info.csv` already existed, already read by the pipeline, and sat at 0% populated. 81 labels are now authored, the maintainer's wording verbatim.
+v3.2.52 came off the 2026-09-05 robot playtest and its root cause was v3.2.51's own. `collapsePairedDiceActions` merges two dice rows that share one physical roll into a single button — and on merging, **overwrites the authored label** with a hardcoded `COLLAPSED_DICE_LABEL`. On 8 space/visit combinations, so **16 of the 46 authored dice labels never reached a player**, and the bureaucrat wording the maintainer's rule forbids survived in the one slot the CSV guard structurally cannot see. Same family as v3.2.51's own generator bug, one stage later: there the generator wrote the wrong column, here the renderer overwrites the right one.
 
-The rule he set is worth carrying: *"buttons say what you're doing, in everyday words. No trade jargon on buttons."* The reason is structural rather than stylistic — `TextWithTerms` renders `<span role="button">` with `stopPropagation()`, so a glossary link inside a real `<button>` swallows the click. **A button is the one surface where a hard word can never explain itself**, which is why "expeditor" came off every button including `return_e`, and why vocabulary is taught in story prose and the glossary instead.
+Two more of v3.2.51's labels were fixed on their own merits: "Cut back your help" (the report's #1 confusion at 57 hits) never said it costs you *one* helper or that they are gone. Now "Let one helper go" / "Swap one helper for another", maintainer's wording.
 
-**Still open in Phase C, and the bulk of it: the tutorial, tooltips and micro-lessons.** Tiles and buttons were the mechanical half.
+**Still open in Phase C, and the bulk of it: the tutorial, tooltips and micro-lessons.** Tiles, buttons and now label delivery were all the mechanical half.
 
 ## Health
-- **Tests (v3.2.51):** `npm test` **3096/3096 across 202 files**, `npm run test:ghost` **33/33 across 10 files**, 0 failures either way. Typecheck ✅, production build ✅.
-- **Ghost baseline unchanged and re-confirmed:** `ghostPlayerSmartBot` at `baseSeed=100001` is **50 wins / 0 failures / 0 hard / avgTurns 70.8 / longGames 21** — now reproduced byte-identically on a **fourth** distinct tree. **Do not chase the old 47/3/0/86.9**; it belongs to the pre-v3.2.48 era when log volume moved the dice, and cannot return by construction.
+- **Tests (v3.2.52):** `npx vitest run` — the **whole** suite including ghost — **3130/3130 across 212 files**, 0 failures. Typecheck ✅, production build ✅. (`npm test` alone is the 202-file/3097 subset; `npm run test:ghost` is the other 10 files/33.)
+- **Ghost baseline:** all four ghost suites pass, win-rate floor included. **Caveat, recorded honestly:** this run's reporter did not print the smart-bot batch line, so 50/0/0/70.8/21 was *not* directly observed this session — only the assertions passing. **Do not chase the old 47/3/0/86.9**; it belongs to the pre-v3.2.48 era when log volume moved the dice, and cannot return by construction.
 - **Security:** `npm audit` 0 vulnerabilities as of v3.2.44.
-- **Deploy:** ✅ **v3.2.51 is deployed** (`/health` → `e5cc6a0` = HEAD, checked 2026-09-05). Verify *content* by finding the chunk locally first (`grep -rl "<string>" dist/assets/*.js`) — but note v3.2.51's change is in the **data files**, not the bundle, so the real check is `/health` plus `/data/CLEAN_FILES/SPACE_EFFECTS.csv`.
+- **Deploy:** ✅ live and content-verified (see Current Version above). **Verify content by finding the chunk locally first** (`grep -rl "<string>" dist/assets/*.js`) — the build is code-split, so grepping `index-*.js` for a string that lives elsewhere gives a false failure. Data-file changes need `/data/CLEAN_FILES/SPACE_EFFECTS.csv` as well as `/health`.
 - **Dashboard feedback:** fb:93449bf2 remains deliberately unflipped — it needs the maintainer's eyes on the real television, which a deploy alone cannot settle.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)

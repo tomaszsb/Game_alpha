@@ -2,6 +2,15 @@
 
 ---
 
+## v3.2.52 — Some of last week's new buttons never actually reached you (September 6, 2026)
+
+- **Sixteen of the new plain-English button labels were being thrown away right before you saw them.** On four spaces — Cut a Corner, Hire a Builder, Investor Review and Owner Decides — the game combines two results into one button. When it combined them, it also deleted the new wording and put the old *"Determine Outcome"* back. So on those spaces you were still reading last month's language even though the new words had been written. That button now says **"See what happens."**
+- **"Cut back your help" is gone.** It was the single most confusing thing in the game, and it was one of last week's own new labels. It never told you that you lose exactly **one** person, or that they don't come back. It now says **"Let one helper go."** Its partner, *"Swap in different help,"* is now **"Swap one helper for another."**
+- **A button was telling you you'd already moved when you hadn't.** It said *"✅ Moving to: Bank Review"* — but you hadn't gone anywhere, you'd only picked a place, and you could still change your mind. It now says **"Move — you picked Bank Review."**
+- **Things you'd already finished were listed under "Things you can do."** Finished actions stay on screen, grayed out, so you can see what you did this turn — but they were sitting under a heading that promised the opposite. They now have their own heading: **"Already done this turn."**
+- **The game kept stating rules without saying what they were about.** *"Finish your other actions first"* — which actions? *"You can switch until you end your turn"* — switch what? *"Move — 2 options"* — what two? Each one now names the thing: **"Finish 'See what the plan covers' first,"** **"You can change where you're going until you end your turn,"** and **"Move — Bank Review or Investor Review."**
+- **How we found it, and what we didn't change.** The overnight robot flagged twenty-eight complaints about checkmarks making buttons look already-pressed. Twenty-five of them were wrong — those grayed-out rows really had been done, and they aren't buttons at all. Checking each complaint against the game instead of trusting the list is what turned up the much bigger problem hiding underneath: the labels that were being deleted.
+
 ## v3.2.51 — Every button now says what it does (September 4, 2026)
 
 - **The buttons you press have been rewritten in plain English.** You were landing on a space called "Cut a Corner" and being asked to *"Determine Fee Amount."* Now it says **"See what the fine is."** The most common button in the whole game used to say *"Determine Time Impact"* — it now says things like **"See how long the inspection takes"** or **"See how long you're stopped,"** depending on where you are.
