@@ -17,6 +17,7 @@ import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { interpolateTemplate, resolveFundingAmountToken } from '../utils/templateInterpolation';
 import { calculateOwnerSeedMoney } from '../utils/ownerSeedMoney';
 import { debugWarn } from '../utils/debugLog';
+import { isSkippableEffectAction } from '../utils/skippableActions';
 
 export class ManualActionProcessor {
   private readonly conditionEvaluator: ConditionEvaluator;
@@ -142,7 +143,7 @@ export class ManualActionProcessor {
 
     // Check if this was a skippable action that was NOT completed (user pressed cancel/skip)
     // Also check if it was an impossible action (auto-completed, no modal needed)
-    const isSkippableAction = action && (action.startsWith('replace_') || action.startsWith('give_') || action.startsWith('return_'));
+    const isSkippableAction = action !== null && isSkippableEffectAction(action);
     if (isSkippableAction) {
       const compoundKey = `${baseType}:${action}`;
       const manualActions = afterState.completedActions?.manualActions || {};
@@ -571,7 +572,7 @@ export class ManualActionProcessor {
       // For draw actions, they always succeed
       // EXCEPTION: If action is IMPOSSIBLE (not just skipped), auto-complete it
       const action = effect.effect_action.toLowerCase();
-      const isSkippableAction = action.startsWith('replace_') || action.startsWith('return_') || action.startsWith('give_');
+      const isSkippableAction = isSkippableEffectAction(action);
 
       // Check if action was impossible (not just skipped by user)
       // Messages like "Cannot give card to self", "No E cards to give", etc. indicate impossibility

@@ -42,13 +42,8 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'DICE_BUTTON.INVESTMENT': 'Seek Investments',
   'DICE_BUTTON.LIFE_EVENT': 'Check for Life Events',
   'DICE_BUTTON.FEE': 'Determine Fee Amount',
-  'DICE_BUTTON.FUNDING': 'Determine Funding',
   'DICE_BUTTON.TIME': 'Determine Time Impact',
   'DICE_BUTTON.QUALITY': 'Assess Quality',
-  'DICE_BUTTON.EFFECTS': 'Determine Effects',
-  'DICE_BUTTON.BONUS': 'Check for Bonus',
-  'DICE_BUTTON.BONUS_FUNDING': 'Check for Bonus Funding',
-  'DICE_BUTTON.BONUS_EFFECTS': 'Check for Bonus Effects',
   'DICE_BUTTON.NEXT_STEP': 'Determine Next Step',
   'DICE_BUTTON.OUTCOME': 'Determine Outcome',
 
@@ -197,7 +192,17 @@ export function configureUIStrings(rows: UIStringCsvRow[]): void {
  */
 export const _testOnly = { resetUIStringOverrides: () => UI_STRING_OVERRIDES.clear() };
 
-// --- Dice roll button labels (formatDiceRollButton) ---
+// --- Dice roll button labels ---
+// Consumed by formatManualEffectButton (the live dice-action path) and by the
+// editor's PlayerPreviewPanel. FUNDING / EFFECTS / BONUS / BONUS_FUNDING /
+// BONUS_EFFECTS were removed with formatDiceRollButton (2026-09-07): it was
+// their only reader, so they were five bureaucrat-voiced labels ("Determine
+// Funding", "Check for Bonus") that no surface in the game could render.
+// Their UI_STRINGS.csv rows are deliberately left in place — nothing reads
+// them and no editor lists them, so removing them would only churn a
+// deployed data file and a resolved classroom instance. OUTCOME stays: it is
+// the editor preview's fallback for a dice row nobody has labelled yet,
+// where naming the absence is the point.
 export const DICE_BUTTON = {
   get WORK() { return getUIString('DICE_BUTTON.WORK'); },
   get BANK() { return getUIString('DICE_BUTTON.BANK'); },
@@ -205,13 +210,8 @@ export const DICE_BUTTON = {
   get INVESTMENT() { return getUIString('DICE_BUTTON.INVESTMENT'); },
   get LIFE_EVENT() { return getUIString('DICE_BUTTON.LIFE_EVENT'); },
   get FEE() { return getUIString('DICE_BUTTON.FEE'); },
-  get FUNDING() { return getUIString('DICE_BUTTON.FUNDING'); },
   get TIME() { return getUIString('DICE_BUTTON.TIME'); },
   get QUALITY() { return getUIString('DICE_BUTTON.QUALITY'); },
-  get EFFECTS() { return getUIString('DICE_BUTTON.EFFECTS'); },
-  get BONUS() { return getUIString('DICE_BUTTON.BONUS'); },
-  get BONUS_FUNDING() { return getUIString('DICE_BUTTON.BONUS_FUNDING'); },
-  get BONUS_EFFECTS() { return getUIString('DICE_BUTTON.BONUS_EFFECTS'); },
   get NEXT_STEP() { return getUIString('DICE_BUTTON.NEXT_STEP'); },
   get OUTCOME() { return getUIString('DICE_BUTTON.OUTCOME'); },
 };

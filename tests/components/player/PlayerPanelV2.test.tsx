@@ -785,3 +785,122 @@ describe('PlayerPanelV2 — End Turn cost preview drops already-completed action
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 });
+
+/**
+ * The commit spine must name the gate that is ACTUALLY open.
+ *
+ * 2026-09-06 and 2026-09-07 robot playtests: all 12 games were abandoned at
+ * PM-DECISION-CHECK ("Pick Your Path"). The spine read
+ *   Move forward / Finish “Swap one helper for another” above first
+ * while the only outstanding requirement was picking a destination. The named
+ * action is SKIPPABLE — StateService.calculateRequiredActions leaves
+ * replace_/return_/give_ out of `requiredActions` — so doing it could never
+ * clear the gate, and the robot clicked the disabled spine three times and quit.
+ *
+ * Two faults, both covered here:
+ *  1. blockingActionLabels included skippable actions, which by construction
+ *     can never be what is blocking.
+ *  2. `remaining > 0` won the branch race on every choice-movement space
+ *     (movement_choice keeps remaining ≥1 until moveIntent is set), so
+ *     "Pick where you're going first" was unreachable dead code.
+ */
+describe('PlayerPanelV2 — commit spine names the gate that is actually open (2026-09-07 playtest)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  // PM-DECISION-CHECK / First, verbatim from SPACE_EFFECTS.csv + MOVEMENT.csv.
+  const swapEffect: any = {
+    effect_type: 'cards', effect_action: 'replace_e', trigger_type: 'manual',
+    condition: '', effect_value: 1, description: 'Swap one helper for another',
+    button_label: 'Swap one helper for another',
+  };
+  // A genuinely required manual action, for contrast — draw_ is not skippable.
+  const drawEffect: any = {
+    effect_type: 'cards', effect_action: 'draw_e', trigger_type: 'manual',
+    condition: '', effect_value: 1, description: 'Bring in more help',
+    button_label: 'Bring in more help',
+  };
+
+  const setup = (opts: {
+    effects: any[];
+    movementType?: string;
+    requiredActions: number;
+    completedActionCount: number;
+  }) => {
+    vi.clearAllMocks();
+    services = createAllMockServices();
+    const player: any = {
+      id: 'player1', name: 'Test Player', currentSpace: 'PM-DECISION-CHECK',
+      visitType: 'First', money: 100000, timeSpent: 5, color: '#007bff',
+      hand: ['E001'], activeCards: [], activeEffects: [], loans: [],
+      dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {},
+      moveIntent: null,
+    };
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true,
+      awaitingChoice: opts.movementType === 'choice'
+        ? { type: 'MOVEMENT', options: [
+            { id: 'LEND-SCOPE-CHECK', label: 'Lender' },
+            { id: 'ARCH-INITIATION', label: 'Architect' },
+            { id: 'CHEAT-BYPASS', label: 'Shortcut' },
+          ] }
+        : null,
+      requiredActions: opts.requiredActions,
+      completedActionCount: opts.completedActionCount,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Pick Your Path', story: '' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue(opts.effects);
+    services.dataService.getMovement.mockReturnValue(
+      opts.movementType ? { movement_type: opts.movementType } : undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue(opts.effects);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockImplementation((id: string) =>
+      id.startsWith('E') ? { card_id: id, card_type: 'E', card_name: 'Filing Rep' } : null);
+  };
+
+  const renderPanel = () =>
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+
+  afterEach(() => cleanup());
+
+  it('asks for the destination — not the optional swap — when the pick is the only thing missing', () => {
+    // Exactly PM-DECISION-CHECK/First: choice movement (+1 required, 0 completed)
+    // and one SKIPPABLE manual action, which contributes nothing to `required`.
+    setup({ effects: [swapEffect], movementType: 'choice', requiredActions: 1, completedActionCount: 0 });
+    renderPanel();
+
+    expect(screen.getByText(/Pick where you.re going first/i)).toBeInTheDocument();
+    // The exact string that stranded 12 of 12 robot playthroughs.
+    expect(screen.queryByText(/Swap one helper for another.{0,3} above first/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Finish 1 thing above first/i)).not.toBeInTheDocument();
+  });
+
+  it('still names a genuinely required action, and does not count the destination pick as one of them', () => {
+    // draw_e is required, replace_e is not: required = 1 (draw) + 1 (movement).
+    setup({ effects: [drawEffect, swapEffect], movementType: 'choice', requiredActions: 2, completedActionCount: 0 });
+    renderPanel();
+
+    // One real blocker outstanding, so it is named — singular, not "2 things".
+    expect(screen.getByText(/Finish .Bring in more help. above first/i)).toBeInTheDocument();
+    expect(screen.queryByText(/2 things above first/i)).not.toBeInTheDocument();
+    // The skippable action is on screen as a button but is never blamed.
+    expect(screen.queryByText(/Swap one helper for another.{0,3} above first/i)).not.toBeInTheDocument();
+  });
+
+  it('is unchanged on a space with no destination to pick (fixed movement)', () => {
+    setup({ effects: [drawEffect], movementType: 'fixed', requiredActions: 1, completedActionCount: 0 });
+    renderPanel();
+
+    expect(screen.getByText(/Finish .Bring in more help. above first/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Pick where you.re going first/i)).not.toBeInTheDocument();
+  });
+});

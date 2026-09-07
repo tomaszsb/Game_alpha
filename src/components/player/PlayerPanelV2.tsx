@@ -27,6 +27,7 @@ import { getEndTurnCostPreview, getTryAgainCostPreview, isManualEffectCompleted 
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
 import { computeProjectFinances } from '../../utils/projectFinances';
+import { isSkippableEffectAction } from '../../utils/skippableActions';
 import { FormatUtils } from '../../utils/FormatUtils';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { getNpcCharacterInfo, getNpcImagePath } from '../../constants/characters';
@@ -277,7 +278,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // drew 6 hits — "unclear which specific actions count as 'other'" — and it was
   // the largest cluster's through-line (the game states a RULE without naming its
   // SUBJECT). Names up to two; past that a list would outrun the row.
-  const blockingActionLabels = visiblePendingActions.map((a) => a.label.replace(/^\u{1F3B2}\s*/u, ''));
+  //
+  // SKIPPABLE actions are excluded, because they are not blocking anything — by
+  // construction. StateService leaves replace_/return_/give_ out of
+  // `requiredActions`, so naming one here pointed the player at a control that
+  // could never clear the gate (see utils/skippableActions.ts for the full
+  // account; it stranded 12 of 12 robot playthroughs on PM-DECISION-CHECK).
+  const blockingActionLabels = visiblePendingActions
+    .filter((a) => !isSkippableEffectAction(a.effectKey))
+    .map((a) => a.label.replace(/^\u{1F3B2}\s*/u, ''));
   const blockingActionPhrase =
     blockingActionLabels.length === 1
       ? `“${blockingActionLabels[0]}”`
@@ -338,6 +347,16 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
 
   const canEndTurn = gameServices.gameRulesService.canEndTurn(playerId);
   const remaining = Math.max(0, gameState.requiredActions - gameState.completedActionCount);
+  // How much of `remaining` is just "you haven't picked a destination yet".
+  // Mirrors StateService.calculateRequiredActions exactly: choice movement adds
+  // +1 to required and only counts as completed once moveIntent is set. Split
+  // out so the reason line can say which of the two things is actually missing —
+  // before this, the "Finish … above first" branch always won on choice spaces
+  // (movement_choice keeps `remaining` at ≥1 until a destination is picked), so
+  // "Pick where you're going first" was unreachable and the panel asked for the
+  // wrong thing at every choice space in the game.
+  const movementPickOutstanding = movement?.movement_type === 'choice' && !selectedDestination ? 1 : 0;
+  const blockingActionsRemaining = Math.max(0, remaining - movementPickOutstanding);
 
   // This turn's tab so far (fb:06f7da3b / b53864af) — the money paid and the
   // days added by this visit, echoed under the commit spine so ending the turn
@@ -462,12 +481,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     commit = {
       label: content?.end_turn_label || 'End turn',
       ready: false,
+      // Say which of the two gates is actually open, in this order: real
+      // outstanding actions first (they must be done before the destination
+      // picker even unlocks — the "show last" rule), then the destination pick.
       subLabel:
-        remaining > 0
-          ? remaining === 1 && blockingActionLabels.length === 1
+        blockingActionsRemaining > 0
+          ? blockingActionsRemaining === 1 && blockingActionLabels.length === 1
             ? `Finish “${blockingActionLabels[0]}” above first`
-            : `Finish ${remaining} thing${remaining === 1 ? '' : 's'} above first`
-          : showMovementOptions && !selectedDestination
+            : `Finish ${blockingActionsRemaining} thing${blockingActionsRemaining === 1 ? '' : 's'} above first`
+          : movementPickOutstanding || (showMovementOptions && !selectedDestination)
           ? 'Pick where you’re going first'
           : 'Not ready yet',
     };

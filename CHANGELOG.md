@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.53] - 2026-09-07
+
+### The commit spine told players to do something that could never unblock it
+
+The 2026-09-06 and 2026-09-07 robot playtests both abandoned **all 12 games in the same place**: `PM-DECISION-CHECK` ("Pick Your Path"), each after three clicks that would not land. The trace is the same both nights — it reaches the space, and from there every remaining move is the commit spine reading:
+
+> **Move forward** — *Finish "Swap one helper for another" above first*
+
+That instruction is impossible to follow. `replace_e` is **skippable**: `StateService.calculateRequiredActions` deliberately leaves `replace_/return_/give_` out of `requiredActions`, because counting them made backing out of the modal a dead-end. So doing the swap changes nothing, and the only outstanding requirement — picking a destination — is never mentioned. The robot did the named thing, watched the gate stay shut, and quit. Twelve times.
+
+Two faults, one screen:
+
+- **`blockingActionLabels` was built from every uncompleted manual action, skippable ones included.** By construction a skippable action can never be what is blocking. Now filtered.
+- **`Pick where you're going first` was unreachable dead code.** Choice movement contributes +1 to `requiredActions` and stays uncompleted until `moveIntent` is set, so `remaining > 0` won the branch race on *every* choice-movement space in the game — 12 of them in `MOVEMENT.csv`. The reason line now splits the movement pick out of `remaining` (mirroring StateService exactly) and names whichever gate is actually open.
+
+This is v3.2.52's own change one step further along. v3.2.52 fixed the sequencing strings that "stated a rule without naming its subject" — this one named a subject, and named the wrong one. **The underlying fault is older than v3.2.52**, which only made the wrong instruction specific: before it, the same branch said the equally-untrue "Finish 1 thing above first".
+
+**What the playtest data does and does not establish** (Manager session raised this, 2026-09-07, and the caution is right even though its timing argument was not). The 09-06 run *did* play v3.2.52 — its report quotes `ALREADY DONE THIS TURN` and `Swap one helper for another`, two strings `git log -S` dates to `c091b5c` and nothing earlier, and the Mac is EDT so the run finished 07:26Z, 47 minutes after the 06:39Z deploy (the earlier reading compared 03:26 local against 06:39 Zulu). But a v3.2.52 screen is not a v3.2.52 regression: the Jarvis agent-runtime update of 2026-09-05 04:30 ended `PATCHES BROKEN` with `[arg-coerce]` in the tool executor, and it lands in the same 09-05 → 09-06 window as the deploy. Games-to-completion fell from 80/80/6 steps to 5–22 in that window and **neither cause can be isolated from these three reports.** So "12 of 12 games abandoned" is not offered here as a measure of severity. The defect was established from the code and the CSV data and demonstrated with a seeded failure; the bot is what pointed at the screen, not what proved the fault.
+
+**Guard:** three cases in [PlayerPanelV2.test.tsx](tests/components/player/PlayerPanelV2.test.tsx), built on the real `PM-DECISION-CHECK`/First data. Verified against a seeded failure: on `56c315c` the two new assertions fail and the fixed-movement control case passes, which is the shape that proves they test the fault and not the fixture.
+
+### The rule that was written four times and obeyed three
+
+`replace_/return_/give_` is skippable — a rule hand-written as a regex in `StateService` and twice in `ManualActionProcessor`, and then **missed** in the fourth place that needed it (the panel's blocking-reason line). That omission is the bug above. All four now call one predicate, [`isSkippableEffectAction`](src/utils/skippableActions.ts), which accepts either a bare action (`replace_e`) or the compound key the panel builds (`cards:replace_e`).
+
+### Dead code: `formatDiceRollButton` and five labels the game could not render
+
+74 lines with zero call sites, plus 206 lines of tests that were the only thing keeping it alive. Removed. Five `DICE_BUTTON` keys were reachable only through it and went with it — `FUNDING`, `EFFECTS`, `BONUS`, `BONUS_FUNDING`, `BONUS_EFFECTS`, all bureaucrat-voiced ("Determine Funding", "Check for Bonus") and all unrenderable.
+
+**TODO.md said six keys.** `NEXT_STEP` is live in two places — `formatManualEffectButton` (the real dice-action path) and the editor's `PlayerPreviewPanel` — and was kept. Their `UI_STRINGS.csv` rows are deliberately left in place: nothing reads them and no editor lists them, so removing them would only churn a deployed data file and a resolved classroom instance.
+
+### Two playtest findings that dissolved on inspection, and one TODO item that was misdescribed
+
+- **"The word 'firs' is cut off"** (3 hits) — not a rendering bug. The subLabel is a `display:block` span inside a button with no fixed height and no `text-overflow`, so it wraps. The report shows two different truncation widths (40 characters in the "Where it went" trace, ~59 in the click labels), which is the signature of the harness's own display caps. The repo already documents this exact class of artifact in a test from 2026-07-24: raw `.textContent` concatenation ignores CSS entirely.
+- **"One malformed row in `SOURCE_FILES/DiceRoll Info.csv`"** (TODO.md) — there is no such row. The file has **57 bare CR characters, one per line**, sitting between column 9 and column 10 — exactly where the `button_label` and `roll_group` columns were appended. A strict CSV reader splits every record in two, and the header's tail fragment (`,button_label,roll_group`) is what someone read as "a row with blank `space_name`". `CARDS_EXPANDED.csv` has the same pattern, 367 of them. **Not a live defect:** `DataService.parseCsvLine` calls `.trim()` on every field, so a lone CR becomes `""` and `"Residential<CR>"` becomes `"Residential"` before any consumer sees it — and `DICE_ROLL_INFO.csv` is not among the files `DataService` fetches at all. It only breaks external/strict CSV tooling. TODO.md corrected rather than acted on; normalizing deployed data files is the maintainer's call, not a drive-by.
+- Also noted, not acted on: `server/data/game-data/SOURCE_FILES/DiceRoll Info.csv` carries **none** of the 46 authored dice `button_label` values that the `public/data` copy has. Flagged rather than copied — blind-copying between those trees is a documented trap.
+
+### Verification
+
+`npx vitest run` — the whole suite including ghost. Typecheck clean.
+
 ## [3.2.52] - 2026-09-06
 
 ### v3.2.51's dice labels were deleted before they reached the screen, on 4 spaces

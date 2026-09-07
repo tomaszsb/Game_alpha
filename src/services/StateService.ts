@@ -25,6 +25,7 @@ import { TurnStateManager } from './TurnStateManager';
 import { ServerSyncService, StateProvider } from './ServerSyncService';
 import { GameEvent } from '../types/GameEvents';
 import { GameEventBus } from './GameEventBus';
+import { isSkippableEffectAction } from '../utils/skippableActions';
 
 // Domain-event stage 2 (docs/design/domain-events.md): LifeEventEffectSummary
 // and the former AutoActionEvent now live in types/GameEvents.ts as the typed
@@ -1070,13 +1071,14 @@ export class StateService implements IStateService {
         }
 
         // Skippable/optional manual actions (expeditor replace/return/give) must
-        // NOT gate the move. They're optional — TurnService treats the same
-        // action prefixes as skippable (see TurnService.ts isSkippableAction:
-        // replace_/return_/give_). Counting them as required made backing out of
-        // the modal a dead-end (Move stayed disabled with no Skip). Surface the
-        // button (availableTypes above) but don't add to `required`.
-        const isSkippable = /^(replace_|return_|give_)/.test(effect.effect_action || '');
-        if (isSkippable) {
+        // NOT gate the move. They're optional — ManualActionProcessor treats the
+        // same action prefixes as skippable. Counting them as required made
+        // backing out of the modal a dead-end (Move stayed disabled with no
+        // Skip). Surface the button (availableTypes above) but don't add to
+        // `required`. Shared predicate, not a local regex: this rule had been
+        // written by hand in three files and then missed in a fourth
+        // (PlayerPanelV2's blocking-reason line) — see utils/skippableActions.ts.
+        if (isSkippableEffectAction(effect.effect_action)) {
           return;
         }
 
