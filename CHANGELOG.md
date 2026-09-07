@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.54] - 2026-09-07
+
+### The teaching layer, first increment: hard words can finally explain themselves
+
+v3.2.51 put plain words on every action button — "Let one helper go", not "Return Expeditor" — and that was right, but it only solved half the problem. A beginner now learns **what to press** and still nothing about **what it means**. The words the game exists to teach had been removed from the one surface a new player actually reads.
+
+They could not simply be put back. The constraint is structural, not stylistic: `TextWithTerms` renders a glossary term as `<span role="button">` with `stopPropagation()`, so a term nested inside a real `<button>` swallows the press. A button is the one surface where a hard word can never define itself.
+
+So the explanation goes **beside** the button instead of inside it. Every row under "Things you can do" now carries a **"What's this?"** control as a *sibling* of the action button — never a child — which opens the authored explanation for that action, with glossary terms live inside it. The action button's own click path is untouched.
+
+The chain a beginner now walks, verified end to end in the running app:
+
+> **⚡ Bring in extra help** → press **?** → *"**Expeditors** are your secret weapon. They provide special abilities to speed up approvals or avoid problems."* → tap **Expeditors** → *"A person who is an expert at navigating the city's confusing paperwork and rules to get permits faster."*
+
+Nothing new was authored to make this work. `ACTION_TOOLTIPS.csv` already held **44 rows** of teaching copy and `TooltipService` was already loaded at startup — and **read by nothing**. `getManualEffectTooltip` already did the exact lookup and had **zero call sites**. This increment connects what was already there.
+
+### The glossary had never once highlighted a plural
+
+Building the above surfaced why the explanation panel first rendered as flat, unlinked text. The highlighter builds its regex from the word index with `...` boundaries, so `Expeditor` cannot match "Expeditors" — the trailing "s" is a word character, so the closing boundary fails. And **none of the 249 terms carried its own plural as an alias**. Construction copy is made of plurals, so the teaching surface was dark exactly where it reads most naturally.
+
+Fixed by generating regular plurals into the **existing** word index rather than loosening the regex — the matcher, its boundaries and `findTermByWord` all stay untouched, and a generated form can never shadow an authored term or alias. Compounds pluralise on their last word, which is what makes "Work Package" → "Work Packages" work.
+
+Measured against the shipped copy: **257 plurals generated, 0 shadowing an authored word, and 25 of them actually occur in the game's own text** — `expeditors` (9), `permits` (6), `investors` (5), `inspectors` (4), `change orders` (3), `filings` (3), `loans` (3), `inspections`, `audits`, `engineers`, `materials`, `complaints`, `negotiations`. Every one is a teaching link that did not exist before.
+
+### The glossary's own header row was a live term
+
+Measuring the above turned up `GLOSSARY.csv` row 244: `id="id"`, `term="term"`, `definition="definition"`, `category="category"` — the header line pasted back into the data. It was a real glossary entry. The word "term" highlighted throughout the game — 10 times in the loan and negotiation copy alone ("lock in the terms", "push for better terms") — and opened a definition that read, literally, **"definition"**. A beginner following the one affordance built to explain hard words was shown the spreadsheet's plumbing.
+
+Guarded in the parser rather than deleted from the CSV: the nightly glossary scraper regenerates that file and the dashboard API is the primary source, so a data edit would not stay fixed. Detection requires **two** fields to agree — "term" alone is a word someone might legitimately define.
+
+### Verification
+
+Full suite including ghost, typecheck and build clean. Verified in the running app at desktop and at a 375px phone viewport: **zero horizontal overflow**, action button 299px, and the "What's this?" control raised to a **44×46** touch target after measuring it at 34px wide — under the touch-target floor.
+
+**The copy is the next question, and it is the maintainer's.** These 44 rows were written before the 2026-09-03 "beginners, not insiders" fork and they still read like it ("Expeditors are your secret weapon"). The surface is built and the wiring is proven; the voice pass is a separate decision.
+
 ## [3.2.53] - 2026-09-07
 
 ### The commit spine told players to do something that could never unblock it

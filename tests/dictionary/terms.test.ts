@@ -16,7 +16,9 @@ import {
   getTermsByCategory,
   getCategories,
   clearCache,
-  isAiGenerated
+  isAiGenerated,
+  regularPlural,
+  isHeaderEchoTerm
 } from '../../src/dictionary/data/terms';
 
 // Mock fetch globally
@@ -464,5 +466,54 @@ describe('Dictionary Terms Module', () => {
       expect(findTermByWord('ACRIS')).toBeUndefined();
       expect(isGlossaryTerm('HVAC')).toBe(false);
     });
+  });
+});
+
+/**
+ * Plural highlighting + the header-echo guard (Onboarding Phase C, v3.2.54).
+ *
+ * The highlighter builds its regex from the word index with \b...\b boundaries,
+ * so "Expeditor" could never match "Expeditors" — and NONE of the 249 authored
+ * terms carried its own plural as an alias. Construction copy is full of
+ * plurals, so the teaching surface was dark exactly where it reads most
+ * naturally: 25 distinct plurals appear in the shipped game copy (expeditors 9,
+ * permits 6, investors 5, inspectors 4, filings 3, loans 3...).
+ */
+describe('regularPlural', () => {
+  it('forms regular plurals, including the compound case that matters most', () => {
+    expect(regularPlural('Expeditor')).toBe('Expeditors');
+    expect(regularPlural('Permit')).toBe('Permits');
+    // Compounds pluralise on the LAST word — this is what makes the game's own
+    // card-type noun work.
+    expect(regularPlural('Work Package')).toBe('Work Packages');
+    expect(regularPlural('Change Order')).toBe('Change Orders');
+    // Sibilant and consonant-y endings.
+    expect(regularPlural('Box')).toBe('Boxes');
+    expect(regularPlural('Branch')).toBe('Branches');
+    expect(regularPlural('Agency')).toBe('Agencies');
+    // Vowel-y takes a plain s, not -ies.
+    expect(regularPlural('Survey')).toBe('Surveys');
+  });
+
+  it('declines to guess where a guess would be wrong or useless', () => {
+    expect(regularPlural('Fees')).toBeNull();       // already plural
+    expect(regularPlural('DOB')).toBe('DOBs');      // plain alphabetic acronym is fine
+    expect(regularPlural('LL 79/16')).toBeNull();   // not a noun — punctuation/digits
+    expect(regularPlural('CO')).toBeNull();         // too short to inflect safely
+    expect(regularPlural('')).toBeNull();
+  });
+});
+
+describe('isHeaderEchoTerm', () => {
+  it('rejects the CSV header pasted back into the data', () => {
+    // GLOSSARY.csv row 244, verbatim in shape.
+    expect(isHeaderEchoTerm({ id: 'id', term: 'term', definition: 'definition', category: 'category' })).toBe(true);
+  });
+
+  it('needs two fields to agree, so a real entry is never dropped', () => {
+    // "Term" is a legitimate word someone might genuinely define; one match
+    // alone must not disqualify it.
+    expect(isHeaderEchoTerm({ id: 'term-loan', term: 'Term', definition: 'The length of a loan.', category: 'Finance' })).toBe(false);
+    expect(isHeaderEchoTerm({ id: 'permit', term: 'Permit', definition: 'Written permission to build.', category: 'Construction' })).toBe(false);
   });
 });

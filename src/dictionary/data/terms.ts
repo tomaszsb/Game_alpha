@@ -81,7 +81,33 @@ function parseGlossaryCsv(csvText: string): GlossaryTerm[] {
       sourceUrl: getField(fields, 'source_url') || undefined,
       instagramLink: getField(fields, 'instagram_link') || undefined
     };
-  }).filter(term => term.id && term.term);
+  }).filter(term => term.id && term.term && !isHeaderEchoTerm(term));
+}
+
+/**
+ * True when a "term" is really the CSV's own header line, pasted back into the
+ * data. GLOSSARY.csv carries exactly one of these (id="id", term="term",
+ * definition="definition", category="category", aliases="aliases"), and until
+ * this guard it was a live glossary entry: the word "term" highlighted
+ * throughout the game — 10 times in the loan and negotiation copy alone
+ * ("lock in the terms", "push for better terms") — and opened a definition
+ * that read, literally, "definition". A beginner following the one affordance
+ * built to explain hard words got shown the spreadsheet's plumbing.
+ *
+ * Guarded here rather than deleted from the CSV because the nightly glossary
+ * scraper regenerates that file and the dashboard API is the primary source,
+ * so a data edit would not stay fixed. Detection needs two fields to agree —
+ * "term" alone is a legitimate word someone might define.
+ */
+export function isHeaderEchoTerm(term: { id?: string; term?: string; definition?: string; category?: string }): boolean {
+  const eq = (v: string | undefined, name: string) => (v || '').trim().toLowerCase() === name;
+  const echoes = [
+    eq(term.id, 'id'),
+    eq(term.term, 'term'),
+    eq(term.definition, 'definition'),
+    eq(term.category, 'category'),
+  ].filter(Boolean).length;
+  return echoes >= 2;
 }
 
 // Dashboard API endpoint (primary source — live data)
@@ -242,17 +268,77 @@ function buildCaches(): void {
     termsByIdCache!.set(term.id, term);
   });
 
-  // Build word cache (includes term name and aliases, lowercase)
+  // Build word cache (includes term name, aliases and regular plurals, lowercase)
   termsByWordCache = new Map();
-  termsCache.forEach(term => {
-    // Add the main term (lowercase)
-    termsByWordCache!.set(term.term.toLowerCase(), term);
+  const addWord = (word: string, term: GlossaryTerm, generated: boolean) => {
+    const key = word.toLowerCase();
+    if (!key) return;
+    // An authored term or alias always beats a generated plural. Real
+    // term/alias collisions keep their previous last-wins behaviour; only the
+    // generated forms defer.
+    if (generated && termsByWordCache!.has(key)) return;
+    termsByWordCache!.set(key, term);
+  };
 
-    // Add aliases (lowercase)
-    term.aliases.forEach(alias => {
-      termsByWordCache!.set(alias.toLowerCase(), term);
-    });
+  termsCache.forEach(term => {
+    addWord(term.term, term, false);
+    term.aliases.forEach(alias => addWord(alias, term, false));
   });
+  // Second pass, so no generated plural can shadow a real term or alias.
+  termsCache.forEach(term => {
+    // Only invent a word form for an entry that can actually define itself —
+    // widening the reach of a definition-less stub just spreads a dead end.
+    if (!(term.definition || term.definitionSimple || '').trim()) return;
+    for (const word of [term.term, ...term.aliases]) {
+      const plural = regularPlural(word);
+      if (plural) addWord(plural, term, true);
+    }
+  });
+}
+
+/**
+ * Regular English plural of a glossary word, or null when we shouldn't guess.
+ *
+ * Why this exists: the highlighter builds its regex from the word index with
+ * \b...\b boundaries, so "Expeditor" cannot match "Expeditors" — the trailing
+ * "s" is a word character, so the closing boundary fails. NONE of the 249 terms
+ * carried its own plural as an alias, so the glossary silently highlighted
+ * nothing in any sentence using a plural. Construction copy is full of them
+ * ("Expeditors", "permits", "Work Packages"), which left the teaching surface
+ * dark exactly where it reads most naturally.
+ *
+ * Generating the form and registering it in the existing index is deliberately
+ * preferred over loosening the regex: the matcher, its word boundaries and
+ * findTermByWord all stay untouched, and a generated form can never shadow an
+ * authored term or alias (see addWord above).
+ *
+ * Compound terms pluralise on their LAST word, which is what makes
+ * "Work Package" -> "Work Packages" work. It also produces the ungrammatical
+ * "Certificate of Occupancies", which is harmless: no copy contains that
+ * string, so it can never produce a false positive.
+ */
+export function regularPlural(word: string): string | null {
+  const w = word.trim();
+  if (w.length < 3) return null;
+  const parts = w.split(/\s+/);
+  const head = parts.slice(0, -1);
+  const last = parts[parts.length - 1];
+  if (last.length < 3) return null;
+  // Already plural (or sibilant-final) — leave it alone rather than mangle it.
+  if (/s$/i.test(last)) return null;
+  // Only inflect plain alphabetic words: abbreviations with punctuation, codes
+  // and IDs are not nouns we should be guessing plurals for.
+  if (!/^[a-z]+$/i.test(last)) return null;
+
+  let pluralLast: string;
+  if (/(x|z|ch|sh)$/i.test(last)) {
+    pluralLast = last + 'es';
+  } else if (/[^aeiou]y$/i.test(last)) {
+    pluralLast = last.slice(0, -1) + 'ies';
+  } else {
+    pluralLast = last + 's';
+  }
+  return [...head, pluralLast].join(' ');
 }
 
 /**

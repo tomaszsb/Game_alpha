@@ -17,7 +17,7 @@ import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { PanelMode, panelPalettes } from './panelTheme';
 import { shortName } from '../../utils/boardCommon';
 import { colors } from '../../styles/theme';
-import { formatManualEffectButton } from '../../utils/buttonFormatting';
+import { formatManualEffectButton, getManualEffectTooltip } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
 import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
 import { PlayerNumbersV2 } from './PlayerNumbersV2';
@@ -122,6 +122,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // stays visible/switchable per fb:c2e489dc — this only collapses the FIRST
   // look, it never hides options again after you've opened the picker.
   const [showMoveOptions, setShowMoveOptions] = useState(false);
+  // Teaching layer (Onboarding Phase C). Which action row has its "What's this?"
+  // explanation open, by effectKey; null = none. One at a time — the panel is a
+  // phone/TV-width column and two open cards push the commit spine off-screen.
+  const [openWhy, setOpenWhy] = useState<string | null>(null);
   const currentSpaceForPopup = gameServices.stateService.getPlayer(playerId)?.currentSpace ?? null;
 
   useEffect(() => {
@@ -260,6 +264,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       icon: isDiceEffect ? '🎯' : formatted.icon,
       isCompleted,
       isDiceEffect,
+      // Kept so the "What's this?" disclosure can ask getManualEffectTooltip for
+      // this row's authored teaching copy. collapsePairedDiceActions is generic
+      // over CollapsibleAction, so the extra field survives the collapse.
+      effect,
     };
   });
   const pendingActions = collapsePairedDiceActions(mapped);
@@ -873,21 +881,86 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         (visiblePendingActions.length > 0 || doneActionTraces.length > 0 || showMovementOptions) && (
         <div style={pad}>
           <p style={zlbl}>Things you can do</p>
-          {visiblePendingActions.map((a) => (
-            <button
-              key={a.effectKey}
-              className={firstVisitHint ? 'uc-hint-glow' : undefined}
-              style={actionBtn}
-              disabled={a.isDiceEffect && isRollingDice}
-              onClick={() =>
-                a.isDiceEffect && onRollDice ? handleDiceRoll() : handleManualEffect(a.effectKey)
-              }
-            >
-              {a.isDiceEffect && isRollingDice
-                ? 'Deciding…'
-                : `${a.icon ? a.icon + ' ' : ''}${a.label.replace(/^🎲\s*/, '')}`}
-            </button>
-          ))}
+          {visiblePendingActions.map((a) => {
+            // Teaching layer (Onboarding Phase C, v3.2.54). The explanation is a
+            // SIBLING of the action button, never a child, and that is structural
+            // rather than stylistic: TextWithTerms renders a glossary term as
+            // <span role="button"> with stopPropagation(), so a term nested inside
+            // a real <button> swallows the press. That constraint is why v3.2.51
+            // put plain words on the buttons — which told a beginner what to press
+            // and nothing about what it means. Explaining alongside the button is
+            // the only place the two can coexist, so this is where the hard words
+            // finally get to define themselves.
+            const why = getManualEffectTooltip(a.effect);
+            const isOpen = openWhy === a.effectKey;
+            return (
+              <div key={a.effectKey}>
+                <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
+                  <button
+                    className={firstVisitHint ? 'uc-hint-glow' : undefined}
+                    style={{ ...actionBtn, flex: 1, width: 'auto' }}
+                    disabled={a.isDiceEffect && isRollingDice}
+                    onClick={() =>
+                      a.isDiceEffect && onRollDice ? handleDiceRoll() : handleManualEffect(a.effectKey)
+                    }
+                  >
+                    {a.isDiceEffect && isRollingDice
+                      ? 'Deciding…'
+                      : `${a.icon ? a.icon + ' ' : ''}${a.label.replace(/^🎲\s*/, '')}`}
+                  </button>
+                  <button
+                    type="button"
+                    // Named for the question a beginner actually asks. The label
+                    // says what pressing it does, per the button rule; the glyph
+                    // alone would be colour/shape-only signalling.
+                    aria-label={`What's this? ${a.label.replace(/^🎲\s*/, '')}`}
+                    aria-expanded={isOpen}
+                    onClick={() => setOpenWhy(isOpen ? null : a.effectKey)}
+                    style={{
+                      flex: '0 0 auto',
+                      boxSizing: 'border-box',
+                      // 44px is the touch-target floor; measured at 34px on a
+                      // 375px viewport before this, which is under it. The row
+                      // still leaves ~299px for the action itself, and adds no
+                      // horizontal overflow at phone width.
+                      minWidth: 44,
+                      padding: '0 9px',
+                      background: isOpen ? p.surf2 : 'transparent',
+                      border: `1px solid ${isOpen ? p.accent : p.border}`,
+                      color: isOpen ? p.text : p.muted,
+                      borderRadius: 9,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ?
+                  </button>
+                </div>
+                {isOpen && (
+                  <div
+                    style={{
+                      margin: '4px 0 2px',
+                      padding: '9px 11px',
+                      background: p.surf2,
+                      border: `1px solid ${p.border}`,
+                      borderRadius: 9,
+                      fontSize: 12.5,
+                      lineHeight: 1.45,
+                      color: p.text,
+                    }}
+                  >
+                    <TextWithTerms text={why.tooltip} onTermClick={(term) => openWithTerm(term.id)} />
+                    {why.context && (
+                      <div style={{ marginTop: 6, fontSize: 11.5, color: p.muted }}>
+                        <TextWithTerms text={why.context} onTermClick={(term) => openWithTerm(term.id)} />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {showMovementOptions && (
             <>
               {/* One row instead of N destination buttons, so a choice space

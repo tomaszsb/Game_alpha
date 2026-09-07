@@ -273,8 +273,14 @@ describe('E2E-01: Happy Path with New UI', () => {
     // Both labels are CSV-driven and were authored in v3.2.51 — OWNER-SCOPE-INITIATION/First's
     // `e_card_label` and its `W Cards` dice `button_label`. They read as the generated
     // "Hire 3 Expeditors" / "Get Work Packages" before that, when no row had an authored label.
-    const pickUpCardsButton = await screen.findByRole('button', { name: /Bring in extra help/i }, { timeout: 5000 });
-    const rollForWCardsButton = await screen.findByRole('button', { name: /See what he wants built/i });
+    // Anchored, not a bare substring: since v3.2.54 each action row also renders a
+    // sibling "What's this?" disclosure whose accessible name NAMES its action
+    // ("What's this? Bring in extra help") — deliberately, so a screen-reader user
+    // tabbing past two of them can tell which row each belongs to. A loose
+    // /Bring in extra help/ therefore matches two buttons and findByRole throws.
+    // Anchor on the action button's own accessible name, icon prefix included.
+    const pickUpCardsButton = await screen.findByRole('button', { name: /^\S*\s*Bring in extra help$/i }, { timeout: 5000 });
+    const rollForWCardsButton = await screen.findByRole('button', { name: /^\S*\s*See what he wants built$/i });
 
     // UI Interaction 1: Execute Manual Action: hire expeditors
     fireEvent.click(pickUpCardsButton);

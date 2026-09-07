@@ -904,3 +904,94 @@ describe('PlayerPanelV2 — commit spine names the gate that is actually open (2
     expect(screen.queryByText(/Pick where you.re going first/i)).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Teaching layer — the per-action "What's this?" disclosure (Onboarding Phase C).
+ *
+ * The structural point, and the reason this is a SIBLING of the action button
+ * rather than anything inside it: TextWithTerms renders a glossary term as
+ * <span role="button"> with stopPropagation(), so a term nested inside a real
+ * <button> swallows the press. That constraint is why v3.2.51 put plain words on
+ * the buttons — which taught a beginner what to press and nothing about what it
+ * meant. Explaining alongside the button is the only place the two can coexist.
+ */
+describe('PlayerPanelV2 — "What\'s this?" action explanations (Onboarding Phase C)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const drawEffect: any = {
+    effect_type: 'cards', effect_action: 'draw_e', trigger_type: 'manual',
+    condition: '', effect_value: 1, description: 'Expeditors speed up approvals.',
+    button_label: 'Bring in extra help',
+  };
+
+  const setup = () => {
+    vi.clearAllMocks();
+    services = createAllMockServices();
+    const player: any = {
+      id: 'player1', name: 'Test Player', currentSpace: 'OWNER-SCOPE-INITIATION',
+      visitType: 'First', money: 100000, timeSpent: 5, color: '#007bff',
+      hand: ['E001'], activeCards: [], activeEffects: [], loans: [],
+      dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null,
+    };
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null,
+      requiredActions: 1, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Scope Initiation', story: '' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue([drawEffect]);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([drawEffect]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockImplementation((id: string) =>
+      id.startsWith('E') ? { card_id: id, card_type: 'E', card_name: 'Filing Rep' } : null);
+  };
+
+  const renderPanel = () =>
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+
+  afterEach(() => cleanup());
+
+  it('offers an explanation per action, named for the question a beginner asks', () => {
+    setup();
+    renderPanel();
+    // Its accessible name carries the action it belongs to, so a screen-reader
+    // user hears which "What's this?" this is — there is one per row.
+    expect(screen.getByRole('button', { name: /What's this\? Bring in extra help/i })).toBeInTheDocument();
+  });
+
+  it('is closed until asked, then reveals the authored explanation', () => {
+    setup();
+    renderPanel();
+    const why = screen.getByRole('button', { name: /What's this\? Bring in extra help/i });
+
+    expect(why).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(/Expeditors speed up approvals/i)).not.toBeInTheDocument();
+
+    fireEvent.click(why);
+    expect(why).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(/Expeditors speed up approvals/i)).toBeInTheDocument();
+
+    fireEvent.click(why);
+    expect(screen.queryByText(/Expeditors speed up approvals/i)).not.toBeInTheDocument();
+  });
+
+  it('does not intercept the action button it explains', () => {
+    setup();
+    renderPanel();
+    // Opening the explanation must leave the action itself pressable — the whole
+    // reason the disclosure is a sibling and not a child.
+    fireEvent.click(screen.getByRole('button', { name: /What's this\? Bring in extra help/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^⚡?\s*Bring in extra help$/i }));
+    expect(services.turnService.triggerManualEffectWithFeedback).toHaveBeenCalled();
+  });
+});
