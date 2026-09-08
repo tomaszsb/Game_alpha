@@ -897,6 +897,18 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               <div key={a.effectKey}>
                 <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
                   <button
+                    // Structural handle for the playtest robot. It finds real
+                    // actions two ways, and v3.2.54 broke the second: the
+                    // `.uc-hint-glow` class only exists on a FIRST visit, and the
+                    // fallback selector is a DIRECT-child match ("… > button"),
+                    // which stopped matching the moment this button was wrapped
+                    // in the row <div> that carries the "What's this?" sibling.
+                    // On a revisit both paths now come back empty, so the robot
+                    // would go blind exactly where it had been before — the same
+                    // failure that was fixed on 2026-09-03. Latent today only
+                    // because no game currently survives to a second visit.
+                    data-testid="action-button"
+                    data-effect-key={a.effectKey}
                     className={firstVisitHint ? 'uc-hint-glow' : undefined}
                     style={{ ...actionBtn, flex: 1, width: 'auto' }}
                     disabled={a.isDiceEffect && isRollingDice}
@@ -971,6 +983,17 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                 type="button"
                 onClick={() => setShowMoveOptions((v) => !v)}
                 aria-expanded={showMoveOptions}
+                // Structural handle for the nightly playtest robot. It used to
+                // find this row by matching its VISIBLE TEXT against
+                // /move\s*[-–—]\s*\d+\s*option/ — so when v3.2.52 renamed the row
+                // to "…places to pick from" (an 8-hit playtest complaint: the old
+                // wording never said WHICH options), the opener stopped matching,
+                // the destination list never unfolded, and the robot could not
+                // move at all. Destination clicks went 7 → 0 and stayed 0 for
+                // three nights, on three different seeds. Copy on this row is
+                // free to change; this attribute is not. Read `aria-expanded`
+                // for open/closed rather than the ▸/▾ glyph, same reason.
+                data-testid="move-expander"
                 // Distinct accessible name from any individual destination's own
                 // label — the visible text below can echo a destination name
                 // ("you picked Fee Review"), which would otherwise collide with
@@ -1001,6 +1024,16 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                     return (
                       <button
                         key={opt.id}
+                        // Structural handle + the destination's own space id, so
+                        // the playtest robot can both FIND a destination and say
+                        // which one it took without parsing the label. The label
+                        // is authored copy (display_label_override) and the
+                        // leading glyph flips ➡️/✅ with selection, so neither is
+                        // safe to match on. Pickability is `disabled` /
+                        // `aria-disabled`, already set below — never the glyph,
+                        // which is identical when locked and when merely unpicked.
+                        data-testid="move-option"
+                        data-space-id={opt.id}
                         style={!movementChoiceUnlocked ? doneSubActionRow : isSelected ? selectedSubActionBtn : subActionBtn}
                         disabled={!movementChoiceUnlocked}
                         aria-pressed={isSelected}
@@ -1291,6 +1324,18 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           <button
             onClick={commit.onClick}
             disabled={!commit.ready}
+            // Structural handle for the playtest robot, which otherwise looks
+            // for this button by matching /^(move forward|end turn|confirm move|
+            // commit)/ against its caption. That caption is `end_turn_label`
+            // from SPACE_CONTENT.csv — authored per-space copy ("Lock the
+            // scope", "Take the check", "Move forward"), so the regex matches
+            // some spaces and misses others by accident. `data-ready` mirrors
+            // `disabled` for the same reason the gate wording cannot be trusted:
+            // v3.2.53 rewrote the subLabel and the robot's "is this gated?"
+            // check, which keyed on the old wording, silently started offering
+            // a disabled button as a live option.
+            data-testid="commit-end-turn"
+            data-ready={commit.ready}
             // Only reachable here because there's no Try Again option for
             // this space — a single-choice screen, so highlighting End Turn
             // as the next-move hint doesn't carry the "pick this one over

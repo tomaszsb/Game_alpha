@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.55] - 2026-09-08
+
+### Three good copy changes in a row blinded the nightly robot, so the handles are no longer copy
+
+Nothing here changes what a player sees or does. `git diff --numstat` is **110 insertions, 0 deletions** — every added line in `src/` is a comment or a `data-*` attribute. That is the point of the release, and it is checkable rather than asserted: you cannot alter a screen by only adding comments and data attributes.
+
+The nightly playtest robot finds the game's controls by matching their **visible text**. The game's entire current workstream — the "beginners, not insiders" voice fork and the teaching layer — is rewriting visible text. Those two facts have been quietly colliding for three releases:
+
+- **v3.2.52** renamed the destination row from `Move — 2 options` to `Move — 3 places to pick from`, because the old wording never said *which* options (an 8-hit playtest complaint). The robot's opener, `/move\s*[-–—]\s*\d+\s*option/`, stopped matching. The destination list never unfolded, so **the robot could not move at all**.
+- **v3.2.53** rewrote the commit gate's reason line from `Finish N things above first` to `Pick where you're going first`. The robot's "is this gated?" check keyed on the old wording, so it began offering a `disabled` button to the model as a live option. Playwright then waits 8s for it to become enabled, throws, and scores a strike; three strikes end the game.
+- **v3.2.54** wrapped each action row in a `<div>` to hang "What's this?" beside the button, breaking a direct-child selector. On a revisit there is no `.uc-hint-glow` either, so that list came back empty — the same blindness that was fixed on 2026-09-03, silently reintroduced. It had not bitten yet only because no game survived to a second visit.
+
+Every one of those three was a genuine improvement to the game. None of them was wrong. The robot's coupling to prose was.
+
+**This also settles the step-count collapse**, which two sessions had recorded as unattributable between the v3.2.52 deploy and a Jarvis agent-runtime update that landed in the same window. It is now mechanism, not correlation — destination clicks in the robot's own report:
+
+| Run | `clicked: ➡️` | Toggle wording | Best game |
+|---|---|---|---|
+| 09-05 | **7** | `Move — 2 options` | 80 steps (hit the cap) |
+| 09-06 | **0** | `places to pick from` | 17 steps |
+| 09-07 | **0** | `places to pick from` | 22 steps |
+| 09-08 | **0** | `places to pick from` | 15 steps |
+
+Three nights, three different seeds, zero every time, across the exact release boundary — and the 09-08 run logged **0 model errors over 62 clean moves**, so the reasoning side was healthy throughout. The collapse is explained without invoking the runtime update at all. That is a claim about this failure only, not a verdict on the runtime.
+
+### The hooks
+
+One per dead prose dependency, so a voice pass can never do this again:
+
+| Hook | Replaces |
+|---|---|
+| `[data-testid="move-expander"]` + `aria-expanded` | the opener regex; also the ▸/▾ glyph sniff |
+| `[data-testid="move-option"]` + `data-space-id` | label and glyph parsing |
+| `[data-testid="commit-end-turn"]` + `data-ready` | the caption regex and the gate-wording check |
+| `[data-testid="commit-side"]` + `data-side`, `data-actionable` | a prose suffix inside an `aria-label` |
+| `[data-testid="action-button"]` + `data-effect-key` | `.uc-hint-glow` and the direct-child selector |
+
+Two traps recorded while mapping them, both older than this week. Pickability is `disabled`/`aria-disabled` and **never** the arrow, which is identical when a destination is locked and when it is merely unpicked. And the caption regex was never sound in the first place: it matched against `end_turn_label` from `SPACE_CONTENT.csv`, which is per-space authored copy — `Move forward` matched by luck while `Lock the scope` and `Take the check` never did, and only ever worked because those spaces render the two-tab control instead.
+
+### The guard is the part that matters
+
+One test on the exact `PM-DECISION-CHECK`/First fixture that stranded 18 of 18 playthroughs: the expander reports collapsed, destinations are absent until it opens and then carry the three real space ids in order, the commit spine reads `data-ready="false"` **and** is disabled, and the action button is findable without its label. Its comment names all three releases that broke a handle. The fix is worth one night; a test that fails loudly at 14:00 instead of going quiet at 03:26 is worth every night after it.
+
+**This is half a fix.** The robot cannot see these hooks until its own script is updated to use them, which is a change in a different repo on a different machine. Nothing here is observable until both land.
+
+Full suite including ghost 3132/3132 across 213 files, typecheck and build clean, and all nine attribute strings verified present in the production bundle after minification.
+
 ## [3.2.54] - 2026-09-07
 
 ### The teaching layer, first increment: hard words can finally explain themselves

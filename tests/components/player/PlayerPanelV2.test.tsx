@@ -903,6 +903,62 @@ describe('PlayerPanelV2 — commit spine names the gate that is actually open (2
     expect(screen.getByText(/Finish .Bring in more help. above first/i)).toBeInTheDocument();
     expect(screen.queryByText(/Pick where you.re going first/i)).not.toBeInTheDocument();
   });
+
+  /**
+   * The drive path the nightly playtest robot needs, pinned to attributes
+   * instead of prose.
+   *
+   * Three consecutive releases each broke a different handle the robot was
+   * using, and every one of them was a legitimate improvement to the game:
+   *   v3.2.52 renamed "Move — N options" to "…N places to pick from" (the old
+   *           wording never said WHICH options — an 8-hit playtest complaint),
+   *           and the robot's opener regex went dead. Destination clicks fell
+   *           7 → 0 and stayed 0 for three nights on three different seeds.
+   *   v3.2.53 rewrote the commit gate's reason line, and the robot's "is this
+   *           gated?" check — which keyed on the OLD wording — started handing
+   *           a disabled button to the model as if it were live.
+   *   v3.2.54 wrapped each action row in a <div> to hang "What's this?" beside
+   *           it, breaking a direct-child selector.
+   * The game is not going to stop rewriting its own copy — that IS the current
+   * workstream — so the handles must not be copy. These assertions exist so the
+   * next voice pass fails here, loudly, instead of going quiet at 03:26.
+   *
+   * This is the exact screen that stranded 18 of 18 robot playthroughs:
+   * PM-DECISION-CHECK/First, choice movement outstanding, commit spine gated.
+   */
+  it('exposes the whole drive path as stable test hooks, not as prose', () => {
+    setup({ effects: [swapEffect], movementType: 'choice', requiredActions: 1, completedActionCount: 0 });
+    renderPanel();
+
+    // The destination picker's opener, and its open/closed state.
+    const expander = screen.getByTestId('move-expander');
+    expect(expander).toHaveAttribute('aria-expanded', 'false');
+
+    // The action that is on screen but skippable — findable without its label.
+    expect(screen.getByTestId('action-button')).toBeInTheDocument();
+
+    // The commit spine, and the fact that it cannot be pressed yet. `data-ready`
+    // must agree with `disabled`: the robot scores a click that cannot land as a
+    // strike, and three strikes end the run.
+    const commit = screen.getByTestId('commit-end-turn');
+    expect(commit).toHaveAttribute('data-ready', 'false');
+    expect(commit).toBeDisabled();
+
+    // Destinations appear once the picker is open, each carrying its own space
+    // id so the robot never has to parse an authored label or a ➡️/✅ glyph.
+    expect(screen.queryAllByTestId('move-option')).toHaveLength(0);
+    fireEvent.click(expander);
+    expect(expander).toHaveAttribute('aria-expanded', 'true');
+
+    const options = screen.getAllByTestId('move-option');
+    expect(options.map((o) => o.getAttribute('data-space-id'))).toEqual([
+      'LEND-SCOPE-CHECK', 'ARCH-INITIATION', 'CHEAT-BYPASS',
+    ]);
+    // Unlocked here, so every destination is genuinely pickable. Lockedness is
+    // `disabled`/`aria-disabled` — never the glyph, which is ➡️ both when a
+    // destination is locked and when it is merely unpicked.
+    options.forEach((o) => expect(o).not.toBeDisabled());
+  });
 });
 
 /**

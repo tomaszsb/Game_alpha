@@ -226,6 +226,15 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
       type="button"
       role="tab"
       aria-selected={selected === side}
+      // Structural handles for the nightly playtest robot. Whether a side can
+      // actually be committed is `data-actionable`; the robot used to infer it
+      // by testing the aria-label for the literal suffix "— tap to compare,
+      // press and hold to confirm", which is prose and one copy pass away from
+      // going quiet. Note that a press here is a HOLD, not a click: a synthetic
+      // click selects the side and commits nothing, by design (HOLD_MS above).
+      data-testid="commit-side"
+      data-side={side}
+      data-actionable={actionableFor(side)}
       aria-label={
         actionableFor(side)
           ? `${label} — tap to compare, press and hold to confirm`
