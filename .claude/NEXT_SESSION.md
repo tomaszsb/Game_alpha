@@ -1,7 +1,7 @@
 # Next session starter — written 2026-09-07 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.54 — committed (`c67e517`) and pushed, **NOT deployed.** Live is **v3.2.53 (`d474eea`)**, content-verified 2026-09-07 16:02Z. Trust `/health`, never this line.
+- **Version:** v3.2.54 — **LIVE and content-verified.** `/health` read `c67e517` (v3.2.54's feature commit) at 2026-09-08 02:00Z; the served `index-LYz5N0Qf.js` carries `What's this?` (v3.2.54), `Pick where you're going first` (v3.2.53) and `Already done this turn` (v3.2.52). `19599e9` on top is docs-only — the normal one-behind drift. **Trust `/health`, never this line:** this entry originally said "NOT deployed" and was wrong within hours, because Tom deployed after the wrap-up. A handoff can only report what was true when it was written.
 - **Branch:** master, clean and pushed. Untracked: `idea.txt` (the maintainer's own draft — leave it).
 - **Last shipped:** two versions off the 2026-09-06/07 robot playtests. **v3.2.53** — the commit spine named the wrong gate on all 12 choice-movement spaces: at `PM-DECISION-CHECK` it demanded *Finish "Swap one helper for another" above first* while the real requirement was picking a destination, and `replace_e` is **skippable** so doing it could never help. `'Pick where you're going first'` was unreachable dead code. **v3.2.54** — the teaching layer's first increment: a **"What's this?"** disclosure per action row, a sibling of the action button (never a child), opening the 44 already-authored `ACTION_TOOLTIPS.csv` rows with live glossary terms.
 - **Test suite:** `npx vitest run` — whole suite incl. ghost — **3131/3131 across 213 files**, green on the first attempt. Typecheck ✅ build ✅.
@@ -27,7 +27,7 @@ None. Green on master at v3.2.54.
 - **fb:93449bf2 — do NOT flip on deploy alone.** A browser cannot judge it: flip only after he confirms the TV reads well across a room. Rolled forward deliberately. v3.2.53 and v3.2.54 closed **no** dashboard reports — both came from the playtest and from code investigation.
 
 ## Suggested first move
-**Deploy v3.2.54, then read last night's robot report.** The deploy is the blocker — v3.2.53's Pick Your Path fix went live 2026-09-07, so the 03:26 run is the first real test of whether that dead end is gone. Then ask whether he wants the tutorial started or the tooltip voice pass settled first.
+**Read last night's robot report first — nothing is pending deploy.** Both v3.2.53 and v3.2.54 are live, so the 03:26 run is the first real test of whether the Pick Your Path dead end is gone AND the first look at the teaching layer in the wild. Then ask whether he wants the tutorial started or the tooltip voice pass settled first. (Per the Manager, Tom's own order is: the parity drive, then the tooltip voice pass, then the 50-day disclosure.)
 
 ## Suggested model for next session
 Sonnet 5 — the teaching layer's remainder is scoped content-and-copy work with a shipped precedent to follow, and items 2–3 need the maintainer, not deeper reasoning. Raise effort to `xhigh` before reaching for a bigger model.
