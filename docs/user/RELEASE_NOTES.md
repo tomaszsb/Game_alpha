@@ -2,6 +2,19 @@
 
 ---
 
+## v3.2.54 — Every action can now explain itself (September 7, 2026)
+
+- **There's a new "?" next to everything you can do.** Press it and the game tells you what that action actually is and why you'd want it. Press it again to put it away. It starts closed, so nothing is in your way until you ask.
+- **This is the answer to the problem the last two updates couldn't solve.** v3.2.51 took the hard construction words off the buttons, because a button is the one place in the game where a difficult word *can't* explain itself — tapping it fires the action instead of opening the dictionary. That was the right fix, but it left you knowing what to press and nothing about what it meant. The explanation now sits *beside* the button instead of on it, and inside that explanation the hard words work normally: **"Bring in extra help"** stays plain and pressable, and the "?" beside it tells you these people are called **Expeditors** — a word you can tap to read *"a person who is an expert at navigating the city's confusing paperwork and rules to get permits faster."*
+- **The dictionary had never once recognised a plural.** If a sentence said "Expeditors" or "permits" or "inspections," none of those words lit up — only the exact singular did. That's most of how the game actually writes, so a lot of the dictionary was invisible. Twenty-five words that appear in the game's own text now light up where they never did before.
+- **One dictionary entry wasn't a word at all.** The spreadsheet's own heading row had been read in as a definition, so the word "term" — which appears all over the loan and negotiation dialogue — could be tapped, and told you its definition was: "definition." It's gone.
+
+## v3.2.53 — "Pick Your Path" could tell you to do something that didn't help (September 7, 2026)
+
+- **The game asked for the wrong thing, and doing it changed nothing.** On Pick Your Path, the button at the bottom said *"Finish 'Swap one helper for another' above first."* But swapping a helper there is **optional** — it was never what was holding you up. What the game actually wanted was for you to choose where to go next, and it never said so. You could do the thing it asked, watch nothing happen, and have no way to work out why.
+- **It now names the thing that's actually missing.** If a real action is outstanding it says which one; if all it needs is your destination, it says **"Pick where you're going first."** That message existed in the game the whole time and could never appear — every choice-of-direction space in the game hit the wrong one first.
+- **This is why it mattered:** twelve overnight robot playthroughs in a row ended in exactly that spot, each one doing what the game told it and quitting when it didn't work.
+
 ## v3.2.52 — Some of last week's new buttons never actually reached you (September 6, 2026)
 
 - **Sixteen of the new plain-English button labels were being thrown away right before you saw them.** On four spaces — Cut a Corner, Hire a Builder, Investor Review and Owner Decides — the game combines two results into one button. When it combined them, it also deleted the new wording and put the old *"Determine Outcome"* back. So on those spaces you were still reading last month's language even though the new words had been written. That button now says **"See what happens."**
