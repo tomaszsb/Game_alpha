@@ -7,7 +7,7 @@
 
 **Last Updated:** September 8, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.55 — pushed, NOT deployed.** `/health` read `4b53e30` (v3.2.54 + docs) at 2026-09-08 15:06Z; v3.2.55 is commit `867e322` on `origin/master` awaiting Tom's `bash deploy.sh`. **Trust `/health` over this line** — it has been wrong within hours twice this week, in both directions. 3.2.46 stays permanently skipped; its commit landed renumbered as v3.2.49.
+**Current Version:** **3.2.55 — LIVE and content-verified.** `/health` read `5718946` at 2026-09-08 18:49Z (= HEAD, contains v3.2.55's feature commit `867e322`), and the served `index-DQy_iRYu.js` carries all nine new hook strings — `move-expander`, `move-option`, `commit-end-turn`, `commit-side`, `action-button`, `data-space-id`, `data-actionable`, `data-effect-key`, `data-ready` — fetched and grepped, not inferred from the version number. **Trust `/health` over this line** — it has been wrong within hours twice this week, in both directions. 3.2.46 stays permanently skipped; its commit landed renumbered as v3.2.49.
 
 ## Current sprint
 **Onboarding Phase C — teaching a beginner the game instead of testing whether they already know it.** v3.2.50 named the 27 tiles, v3.2.51 authored 81 button labels, v3.2.52 fixed where those labels never reached, v3.2.53 fixed a commit spine demanding an action that could not unblock it, and v3.2.54 started the teaching layer proper — a **"What's this?"** disclosure beside every action row (never inside the button: `TextWithTerms` renders a term as `<span role="button">` with `stopPropagation()`, so a term in a real `<button>` swallows the press). **Still open, and the bulk of it: the tutorial, the micro-lessons, and a voice pass on the 44 `ACTION_TOOLTIPS.csv` rows** — they predate the 2026-09-03 beginners fork and still read like it ("Expeditors are your secret weapon"). The tooltip is the one place a trade word *should* appear; buttons stay plain.
@@ -23,10 +23,10 @@
 - **Flake note, still current:** a lone `tests/server/**` failure in a full run is probably Windows temp-dir load (`EPERM: rename`, `ENOTEMPTY: rmdir`), not a regression — re-run before investigating. Did not recur this session.
 - **Ghost baseline:** all ghost suites pass, win-rate floor included. **Do not chase the old 47/3/0/86.9** — it belongs to the pre-v3.2.48 era when log volume moved the dice, and cannot return by construction.
 - **Security:** `npm audit` 0 vulnerabilities as of v3.2.44.
-- **Deploy:** ⚠️ **v3.2.55 pushed, not deployed.** `bash deploy.sh` is Tom's, from a Windows terminal. **Verify content by finding the chunk locally first** (`grep -rl "<string>" dist/assets/*.js`) — the build is code-split, so grepping `index-*.js` for a string that lives elsewhere gives a false failure.
+- **Deploy:** ✅ **v3.2.55 live, content-verified 2026-09-08 18:49Z** (see Current Version above). `bash deploy.sh` is Tom's, from a Windows terminal. **Verify content by finding the chunk locally first** (`grep -rl "<string>" dist/assets/*.js`) — the build is code-split, so grepping `index-*.js` for a string that lives elsewhere gives a false failure.
 - **Dashboard feedback:** fb:93449bf2 remains deliberately unflipped — it needs the maintainer's eyes on the real television, which a deploy alone cannot settle.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Deploy v3.2.55, and confirm the robot half landed too.** Neither half is observable alone. The number that settles it is `clicked:  ➡️` in the next 03:26 report — 7 on 09-05, then 0, 0, 0.
+1. **Confirm the robot half landed — the game half is live.** The hooks are deployed and verified in the live bundle, but inert until the harness on the Mac mini uses them. The number that settles it is `clicked:  ➡️` in the next 03:26 report — 7 on 09-05, then 0, 0, 0. A good number alone is not proof: the harness half ships a prose fallback, so check whether the "which path fired" log line landed.
 2. **The teaching layer — tutorial, micro-lessons, and the tooltip voice pass.** The remaining and largest part of Phase C. Constraint already proven: never put a glossary term inside an action button.
 3. **Does ARCH-FEE-REVIEW's 50-day Try Again cost need to be visible before you commit?** The 50 days are intended; this is about disclosure. Maintainer's call.

@@ -1,7 +1,7 @@
 # Next session starter — written 2026-09-08 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.55 (`867e322`) — **PUSHED, NOT DEPLOYED.** `/health` read `4b53e30` (v3.2.54 + docs) at 15:06Z, before this commit existed. **Verify with `curl -sS https://game.unravelcodes.com/health` before believing this line** — it has been wrong within hours twice this week, in both directions. If it reads `867e322`, Tom deployed after this was written.
+- **Version:** v3.2.55 — **LIVE and content-verified.** Tom deployed at 2026-09-08 ~18:49Z; `/health` read `5718946` (= HEAD, contains the feature commit `867e322`) and the served `index-DQy_iRYu.js` carries all nine hook strings, fetched and grepped rather than inferred from the version number. **Still verify with `curl -sS https://game.unravelcodes.com/health` before believing this line** — a handoff can only report what was true when it was written, and this one has been wrong within hours twice this week.
 - **Branch:** master, clean and pushed. Untracked: `idea.txt` (the maintainer's own draft — leave it).
 - **Last shipped:** v3.2.55, five `data-testid` hooks so the nightly playtest robot stops identifying controls by their copy. **110 insertions, 0 deletions — comments and attributes only, nothing a player can see.**
 - **Test suite:** `npx vitest run` — whole suite incl. ghost — **3132/3132 across 213 files**, green on the **first** attempt. Typecheck ✅ build ✅. All nine hook strings verified present in the production bundle after terser.
@@ -12,7 +12,7 @@ The 09-06/07/08 robot runs abandoned every game at `PM-DECISION-CHECK`, which re
 This also **settles the step-count collapse** that two sessions recorded as unattributable: destination clicks (`clicked:  ➡️`) were **7 on 09-05, then 0, 0, 0** — three seeds, across the exact release boundary, 0 model errors on 09-08. Mechanism, not correlation. The Jarvis runtime update is not needed to explain it.
 
 ## Top 3 open items
-1. **Deploy v3.2.55, then confirm BOTH halves landed.** The hooks are inert until the harness half lands — `~/.hermes/scripts/game_playtest.py` on the Mac mini, owned by a Jarvis session, **not this repo, do not edit it**. Neither half is observable alone. The number that settles it is `clicked:  ➡️` on the next 03:26 run. ⚠️ The harness half has a **prose fallback**, so a non-zero count alone does NOT prove the hooks are live — a log line naming which path found the expander was requested; without it the run is ambiguous.
+1. **Read the 03:26 report — the game half is live, the harness half is the open question.** v3.2.55's hooks are deployed and verified in the live bundle, but they are inert until `~/.hermes/scripts/game_playtest.py` on the Mac mini uses them — owned by a Jarvis session, **not this repo, do not edit it**. The number that settles it is `clicked:  ➡️`: **7 on 09-05, then 0, 0, 0.** ⚠️ Two cautions before reading a good result as success: the harness half ships a **prose fallback**, so a non-zero count alone does not prove the hooks are being used (a log line naming which path found the expander was requested — check whether it landed); and its "What's this?" guard tested `inner_text` (a bare `?`) against words that live only in `aria-label`, so a phantom `?` option may still reach the model.
 2. **Finish the teaching layer — the tutorial and micro-lessons are still unbuilt**, and the 44 `ACTION_TOOLTIPS.csv` rows still need the maintainer's beginner-voice pass (item below). Hard constraint, structural in code: never put a glossary term inside an action button.
 3. **Two design calls now waiting on Tom (both new, both in TODO.md "Decisions"):** should the destination picker auto-expand when picking is the only thing left? and should the "What's this?" control show more than a bare `?` in visible text? Both change what a player sees, so neither was built.
 
@@ -22,7 +22,6 @@ This also **settles the step-count collapse** that two sessions recorded as unat
 None. Green on master at v3.2.55, first attempt, no re-runs.
 
 ## Decisions waiting on the user
-- **Deploy v3.2.55** — `bash deploy.sh`, from a Windows terminal, Tom's to run.
 - **The destination-picker fold** and **the bare `?`** (item 3 above) — both fresh, both his.
 - **The 44 tooltip rows' voice pass** — the tooltip is the one place a trade word SHOULD appear; buttons stay plain.
 - **Normalize the stray CR bytes in `DiceRoll Info.csv` / `CARDS_EXPANDED.csv`?** Not a live defect. Deployed data files, so a maintainer call.
