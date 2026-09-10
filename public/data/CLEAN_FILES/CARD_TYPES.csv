@@ -1,6 +1,6 @@
-card_type,label
-W,Work Package
-B,Bank Loan
-E,Expeditor
-L,Life Event
-I,Investment
+card_type,label,is_playable_from_hand
+W,Work Package,No
+B,Bank Loan,No
+E,Expeditor,Yes
+L,Life Event,No
+I,Investment,No

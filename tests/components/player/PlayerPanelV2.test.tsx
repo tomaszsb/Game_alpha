@@ -107,6 +107,33 @@ describe('PlayerPanelV2 — E-card play from the influence zone', () => {
     });
   });
 
+  // Workstream 6 audit II, B2 (v3.2.56). Every earlier reskin test kept its
+  // card_type at 'E', so the suite varied the card-ID axis and never the
+  // card-TYPE axis — which is exactly where this gate was hardcoded
+  // (`card_type === 'E'`). These vary the TYPE and let the data decide.
+  it('offers Activate for a NON-Expeditor family when CARD_TYPES says it is playable from hand', () => {
+    services.stateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['E001', 'L007'] });
+    services.dataService.getCardById.mockImplementation((id: string) => {
+      if (id === 'E001') return { card_id: 'E001', card_type: 'E', card_name: 'Permit Expediter', phase_restriction: 'Any' };
+      if (id === 'L007') return { card_id: 'L007', card_type: 'L', card_name: 'Neighbour Complaint', phase_restriction: 'Any' };
+      return null;
+    });
+    services.cardService.canPlayCard.mockReturnValue(true);
+    services.dataService.isCardTypePlayableFromHand.mockImplementation((t: string) => t === 'E' || t === 'L');
+    renderPanel();
+    expandEffects();
+    expect(screen.getByRole('button', { name: /Activate Neighbour Complaint/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Activate Permit Expediter/i })).toBeInTheDocument();
+  });
+
+  it('offers NO Activate for an Expeditor when CARD_TYPES says the family is not playable from hand', () => {
+    services.cardService.canPlayCard.mockReturnValue(true);
+    services.dataService.isCardTypePlayableFromHand.mockReturnValue(false);
+    renderPanel();
+    expandEffects();
+    expect(screen.queryByRole('button', { name: /Activate/i })).not.toBeInTheDocument();
+  });
+
   it('shows no Activate buttons when it is not the player\'s turn', () => {
     services.stateService.getGameState.mockReturnValue(makeGameState('player2'));
     renderPanel();

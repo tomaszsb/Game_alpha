@@ -12,8 +12,10 @@ import { DictionaryProvider } from '../../../src/dictionary';
 const renderWithDictionary = (ui: React.ReactElement) => render(<DictionaryProvider>{ui}</DictionaryProvider>);
 
 // Mock GameContext
+const STOCK_PHASES = ['OWNER', 'FUNDING', 'DESIGN', 'REGULATORY', 'CONSTRUCTION', 'END'];
 const mockDataService = {
-  getCardById: vi.fn()
+  getCardById: vi.fn(),
+  getPhaseOrder: vi.fn(() => STOCK_PHASES)
 } as unknown as DataService;
 
 const mockStateService = {
@@ -429,6 +431,32 @@ describe('CardReplacementModal', () => {
     // Each rep's phase is visible at a glance (the chip labels).
     expect(screen.getByText('Funding')).toBeInTheDocument();
     expect(screen.getByText('Regulatory')).toBeInTheDocument();
+  });
+
+  // A3 (v3.2.56): the chip reads GAME_CONFIG's phases, not a private
+  // four-phase table — so a reskin's phase gets a chip with no code change.
+  it('labels a phase that exists only in the data (reskin) instead of "Any phase"', () => {
+    (mockDataService.getPhaseOrder as Mock).mockReturnValue(['SESSION_ZERO', 'DUNGEON', 'TOWN']);
+    const dungeonRep: Card = {
+      card_id: 'E9', card_name: 'Guild Clerk', card_type: 'E', cost: 100,
+      description: 'Files dungeon permits', phase_restriction: 'DUNGEON',
+    };
+    (mockDataService.getCardById as Mock).mockImplementation((id: string) => (id === 'E9' ? dungeonRep : null));
+
+    renderWithDictionary(
+      <CardReplacementModal
+        isOpen={true}
+        player={{ ...mockPlayer, hand: ['E9'] }}
+        cardType="E"
+        maxReplacements={1}
+        onReplace={mockOnReplace}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    expect(screen.getByText('Dungeon')).toBeInTheDocument();
+    expect(screen.queryByText('Any phase')).not.toBeInTheDocument();
+    (mockDataService.getPhaseOrder as Mock).mockReturnValue(STOCK_PHASES);
   });
 
   it('does not show a phase chip for non-expeditor card types', () => {

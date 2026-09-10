@@ -24,20 +24,19 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import type { CharacterCsvRow } from '../../src/types/DataTypes';
+import { parseCsvWithHeaders } from '../../server/processGameData.js';
 
-// Mirrors public/data/CLEAN_FILES/CHARACTERS.csv exactly (the shipped default).
-const STOCK_ROWS: CharacterCsvRow[] = [
-  { id: 'OWNER', emoji: '\u{1F454}', name: 'The Owner', phase: 'Initiation', color: '#2196F3', image_roles: 'owner', short_label: 'Owner' },
-  { id: 'ARCH', emoji: '\u{1F4D0}', name: 'The Architect', phase: 'Design', color: '#9C27B0', image_roles: 'architect', short_label: 'Architect' },
-  { id: 'ENG', emoji: '⚙️', name: 'The Engineer', phase: 'Engineering', color: '#FF9800', image_roles: 'engineer', short_label: 'Engineer' },
-  { id: 'REG-DOB', emoji: '\u{1F4CB}', name: 'DOB Examiner', phase: 'Regulatory', color: '#f44336', image_roles: 'dob_examiner,dob_clerk', short_label: 'DOB' },
-  { id: 'REG-FDNY', emoji: '\u{1F692}', name: 'FDNY Inspector', phase: 'Regulatory', color: '#E91E63', image_roles: 'fdny_examiner,fdny_clerk', short_label: 'FDNY' },
-  { id: 'CON', emoji: '\u{1F3D7}️', name: 'The Contractor', phase: 'Construction', color: '#4CAF50', image_roles: 'contractor,inspector', short_label: 'Contractor' },
-  { id: 'BANK', emoji: '\u{1F3E6}', name: 'The Bank', phase: 'Funding', color: '#009688', image_roles: '', short_label: 'Bank' },
-  { id: 'LEND', emoji: '\u{1F91D}', name: 'The Lender', phase: 'Funding', color: '#FFC107', image_roles: '', short_label: 'Lender' },
-  { id: 'INVESTOR', emoji: '\u{1F4BC}', name: 'The Investor', phase: 'Funding', color: '#3F51B5', image_roles: '', short_label: 'Investor' },
-];
+// The shipped CHARACTERS.csv itself — read, not hand-copied, so this test
+// cannot drift from the data. (v3.2.56: it used to be a literal mirror; a
+// mirror is a third copy of the roster, the same disease A2 removed from
+// DiceService.) The first test below therefore also proves the built-in
+// DEFAULT_CHARACTER_MAP fallback still matches the CSV.
+const STOCK_ROWS = parseCsvWithHeaders(
+  fs.readFileSync(path.join(__dirname, '../../public/data/CLEAN_FILES/CHARACTERS.csv'), 'utf-8')
+) as unknown as CharacterCsvRow[];
 
 describe('CHARACTER_MAP is CSV-driven (reskin item 4)', () => {
   beforeEach(() => {

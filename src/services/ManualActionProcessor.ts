@@ -13,14 +13,12 @@ import { SpaceEffect } from '../types/DataTypes';
 import { formatManualEffectButton, formatActionFeedback } from '../utils/buttonFormatting';
 import { describeCardAction } from './DiceService';
 import { buildResourceSnapshot } from '../utils/resourceSnapshot';
-import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { interpolateTemplate, resolveFundingAmountToken } from '../utils/templateInterpolation';
 import { calculateOwnerSeedMoney } from '../utils/ownerSeedMoney';
 import { debugWarn } from '../utils/debugLog';
 import { isSkippableEffectAction } from '../utils/skippableActions';
 
 export class ManualActionProcessor {
-  private readonly conditionEvaluator: ConditionEvaluator;
   private effectEngineService?: IEffectEngineService;
 
   constructor(
@@ -37,7 +35,6 @@ export class ManualActionProcessor {
     private readonly cardEffectService?: ICardEffectService
   ) {
     this.effectEngineService = effectEngineService;
-    this.conditionEvaluator = new ConditionEvaluator(gameRulesService);
   }
 
   /**
@@ -675,11 +672,8 @@ export class ManualActionProcessor {
    * Evaluate whether an effect condition is met
    */
   private evaluateEffectCondition(playerId: string, condition: string | undefined, diceRoll?: number): boolean {
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      debugWarn(`Player ${playerId} not found for condition evaluation`);
-      return false;
-    }
-    return this.conditionEvaluator.evaluate(player, condition, diceRoll);
+    // Same entry point as the arrival path (SpaceArrivalProcessor) — this used
+    // to hold its own ConditionEvaluator whose unknown default was the opposite.
+    return this.gameRulesService.evaluateCondition(playerId, condition, diceRoll);
   }
 }

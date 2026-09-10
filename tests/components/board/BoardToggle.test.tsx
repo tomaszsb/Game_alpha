@@ -120,7 +120,7 @@ describe('BoardToggle — G160 board-control access', () => {
     expect(labels).toEqual([
       'Architect: Fee Review → Architect: Scope Check',
       'Owner: Scope Initiation → Owner: Fund Initiation',
-      'PM Check → Bank: Bank Review',
+      'PM Check → Banker: Bank Review',
     ]);
   });
 });

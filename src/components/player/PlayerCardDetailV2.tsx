@@ -96,20 +96,21 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   // NOTE: the shared rule itself still returns true for non-E types — BY
   // DECISION (maintainer, 2026-07-18, closing the fb:66bb0bda design call):
   // the rule stays type-agnostic for reskin flexibility and future card
-  // functionality. This component-level E-only gate is the presentation
-  // layer's job; if a second hand-playable card family ever appears, the
-  // gate moves into card data (see TODO.md "Resolved 2026-07-18").
-  const canPlay = card.card_type === 'E' && gameServices.cardService.canPlayCard(playerId, card.card_id);
+  // functionality. Which card FAMILIES are hand-playable is authored data —
+  // CARD_TYPES.csv's is_playable_from_hand (v3.2.56, audit II B2; this line
+  // used to hardcode `card.card_type === 'E'`).
+  const isHandPlayableType = gameServices.dataService.isCardTypePlayableFromHand(card.card_type);
+  const canPlay = isHandPlayableType && gameServices.cardService.canPlayCard(playerId, card.card_id);
 
-  // When an Expeditor is held but not currently playable AND it carries a phase
-  // restriction, explain the wait instead of silently offering no action —
+  // When a hand-playable card (an Expeditor, on the stock board) is held but not
+  // currently playable AND it carries a phase restriction, explain the wait instead of silently offering no action —
   // mirrors the classic panel's "Can only be activated during X phase"
   // (the since-deleted CardsSection). Presentation only; the gate itself stays in canPlayCard. We
   // don't re-derive WHY it's blocked, but an expeditor with a phase restriction
   // is overwhelmingly blocked by phase, and the phase is a real requirement
   // either way (it's shown as a Key Fact too).
   const showPhaseWait =
-    card.card_type === 'E' && !canPlay && !!card.phase_restriction && card.phase_restriction !== 'Any';
+    isHandPlayableType && !canPlay && !!card.phase_restriction && card.phase_restriction !== 'Any';
   const phaseWaitName = (card.phase_restriction || '')
     .replace(/_/g, ' ')
     .toLowerCase()

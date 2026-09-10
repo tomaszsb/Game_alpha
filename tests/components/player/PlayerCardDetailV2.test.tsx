@@ -221,6 +221,35 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
     expect(screen.queryByRole('button', { name: /^Done$/i })).not.toBeInTheDocument();
   });
 
+  // Workstream 6 audit II, B2 (v3.2.56): the test above used to pass because
+  // the component hardcoded `card_type === 'E'`. The family's playability is
+  // now authored in CARD_TYPES.csv — vary the TYPE and the data decides.
+  it('shows Activate for a NON-Expeditor family when CARD_TYPES says it is playable from hand', async () => {
+    services.cardService.canPlayCard.mockReturnValue(true);
+    services.dataService.isCardTypePlayableFromHand.mockImplementation((t: string) => t === 'L');
+    render(
+      <DictionaryProvider>
+        <PlayerCardDetailV2
+          isOpen
+          onClose={vi.fn()}
+          card={{ card_id: 'L007', card_type: 'L', card_name: 'Neighbour Complaint', description: 'A neighbour files a complaint.', tick_modifier: '-1' }}
+          playerId="player1"
+          gameServices={services as any}
+          mode="light"
+        />
+      </DictionaryProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Activate/i }));
+    await waitFor(() => expect(services.cardService.playCard).toHaveBeenCalledWith('player1', 'L007'));
+  });
+
+  it('shows NO Activate for an Expeditor when CARD_TYPES says the family is not playable from hand', () => {
+    services.cardService.canPlayCard.mockReturnValue(true);
+    services.dataService.isCardTypePlayableFromHand.mockReturnValue(false);
+    renderDetail();
+    expect(screen.queryByRole('button', { name: /Activate/i })).not.toBeInTheDocument();
+  });
+
   // fb:9c110d52 — a Work Package's estimated cost rendered as "Pays $X" (reads like
   // income). `card.cost` is always money spent, so it must label as a cost.
   it('labels a positive card.cost as "Costs", never "Pays"', () => {

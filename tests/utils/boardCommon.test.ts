@@ -202,7 +202,7 @@ describe('formatEdgeLabel (restore-list UIs, 2026-08-04)', () => {
   });
 
   it('applies SPECIAL_NAMES overrides on either side, still prefixed with discipline when the space has an NPC', () => {
-    expect(formatEdgeLabel('PM-DECISION-CHECK__BANK-FUND-REVIEW')).toBe('PM Check → Bank: Bank Review');
+    expect(formatEdgeLabel('PM-DECISION-CHECK__BANK-FUND-REVIEW')).toBe('PM Check → Banker: Bank Review');
   });
 
   // 2026-08-18: two different edges could both render as the bare

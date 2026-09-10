@@ -78,7 +78,10 @@ const DEFAULT_CHARACTER_MAP: Record<string, CharacterInfo> = {
   // every color above AND from each other, since all three share FUNDING's
   // phase color (#FF9800) and would otherwise blend into it or one another,
   // same reasoning as the earlier REG-DOB/REG-FDNY split.
-  BANK:       { emoji: '\u{1F3E6}', name: 'The Bank',          phase: 'Funding',      color: '#009688', imageRoles: [], shortLabel: 'Bank' },
+  // "The Banker", not "The Bank" — the character is a person, not an
+  // institution (maintainer, 2026-09-10). DiceService's private speaker table
+  // already said "The Banker"; the two disagreed until v3.2.56 deleted it.
+  BANK:       { emoji: '\u{1F3E6}', name: 'The Banker',        phase: 'Funding',      color: '#009688', imageRoles: [], shortLabel: 'Banker' },
   LEND:       { emoji: '\u{1F91D}', name: 'The Lender',        phase: 'Funding',      color: '#FFC107', imageRoles: [], shortLabel: 'Lender' },
   INVESTOR:   { emoji: '\u{1F4BC}', name: 'The Investor',      phase: 'Funding',      color: '#3F51B5', imageRoles: [], shortLabel: 'Investor' },
 };

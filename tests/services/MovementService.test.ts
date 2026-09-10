@@ -7,6 +7,7 @@ import { IDataService, IStateService, IChoiceService, ILoggingService, IGameRule
 import { GameState, Player } from '../../src/types/StateTypes';
 import { Movement, DiceOutcome, Space, GameConfig } from '../../src/types/DataTypes';
 import { createMockDataService, createMockStateService, createMockChoiceService, createMockLoggingService, createMockGameRulesService } from '../mocks/mockServices';
+import { ConditionEvaluator } from '../../src/utils/ConditionEvaluator';
 
 // Mock implementations using centralized creators
 const mockDataService: any = createMockDataService();
@@ -23,6 +24,15 @@ describe('MovementService', () => {
   beforeEach(() => {
     // Reset all mocks
     vi.clearAllMocks();
+
+    // Movement conditions go through GameRulesService.evaluateCondition (the one
+    // condition vocabulary). Back the mock with the real evaluator so the
+    // money_/time_/cards_ tests below still exercise real rules; individual
+    // tests may still override it.
+    mockGameRulesService.evaluateCondition.mockImplementation((playerId: string, condition?: string, diceRoll?: number) =>
+      new ConditionEvaluator((id: string) => mockGameRulesService.calculateProjectScope(id))
+        .evaluate(mockStateService.getPlayer(playerId), condition, diceRoll)
+    );
 
     // Workstream 7: real (pure-logic) ApprovalService — resume-hub block reads
     // approved-destination state directly via this service, so tests that exercise

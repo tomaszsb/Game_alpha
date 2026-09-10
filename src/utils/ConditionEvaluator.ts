@@ -1,16 +1,60 @@
 import { Player } from '../types/StateTypes';
-import { IGameRulesService } from '../types/ServiceContracts';
 import { SpaceEffect } from '../types/DataTypes';
 import { debugWarn } from './debugLog';
 
 /**
- * ConditionEvaluator - Evaluates effect conditions against player state
+ * ConditionEvaluator — THE condition vocabulary for CSV `condition` columns
+ * (SPACE_EFFECTS.condition, MOVEMENT.condition_1..5).
  *
- * Extracted from TurnService to create a focused utility for condition evaluation.
- * Handles various condition types from CSV data (SPACE_EFFECTS.csv, DICE_EFFECTS.csv).
+ * v3.2.56 (Workstream 6 audit II, A1): this is now the only place a condition
+ * string is interpreted. Before, four copies existed and disagreed —
+ * GameRulesService (unknown → false), this class (unknown → TRUE),
+ * MovementService's private evaluator (money_/time_/cards_, unknown → false)
+ * and a StateService init fallback ('always' only). The same CSV string could
+ * apply on the manual-button path and be silently dropped on the arrival path.
+ * No shipped board used a string that hit either unknown branch (measured
+ * 2026-09-10: only dice_roll_1..6, all on auto rows), so unifying changed no
+ * live behaviour.
+ *
+ * Services do not construct this directly — they call
+ * GameRulesService.evaluateCondition(), which owns the project-scope provider.
+ *
+ * Unknown strings FAIL CLOSED (false) with a console.warn that is not
+ * debug-gated: an unrecognised authored rule must not silently take effect.
  */
+
+// Named resource thresholds. Union of the vocabularies that used to live in
+// MovementService (money_/time_/cards_) and this file (loan_).
+const RESOURCE_CONDITIONS: Record<string, (player: Player) => boolean> = {
+  money_le_1m: p => (p.money || 0) <= 1000000,
+  money_gt_1m: p => (p.money || 0) > 1000000,
+  money_le_2m: p => (p.money || 0) <= 2000000,
+  money_gt_2m: p => (p.money || 0) > 2000000,
+  loan_up_to_1_4m: p => (p.money || 0) <= 1400000,
+  loan_1_5m_to_2_75m: p => (p.money || 0) >= 1500000 && (p.money || 0) <= 2750000,
+  loan_above_2_75m: p => (p.money || 0) > 2750000,
+  time_le_5: p => (p.timeSpent || 0) <= 5,
+  time_gt_5: p => (p.timeSpent || 0) > 5,
+  time_le_10: p => (p.timeSpent || 0) <= 10,
+  time_gt_10: p => (p.timeSpent || 0) > 10,
+  cards_le_3: p => (p.hand?.length || 0) <= 3,
+  cards_gt_3: p => (p.hand?.length || 0) > 3,
+  cards_le_5: p => (p.hand?.length || 0) <= 5,
+  cards_gt_5: p => (p.hand?.length || 0) > 5,
+};
+
+const SCOPE_THRESHOLD = 4000000; // $4M
+
+// Warn once per distinct unknown string — StateService re-evaluates on every
+// action-count pass, so an unconditional warn would flood the console.
+const warnedUnknown = new Set<string>();
+
 export class ConditionEvaluator {
-  constructor(private readonly gameRulesService?: IGameRulesService) {}
+  /**
+   * @param projectScopeOf - how to read a player's project scope. Only
+   *   GameRulesService has one; without it, scope conditions fail closed.
+   */
+  constructor(private readonly projectScopeOf?: (playerId: string) => number) {}
 
   /**
    * Static helper: Check if any effects in the array have dice-dependent conditions
@@ -18,12 +62,7 @@ export class ConditionEvaluator {
    * @returns true if any effect requires a dice roll for condition evaluation
    */
   static anyEffectNeedsDiceRoll(effects: SpaceEffect[]): boolean {
-    return effects.some(effect => {
-      const condition = effect.condition?.toLowerCase().trim() || '';
-      return condition.startsWith('dice_roll_') ||
-             condition === 'high' ||
-             condition === 'low';
-    });
+    return effects.some(effect => ConditionEvaluator.isDiceConditionStatic(effect.condition));
   }
 
   /**
@@ -55,64 +94,54 @@ export class ConditionEvaluator {
     const conditionLower = condition.toLowerCase().trim();
 
     try {
-      // Always apply conditions
       if (conditionLower === 'always') {
         return true;
       }
 
-      // Dice roll conditions (used in SPACE_EFFECTS.csv)
-      if (conditionLower.startsWith('dice_roll_') && diceRoll !== undefined) {
-        const requiredRoll = parseInt(conditionLower.replace('dice_roll_', ''));
-        return diceRoll === requiredRoll;
-      }
-
-      // Project scope conditions - delegate to GameRulesService if available
-      if (conditionLower === 'scope_le_4m' || conditionLower === 'scope_gt_4m') {
-        if (this.gameRulesService) {
-          return this.gameRulesService.evaluateCondition(player.id, condition, diceRoll);
-        }
-        // Fallback if no GameRulesService
-        debugWarn(`GameRulesService not available for scope condition: ${condition}`);
-        return true;
-      }
-
-      // Loan amount conditions
-      if (conditionLower.startsWith('loan_')) {
-        return this.evaluateLoanCondition(conditionLower, player.money || 0);
-      }
-
-      // Percentage-based conditions (often used in dice effects)
-      if (conditionLower.includes('%')) {
-        // These are typically values, not conditions - return true for now
-        return true;
-      }
-
-      // Direction conditions (for card transfer targeting)
-      if (conditionLower === 'to_left' || conditionLower === 'to_right') {
-        // These are targeting directives, not boolean conditions
-        // The actual target resolution happens in EffectEngineService
-        // For condition evaluation, we always return true (effect should be processed)
-        return true;
-      }
-
-      // High/low dice conditions
+      // Dice conditions. With no roll yet the condition is simply not met —
+      // expected when effects are filtered before the roll, so no warning.
       if (conditionLower === 'high') {
         return diceRoll !== undefined && diceRoll >= 4; // 4, 5, 6 are "high"
       }
-
       if (conditionLower === 'low') {
         return diceRoll !== undefined && diceRoll <= 3; // 1, 2, 3 are "low"
       }
+      if (conditionLower.startsWith('dice_roll_')) {
+        if (diceRoll === undefined) return false;
+        return diceRoll === parseInt(conditionLower.replace('dice_roll_', ''), 10);
+      }
 
-      // Amount-based conditions (calculation modifiers)
-      if (conditionLower.includes('per_') || conditionLower.includes('of_borrowed_amount')) {
-        // These are typically calculation modifiers, not boolean conditions
+      // Project scope — always calculated fresh, never written back (pure).
+      if (conditionLower === 'scope_le_4m' || conditionLower === 'scope_gt_4m') {
+        if (!this.projectScopeOf) {
+          debugWarn(`No project-scope provider for condition "${condition}" — defaulting to false`);
+          return false;
+        }
+        const projectScope = this.projectScopeOf(player.id);
+        return conditionLower === 'scope_le_4m'
+          ? projectScope <= SCOPE_THRESHOLD
+          : projectScope > SCOPE_THRESHOLD;
+      }
+
+      const resourceCheck = RESOURCE_CONDITIONS[conditionLower];
+      if (resourceCheck) {
+        return resourceCheck(player);
+      }
+
+      // Rows that use the condition column as a PARAMETER, not a gate — who
+      // receives a transfer (to_left/to_right, read by SpaceEffectService.
+      // getTargetPlayer) or how an amount scales (per_200k, read by
+      // applySpaceMoneyEffect/applySpaceTimeEffect). The effect must run so its
+      // handler can read the parameter.
+      if (this.isTargetingDirective(conditionLower) || this.isCalculationModifier(conditionLower)) {
         return true;
       }
 
-      // Fallback for unknown conditions
-      debugWarn(`Unknown effect condition: "${condition}" - defaulting to true`);
-      return true;
+      if (!warnedUnknown.has(conditionLower)) {
+        warnedUnknown.add(conditionLower);
+        console.warn(`Unknown effect condition: "${condition}" - defaulting to false (effect will not apply)`);
+      }
+      return false;
 
     } catch (error) {
       console.error(`Error evaluating condition "${condition}":`, error);
@@ -121,36 +150,12 @@ export class ConditionEvaluator {
   }
 
   /**
-   * Evaluate loan-based conditions
-   * @param conditionLower - Lowercase condition string
-   * @param playerMoney - Player's current money
-   * @returns true if loan condition is met
-   */
-  private evaluateLoanCondition(conditionLower: string, playerMoney: number): boolean {
-    if (conditionLower === 'loan_up_to_1_4m') {
-      return playerMoney <= 1400000; // $1.4M
-    }
-    if (conditionLower === 'loan_1_5m_to_2_75m') {
-      return playerMoney >= 1500000 && playerMoney <= 2750000; // $1.5M to $2.75M
-    }
-    if (conditionLower === 'loan_above_2_75m') {
-      return playerMoney > 2750000; // Above $2.75M
-    }
-    // Unknown loan condition
-    return true;
-  }
-
-  /**
    * Check if a condition is a dice roll condition
    * @param condition - The condition string
    * @returns true if this is a dice-dependent condition
    */
   isDiceCondition(condition: string | undefined): boolean {
-    if (!condition) return false;
-    const conditionLower = condition.toLowerCase().trim();
-    return conditionLower.startsWith('dice_roll_') ||
-           conditionLower === 'high' ||
-           conditionLower === 'low';
+    return ConditionEvaluator.isDiceConditionStatic(condition);
   }
 
   /**
@@ -178,10 +183,7 @@ export class ConditionEvaluator {
   }
 }
 
-/**
- * Create a standalone condition evaluator without GameRulesService
- * Use this for simple condition checks that don't need scope evaluation
- */
-export function createConditionEvaluator(gameRulesService?: IGameRulesService): ConditionEvaluator {
-  return new ConditionEvaluator(gameRulesService);
+/** Test seam: forget which unknown strings have already warned. */
+export function resetUnknownConditionWarnings(): void {
+  warnedUnknown.clear();
 }

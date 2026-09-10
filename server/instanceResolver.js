@@ -171,6 +171,10 @@ export function applyConfigToSpacesCsv(spacesCsv, config, detours = {}) {
       authored.space_name = ins.id;
       authored.visit_type = tpl.visit_type;
       authored.phase = tpl.phase || '';                          // keep A's phase band
+      // v3.2.56 B1: auto-roll used to follow the phase band implicitly (the
+      // gate was `phase === 'REGULATORY'`). It is a flag now, so carry it with
+      // the band — a dice space spliced into the review band still rolls itself.
+      if ('auto_roll_dice' in authored) authored.auto_roll_dice = tpl.auto_roll_dice || '';
       authored.path = tpl.path && tpl.path !== 'LOGIC' ? tpl.path : 'Main'; // plain fixed lane
       authored.Title = ins.displayName;
       authored.Event = ins.story || '';

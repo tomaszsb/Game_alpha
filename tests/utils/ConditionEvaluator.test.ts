@@ -1,6 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ConditionEvaluator, createConditionEvaluator } from '../../src/utils/ConditionEvaluator';
-import { IGameRulesService } from '../../src/types/ServiceContracts';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { ConditionEvaluator, resetUnknownConditionWarnings } from '../../src/utils/ConditionEvaluator';
 import { Player } from '../../src/types/StateTypes';
 import { SpaceEffect } from '../../src/types/DataTypes';
 
@@ -14,7 +13,7 @@ vi.mock('../../src/utils/debugLog', () => ({
 
 describe('ConditionEvaluator', () => {
   let conditionEvaluator: ConditionEvaluator;
-  let mockGameRulesService: IGameRulesService;
+  let projectScopeOf: Mock<(playerId: string) => number>;
 
   const createMockPlayer = (overrides: Partial<Player> = {}): Player => ({
     id: 'player1',
@@ -28,11 +27,9 @@ describe('ConditionEvaluator', () => {
   } as Player);
 
   beforeEach(() => {
-    mockGameRulesService = {
-      evaluateCondition: vi.fn().mockReturnValue(true)
-    } as unknown as IGameRulesService;
-
-    conditionEvaluator = new ConditionEvaluator(mockGameRulesService);
+    projectScopeOf = vi.fn((_playerId: string) => 3000000);
+    conditionEvaluator = new ConditionEvaluator(projectScopeOf);
+    resetUnknownConditionWarnings();
   });
 
   describe('evaluate', () => {
@@ -76,11 +73,13 @@ describe('ConditionEvaluator', () => {
         expect(conditionEvaluator.evaluate(player, 'dice_roll_3', 5)).toBe(false);
       });
 
-      it('should fall through to unknown when dice roll is undefined', () => {
+      it('should be not-met (false, no warning) when dice roll is undefined', () => {
+        // Used to fall through to the unknown branch and return TRUE here,
+        // while GameRulesService returned false for the same call.
         const player = createMockPlayer();
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-        // Without a dice roll, dice_roll_X conditions fall through to unknown handler
-        expect(conditionEvaluator.evaluate(player, 'dice_roll_3')).toBe(true);
+        expect(conditionEvaluator.evaluate(player, 'dice_roll_3')).toBe(false);
+        expect(warnSpy).not.toHaveBeenCalled();
         warnSpy.mockRestore();
       });
 
@@ -94,34 +93,27 @@ describe('ConditionEvaluator', () => {
     });
 
     describe('scope conditions', () => {
-      it('should delegate scope_le_4m to GameRulesService', () => {
+      it('should read scope through the provider for scope_le_4m / scope_gt_4m', () => {
         const player = createMockPlayer();
-        conditionEvaluator.evaluate(player, 'scope_le_4m', 3);
-
-        expect(mockGameRulesService.evaluateCondition).toHaveBeenCalledWith(
-          'player1',
-          'scope_le_4m',
-          3
-        );
+        expect(conditionEvaluator.evaluate(player, 'scope_le_4m')).toBe(true); // $3M
+        expect(conditionEvaluator.evaluate(player, 'scope_gt_4M')).toBe(false);
+        expect(projectScopeOf).toHaveBeenCalledWith('player1');
       });
 
-      it('should delegate scope_gt_4m to GameRulesService', () => {
+      it('should treat exactly $4M as scope_le_4m', () => {
+        projectScopeOf.mockReturnValue(4000000);
         const player = createMockPlayer();
-        conditionEvaluator.evaluate(player, 'scope_gt_4m');
-
-        expect(mockGameRulesService.evaluateCondition).toHaveBeenCalledWith(
-          'player1',
-          'scope_gt_4m',
-          undefined
-        );
+        expect(conditionEvaluator.evaluate(player, 'scope_le_4m')).toBe(true);
+        expect(conditionEvaluator.evaluate(player, 'scope_gt_4m')).toBe(false);
       });
 
-      it('should return true with warning when no GameRulesService', () => {
+      it('should fail closed with warning when there is no scope provider', () => {
         const evaluatorNoService = new ConditionEvaluator();
         const player = createMockPlayer();
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-        expect(evaluatorNoService.evaluate(player, 'scope_le_4m')).toBe(true);
+        expect(evaluatorNoService.evaluate(player, 'scope_le_4m')).toBe(false);
+        expect(evaluatorNoService.evaluate(player, 'scope_gt_4m')).toBe(false);
         expect(warnSpy).toHaveBeenCalled();
 
         warnSpy.mockRestore();
@@ -162,6 +154,40 @@ describe('ConditionEvaluator', () => {
       it('should return false for loan_above_2_75m when money <= 2.75M', () => {
         const player = createMockPlayer({ money: 2750000 });
         expect(conditionEvaluator.evaluate(player, 'loan_above_2_75m')).toBe(false);
+      });
+
+      it('should fail closed for an unrecognised loan_ variant (used to return true)', () => {
+        const player = createMockPlayer();
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        expect(conditionEvaluator.evaluate(player, 'loan_up_to_9m')).toBe(false);
+        warnSpy.mockRestore();
+      });
+    });
+
+    // Moved here from MovementService's former private evaluator.
+    describe('money / time / hand-size conditions', () => {
+      it('evaluates money_ thresholds', () => {
+        const player = createMockPlayer({ money: 1500000 });
+        expect(conditionEvaluator.evaluate(player, 'money_le_1m')).toBe(false);
+        expect(conditionEvaluator.evaluate(player, 'money_gt_1m')).toBe(true);
+        expect(conditionEvaluator.evaluate(player, 'money_le_2m')).toBe(true);
+        expect(conditionEvaluator.evaluate(player, 'money_gt_2m')).toBe(false);
+      });
+
+      it('evaluates time_ thresholds', () => {
+        const player = createMockPlayer({ timeSpent: 7 });
+        expect(conditionEvaluator.evaluate(player, 'time_le_5')).toBe(false);
+        expect(conditionEvaluator.evaluate(player, 'time_gt_5')).toBe(true);
+        expect(conditionEvaluator.evaluate(player, 'time_le_10')).toBe(true);
+        expect(conditionEvaluator.evaluate(player, 'time_gt_10')).toBe(false);
+      });
+
+      it('evaluates cards_ thresholds on hand size', () => {
+        const player = createMockPlayer({ hand: ['W001', 'E001', 'L001', 'B001'] } as Partial<Player>);
+        expect(conditionEvaluator.evaluate(player, 'cards_le_3')).toBe(false);
+        expect(conditionEvaluator.evaluate(player, 'cards_gt_3')).toBe(true);
+        expect(conditionEvaluator.evaluate(player, 'cards_le_5')).toBe(true);
+        expect(conditionEvaluator.evaluate(player, 'cards_gt_5')).toBe(false);
       });
     });
 
@@ -233,14 +259,26 @@ describe('ConditionEvaluator', () => {
     });
 
     describe('unknown conditions', () => {
-      it('should return true for unknown conditions with warning', () => {
+      it('should FAIL CLOSED (false) for unknown conditions, with a non-debug warning', () => {
         const player = createMockPlayer();
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-        expect(conditionEvaluator.evaluate(player, 'unknown_condition')).toBe(true);
+        expect(conditionEvaluator.evaluate(player, 'unknown_condition')).toBe(false);
         expect(warnSpy).toHaveBeenCalledWith(
-          'Unknown effect condition: "unknown_condition" - defaulting to true'
+          'Unknown effect condition: "unknown_condition" - defaulting to false (effect will not apply)'
         );
+
+        warnSpy.mockRestore();
+      });
+
+      it('should warn only once per distinct unknown string', () => {
+        const player = createMockPlayer();
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        conditionEvaluator.evaluate(player, 'mystery');
+        conditionEvaluator.evaluate(player, 'MYSTERY');
+        conditionEvaluator.evaluate(player, 'other_mystery');
+        expect(warnSpy).toHaveBeenCalledTimes(2);
 
         warnSpy.mockRestore();
       });
@@ -251,10 +289,8 @@ describe('ConditionEvaluator', () => {
         const badPlayer = { id: 'bad' } as Player; // Minimal player that might cause issues
         const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        // Force an error by mocking something that throws
-        const evaluator = new ConditionEvaluator({
-          evaluateCondition: () => { throw new Error('Test error'); }
-        } as unknown as IGameRulesService);
+        // Force an error with a scope provider that throws
+        const evaluator = new ConditionEvaluator(() => { throw new Error('Test error'); });
 
         expect(evaluator.evaluate(badPlayer, 'scope_le_4m')).toBe(false);
         expect(errorSpy).toHaveBeenCalled();
@@ -313,21 +349,6 @@ describe('ConditionEvaluator', () => {
     it('should return false for boolean conditions', () => {
       expect(conditionEvaluator.isCalculationModifier('always')).toBe(false);
       expect(conditionEvaluator.isCalculationModifier('high')).toBe(false);
-    });
-  });
-
-  describe('createConditionEvaluator factory', () => {
-    it('should create evaluator without GameRulesService', () => {
-      const evaluator = createConditionEvaluator();
-      const player = createMockPlayer();
-      expect(evaluator.evaluate(player, 'always')).toBe(true);
-    });
-
-    it('should create evaluator with GameRulesService', () => {
-      const evaluator = createConditionEvaluator(mockGameRulesService);
-      const player = createMockPlayer();
-      evaluator.evaluate(player, 'scope_le_4m');
-      expect(mockGameRulesService.evaluateCondition).toHaveBeenCalled();
     });
   });
 

@@ -44,6 +44,9 @@ export const createMockDataService = (): any => ({
   getFeeCalculationMethod: vi.fn(() => 'flat'),
   getFeeLabel: vi.fn(() => ''),
   shouldAutoApplyFunding: vi.fn(() => false),
+  shouldAutoRollDice: vi.fn(() => false),
+  // Stock board: only Expeditors are played from hand (CARD_TYPES.csv).
+  isCardTypePlayableFromHand: vi.fn((cardType: string) => cardType === 'E'),
   getAutoTriggerCardTypes: vi.fn(() => []),
   getFundingSource: vi.fn(() => ''),
   isFundingSpace: vi.fn(() => false),

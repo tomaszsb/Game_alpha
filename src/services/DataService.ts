@@ -20,6 +20,13 @@ import {
 } from '../types/DataTypes';
 import { getDataBasePath } from '../utils/dataInstance';
 
+/**
+ * Stock rule used ONLY when CARD_TYPES.csv (or its is_playable_from_hand
+ * column) failed to load — see isCardTypePlayableFromHand. The authored
+ * source is the CSV; a regression test keeps this equal to it.
+ */
+export const BUILT_IN_HAND_PLAYABLE_CARD_TYPES: readonly string[] = ['E'];
+
 export class DataService implements IDataService {
   private gameConfigs: GameConfig[] = [];
   // 2026-08-02: keyed lookups for the hottest DataService reads
@@ -52,6 +59,10 @@ export class DataService implements IDataService {
   private pathChoiceRules: PathChoiceRule[] = [];
   // 2026-07-16: CSV-portability lift — reskin hook for card-type display labels.
   private cardTypeLabels: CardTypeLabel[] = [];
+  // v3.2.56 (audit II, B2): card families playable from hand, from CARD_TYPES.csv's
+  // is_playable_from_hand column. null = the column (or file) was not loaded.
+  private handPlayableCardTypes: Set<string> | null = null;
+  private warnedHandPlayableFallback = false;
   // 2026-08-09: CSV-portability lift, reskin item 4 — reskin hook for the NPC roster.
   private characterRows: CharacterCsvRow[] = [];
   // 2026-08-14: CSV-portability lift, reskin item 2 — reskin hook for the Homeowner Violation tier/fee-rate numbers.
@@ -261,6 +272,15 @@ export class DataService implements IDataService {
    */
   shouldAutoApplyFunding(spaceName: string): boolean {
     return this.getGameConfigBySpace(spaceName)?.auto_apply_funding === true;
+  }
+
+  /**
+   * v3.2.56 (Workstream 6 audit II, B1): does a dice-movement roll at this
+   * space happen automatically on arrival? Replaces TurnService's literal
+   * `phase === 'REGULATORY'`, which went silent if the phase was renamed.
+   */
+  shouldAutoRollDice(spaceName: string): boolean {
+    return this.getGameConfigBySpace(spaceName)?.auto_roll_dice === true;
   }
 
   /**
@@ -704,15 +724,46 @@ export class DataService implements IDataService {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
     const get = this.csvFieldReader(lines[0]);
-    return lines.slice(1)
+    const hasPlayableColumn = this.parseCsvLine(lines[0]).some(h => h.trim() === 'is_playable_from_hand');
+    const rows = lines.slice(1)
       .map(line => {
         const values = this.parseCsvLine(line);
         return {
           card_type: (get(values, 'card_type') || '').trim(),
-          label: (get(values, 'label') || '').trim()
+          label: (get(values, 'label') || '').trim(),
+          is_playable_from_hand: hasPlayableColumn
+            ? (get(values, 'is_playable_from_hand') || '').trim() === 'Yes'
+            : undefined
         };
       })
       .filter(r => r.card_type && r.label);
+    this.handPlayableCardTypes = hasPlayableColumn
+      ? new Set(rows.filter(r => r.is_playable_from_hand).map(r => r.card_type))
+      : null;
+    return rows;
+  }
+
+  /**
+   * v3.2.56 (Workstream 6 audit II, B2): can a card of this family be played
+   * from hand? Authored in CARD_TYPES.csv (is_playable_from_hand), not
+   * compiled — the UI's "Activate" gates used to hardcode `card_type === 'E'`
+   * while the engine's canPlayCard was deliberately type-agnostic.
+   *
+   * If CARD_TYPES.csv or its column is missing, falls back to the built-in
+   * stock rule (Expeditors) with a warning — the same built-in-fallback
+   * convention as CHARACTERS.csv, so a failed fetch cannot remove every
+   * Activate button. tests/regression/HandPlayableCardTypes.test.ts keeps the
+   * fallback equal to the shipped CSV.
+   */
+  isCardTypePlayableFromHand(cardType: string): boolean {
+    if (this.handPlayableCardTypes === null) {
+      if (!this.warnedHandPlayableFallback) {
+        this.warnedHandPlayableFallback = true;
+        console.warn('CARD_TYPES.csv has no is_playable_from_hand column — using the built-in default (Expeditors only).');
+      }
+      return BUILT_IN_HAND_PLAYABLE_CARD_TYPES.includes(cardType);
+    }
+    return this.handPlayableCardTypes.has(cardType);
   }
 
   /**
@@ -910,6 +961,11 @@ export class DataService implements IDataService {
   private parseGameConfigCsv(csvText: string): GameConfig[] {
     const lines = csvText.trim().split('\n');
     const get = this.csvFieldReader(lines[0]);
+    // B1: a board without this column would silently stop every automatic
+    // review roll — say so instead of failing quietly.
+    if (!this.parseCsvLine(lines[0]).some(h => h.trim() === 'auto_roll_dice')) {
+      console.warn('GAME_CONFIG.csv has no auto_roll_dice column — no space will roll its dice automatically on arrival.');
+    }
 
     return lines.slice(1).map(line => {
       const values = this.parseCsvLine(line);
@@ -994,7 +1050,9 @@ export class DataService implements IDataService {
         // 2026-07-16: CSV-portability lift — approval-gate role.
         approval_role: approvalRole,
         // 2026-07-16: CSV-portability lift — NPC-speaker override.
-        npc_speaker: npcSpeaker
+        npc_speaker: npcSpeaker,
+        // v3.2.56 B1: automatic dice roll on arrival.
+        auto_roll_dice: get(values, 'auto_roll_dice') === 'Yes'
       };
     });
   }

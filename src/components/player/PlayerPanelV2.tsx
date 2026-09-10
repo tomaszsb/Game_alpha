@@ -231,16 +231,19 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // hiding can't soft-lock the turn.
   const hasExpeditorCards = (counts['E'] ?? 0) > 0;
 
-  // Playable Expeditor (E) cards — the influence zone lets the player deploy them.
-  // The gate AND the play both go through the canonical SERVICE rule
-  // (`gameRulesService.canPlayCard` via cardService) — the same rule the engine
-  // enforces. We deliberately do NOT re-derive playability here (the classic
-  // CardsSection kept its own component-local copy until it was deleted; forking
-  // it again is exactly the parallel-systems drift CLAUDE.md warns about).
+  // Hand-playable cards (Expeditors, on the stock board) — the influence zone
+  // lets the player deploy them. Which card FAMILIES qualify is authored data
+  // (CARD_TYPES.csv is_playable_from_hand — v3.2.56, audit II B2; this used to
+  // hardcode `card_type === 'E'`). The gate AND the play both go through the
+  // canonical SERVICE rule (`gameRulesService.canPlayCard` via cardService) —
+  // the same rule the engine enforces. We deliberately do NOT re-derive
+  // playability here (the classic CardsSection kept its own component-local
+  // copy until it was deleted; forking it again is exactly the parallel-systems
+  // drift CLAUDE.md warns about).
   const expeditorCards = player.hand
     .map((id) => ({ id, card: gameServices.dataService.getCardById(id) }))
     .filter((x): x is { id: string; card: NonNullable<typeof x.card> } =>
-      !!x.card && x.card.card_type === 'E');
+      !!x.card && gameServices.dataService.isCardTypePlayableFromHand(x.card.card_type));
   const playableExpeditors = isMyTurn
     ? expeditorCards.filter((x) => gameServices.cardService.canPlayCard(playerId, x.id))
     : [];

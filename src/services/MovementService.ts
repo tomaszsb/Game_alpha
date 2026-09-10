@@ -838,95 +838,13 @@ export class MovementService implements IMovementService {
   }
 
   /**
-   * Evaluates a movement condition against the current player's state
+   * Evaluates a movement condition. Delegates to GameRulesService — the one
+   * condition vocabulary (ConditionEvaluator). This used to be a private copy
+   * with its own money_/time_/cards_ words; those moved into the shared table.
    * @private
    */
   private evaluateCondition(playerId: string, condition: string | undefined): boolean {
-    // If no condition is specified, assume it should always apply
-    if (!condition || condition.trim() === '') {
-      return true;
-    }
-
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      debugWarn(`Player ${playerId} not found for condition evaluation`);
-      return false;
-    }
-
-    const conditionLower = condition.toLowerCase().trim();
-
-    try {
-      // Always apply conditions
-      if (conditionLower === 'always') {
-        return true;
-      }
-
-      // Project scope conditions - delegate to GameRulesService (single source of truth)
-      if (conditionLower === 'scope_le_4m' || conditionLower === 'scope_gt_4m') {
-        return this.gameRulesService.evaluateCondition(playerId, condition);
-      }
-
-      // Money-based conditions
-      if (conditionLower.startsWith('money_')) {
-        const playerMoney = player.money || 0;
-        
-        if (conditionLower === 'money_le_1m') {
-          return playerMoney <= 1000000; // $1M
-        }
-        if (conditionLower === 'money_gt_1m') {
-          return playerMoney > 1000000; // $1M
-        }
-        if (conditionLower === 'money_le_2m') {
-          return playerMoney <= 2000000; // $2M
-        }
-        if (conditionLower === 'money_gt_2m') {
-          return playerMoney > 2000000; // $2M
-        }
-      }
-
-      // Time-based conditions
-      if (conditionLower.startsWith('time_')) {
-        const timeSpent = player.timeSpent || 0;
-        
-        if (conditionLower === 'time_le_5') {
-          return timeSpent <= 5;
-        }
-        if (conditionLower === 'time_gt_5') {
-          return timeSpent > 5;
-        }
-        if (conditionLower === 'time_le_10') {
-          return timeSpent <= 10;
-        }
-        if (conditionLower === 'time_gt_10') {
-          return timeSpent > 10;
-        }
-      }
-
-      // Card count conditions
-      if (conditionLower.startsWith('cards_')) {
-        const handSize = player.hand?.length || 0;
-        
-        if (conditionLower === 'cards_le_3') {
-          return handSize <= 3;
-        }
-        if (conditionLower === 'cards_gt_3') {
-          return handSize > 3;
-        }
-        if (conditionLower === 'cards_le_5') {
-          return handSize <= 5;
-        }
-        if (conditionLower === 'cards_gt_5') {
-          return handSize > 5;
-        }
-      }
-
-      debugWarn(`🧠 Unknown movement condition: ${condition}`);
-      return false;
-
-    } catch (error) {
-      console.error(`🧠 Error evaluating movement condition "${condition}":`, error);
-      return false;
-    }
+    return this.gameRulesService.evaluateCondition(playerId, condition);
   }
 
   // ========================================================================

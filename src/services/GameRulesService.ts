@@ -3,6 +3,7 @@
 import { IGameRulesService, IDataService, IStateService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { CardType, Movement } from '../types/DataTypes';
+import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 
 /**
  * GameRulesService acts as the centralized authority for all game rule validations.
@@ -13,6 +14,9 @@ export class GameRulesService implements IGameRulesService {
   // Cache for calculateProjectScope to avoid redundant calculations
   // Key: playerId, Value: { cacheKey: stringified card array, value: calculated scope }
   private projectScopeCache: Map<string, { cacheKey: string; value: number }> = new Map();
+
+  // Late-bound so a spy on calculateProjectScope is honoured.
+  private readonly conditionEvaluator = new ConditionEvaluator(playerId => this.calculateProjectScope(playerId));
 
   constructor(
     private dataService: IDataService,
@@ -691,13 +695,16 @@ export class GameRulesService implements IGameRulesService {
   }
 
   /**
-   * Evaluate a condition for a player
-   * This is the single source of truth for condition evaluation across all services
+   * Evaluate a condition for a player — the one entry point every service
+   * uses. The vocabulary itself lives in ConditionEvaluator; this method only
+   * resolves the player and supplies the project-scope provider (scope is
+   * always calculated fresh, never written back — state updates happen
+   * elsewhere, e.g. when W cards are drawn).
    *
    * @param playerId - The ID of the player to evaluate the condition for
-   * @param condition - The condition string to evaluate (e.g., 'always', 'scope_le_4M', 'scope_gt_4M')
+   * @param condition - The condition string to evaluate (e.g., 'always', 'scope_le_4M', 'dice_roll_3')
    * @param diceRoll - Optional dice roll value for dice-based conditions
-   * @returns true if the condition is met, false otherwise
+   * @returns true if the condition is met, false otherwise (unknown strings fail closed)
    */
   evaluateCondition(playerId: string, condition: string | undefined, diceRoll?: number): boolean {
     // If no condition is specified, assume it should always apply
@@ -711,54 +718,6 @@ export class GameRulesService implements IGameRulesService {
       return false;
     }
 
-    const conditionLower = condition.toLowerCase().trim();
-
-    try {
-      // Always apply conditions
-      if (conditionLower === 'always') {
-        return true;
-      }
-
-      // Project scope conditions - PURE EVALUATION (no state updates during condition check)
-      // Always calculate fresh to ensure correctness - state updates happen elsewhere
-      // (e.g., when W cards are drawn, at OWNER-FUND-INITIATION via TurnService.handleAutomaticFunding)
-      if (conditionLower === 'scope_le_4m') {
-        const projectScope = this.calculateProjectScope(playerId);
-        return projectScope <= 4000000; // $4M
-      }
-
-      if (conditionLower === 'scope_gt_4m') {
-        const projectScope = this.calculateProjectScope(playerId);
-        return projectScope > 4000000; // $4M
-      }
-
-      // High/low dice conditions
-      if (conditionLower === 'high') {
-        return diceRoll !== undefined && diceRoll >= 4; // 4, 5, 6 are "high"
-      }
-
-      if (conditionLower === 'low') {
-        return diceRoll !== undefined && diceRoll <= 3; // 1, 2, 3 are "low"
-      }
-
-      // Dice roll specific values (e.g., dice_roll_1, dice_roll_3)
-      if (conditionLower.startsWith('dice_roll_')) {
-        // Dice roll conditions require a dice value to evaluate
-        if (diceRoll === undefined) {
-          // No dice roll yet - condition is not met (return false without warning)
-          // This is expected when UI components filter effects before dice is rolled
-          return false;
-        }
-        const requiredRoll = parseInt(conditionLower.replace('dice_roll_', ''));
-        return diceRoll === requiredRoll;
-      }
-
-      // Unknown condition - default to false
-      debugWarn(`Unknown condition: "${condition}", defaulting to false`);
-      return false;
-    } catch (error) {
-      console.error(`Error evaluating condition "${condition}":`, error);
-      return false;
-    }
+    return this.conditionEvaluator.evaluate(player, condition, diceRoll);
   }
 }

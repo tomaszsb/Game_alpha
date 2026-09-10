@@ -314,6 +314,12 @@ function processGameConfig(spacesCsv) {
     // configureNpcSpeakers). 'PM' or a CHARACTER_MAP key; empty for spaces
     // that keep the legacy prefix-heuristic default.
     const npcSpeaker = (row.npc_speaker || '').trim();
+    // v3.2.56 (Workstream 6 audit II, B1): when this space uses dice movement,
+    // the reviewing authority rolls it automatically on arrival (TurnService).
+    // Replaces the literal `phase === 'REGULATORY'` gate, which silently stopped
+    // auto-rolling if the phase was renamed. Stock sets it on every REGULATORY
+    // row, so it is harmless on non-dice rows and matches the old rule exactly.
+    const autoRollDice = (row.auto_roll_dice || '').trim() === 'Yes';
 
     configs[spaceName] = {
       space_name: spaceName,
@@ -340,7 +346,8 @@ function processGameConfig(spacesCsv) {
       funding_source: fundingSource,
       has_final_review_gate: hasFinalReviewGate ? 'Yes' : 'No',
       approval_role: approvalRole,
-      npc_speaker: npcSpeaker
+      npc_speaker: npcSpeaker,
+      auto_roll_dice: autoRollDice ? 'Yes' : 'No'
     };
   }
 
@@ -356,7 +363,8 @@ function processGameConfig(spacesCsv) {
     'funding_source',
     'has_final_review_gate',
     'approval_role',
-    'npc_speaker'
+    'npc_speaker',
+    'auto_roll_dice'
   ];
 
   return toCsv(Object.values(configs), fieldnames);

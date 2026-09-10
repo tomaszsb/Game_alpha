@@ -32,7 +32,7 @@
 
 ## Engine-data separation (Workstream 6 invariant)
 
-- **Per-space behavior lives in `Spaces.csv` flags, not hardcoded space-ID checks.** The list of flags as of v2.58.0: `is_starting_space`, `is_resume_hub`, `is_point_of_no_return`, `min_w_cards_to_leave`, `fee_calculation_method` + `fee_label`, `auto_apply_funding` + `auto_trigger_card_types`, `path_choice_memory_key` + `is_path_choice_lock_point`, `display_label_override`, `review_loop_message`. Plus `phase` (already-existing) drives regulatory-phase auto-rolls.
+- **Per-space behavior lives in `Spaces.csv` flags, not hardcoded space-ID checks.** The list of flags as of v2.58.0: `is_starting_space`, `is_resume_hub`, `is_point_of_no_return`, `min_w_cards_to_leave`, `fee_calculation_method` + `fee_label`, `auto_apply_funding` + `auto_trigger_card_types`, `path_choice_memory_key` + `is_path_choice_lock_point`, `display_label_override`, `review_loop_message`, `auto_roll_dice` (v3.2.56 — replaced the `phase === 'REGULATORY'` auto-roll gate; never gate behaviour on a phase's *name*, phases are free text).
 - When adding new per-space behavior, add a Spaces.csv flag rather than a hardcoded `if (spaceName === 'X-Y-Z')` check. After the refactor: `git grep "OWNER-FUND-INITIATION"` (or whatever space name) should return zero hits in `src/services/`.
 - Cross-space rules go in `PATH_CHOICE_RULES.csv` (or a new sibling CSV).
 

@@ -1401,8 +1401,9 @@ export class CardService implements ICardService {
    * CardService.playCard() (the only path that calls recordTurnOutflow with
    * cardConsumed); they're added straight to hand via drawCards() when a
    * player rolls dice or resolves a manual action, and the only "Play"
-   * button in the UI is gated `card.card_type === 'E'`
-   * (PlayerCardDetailV2.tsx, PlayerPanelV2.handlePlayExpeditor). Filtering
+   * button in the UI is gated on CARD_TYPES.csv's is_playable_from_hand,
+   * which is Yes for E alone on the stock board (PlayerCardDetailV2.tsx,
+   * PlayerPanelV2.handlePlayExpeditor — hardcoded `=== 'E'` before v3.2.56). Filtering
    * cardsConsumed for a 'W' prefix would always be an empty array, so the
    * gate would silently never fire.
    *

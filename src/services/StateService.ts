@@ -26,6 +26,9 @@ import { ServerSyncService, StateProvider } from './ServerSyncService';
 import { GameEvent } from '../types/GameEvents';
 import { GameEventBus } from './GameEventBus';
 import { isSkippableEffectAction } from '../utils/skippableActions';
+import { ConditionEvaluator } from '../utils/ConditionEvaluator';
+
+const fallbackConditionEvaluator = new ConditionEvaluator();
 
 // Domain-event stage 2 (docs/design/domain-events.md): LifeEventEffectSummary
 // and the former AutoActionEvent now live in types/GameEvents.ts as the typed
@@ -1148,15 +1151,11 @@ export class StateService implements IStateService {
       return this.gameRulesService.evaluateCondition(player.id, condition);
     }
 
-    // Fallback for when GameRulesService hasn't been set yet (during initialization)
+    // Fallback for when GameRulesService hasn't been set yet (during
+    // initialization): same vocabulary, no scope provider, so scope
+    // conditions fail closed rather than guessing.
     debugWarn('GameRulesService not set in StateService, using fallback condition evaluation');
-    switch (condition) {
-      case 'always':
-        return true;
-      default:
-        // Unknown conditions default to false
-        return false;
-    }
+    return fallbackConditionEvaluator.evaluate(player, condition);
   }
 
   // Player snapshot methods for negotiation

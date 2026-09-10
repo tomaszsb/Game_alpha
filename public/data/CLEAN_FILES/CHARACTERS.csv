@@ -5,6 +5,6 @@ ENG,⚙️,The Engineer,Engineering,#FF9800,engineer,Engineer
 REG-DOB,📋,DOB Examiner,Regulatory,#f44336,"dob_examiner,dob_clerk",DOB
 REG-FDNY,🚒,FDNY Inspector,Regulatory,#E91E63,"fdny_examiner,fdny_clerk",FDNY
 CON,🏗️,The Contractor,Construction,#4CAF50,"contractor,inspector",Contractor
-BANK,🏦,The Bank,Funding,#009688,,Bank
+BANK,🏦,The Banker,Funding,#009688,,Banker
 LEND,🤝,The Lender,Funding,#FFC107,,Lender
 INVESTOR,💼,The Investor,Funding,#3F51B5,,Investor

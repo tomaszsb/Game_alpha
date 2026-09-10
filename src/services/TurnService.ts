@@ -709,16 +709,17 @@ export class TurnService implements ITurnService {
       // Handle movement choices after effects are processed
       await this.handleMovementChoices(player.id);
 
-      // Auto-roll dice for REGULATORY-phase dice-movement spaces (clerk/examiner makes the decision)
-      // CHEAT spaces require manual roll (player actively cheating)
-      // Workstream 6 #8: lifted from `currentSpace.startsWith('REG-')` to phase check
-      // so educator-added regulatory spaces (any prefix) get the same auto-roll behavior.
+      // Auto-roll dice at review spaces where the authority decides (clerk/examiner).
+      // CHEAT spaces require manual roll (player actively cheating).
+      // Workstream 6 #8 lifted this from `currentSpace.startsWith('REG-')` to a
+      // literal `phase === 'REGULATORY'`; v3.2.56 (audit II, B1) finished the lift
+      // to the auto_roll_dice data flag, so renaming a phase can no longer
+      // silently stop the roll. Teacher-authored spaces inherit the flag with
+      // their phase band (instanceResolver), as they inherited the phase before.
       const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
       const isDiceMovementSpace = movement?.movement_type === 'dice';
-      const spacePhase = this.dataService.getGameConfigBySpace(player.currentSpace)?.phase;
-      const isRegulatoryPhaseSpace = spacePhase === 'REGULATORY';
 
-      if (isDiceMovementSpace && isRegulatoryPhaseSpace) {
+      if (isDiceMovementSpace && this.dataService.shouldAutoRollDice(player.currentSpace)) {
         // Small delay so player sees they arrived before dice rolls
         await new Promise(resolve => setTimeout(resolve, 500));
         const autoRollResult = await this.rollDiceWithFeedback(player.id);

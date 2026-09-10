@@ -54,6 +54,10 @@ export interface GameConfig {
   // game). Replaces hardcoded space-name entries in characters.ts's
   // PM_VOICED_SPACES / extractPrefix.
   npc_speaker?: string;
+  // v3.2.56 (Workstream 6 audit II, B1): when this space uses dice movement,
+  // roll automatically on arrival (the reviewing authority decides). Replaces
+  // TurnService's literal `phase === 'REGULATORY'` gate.
+  auto_roll_dice?: boolean;
   action?: string;  // Dynamic action keywords like 'GOTO_JAIL', 'PAY_TAX', 'AUCTION'
   game_phase?: string;
   space_order?: number;
@@ -86,6 +90,13 @@ export interface PathChoiceRule {
 export interface CardTypeLabel {
   card_type: string;
   label: string;
+  /**
+   * v3.2.56 (Workstream 6 audit II, B2): can a card of this family be played
+   * from the player's hand (the "Activate" button)? Undefined when the CSV has
+   * no is_playable_from_hand column. Read through
+   * DataService.isCardTypePlayableFromHand, never directly.
+   */
+  is_playable_from_hand?: boolean;
 }
 
 /**

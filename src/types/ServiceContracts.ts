@@ -157,6 +157,8 @@ export interface IDataService {
   getFeeCalculationMethod(spaceName: string): 'flat' | 'percentage_of_scope';
   getFeeLabel(spaceName: string): string;
   shouldAutoApplyFunding(spaceName: string): boolean;
+  shouldAutoRollDice(spaceName: string): boolean;
+  isCardTypePlayableFromHand(cardType: string): boolean;
   getAutoTriggerCardTypes(spaceName: string): string[];
   // 2026-05-18 audit: funding-source data flag (replaces hardcoded space arrays).
   getFundingSource(spaceName: string): 'owner' | 'bank' | 'investor' | '';

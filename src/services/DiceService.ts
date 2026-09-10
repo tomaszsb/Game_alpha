@@ -1,7 +1,7 @@
 import { DiceEffect } from '../types/DataTypes';
 import { DiceResultEffect } from '../types/StateTypes';
 import { getCardTypeName } from '../utils/cardTypeNames';
-import { extractPrefix, PM_VOICED_SPACES } from '../constants/characters';
+import { getNpcCharacterInfo, PM_VOICED_SPACES } from '../constants/characters';
 
 // Speakers for the dice-result summary. Per the project NPC-speaker map
 // (memory `project_npc_speakers`): five spaces are PM-voiced (first person),
@@ -10,19 +10,11 @@ import { extractPrefix, PM_VOICED_SPACES } from '../constants/characters';
 // "Good news! …" narrator voice broke immersion at OWNER-FUND-INITIATION
 // and similar NPC-led spaces. `PM_VOICED_SPACES` lives in characters.ts (single
 // source of truth shared with CharacterBadge/NarrativeBlock/etc. — see fb:7065e8df).
-const NPC_SPEAKER_NAMES: Record<string, string> = {
-  OWNER:     'The Owner',
-  BANK:      'The Banker',
-  INVESTOR:  'The Investor',
-  LEND:      'The Lender',
-  ARCH:      'The Architect',
-  ENG:       'The Engineer',
-  'REG-DOB': 'DOB Examiner',
-  'REG-FDNY': 'FDNY Inspector',
-  'REG-DCP':  'DCP Planner',
-  CON:       'The Contractor',
-  FINISH:    'The Owner',
-};
+//
+// v3.2.56 (Workstream 6 audit II, A2): the NPC's name comes from CHARACTER_MAP
+// (CHARACTERS.csv) like everywhere else. This file used to keep its own
+// prefix → name table, which had already drifted ("The Banker" here, "The
+// Bank" everywhere else) and which a reskin CSV could not reach.
 
 interface SpeakerVoice {
   /** 'I' for PM-voiced spaces, 'You' for NPC-voiced. Null when no speaker resolved. */
@@ -36,10 +28,9 @@ function resolveSpeakerVoice(spaceName?: string): SpeakerVoice {
   if (PM_VOICED_SPACES.has(spaceName)) {
     return { pronoun: 'I', attribution: '' };
   }
-  const prefix = extractPrefix(spaceName);
-  const npcName = NPC_SPEAKER_NAMES[prefix];
-  if (npcName) {
-    return { pronoun: 'You', attribution: npcName };
+  const npc = getNpcCharacterInfo(spaceName);
+  if (npc) {
+    return { pronoun: 'You', attribution: npc.name };
   }
   return { pronoun: null, attribution: '' };
 }
