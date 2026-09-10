@@ -2,7 +2,7 @@
 
 ## State at handoff
 - **Version:** v3.2.55 — **LIVE.** `/health` re-checked today: `5718946`. HEAD is `a7f9bd8`, a docs-only commit on top. **Still run `curl -sS https://game.unravelcodes.com/health` before believing this line.**
-- **Branch:** master, clean and pushed. Untracked: `idea.txt` (the maintainer's own draft — leave it).
+- **Branch:** master, clean and pushed. Untracked: `idea.txt` — **READ IT, never modify or commit it.** It is the maintainer's own 177-line brief and the ORIGIN of the D&D dual-function constraint that `docs/technical/ARCHITECTURE.md:971` states as the Workstream 6 invariant. It also contains his standing instructions on how he wants to be worked with, and his own explicit permission to be challenged. This line used to read *"leave it"*, which was meant as *do not commit it* and was read as *ignore it* — so it went unread. Corrected 2026-09-10 by the Manager session after Tom said a fresh session was missing it.
 - **Last shipped:** v3.2.55, on 2026-09-08. **This session shipped nothing** — investigation only, zero changes to `src/`, `server/`, `public/data/` or `tests/`.
 - **Test suite:** not run, deliberately — `/koniec`'s zero-game-source rule. Last green baseline stands: **3132/3132 across 213 files**, first attempt (v3.2.55). Typecheck ✅ and build ✅ were re-run today and are clean.
 
