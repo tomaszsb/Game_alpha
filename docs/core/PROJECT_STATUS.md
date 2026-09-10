@@ -5,7 +5,7 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** September 8, 2026
+**Last Updated:** September 9, 2026
 **Current Phase:** Beta — live in production
 **Current Version:** **3.2.55 — LIVE and content-verified.** `/health` read `5718946` at 2026-09-08 18:49Z (= HEAD, contains v3.2.55's feature commit `867e322`), and the served `index-DQy_iRYu.js` carries all nine new hook strings — `move-expander`, `move-option`, `commit-end-turn`, `commit-side`, `action-button`, `data-space-id`, `data-actionable`, `data-effect-key`, `data-ready` — fetched and grepped, not inferred from the version number. **Trust `/health` over this line** — it has been wrong within hours twice this week, in both directions. 3.2.46 stays permanently skipped; its commit landed renumbered as v3.2.49.
 
@@ -26,7 +26,9 @@
 - **Deploy:** ✅ **v3.2.55 live, content-verified 2026-09-08 18:49Z** (see Current Version above). `bash deploy.sh` is Tom's, from a Windows terminal. **Verify content by finding the chunk locally first** (`grep -rl "<string>" dist/assets/*.js`) — the build is code-split, so grepping `index-*.js` for a string that lives elsewhere gives a false failure.
 - **Dashboard feedback:** fb:93449bf2 remains deliberately unflipped — it needs the maintainer's eyes on the real television, which a deploy alone cannot settle.
 
+**The robot's OTHER symptom is now answered too, and it is also not a game bug (2026-09-09, investigation only — no version shipped).** `is_pressable()` passing and then `ElementHandle.click: Timeout 8000ms exceeded` is a **full-viewport `ModalBase` backdrop intercepting pointer events**. Reproduced locally; Playwright's own call log prints `element is visible, enabled and stable`, then names the interceptor. Two facts make it cheap to re-derive: a `.click()` timeout is raised *before* dispatch, so an inert button would report success — excluded by the error class alone — and the interceptor is a property of the **page**, so any control behind it fails identically (one of the six 09-09 deaths was a *commit* button). The remaining fix is harness-side. ⚠️ Only 5 of 18 non-landing clicks ever had their error text written to disk, so "all 18 were timeouts" is **not** established.
+
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Confirm the robot half landed — the game half is live.** The hooks are deployed and verified in the live bundle, but inert until the harness on the Mac mini uses them. The number that settles it is `clicked:  ➡️` in the next 03:26 report — 7 on 09-05, then 0, 0, 0. A good number alone is not proof: the harness half ships a prose fallback, so check whether the "which path fired" log line landed.
+1. **Confirm the robot half landed — both game-side answers are in, the harness is the whole remaining question.** The hooks are deployed and verified in the live bundle, but inert until the harness on the Mac mini uses them, and it must now *also* clear `[role="dialog"]` before offering a control. The number that settles the first half is `clicked:  ➡️` in the next 03:26 report — 7 on 09-05, then 0, 0, 0. A good number alone is not proof: the harness ships a prose fallback, so check whether the "which path fired" log line landed.
 2. **The teaching layer — tutorial, micro-lessons, and the tooltip voice pass.** The remaining and largest part of Phase C. Constraint already proven: never put a glossary term inside an action button.
 3. **Does ARCH-FEE-REVIEW's 50-day Try Again cost need to be visible before you commit?** The 50 days are intended; this is about disclosure. Maintainer's call.
