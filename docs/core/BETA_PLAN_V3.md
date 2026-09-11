@@ -212,6 +212,7 @@ Plus the existing **Ghost Player gate** — 50 random games per CI run, ≥90% w
 - ✅ **#3 — Setup-phase auto-handling lifted (auto_apply_funding + auto_trigger_card_types)** shipped v2.56.0 (2026-04-27). See CHANGELOG.
 - ✅ **#4 — Path-choice memory lifted (path_choice_memory_key + is_path_choice_lock_point + new PATH_CHOICE_RULES.csv) + Phase 6.2 type loosening** shipped v2.57.0 (2026-04-28). See CHANGELOG. **Phase 6.1 + 6.2 complete.**
 - ✅ **Phase 6.3 (cosmetic mappings) + runtime starting-space defense** shipped v2.58.0 (2026-04-29). 2 of 3 sub-lifts: display label override + review-loop message. NPC voice profile sub-lift scoped out — see Phase 6.4 below. Workstream 6 effectively closed.
+- ✅ **CSV-only-reskin audit II (2026-09-10)** — its bug (4 condition evaluators with opposite defaults) + 4 cheapest leaks shipped v3.2.56, incl. finishing #8 (auto-roll now the `auto_roll_dice` flag, not the phase name) and hand-playability as data (`CARD_TYPES.is_playable_from_hand`). Remaining leaks ranked in TODO.md. See CHANGELOG.
 - ⏳ **Phase 6.4 (deferred — NPC voice profile)**: would lift `extractPrefix` + `CHARACTER_MAP` + `CHARACTER_PROFILES` to a per-space `npc_voice_profile` data flag. Touches 6 callers (5 components + SpeechService) including pure utility functions, requires either injecting dataService into utilities or adding parallel data-aware helpers. **Deferred** because educator-added spaces today fall through to the narrator voice — acceptable degradation. Probably never lifted unless an educator complains.
 
 ---

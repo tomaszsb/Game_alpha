@@ -50,7 +50,7 @@ Report each as a one-liner:
 **Run this entire step only if EITHER condition holds. Otherwise skip straight to step 5.**
 
 - **Monthly trigger (compute, don't guess):** compare the **current month** (`YYYY-MM` of today's date, from the session context) against the **last-session month** — the `written YYYY-MM-DD` date on line 1 of `NEXT_SESSION.md` (cached in step 1). Same month → not triggered. Today in a **later** month (or `NEXT_SESSION` missing and the top `CHANGELOG` entry's date is a prior month) → triggered. If neither date is parseable, treat as **not** triggered — never nag.
-- **Manual override:** the invocation included the `full` argument (`$ARGUMENTS` contains `full`) → triggered regardless of month.
+- **Manual override:** the invocation's **first word** is `full` (`/start full`, optionally followed by more text) → triggered regardless of month. *(Tightened 2026-09-11: this used to say "`$ARGUMENTS` contains `full`". On 2026-09-10 `/start` was invoked with a whole Manager task brief as its argument, and that brief contained "Full suite before commit", so a literal substring match would have fired an unrequested heavy sweep. Only a deliberate leading `full` counts.)*
 
 If **not** triggered, print one line and go to step 5:
 

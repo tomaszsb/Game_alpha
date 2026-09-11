@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.56 — Meet the Banker (September 10, 2026)
+
+- **The person who reviews your bank loan is now "The Banker" everywhere.** Some screens called this character "The Bank" and others "The Banker", because two parts of the game kept their own lists of names and the lists had drifted apart. The Banker is a person you deal with, not a building, so that's the name that stayed. You'll see it on the character badge, in the story text, and as "Banker:" in the list of places you can return to.
+- Nothing else about how the game plays has changed. The rest of this update tidies how the game reads its own rules, so they work the same way no matter which part of the game looks them up.
+
 ## v3.2.54 — Every action can now explain itself (September 7, 2026)
 
 - **There's a new "?" next to everything you can do.** Press it and the game tells you what that action actually is and why you'd want it. Press it again to put it away. It starts closed, so nothing is in your way until you ask.
