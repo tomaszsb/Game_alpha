@@ -198,9 +198,12 @@ export const _testOnly = { resetUIStringOverrides: () => UI_STRING_OVERRIDES.cle
 // BONUS_EFFECTS were removed with formatDiceRollButton (2026-09-07): it was
 // their only reader, so they were five bureaucrat-voiced labels ("Determine
 // Funding", "Check for Bonus") that no surface in the game could render.
-// Their UI_STRINGS.csv rows are deliberately left in place — nothing reads
-// them and no editor lists them, so removing them would only churn a
-// deployed data file and a resolved classroom instance. OUTCOME stays: it is
+// Their UI_STRINGS.csv rows were left in place at first, but configureUIStrings
+// logs a console.error for every unrecognized key — five errors on every page
+// load, landing in bug reports' console summaries — so v3.2.57 deleted them.
+// (Classroom copies re-bake from the stock file on deploy, so a data-file
+// removal costs nothing extra; UIStringsCsvDriven.test.ts now fails if the
+// shipped CSV carries a key this file doesn't know.) OUTCOME stays: it is
 // the editor preview's fallback for a dice row nobody has labelled yet,
 // where naming the absence is the point.
 export const DICE_BUTTON = {

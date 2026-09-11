@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.57] - 2026-09-10
+
+### Five dead wording rows were logging five errors on every page load
+
+Nothing a player sees changes. `UI_STRINGS.csv` still carried five `DICE_BUTTON` rows (`FUNDING`, `EFFECTS`, `BONUS`, `BONUS_FUNDING`, `BONUS_EFFECTS`) whose only reader, `formatDiceRollButton`, was removed in v3.2.53. The rows were kept on purpose then, on the reasoning that deleting them would churn a deployed data file and the resolved classroom copy. What went unnoticed: `configureUIStrings` logs a `console.error` for every key it doesn't recognise, so each page load produced five errors. Those land in the console summary a feedback report captures, making real errors harder to spot. Spotted while verifying v3.2.56 in the browser.
+
+The churn cost is also gone. As v3.2.56 established, the classroom copy re-bakes itself from the stock file on deploy. So the rows are deleted, and `UIStringsCsvDriven.test.ts` now fails if the shipped CSV carries any key the game doesn't know (it fails against the old CSV).
+
 ## [3.2.56] - 2026-09-10
 
 ### One rule, one copy: the bug and the four cheapest leaks from the second reskin audit

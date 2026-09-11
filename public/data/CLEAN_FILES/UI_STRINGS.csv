@@ -5,13 +5,8 @@ DICE_BUTTON.EXPEDITOR,Hire Expeditors
 DICE_BUTTON.INVESTMENT,Seek Investments
 DICE_BUTTON.LIFE_EVENT,Check for Life Events
 DICE_BUTTON.FEE,Determine Fee Amount
-DICE_BUTTON.FUNDING,Determine Funding
 DICE_BUTTON.TIME,Determine Time Impact
 DICE_BUTTON.QUALITY,Assess Quality
-DICE_BUTTON.EFFECTS,Determine Effects
-DICE_BUTTON.BONUS,Check for Bonus
-DICE_BUTTON.BONUS_FUNDING,Check for Bonus Funding
-DICE_BUTTON.BONUS_EFFECTS,Check for Bonus Effects
 DICE_BUTTON.NEXT_STEP,Determine Next Step
 DICE_BUTTON.OUTCOME,Determine Outcome
 DICE_FEEDBACK.prefix,Outcome:

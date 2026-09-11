@@ -42,6 +42,26 @@ describe('button/notification text is CSV-driven (reskin: vocabulary swap)', () 
     expect(ui.CARD_REPLACE.RETURN_BUTTON).toBe(before.returnButton);
   });
 
+  // v3.2.57: five DICE_BUTTON rows outlived the code that read them (removed
+  // v3.2.53) and made configureUIStrings log five console.errors on every
+  // page load. Every key the shipped CSV carries must be one the game knows.
+  it('the shipped UI_STRINGS.csv carries no key the game does not recognise', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { parseCsvWithHeaders } = await import('../../server/processGameData.js');
+    const rows = parseCsvWithHeaders(
+      fs.readFileSync(path.join(process.cwd(), 'public/data/CLEAN_FILES/UI_STRINGS.csv'), 'utf-8')
+    ) as unknown as UIStringCsvRow[];
+    expect(rows.length).toBeGreaterThan(0);
+
+    const ui = await import('../../src/constants/uiStrings');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    ui.configureUIStrings(rows);
+    const rejected = errorSpy.mock.calls.map(c => String(c[0]));
+    errorSpy.mockRestore();
+    expect(rejected).toEqual([]);
+  });
+
   it('a reskin CSV swaps a plain-string button label', async () => {
     const ui = await import('../../src/constants/uiStrings');
     expect(ui.DICE_BUTTON.EXPEDITOR).toBe('Hire Expeditors');
