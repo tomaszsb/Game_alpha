@@ -342,15 +342,17 @@ export class TurnService implements ITurnService {
       }
 
       step = 'check_scope_gate';
-      // Guard: Cannot leave a scope-gated space without enough W cards.
-      // Workstream 6 #2: lifted from `=== 'OWNER-SCOPE-INITIATION'` literal to the
-      // min_w_cards_to_leave data flag so educators can gate other spaces too.
+      // Guard: Cannot leave a scope-gated space without enough project-scope cards.
+      // Workstream 6 #2 lifted the SPACE to the min_w_cards_to_leave data flag;
+      // v3.2.58 (audit II, leak #14) lifted the card FAMILY it counts to
+      // CARD_TYPES.csv is_project_scope — it used to be `startsWith('W')` on the ID.
       if (!skipAutoMove) {
         const minW = this.dataService.getMinWCardsToLeave(currentPlayer.currentSpace);
         if (minW > 0) {
-          const wCardCount = currentPlayer.hand.filter(c => c.startsWith('W')).length;
-          if (wCardCount < minW) {
-            throw new Error(`Your project needs scope — add at least ${minW} ${getCardTypeName('W', minW)} before leaving this space.`);
+          const scopeCardCount = currentPlayer.hand.filter(c => this.dataService.isProjectScopeCard(c)).length;
+          if (scopeCardCount < minW) {
+            const scopeFamily = this.dataService.getProjectScopeCardTypes()[0] ?? 'W';
+            throw new Error(`Your project needs scope — add at least ${minW} ${getCardTypeName(scopeFamily, minW)} before leaving this space.`);
           }
         }
       }

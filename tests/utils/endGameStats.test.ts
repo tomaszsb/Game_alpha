@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { buildEndGameStats, formatMoney, formatPercent, formatDays } from '../../src/utils/endGameStats';
 import { Player } from '../../src/types/DataTypes';
 
+// Stock board: Work Packages (W) are the project-scope family — the caller
+// injects dataService.isProjectScopeCard; these fixtures use the W-prefix IDs.
+const stockScopeCard = (cardId: string) => cardId.startsWith('W');
+
 // fb:cc345da9 + fb:3483b37b — pure-helper tests for the end-game stats panel
 // the playtester asked for. Keeps the math testable without React or services.
 
@@ -42,7 +46,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
 describe('buildEndGameStats', () => {
   it('returns headline numbers straight from the player snapshot', () => {
     const player = makePlayer({ timeSpent: 218, score: 847 });
-    const stats = buildEndGameStats(player, { projectScope: 2400000 });
+    const stats = buildEndGameStats(player, { isProjectScopeCard: stockScopeCard, projectScope: 2400000 });
     expect(stats.projectScope).toBe(2400000);
     expect(stats.daysTotal).toBe(218);
     expect(stats.finalScore).toBe(847);
@@ -52,7 +56,7 @@ describe('buildEndGameStats', () => {
     const player = makePlayer({
       moneySources: { ownerFunding: 500000, bankLoans: 850000, investmentDeals: 500000, other: 100000 },
     });
-    const stats = buildEndGameStats(player, { projectScope: 0 });
+    const stats = buildEndGameStats(player, { isProjectScopeCard: stockScopeCard, projectScope: 0 });
     expect(stats.fundingMix).toEqual({
       owner: 500000, bank: 850000, investor: 500000, other: 100000, total: 1950000,
     });
@@ -66,7 +70,7 @@ describe('buildEndGameStats', () => {
         { id: '3', category: 'bank', amount: 50000, description: 'loan repayment', turn: 3, timestamp: new Date() },
       ],
     });
-    const stats = buildEndGameStats(player, { projectScope: 0 });
+    const stats = buildEndGameStats(player, { isProjectScopeCard: stockScopeCard, projectScope: 0 });
     expect(stats.totalSpent).toBe(250000);
   });
 
@@ -80,7 +84,7 @@ describe('buildEndGameStats', () => {
         total: 355000,
       },
     });
-    const stats = buildEndGameStats(player, { projectScope: 0 });
+    const stats = buildEndGameStats(player, { isProjectScopeCard: stockScopeCard, projectScope: 0 });
     expect(stats.feesBreakdown.totalFees).toBe(120000 + 80000 + 35000 + 25000 + 10000 + 5000);
     expect(stats.feesBreakdown).not.toHaveProperty('bank');
     expect(stats.feesBreakdown).not.toHaveProperty('investor');
@@ -94,7 +98,7 @@ describe('buildEndGameStats', () => {
         { cardId: 'I001_b', activatedTurn: 2, isActive: true } as any,
       ],
     });
-    const stats = buildEndGameStats(player, { projectScope: 100 });
+    const stats = buildEndGameStats(player, { isProjectScopeCard: stockScopeCard, projectScope: 100 });
     expect(stats.construction.workCardCount).toBe(3);
     expect(stats.cardCounts).toEqual({ W: 3, B: 1, E: 0, L: 0, I: 1 });
   });
@@ -103,20 +107,20 @@ describe('buildEndGameStats', () => {
     const player = makePlayer({
       contractor: { quality: 'HIGH', multiplier: 3, hiredAt: 'CON-INITIATION' },
     });
-    const stats = buildEndGameStats(player, { projectScope: 0 });
+    const stats = buildEndGameStats(player, { isProjectScopeCard: stockScopeCard, projectScope: 0 });
     expect(stats.construction.contractorQuality).toBe('HIGH');
     expect(stats.construction.contractorMultiplier).toBe(3);
     expect(stats.construction.contractorHiredAt).toBe('CON-INITIATION');
   });
 
   it('normalizes the four-state ApprovalStatus enum (minor-objection is its own bucket)', () => {
-    const a = buildEndGameStats(makePlayer({ dobApprovalStatus: 'approved', fdnyApprovalStatus: 'minor-objection' }), { projectScope: 0 });
+    const a = buildEndGameStats(makePlayer({ dobApprovalStatus: 'approved', fdnyApprovalStatus: 'minor-objection' }), { isProjectScopeCard: stockScopeCard, projectScope: 0 });
     expect(a.approvals).toEqual({ dob: 'approved', fdny: 'minor-objection' });
 
-    const b = buildEndGameStats(makePlayer({ dobApprovalStatus: 'denied', fdnyApprovalStatus: undefined as any }), { projectScope: 0 });
+    const b = buildEndGameStats(makePlayer({ dobApprovalStatus: 'denied', fdnyApprovalStatus: undefined as any }), { isProjectScopeCard: stockScopeCard, projectScope: 0 });
     expect(b.approvals).toEqual({ dob: 'denied', fdny: 'none' });
 
-    const c = buildEndGameStats(makePlayer({ dobApprovalStatus: 'none', fdnyApprovalStatus: 'none' }), { projectScope: 0 });
+    const c = buildEndGameStats(makePlayer({ dobApprovalStatus: 'none', fdnyApprovalStatus: 'none' }), { isProjectScopeCard: stockScopeCard, projectScope: 0 });
     expect(c.approvals).toEqual({ dob: 'none', fdny: 'none' });
   });
 
@@ -128,7 +132,7 @@ describe('buildEndGameStats', () => {
         { spaceName: 'ARCH-FEE-REVIEW', daysSpent: 5, entryTurn: 3, entryTime: 15 },
       ] as any,
     });
-    const stats = buildEndGameStats(player, { projectScope: 0 });
+    const stats = buildEndGameStats(player, { isProjectScopeCard: stockScopeCard, projectScope: 0 });
     expect(stats.journey).toHaveLength(3);
     expect(stats.journey[0].spaceName).toBe('OWNER-FUND-INITIATION');
     expect(stats.journey[0].daysSpent).toBe(3);
@@ -143,11 +147,11 @@ describe('buildEndGameStats', () => {
         { spaceName: 'FINISH', daysSpent: 0, entryTurn: 14, entryTime: 2 },
       ] as any,
     });
-    expect(buildEndGameStats(player, { projectScope: 0 }).turnsTaken).toBe(14);
+    expect(buildEndGameStats(player, { isProjectScopeCard: stockScopeCard, projectScope: 0 }).turnsTaken).toBe(14);
   });
 
   it('turnsTaken is 0 when visit log is empty (defensive)', () => {
-    expect(buildEndGameStats(makePlayer(), { projectScope: 0 }).turnsTaken).toBe(0);
+    expect(buildEndGameStats(makePlayer(), { isProjectScopeCard: stockScopeCard, projectScope: 0 }).turnsTaken).toBe(0);
   });
 
   it('prefers injected totalTurns + rounds over the visit-log approximation', () => {
@@ -157,18 +161,18 @@ describe('buildEndGameStats', () => {
         { spaceName: 'FINISH', daysSpent: 0, entryTurn: 14, entryTime: 2 },
       ] as any,
     });
-    const stats = buildEndGameStats(player, { projectScope: 0, totalTurns: 21, rounds: 6 });
+    const stats = buildEndGameStats(player, { isProjectScopeCard: stockScopeCard, projectScope: 0, totalTurns: 21, rounds: 6 });
     expect(stats.turnsTaken).toBe(21);
     expect(stats.rounds).toBe(6);
   });
 
   it('rounds defaults to 0 when not injected', () => {
-    expect(buildEndGameStats(makePlayer(), { projectScope: 0 }).rounds).toBe(0);
+    expect(buildEndGameStats(makePlayer(), { isProjectScopeCard: stockScopeCard, projectScope: 0 }).rounds).toBe(0);
   });
 
   it('prefers injected finalScore over the uncomputed player.score', () => {
     const player = makePlayer({ score: 0 });
-    const stats = buildEndGameStats(player, { projectScope: 0, finalScore: 1_250_000 });
+    const stats = buildEndGameStats(player, { isProjectScopeCard: stockScopeCard, projectScope: 0, finalScore: 1_250_000 });
     expect(stats.finalScore).toBe(1_250_000);
   });
 
@@ -177,7 +181,7 @@ describe('buildEndGameStats', () => {
       id: 'x', name: 'X', currentSpace: '', visitType: 'First',
       hand: [], activeCards: [],
     } as any;
-    const stats = buildEndGameStats(minimal, { projectScope: 0 });
+    const stats = buildEndGameStats(minimal, { isProjectScopeCard: stockScopeCard, projectScope: 0 });
     expect(stats.projectScope).toBe(0);
     expect(stats.totalSpent).toBe(0);
     expect(stats.fundingMix.total).toBe(0);

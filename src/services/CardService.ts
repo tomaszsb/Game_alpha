@@ -1420,8 +1420,11 @@ export class CardService implements ICardService {
     if (!player) return false;
     const realState = this.stateService.getRealPlayerState(playerId);
     if (!realState) return false; // no turn-start snapshot yet — nothing could have been filed
-    const currentWCount = (player.hand ?? []).filter(id => id.startsWith('W')).length;
-    const realWCount = (realState.hand ?? []).filter(id => id.startsWith('W')).length;
+    // Project-scope cards (Work Packages on the stock board) — CARD_TYPES.csv
+    // is_project_scope, read by card_type (v3.2.58; was `startsWith('W')`).
+    const isScope = (id: string) => this.dataService.isProjectScopeCard(id);
+    const currentWCount = (player.hand ?? []).filter(isScope).length;
+    const realWCount = (realState.hand ?? []).filter(isScope).length;
     return (currentWCount - realWCount) >= 3;
   }
 

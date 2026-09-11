@@ -438,7 +438,7 @@ export class ManualActionProcessor {
     const beforeSnapshot = buildResourceSnapshot(currentPlayer, projectScope);
 
     if (projectScope === 0) {
-      console.error(`🚨 SCOPE BUG: Player ${currentPlayer.name} (${playerId}) at OWNER-FUND-INITIATION with 0 project scope. Hand: [${currentPlayer.hand.join(', ')}], W cards: ${currentPlayer.hand.filter(c => c.startsWith('W')).length}, activeCards: ${(currentPlayer.activeCards || []).length}`);
+      console.error(`🚨 SCOPE BUG: Player ${currentPlayer.name} (${playerId}) at OWNER-FUND-INITIATION with 0 project scope. Hand: [${currentPlayer.hand.join(', ')}], scope cards: ${currentPlayer.hand.filter(c => this.dataService.isProjectScopeCard(c)).length}, activeCards: ${(currentPlayer.activeCards || []).length}`);
     }
 
     // Store project scope on player (permanent record)

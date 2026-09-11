@@ -15,7 +15,8 @@ beforeAll(() => {
 
 // Create mock outside of describe block
 const mockStateService: any = createMockStateService();
-const mockDataService: any = { getModalConfig: vi.fn() };
+// isProjectScopeCard: the stats panel counts Work Packages through it (v3.2.58).
+const mockDataService: any = { getModalConfig: vi.fn(), isProjectScopeCard: vi.fn((id: string) => id.startsWith('W')) };
 // fb:cc345da9 — stats panel calls gameRulesService.calculateProjectScope.
 // Mock returns 0 by default; per-test overrides can set a richer value.
 const mockGameRulesService: any = {

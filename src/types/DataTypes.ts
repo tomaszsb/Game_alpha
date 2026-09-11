@@ -12,7 +12,10 @@ export interface GameConfig {
   // Workstream 6 #5+#6: resume-mechanic flags (Spaces.csv columns)
   is_resume_hub?: boolean;
   is_point_of_no_return?: boolean;
-  // Workstream 6 #2: minimum W cards required to leave this space (0 = no guard)
+  // Workstream 6 #2: minimum project-scope cards required to leave this space
+  // (0 = no guard). The "w" in the name is historical — which family counts is
+  // CARD_TYPES.csv's is_project_scope (v3.2.58). The column keeps its name
+  // because teacher copies store it (classroom-1's does).
   min_w_cards_to_leave?: number;
   // Workstream 6 #7: design fee mechanic flags
   fee_calculation_method?: 'flat' | 'percentage_of_scope';
@@ -97,6 +100,12 @@ export interface CardTypeLabel {
    * DataService.isCardTypePlayableFromHand, never directly.
    */
   is_playable_from_hand?: boolean;
+  /**
+   * v3.2.58 (audit II, leak #14): do cards of this family make up the
+   * project's scope (Work Packages on the stock board)? Read through
+   * DataService.isProjectScopeCard, never directly.
+   */
+  is_project_scope?: boolean;
 }
 
 /**

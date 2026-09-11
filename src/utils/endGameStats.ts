@@ -85,6 +85,10 @@ export interface BuildStatsOptions {
   /** Caller injects the result of gameRulesService.calculateProjectScope(playerId).
    *  Kept out of this pure helper so we don't drag service dependencies in. */
   projectScope: number;
+  /** Caller injects dataService.isProjectScopeCard — which cards count as the
+   *  project's scope (Work Packages on the stock board, CARD_TYPES.csv
+   *  is_project_scope). v3.2.58: this used to be `id.startsWith('W')` here. */
+  isProjectScopeCard: (cardId: string) => boolean;
   /** Total individual turns taken across the game (gameState.globalTurnCount).
    *  Falls back to the final visit-log entryTurn when omitted. */
   totalTurns?: number;
@@ -145,9 +149,9 @@ export function buildEndGameStats(player: Player, opts: BuildStatsOptions): EndG
 
   // === Construction info ===
   const workCardIds = [
-    ...player.hand.filter(id => id.startsWith('W')),
-    ...(player.activeCards || []).map(ac => ac.cardId).filter(id => id.startsWith('W')),
-  ];
+    ...player.hand,
+    ...(player.activeCards || []).map(ac => ac.cardId),
+  ].filter(opts.isProjectScopeCard);
   const construction: ConstructionInfo = {
     workCardCount: workCardIds.length,
     constructionScope: opts.projectScope,

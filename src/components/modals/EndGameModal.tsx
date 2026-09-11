@@ -147,11 +147,12 @@ export function EndGameModal(): JSX.Element {
     const gs = stateService.getGameState();
     return buildEndGameStats(statsPlayer, {
       projectScope,
+      isProjectScopeCard: (cardId) => dataService.isProjectScopeCard(cardId),
       totalTurns: gs.globalTurnCount,
       rounds: gs.gameRound,
       finalScore: gameRulesService.calculatePlayerScore(statsPlayer.id),
     });
-  }, [statsPlayer, gameRulesService, stateService]);
+  }, [statsPlayer, gameRulesService, stateService, dataService]);
 
   // v3.0.13 — Project Debrief: pure-helper insights derived from the same stats
   // snapshot. Capped at 5 so we celebrate, not lecture.

@@ -27,6 +27,12 @@ import { getDataBasePath } from '../utils/dataInstance';
  */
 export const BUILT_IN_HAND_PLAYABLE_CARD_TYPES: readonly string[] = ['E'];
 
+/**
+ * Same fallback-only role for CARD_TYPES.csv's is_project_scope column — see
+ * isProjectScopeCard. Kept equal to the CSV by a regression test.
+ */
+export const BUILT_IN_PROJECT_SCOPE_CARD_TYPES: readonly string[] = ['W'];
+
 export class DataService implements IDataService {
   private gameConfigs: GameConfig[] = [];
   // 2026-08-02: keyed lookups for the hottest DataService reads
@@ -63,6 +69,10 @@ export class DataService implements IDataService {
   // is_playable_from_hand column. null = the column (or file) was not loaded.
   private handPlayableCardTypes: Set<string> | null = null;
   private warnedHandPlayableFallback = false;
+  // v3.2.58 (audit II, leak #14): card families that make up the project scope
+  // (Work Packages on the stock board). null = column (or file) not loaded.
+  private projectScopeCardTypes: Set<string> | null = null;
+  private warnedProjectScopeFallback = false;
   // 2026-08-09: CSV-portability lift, reskin item 4 — reskin hook for the NPC roster.
   private characterRows: CharacterCsvRow[] = [];
   // 2026-08-14: CSV-portability lift, reskin item 2 — reskin hook for the Homeowner Violation tier/fee-rate numbers.
@@ -724,7 +734,9 @@ export class DataService implements IDataService {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
     const get = this.csvFieldReader(lines[0]);
-    const hasPlayableColumn = this.parseCsvLine(lines[0]).some(h => h.trim() === 'is_playable_from_hand');
+    const header = this.parseCsvLine(lines[0]).map(h => h.trim());
+    const hasPlayableColumn = header.includes('is_playable_from_hand');
+    const hasScopeColumn = header.includes('is_project_scope');
     const rows = lines.slice(1)
       .map(line => {
         const values = this.parseCsvLine(line);
@@ -733,12 +745,18 @@ export class DataService implements IDataService {
           label: (get(values, 'label') || '').trim(),
           is_playable_from_hand: hasPlayableColumn
             ? (get(values, 'is_playable_from_hand') || '').trim() === 'Yes'
+            : undefined,
+          is_project_scope: hasScopeColumn
+            ? (get(values, 'is_project_scope') || '').trim() === 'Yes'
             : undefined
         };
       })
       .filter(r => r.card_type && r.label);
     this.handPlayableCardTypes = hasPlayableColumn
       ? new Set(rows.filter(r => r.is_playable_from_hand).map(r => r.card_type))
+      : null;
+    this.projectScopeCardTypes = hasScopeColumn
+      ? new Set(rows.filter(r => r.is_project_scope).map(r => r.card_type))
       : null;
     return rows;
   }
@@ -764,6 +782,44 @@ export class DataService implements IDataService {
       return BUILT_IN_HAND_PLAYABLE_CARD_TYPES.includes(cardType);
     }
     return this.handPlayableCardTypes.has(cardType);
+  }
+
+  /**
+   * v3.2.58 (Workstream 6 audit II, leak #14): the card families that make up
+   * the project's scope — Work Packages on the stock board. Authored in
+   * CARD_TYPES.csv (is_project_scope). One definition read by every site that
+   * used to hardcode `startsWith('W')`: the leave gate (TurnService,
+   * min_w_cards_to_leave), the scope / work-cost / project-length maths
+   * (GameRulesService) and the bulk-permit check (CardService).
+   * Missing file/column → the built-in stock rule, with a warning (same
+   * convention as isCardTypePlayableFromHand).
+   */
+  getProjectScopeCardTypes(): string[] {
+    return [...this.projectScopeTypeSet()];
+  }
+
+  private projectScopeTypeSet(): ReadonlySet<string> {
+    if (this.projectScopeCardTypes === null) {
+      if (!this.warnedProjectScopeFallback) {
+        this.warnedProjectScopeFallback = true;
+        console.warn('CARD_TYPES.csv has no is_project_scope column — using the built-in default (Work Packages).');
+      }
+      return new Set(BUILT_IN_PROJECT_SCOPE_CARD_TYPES);
+    }
+    return this.projectScopeCardTypes;
+  }
+
+  /**
+   * Does this card count toward the project's scope? Decided by the card's
+   * `card_type` from card data — NEVER its ID. The five sites this replaced
+   * matched `cardId.startsWith('W')`, so a Work Package whose ID did not start
+   * with W (card IDs are free since the August de-literalization) was silently
+   * not counted. Generated IDs (`W111_<ts>_<rand>_0`) resolve by their base ID,
+   * the convention those sites already used.
+   */
+  isProjectScopeCard(cardId: string): boolean {
+    const card = this.getCardById(cardId) ?? this.getCardById(cardId.split('_')[0]);
+    return !!card && this.projectScopeTypeSet().has(card.card_type);
   }
 
   /**

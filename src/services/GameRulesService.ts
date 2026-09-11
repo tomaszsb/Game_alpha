@@ -455,6 +455,19 @@ export class GameRulesService implements IGameRulesService {
    * @param playerId - The ID of the player
    * @returns The total cost/value of all W cards owned by the player
    */
+  /**
+   * Every project-scope card the player holds, in hand AND in activeCards.
+   * Which family counts is CARD_TYPES.csv's is_project_scope, read by
+   * card_type (DataService.isProjectScopeCard). v3.2.58 (audit II, leak #14):
+   * this block was copied three times below as `cardId.startsWith('W')`, so a
+   * Work Package whose ID did not start with W added nothing to scope, work
+   * cost or project length.
+   */
+  private projectScopeCardIds(player: { hand: string[]; activeCards?: Array<{ cardId: string }> }): string[] {
+    const held = [...player.hand, ...(player.activeCards || []).map(ac => ac.cardId)];
+    return held.filter(cardId => this.dataService.isProjectScopeCard(cardId));
+  }
+
   calculateProjectScope(playerId: string): number {
     try {
       const player = this.stateService.getPlayer(playerId);
@@ -463,13 +476,8 @@ export class GameRulesService implements IGameRulesService {
         return 0;
       }
 
-      // Get all W cards for this player from BOTH hand and activeCards
-      const handWorkCards = player.hand.filter(cardId => cardId.startsWith('W'));
-      const activeWorkCards = (player.activeCards || [])
-        .map(ac => ac.cardId)
-        .filter(cardId => cardId.startsWith('W'));
-
-      const allWorkCards = [...handWorkCards, ...activeWorkCards];
+      // Project-scope cards (Work Packages on the stock board) from BOTH hand and activeCards
+      const allWorkCards = this.projectScopeCardIds(player);
 
       // Create cache key from card arrays
       const cacheKey = JSON.stringify(allWorkCards.sort());
@@ -524,13 +532,8 @@ export class GameRulesService implements IGameRulesService {
         return 0;
       }
 
-      // Get all W cards for this player from BOTH hand and activeCards
-      const handWorkCards = player.hand.filter(cardId => cardId.startsWith('W'));
-      const activeWorkCards = (player.activeCards || [])
-        .map(ac => ac.cardId)
-        .filter(cardId => cardId.startsWith('W'));
-
-      const allWorkCards = [...handWorkCards, ...activeWorkCards];
+      // Project-scope cards (Work Packages on the stock board) from BOTH hand and activeCards
+      const allWorkCards = this.projectScopeCardIds(player);
 
 
       let totalWorkCost = 0;
@@ -581,13 +584,8 @@ export class GameRulesService implements IGameRulesService {
         return { estimatedDays: BASE_PATH_DAYS + contingency, basePathDays: BASE_PATH_DAYS, workTypeDays: 0, contingencyDays: contingency, uniqueWorkTypes: [] };
       }
 
-      // Get all W cards for this player from BOTH hand and activeCards
-      const handWorkCards = player.hand.filter(cardId => cardId.startsWith('W'));
-      const activeWorkCards = (player.activeCards || [])
-        .map(ac => ac.cardId)
-        .filter(cardId => cardId.startsWith('W'));
-
-      const allWorkCards = [...handWorkCards, ...activeWorkCards];
+      // Project-scope cards (Work Packages on the stock board) from BOTH hand and activeCards
+      const allWorkCards = this.projectScopeCardIds(player);
 
       // Get unique work types from W cards
       const workTypes = new Set<string>();

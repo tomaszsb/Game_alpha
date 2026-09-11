@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.58] - 2026-09-11
+
+### "What counts as a Work Package" is defined once, in data, by card type — audit II leak #14
+
+Nothing a player sees changes. On the shipped cards the old rule and the new one pick exactly the same cards (all 401 checked: "ID starts with W" ⇔ `card_type` W, zero mismatches either way).
+
+The gate that stops you leaving "Meet the Owner" without scope (`min_w_cards_to_leave`) had its *space* moved into data in April, but the card *family* it counts stayed hardcoded as `hand.filter(c => c.startsWith('W'))`. That was the audit's 14th leak, the one the fix brief dropped (supplied by the Manager on 2026-09-11 and checked against the code). It turned out to be two problems, not one:
+- **A reskin couldn't name a different family.** That's the leak the audit reported.
+- **It read the card's ID, not its type.** Card IDs have been free text since the August de-literalization (the `DND-*` tests rename them), so a Work Package with ID `DND-WORK-01` counted for **nothing**: not for the gate, not for project scope, not for work cost. That's a correctness gap that no shipped card happens to trigger yet.
+
+**The same rule was written in six places, not the audited one.** There was the gate (`TurnService`), three copies of one "collect every W card from hand and active cards" block (`GameRulesService`: project scope, total work cost, estimated project length), the bulk-permit check (`CardService`), and the end screen's work-package count (`endGameStats`), plus a debug log line. Fixing only the gate would have defined "work package" twice. That's the A1 disease again, which v3.2.56 spent a release removing.
+
+**The fix:** a new `is_project_scope` column in `CARD_TYPES.csv` (Yes for W only), read by `card_type` through `DataService.isProjectScopeCard`. Every site above now calls it. The three copied blocks became one `GameRulesService.projectScopeCardIds()`. Generated instance IDs (`W111_<ts>_…`) still resolve by base ID, as those sites already did. A missing file or column falls back to the built-in stock rule with a warning (the `is_playable_from_hand` convention), and a test keeps the fallback equal to the CSV.
+- **Scope boundary, checked, not assumed:** the three `GameRulesService` changes only change how cards are *selected*. What each method computes is untouched, and `calculatePlayerScore` (the win-condition leak, out of scope) was not edited. With identical selections on the shipped cards, no number can move.
+- **The column keeps its name.** The "w" in `min_w_cards_to_leave` is now historical. It wasn't renamed because the live classroom-1 teacher copy of "Meet the Owner" stores `min_w_cards_to_leave="1"` under that name (read over ssh), and a rename would silently drop it.
+- **Deliberately left out:** the educational card picker's W/E tabs (`EducationalCardSelectionModal.tsx:71/225`) and the admin hand count (`GameSettingsPanel.tsx:138`). They list card families in general, not the scope family, so they belong to the closed-union item (#11), which wasn't approved. Listed in TODO.
+- **The test:** `ProjectScopeCardFamily.test.ts` uses the real services and shipped data, plus one Work Package cloned under the ID `DND-WORK-01`. It must count in the gate, scope, work cost, project length, bulk permits and the end screen. **Against the old code, all four behavioural tests fail.**
+
 ## [3.2.57] - 2026-09-10
 
 ### Five dead wording rows were logging five errors on every page load
