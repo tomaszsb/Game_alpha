@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.59] - 2026-09-12
+
+### The robot said a button was missing; the server log says the app was still starting up
+
+Nothing a player sees changes. The 2026-09-12 nightly playtest reported `game 1  no 'Start Game' button on the setup screen  0 steps`. The button is fine. What the harness sampled was a loading screen.
+
+A bare-URL visit is **button-less by design for a variable interval**: the app loads its CSVs, POSTs `/api/games`, and then does a **full page reload** (`App.tsx`'s bootstrap) — the setup screen carrying "Start Game" only exists after that second load finishes. The harness waits a flat 5s after `load` and then matches the literal text among visible buttons (disabled ones included, so a greyed-out button would still have been found).
+
+**What the evidence establishes**, in order of strength:
+- The container log has **no `CREATE_GAME` at all** for game 1 (nothing between 06:30Z and game 2's create at 07:00:51Z). The POST is the first thing the bootstrap does, so game 1 never reached it — it was still in the pre-create phase, and the setup screen had never rendered. A changed label or testid cannot produce that.
+- **Nothing in v3.2.56–58 touched this path**: no commit since 2026-09-09 modified `src/components/setup/**` or `src/App.tsx`, and the button's text is unchanged. The overnight run did play v3.2.58 (container up since 2026-09-11T17:34Z).
+- Served from the local production build the whole chain (create + reload + setup screen) completes in well under a second, and the CSV fetches measured from the Mac itself are ~0.2s each — so the app is not inherently slow. Why that one load crossed 5s is **not established**; game 1 is the first page in a cold browser process, which makes it the slowest of the four by construction. Intermittency alone was not treated as proof of a race.
+
+The fix here is to make the state observable rather than to guess: the loading screen now carries `data-testid="app-loading"` and `data-phase` (`data` / `checking-resume` / `auto-creating`) — the same reasoning as v3.2.55's hooks. A harness can wait for that element to disappear instead of sampling blind, and a failure can be reported as "still starting up" instead of naming a button that was never on screen. `AppLoadingHook.test.tsx` pins it to the real bootstrap path. **The waiting itself is harness-side and belongs to the Jarvis session.**
+
+### Also checked, and NOT a game defect: the 15-turn loop at "See the Design"
+
+The same run looped ~26 steps at ARCH-SCOPE-CHECK, alternating `➡️ Find an Engineer` / `✅ Find an Engineer`. Verified with the real services and the real component:
+- The engine offers a commit there. After the space's dice action and a destination pick, `required=2 completed=2` and `canEndTurn=true`.
+- The UI renders it. `can_negotiate=YES` at this space, so it is the two-tab control: `data-testid="commit-side"`, `data-side="end"`, `data-actionable` tracking `commit.ready` — `false` with the reason "Pick where you're going first", flipping to `true` once a destination is picked. So "there is no commit control" is wrong, and so is "the harness cannot see it" (the harness reads `data-actionable` as ground truth).
+- Clicking an already-picked destination **deselects** it — deliberate (fb:c2e489dc, so a player can change their mind), which is why the bot's alternating clicks never progressed.
+
+What is left is an **affordance** problem, not a bug: the control that ends the turn and moves you is named after the in-fiction act ("Sign off on the design"), while the rows that look like movement (`➡️ Find an Engineer`) only select. The bot recorded exactly that as player confusion — *"'Pick Your Path' could mean selecting a specific future branch or simply choosing the option just labeled above"* (7 hits) and *"the arrow icon suggests movement, but it is not a clickable button and leads nowhere"* (4 hits, reading "➡️ Move — you picked Find an Engineer"). A wording change to the commit tab is the maintainer's call and is recorded in TODO, not made here.
+
 ## [3.2.58] - 2026-09-11
 
 ### "What counts as a Work Package" is defined once, in data, by card type — audit II leak #14

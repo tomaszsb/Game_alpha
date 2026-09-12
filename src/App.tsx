@@ -26,9 +26,20 @@ import { debugWarn } from './utils/debugLog';
 /**
  * LoadingScreen component displays while the application initializes
  */
-function LoadingScreen({ message }: { message?: string }): JSX.Element {
+function LoadingScreen({ message, phase }: { message?: string; phase?: string }): JSX.Element {
   return (
     <div
+      // Structural handle for the nightly playtest robot (same rationale as
+      // v3.2.55's hooks). A bare-URL visit is button-less for as long as this
+      // screen is up: the app loads its CSVs, POSTs /api/games and then does a
+      // FULL RELOAD before the setup screen with "Start Game" exists. On
+      // 2026-09-12 the robot sampled inside that window and reported "no
+      // 'Start Game' button on the setup screen" — the server log shows it
+      // never even created a game, i.e. it was still here. A harness that can
+      // see this element can wait for the screen instead of guessing, and the
+      // report can say "still starting up" rather than naming a button.
+      data-testid="app-loading"
+      data-phase={phase || 'data'}
       style={{
         position: 'fixed',
         top: 0,
@@ -489,7 +500,7 @@ export function App(): JSX.Element {
   }, [phase]);
 
   if (phase === 'checking-resume' || phase === 'auto-creating') {
-    return <LoadingScreen message={phase === 'checking-resume' ? 'Checking for a game to resume…' : 'Setting up a new game…'} />;
+    return <LoadingScreen phase={phase} message={phase === 'checking-resume' ? 'Checking for a game to resume…' : 'Setting up a new game…'} />;
   }
 
   return (
