@@ -36,6 +36,12 @@ import type { UIStringCsvRow } from '../types/DataTypes';
  * row for them).
  */
 const DEFAULT_UI_STRINGS: Record<string, string> = {
+  // v3.2.60: the commit control names where a picked destination leads, so the
+  // control that actually moves you reads as movement. The space's own forward
+  // label ("Sign off on the design") stays the subject — this only joins it to
+  // the destination, and it is a TEMPLATE so a reskin can change the connector
+  // or the word order without a code edit (the D&D skin's verb is its own).
+  'COMMIT.withDestination': '{label} → {destination}',
   'DICE_BUTTON.WORK': 'Get Work Packages',
   'DICE_BUTTON.BANK': 'Apply for Bank Loans',
   'DICE_BUTTON.EXPEDITOR': 'Hire Expeditors',
@@ -191,6 +197,18 @@ export function configureUIStrings(rows: UIStringCsvRow[]): void {
  * for the same pattern). Not used by app code.
  */
 export const _testOnly = { resetUIStringOverrides: () => UI_STRING_OVERRIDES.clear() };
+
+// --- Commit control ---
+/**
+ * The forward caption on the commit control (TurnCommitControl's "end" side,
+ * and the plain commit button on spaces with no negotiate option). `label` is
+ * the space's authored end_turn_label; `destination` is the picked
+ * destination's display label. Both come from data — this only joins them.
+ */
+export const COMMIT = {
+  withDestination: (label: string, destination: string): string =>
+    getUIString('COMMIT.withDestination', { label, destination }),
+};
 
 // --- Dice roll button labels ---
 // Consumed by formatManualEffectButton (the live dice-action path) and by the

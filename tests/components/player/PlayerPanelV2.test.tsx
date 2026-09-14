@@ -15,6 +15,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PlayerPanelV2 } from '../../../src/components/player/PlayerPanelV2';
 import { createAllMockServices } from '../../mocks/mockServices';
 import { DictionaryProvider } from '../../../src/dictionary';
+import * as uiStrings from '../../../src/constants/uiStrings';
 
 // "What's affecting you" is collapsed by default (fb:f6e100b7 follow-up) —
 // tests that assert on its contents (chips, Activate rows) need to open it first.
@@ -389,8 +390,11 @@ describe('PlayerPanelV2 — movement check/uncheck (Pile 2: fb:c2e489dc / fb:45c
     renderPanel();
     expandMoveOptions();
     // Both options still rendered so the player can change their mind.
-    expect(screen.getByRole('button', { name: /Go to A/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Go to B/i })).toBeInTheDocument();
+    // Scoped to the destination rows: since v3.2.60 the commit caption also
+    // names the picked destination, so a bare name query matches both.
+    const rows = screen.getAllByTestId('move-option').map((b) => b.textContent);
+    expect(rows.some((t) => /Go to A/i.test(t || ''))).toBe(true);
+    expect(rows.some((t) => /Go to B/i.test(t || ''))).toBe(true);
     // v3.2.52 named the subject of this rule ("switch" what?) — 14 playtest hits.
     expect(screen.getByText(/change where you.re going until you end your turn/i)).toBeInTheDocument();
   });
@@ -399,7 +403,7 @@ describe('PlayerPanelV2 — movement check/uncheck (Pile 2: fb:c2e489dc / fb:45c
     setup('SPACE-A');
     renderPanel();
     expandMoveOptions();
-    fireEvent.click(screen.getByRole('button', { name: /Go to A/i }));
+    fireEvent.click(screen.getAllByTestId('move-option').find((b) => /Go to A/i.test(b.textContent || ''))!);
     // Tapping the chosen one clears the intent — engine treats it as not-yet-moved.
     expect(services.stateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', null);
   });
@@ -408,8 +412,60 @@ describe('PlayerPanelV2 — movement check/uncheck (Pile 2: fb:c2e489dc / fb:45c
     setup('SPACE-A');
     renderPanel();
     expandMoveOptions();
-    fireEvent.click(screen.getByRole('button', { name: /Go to B/i }));
+    fireEvent.click(screen.getAllByTestId('move-option').find((b) => /Go to B/i.test(b.textContent || ''))!);
     expect(services.stateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'SPACE-B');
+  });
+
+  // v3.2.60 (maintainer's call, 2026-09-12). The 2026-09-12 nightly robot
+  // toggled the destination rows ~20 times at "See the Design" and never
+  // committed: the commit control was live the moment a destination was
+  // picked, but it is named after the in-fiction act while the rows that look
+  // like movement only select. The signpost goes on the commit control; the
+  // rows are deliberately left alone.
+  describe('the commit control names where a picked destination leads', () => {
+    afterEach(() => uiStrings._testOnly.resetUIStringOverrides());
+
+    it('appends the destination once one is picked', () => {
+      setup('SPACE-A');
+      renderPanel();
+      const commit = screen.getByTestId('commit-end-turn');
+      expect(commit.textContent).toMatch(/End turn\s*→\s*Go to A/);
+    });
+
+    it('leaves the caption alone when nothing is picked', () => {
+      setup(null);
+      renderPanel();
+      const commit = screen.getByTestId('commit-end-turn');
+      expect(commit.textContent).toMatch(/End turn/);
+      expect(commit.textContent).not.toMatch(/Go to A|→/);
+    });
+
+    it('carries the signpost on the two-tab control too — the variant the robot meets', () => {
+      setup('SPACE-A');
+      // can_negotiate + an onTryAgain handler is what renders TurnCommitControl
+      // instead of the plain spine (ARCH-SCOPE-CHECK is one of these spaces).
+      services.dataService.getSpaceContent.mockReturnValue({
+        title: 'Today is the design reveal', story: '',
+        can_negotiate: true, end_turn_label: 'Sign off on the design', try_again_label: 'Send it back',
+      });
+      render(
+        <DictionaryProvider>
+          <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" onTryAgain={vi.fn()} />
+        </DictionaryProvider>,
+      );
+      const end = screen.getAllByTestId('commit-side').find((b) => b.getAttribute('data-side') === 'end')!;
+      expect(end.getAttribute('data-actionable')).toBe('true');
+      expect(end.textContent).toMatch(/Sign off on the design\s*→\s*Go to A/);
+    });
+
+    it('lets a reskin CSV own the connector and word order (not hardcoded English)', () => {
+      uiStrings.configureUIStrings([
+        { key: 'COMMIT.withDestination', template: '{label}, then onward to {destination}' },
+      ] as any);
+      setup('SPACE-A');
+      renderPanel();
+      expect(screen.getByTestId('commit-end-turn').textContent).toMatch(/End turn, then onward to Go to A/);
+    });
   });
 });
 

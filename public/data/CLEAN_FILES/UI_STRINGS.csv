@@ -78,3 +78,4 @@ RULES.negotiation.heading,Negotiation
 RULES.negotiation.body,"Some spaces allow negotiation. If you have a snapshot from entering the space, you can restore your previous state. Otherwise, you’ll receive a time penalty but can try again."
 RULES.winning.heading,Winning
 RULES.winning.body,Successfully navigate through all phases of development and reach the final completion space to win the game. Manage your resources wisely and make strategic decisions to overcome challenges along the way.
+COMMIT.withDestination,{label} → {destination}

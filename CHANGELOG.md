@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.60] - 2026-09-13
+
+### The control that moves you now says where you're going
+
+**Player-visible.** On a space where you pick your next destination, the commit control used to read only the space's own words — "Sign off on the design" — while the rows that look like movement ("➡️ Find an Engineer") only tick a choice. Once you pick a destination, the control now names it:
+
+    before   [ Sign off on the design ]
+    after    [ Sign off on the design → Find an Engineer ]
+
+Nothing else moves: the arrow rows keep their wording (considered and deliberately not chosen), the in-fiction verb stays the subject, and the gate reason ("Pick where you're going first") is unchanged.
+
+**Why.** The 2026-09-13 investigation of the nightly playtest (CHANGELOG v3.2.59) found the bot toggling `➡️ Find an Engineer` / `✅ Find an Engineer` ~20 times at ARCH-SCOPE-CHECK without committing. The commit was live throughout — `data-actionable` flips true the moment a destination is picked — so this was never a missing control. It was the reading: the thing that moves you was named after an in-fiction act, and the things that look like movement only select. The bot logged the same ambiguity a first-time player would (7 hits on *"'Pick Your Path' could mean selecting a branch or simply choosing the option just labeled above"*; 4 hits on *"the arrow icon suggests movement, but it is not a clickable button and leads nowhere"*). Maintainer's call, 2026-09-12: keep the voice, add the signpost.
+
+**Dual-function, which this change had to respect.** "Sign off on the design" is construction-flavoured and a reskin needs its own verb, so the destination is **not** concatenated onto an English string in code. The join is a UI_STRINGS template — `COMMIT.withDestination` = `{label} → {destination}` — so a reskin owns the connector and the word order, and both halves were already data (the space's `end_turn_label` and the destination's display label). Flagged while in there, not changed: the commit caption's *fallbacks* when a space authors no `end_turn_label` ("End turn", "Take your next step", "Ending…", "Working…", "Waiting for …") are still hardcoded English and have no UI_STRINGS keys — a live instance of the same constraint, recorded in TODO.
+
+Both commit variants carry it: the two-tab control (`commit-side`, which is what choice spaces like this one render) and the plain spine (`commit-end-turn`). Tests cover the spine, the tab, the no-pick case (caption unchanged), and a reskin overriding the connector; three of the four fail against the old component. Two existing tests had to be scoped to the destination rows, because the commit caption now legitimately contains the destination name too.
+
 ## [3.2.59] - 2026-09-12
 
 ### The robot said a button was missing; the server log says the app was still starting up

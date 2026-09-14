@@ -26,6 +26,7 @@ import { TurnCommitControl } from './TurnCommitControl';
 import { getEndTurnCostPreview, getTryAgainCostPreview, isManualEffectCompleted } from '../../utils/costPreview';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
+import { COMMIT } from '../../constants/uiStrings';
 import { computeProjectFinances } from '../../utils/projectFinances';
 import { isSkippableEffectAction } from '../../utils/skippableActions';
 import { FormatUtils } from '../../utils/FormatUtils';
@@ -505,6 +506,23 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           : 'Not ready yet',
     };
   }
+  // v3.2.60 — name where a picked destination leads, on the control that
+  // actually goes there. The 2026-09-12 nightly robot toggled `➡️ Find an
+  // Engineer` / `✅ Find an Engineer` ~20 times at ARCH-SCOPE-CHECK and never
+  // committed: the commit side was live (`data-actionable=true` the moment a
+  // destination was picked) but it reads as an in-fiction act ("Sign off on the
+  // design"), while the rows that LOOK like movement only select. The robot
+  // logged the same ambiguity a newcomer would (7 hits "'Pick Your Path' could
+  // mean selecting a branch or just choosing the option above"; 4 hits "the
+  // arrow suggests movement but leads nowhere"). Maintainer's call 2026-09-12:
+  // keep the in-fiction verb, add the signpost — NOT relabel the arrow rows.
+  // Joined through UI_STRINGS (COMMIT.withDestination) so a reskin owns the
+  // connector and word order too; both halves are already data (the space's
+  // end_turn_label and the destination's display label).
+  const commitLabel =
+    isMyTurn && selectedMovementLabel && !isEndingTurn
+      ? COMMIT.withDestination(commit.label, selectedMovementLabel)
+      : commit.label;
   const showGreenDot = isMyTurn && commit.ready && player.visitType === 'First';
   // First-visit nudge: the action buttons themselves glow so a new player's eye
   // lands on what to press (fb:e84e4d11 — expected the green hint ON the action
@@ -1313,7 +1331,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           <TurnCommitControl
             mode={mode}
             tryAgainLabel={content.try_again_label || 'Negotiate again'}
-            endLabel={commit.label}
+            endLabel={commitLabel}
             endActionable={commit.ready}
             endSubLabel={commit.subLabel}
             endTurnRows={endTurnCostRows}
@@ -1369,7 +1387,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                   style={{ width: 9, height: 9, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 0 3px rgba(52,211,153,.3)' }}
                 />
               )}
-              {commit.label}
+              {commitLabel}
             </span>
             {!commit.ready && commit.subLabel && (
               <small style={{ display: 'block', fontSize: 10, fontWeight: 400, color: p.muted }}>
