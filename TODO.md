@@ -1,7 +1,7 @@
 # TODO - Game Alpha
 
 **Last Updated:** September 17, 2026 — v3.2.61: eight of ten untriaged reviewer reports fixed (helper-swap picker + Out/In result + "optional" tag, board shows the destination choice, whole-screen dark mode + toggle in the tracker, bug-report screenshot keeps panel modals). Earlier: v3.2.56–60. Full detail: CHANGELOG.
-**Status:** Beta — **v3.2.61 PENDING DEPLOY.** Live is v3.2.60 (`/health` → `2cd3120`, checked 2026-09-17 03:28Z). Re-check `/health` before believing this line.
+**Status:** Beta — **v3.2.61 LIVE** (`/health` → `f2f81be` = HEAD, checked 2026-09-17 04:41Z). Re-check `/health` before believing this line.
 **Current Version:** 3.2.61. 3.2.46 was skipped in numbering and the commit that claimed it shipped as 3.2.49.
 
 ---

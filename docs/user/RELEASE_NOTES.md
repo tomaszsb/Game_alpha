@@ -2,6 +2,19 @@
 
 ---
 
+## v3.2.61 — Clearer swaps, your choice on the board, and dark mode everywhere (September 17, 2026)
+
+- **Choosing which helper to swap out now has its own button.** Each card used to have only a big "Details" button, which didn't choose anything. Every card now says **"Swap this one out"**, and Details is a small link beside it. If you tap the wrong card, tap another one to switch.
+- **After a swap, the game tells you who left and who arrived.** You'll see **Out:** and **In:**, and you can tap either name for details. Each card is listed once, not twice.
+- **Optional actions say so.** "Swap one helper for another" is marked **optional**, so you know you can move on without it.
+- **The board shows where you're heading.** Pick a destination and that space, and the arrow to it, turn blue. Just pointing at a choice lights it up too, so you can see where it is before you decide.
+- **Dark mode now covers the whole screen.** Before, the board, the progress bar at the top and the cards inside pop-ups stayed light. The space you're standing on was the hardest thing to read. Everything goes dark together now. The **Light/Dark** button has moved into the progress bar's menu at the top.
+- **Bug reports now capture the pop-up you're describing.** Some pop-ups were missing from the screenshot a bug report takes.
+
+## v3.2.60 — The move-on button says where you're going (September 13, 2026)
+
+- **Once you pick a destination, the button that moves you names it:** for example, **"Sign off on the design → Find an Engineer"**. The destination rows only choose where to go; this button is the one that takes you there.
+
 ## v3.2.56 — Meet the Banker (September 10, 2026)
 
 - **The person who reviews your bank loan is now "The Banker" everywhere.** Some screens called this character "The Bank" and others "The Banker", because two parts of the game kept their own lists of names and the lists had drifted apart. The Banker is a person you deal with, not a building, so that's the name that stayed. You'll see it on the character badge, in the story text, and as "Banker:" in the list of places you can return to.

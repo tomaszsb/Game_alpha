@@ -1,35 +1,34 @@
-# Next session starter — written 2026-09-14 by /koniec
+# Next session starter — written 2026-09-17 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.60 — **LIVE** (confirmed by `/health` = `2cd3120` = HEAD at 2026-09-17 03:28Z, during /start). **Run `curl -sS https://game.unravelcodes.com/health` before believing this line.**
-- **Branch:** master, clean and pushed. Untracked: `idea.txt` — **READ IT, never modify or commit it.** It is Tom's own brief, the origin of the D&D dual-function constraint, and his standing instructions on how he wants to be worked with.
-- **Last shipped:** v3.2.56 (Workstream 6 CSV-only-reskin audit II: 4 condition evaluators → 1, fail-closed; "The Banker"; phase table; `auto_roll_dice` flag; `CARD_TYPES.is_playable_from_hand`), v3.2.57 (5 dead UI_STRINGS rows that logged 5 console errors per page load), v3.2.58 (leak #14: "what counts as a Work Package" defined once — CARD_TYPES `is_project_scope`, read by `card_type` at all six former `startsWith('W')` sites), v3.2.59 (`data-testid="app-loading"` on the button-less startup screen), and v3.2.60 (the commit control names a picked destination — "Sign off on the design → Find an Engineer" — via UI_STRINGS `COMMIT.withDestination`; Tom's call).
-- **Test suite:** `npx vitest run` **3175/3175 across 218 files**, green on the first attempt at v3.2.60. Typecheck ✅, build ✅.
+- **Version:** v3.2.61 — **LIVE** (`/health` = `f2f81be` = HEAD at 2026-09-17 04:41Z). **Run `curl -sS https://game.unravelcodes.com/health` before believing this line.**
+- **Branch:** master, clean and pushed. Untracked: `idea.txt` — **READ IT, never modify or commit it.** It is Tom's own brief (D&D dual-function constraint + how he wants to be worked with).
+- **Last shipped:** v3.2.61 — 8 of 10 untriaged reviewer reports: swap picker choose buttons, Out/In swap result, "optional" tag, board shows picked/pointed-at destination, whole-screen dark mode (one shared setting, toggle in the tracker), bug-report screenshots keep panel modals.
+- **Test suite:** `npx vitest run` **3201/3201 across 223 files**; typecheck ✅, build ✅, lint no new warnings.
+- **Dashboard:** 9 open (was 17). The 8 v3.2.61 fixes are already flipped resolved.
 
 ## Top 3 open items
-1. **Teaching layer: tutorial, micro-lessons, and the voice pass on the 44 `ACTION_TOOLTIPS.csv` rows.** The largest part of Onboarding Phase C still to do. Hard constraint: never put a glossary term inside an action button.
-2. **The playtest robot still has zero real completions (11 nights), and the 2026-09-12 run's two findings are both harness-side or copy — the game checked out.** "No 'Start Game' button" = sampled during the app's button-less startup (server log: that game never created a game; nothing since 09-09 touched the setup screen). v3.2.59 adds `data-testid="app-loading"` + `data-phase` so a harness can wait for it. The 26-step loop at "See the Design" = the commit exists and goes `data-actionable=true` once a destination is picked; it is just labelled "Sign off on the design" while `➡️ Find an Engineer` looks like the move and only selects (deselects on a second click, by design — fb:c2e489dc). **2026-09-14 local re-run against v3.2.60 (2 games, same seed, via an SSH reverse tunnel so the Mac loads `http://localhost:3001` — a LAN-address http build fails because the server's CSP `upgrade-insecure-requests` + HSTS force https): the signpost worked where aimed (toggles 41% → 22%, commits through it at See the Design / Pick Your Path), still 0 completions — the stall moved to a push-back loop at Lender Review (51 steps). Waiting on the loading hook, and telling a win from a loss (`end-game-loss-title` already exists), belong to the Jarvis session. Do not edit `game_playtest.py` from here.**
-3. **Deploy v3.2.60, then the audit II leftovers ranked in TODO.md.** #14 is done. The biggest remaining are the win condition and the closed card-family union; each is a dedicated session and Tom's call.
+1. **Teaching layer: tutorial, micro-lessons, and the voice pass on the 44 `ACTION_TOOLTIPS.csv` rows.** Largest part of Onboarding Phase C. Fold in "helper" jargon, the Banker's "pound of flesh" idiom (27 robot hits on 09-16), and fb:adad1561's "What's affecting you" wording. Never put a glossary term inside an action button.
+2. **Playtest robot: still 0 completions.** The 09-16 Lender Review loop (G-Z5UM-P9ZQ, 14 push-backs in a row) is **harness-side**, verified against server log and code: the harness drops non-actionable controls, so the model never reads "Finish 'Bring in extra help' above first" or the tap-revealed cost. Tom decided 2026-09-16: the game stays as is. Fix belongs to the Jarvis session. Do not edit `game_playtest.py` from here.
+3. **Audit II leftovers ranked in TODO.md** — win condition, closed card-family union. Each is a dedicated session and Tom's call.
 
 ## Decisions waiting on the user
-- **"helper" is undefined jargon (28 hits, the biggest copy problem right now)** — "⚡ Swap one helper for another" / "Let one helper go" / "Bring in extra help". Folds into the 44-row tooltip voice pass.
-- **Three design calls from 09-09, all in TODO.md "Decisions":** auto-expand the destination picker when picking is the only thing left? make "What's this?" more than a bare `?`? add a `data-testid` to `RoutingExplanationModal`?
-- **Voice pass on the 44 tooltip rows.** The tooltip is the one place a trade word should appear.
-- Carried: normalize the stray CR bytes in `DiceRoll Info.csv` / `CARDS_EXPANDED.csv`? Card library Stage 4 (deferred, not rejected).
+- **fb:9e31b860 — undo a swap after confirming it?** It would let a player peek at the random draw and take it back. The picker already switches before confirming.
+- **fb:adad1561 — reword "What's affecting you" per source** (expeditor called / something in the news). Voice copy.
+- Carried: auto-expand the destination picker when picking is the only thing left? "What's this?" more than a bare `?`? `data-testid` on `RoutingExplanationModal`? Stray CR bytes in `DiceRoll Info.csv` / `CARDS_EXPANDED.csv`? Card library Stage 4.
 
 ## Flip after deploy
 - **fb:93449bf2 — do NOT flip on deploy alone.** Only after Tom confirms the TV reads well across a room.
-- **Once v3.2.61 is confirmed live, flip these 8 (fixed in v3.2.61):** fb:feedback-1788494446686-f33ae50b, fb:feedback-1788865610603-0a945993, fb:feedback-1788493844027-c8769e0d, fb:feedback-1788494608093-ba16e596, fb:feedback-1788865772330-71935ebb, fb:feedback-1788494150808-6416f76e, fb:feedback-1788865148274-b6963218, fb:feedback-1788865395583-e8508e3d. **Leave open:** fb:9e31b860 and fb:adad1561 (design calls, in TODO).
 
 ## Suggested first move
-Check `/health`. If v3.2.60 isn't live, hand Tom `bash deploy.sh`. Then start the teaching layer: it's the real work and needs no one else.
+Check `/health`, then start the teaching layer's tooltip voice pass. Want the two design calls above settled first?
 
 ## Suggested model for next session
-Sonnet 5. Both candidates are scoped work with a shipped precedent; raise effort to `xhigh` before reaching for a bigger model.
+Sonnet 5 — scoped copy/UI work with shipped precedent; raise effort to `xhigh` before a bigger model.
 
 ## Reminders
-- **Relayed briefs are hypotheses.** The v3.2.56 brief called its claims "verified facts", and four were wrong. Check code and data before acting on one.
-- **A classroom's `resolved/` re-bakes itself on a stock change.** Edit `public/data/` only. CHARACTERS, CARD_TYPES and UI_STRINGS are clean-only (no SOURCE copy).
-- **A status line is a handoff too.** "Pushed, not deployed" went stale within hours. Use `/health`.
-- **`npm test` ≠ the full suite** (it excludes `tests/ghost/**`). `npx vitest run` runs both (~15 min). **Never pipe a backgrounded suite through `tail`.**
-- **Say which folder AND which session you are in.** A Manager session also works in this repo. Deploy runs from a Windows terminal.
+- **Vite's watcher can miss an edit** (bit this session): `curl -s localhost:3000/src/<file> | grep -c <new-id>` before debugging a live check that contradicts the source.
+- **Relayed briefs are hypotheses.** Check code and data before acting on one.
+- **Edit `public/data/` only;** a classroom's `resolved/` re-bakes itself. UI_STRINGS is clean-only.
+- **`npm test` ≠ the full suite** (excludes `tests/ghost/**`). `npx vitest run` runs both (~15 min). Never pipe a backgrounded suite through `tail`.
+- **Say which folder AND which session you are in.** Deploy runs from a Windows terminal.
