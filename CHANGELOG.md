@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.62] - 2026-09-17
+
+### "What's affecting you" is gone; its contents live behind four at-a-glance boxes
+
+**Player-visible. This is Tom's redesign, answering fb:adad1561** (relayed by the Manager and recorded in command/DECISIONS.md, 2026-09-17). Tom's words: *"both expeditors and work packages are really part of my numbers area ... there should be at a glance area and there should be a detail area."* He approved a sketch before the build. At review he dropped the separate details button ("can't we just press the area?") and moved History into the Time box.
+
+    before   💰 $270,000 deficit   🕐 42        [📋 My numbers] [History]
+             … WHAT'S AFFECTING YOU ▸ (expeditors, activate rows, chips, ongoing effects)
+    after    ┌ Money ›  $270,000 ┐ ┌ Time ›  42 days ┐
+             │ $183K deficit     │ │                 │
+             ┌ Expeditors ›  3   ┐ ┌ Scope ›  2      ┐
+             │ 1 ready to use    │ │ $1.4M           │
+
+**Each box is the button.** Money opens a Money page (today's "My numbers" money figures, plus loans, investments and anything still affecting you). Scope opens a Scope page (the work packages). Expeditors opens an Expeditors page: every expeditor held, with **Activate** on the ones usable now. Time opens History, which now also lists your life events. The "My numbers" and "History" buttons are gone. The DOB/FDNY/violation marks stay, on their own line. The Expeditors box glows when one is ready to use, the same cue the old section's toggle gave, so nothing actionable is hidden silently.
+
+**Where each card family goes is data, not code.** A new `CARD_TYPES.csv` column, `numbers_section` (money / scope / expeditors / history), read through `DataService.getNumbersSection`, with the built-in-fallback convention and a parity test (`NumbersSectionCardTypes`). A family that can be activated from hand always also appears on the Expeditors page, so a reskin that files it elsewhere can't strand its Activate button. The placement of life events, ongoing effects, loans and investments was Tom's call on the suggestion put to him.
+
+**Wording is still Tom's.** Box and page titles are the words from his brief ("Money", "Time", "Expeditors", "Scope"). "N ready to use", "N days", "None yet", "No expeditors yet." and "Still affecting you" are placeholders. All of them are UI_STRINGS keys (`NUMBERS.*`), so renaming needs no code change.
+
+**Also removed:** the pick-a-card list modal (`affecting-card-list`). The pages list every card directly, so a "×3" chip no longer needs one.
+
+**Checked:** locally in a running game at desktop and phone (375px, no horizontal overflow) widths. The TV screen itself is unchanged (it shows the scoreboard, not this panel); each player's phone/controller view is this panel, so it changes. **Only Tom can judge that one on a real phone.** Tests: the panel, numbers-page and data-column suites were updated or added.
+
 ## [3.2.61] - 2026-09-17
 
 ### Eight of ten reviewer reports from 2026-09-04/08, which had never been triaged

@@ -19,6 +19,13 @@ import { panelPalettes, PanelMode } from './panelTheme';
 import { FormatUtils } from '../../utils/FormatUtils';
 import { computeProjectFinances, WorkPackage } from '../../utils/projectFinances';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
+import { NUMBERS } from '../../constants/uiStrings';
+import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
+import { colors } from '../../styles/theme';
+
+/** Which page of the numbers is open — one per tappable glance box
+ *  (fb:adad1561, Tom 2026-09-17). Time opens History, not a page here. */
+export type NumbersPage = 'money' | 'scope' | 'expeditors';
 
 export interface PlayerNumbersV2Props {
   isOpen: boolean;
@@ -27,6 +34,16 @@ export interface PlayerNumbersV2Props {
   gameServices: IServiceContainer;
   /** The panel's light/dark mode — body and ModalBase shell follow it. */
   mode?: PanelMode;
+  /** Which page to show. Defaults to money. */
+  page?: NumbersPage;
+  /** Open a card's detail view (the panel owns that modal). */
+  onOpenCard?: (cardId: string) => void;
+  /** Cards that can be activated right now (canPlayCard, this player's turn). */
+  playableCardIds?: string[];
+  /** Activate a card from hand. */
+  onActivate?: (cardId: string) => void;
+  /** The card currently being activated, if any. */
+  playingCardId?: string | null;
 }
 
 export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
@@ -35,6 +52,11 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
   playerId,
   gameServices,
   mode = 'light',
+  page = 'money',
+  onOpenCard,
+  playableCardIds = [],
+  onActivate,
+  playingCardId = null,
 }) => {
   const p = panelPalettes[mode];
   // Glossary terms in the ledger are taught on demand, not stripped (redesign §1
@@ -61,6 +83,20 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
   const fin = computeProjectFinances(player, (id) => gameServices.dataService.getCardById(id));
 
   const fmt = (n: number) => FormatUtils.formatMoney(n);
+
+  // The hand's cards that belong on a given page — decided by CARD_TYPES.csv
+  // numbers_section, never by a card-type letter (reskin-safe).
+  const cardsFor = (section: 'money' | 'expeditors') =>
+    player.hand
+      .map((id) => ({ id, card: gameServices.dataService.getCardById(id) }))
+      .filter((x): x is { id: string; card: NonNullable<typeof x.card> } =>
+        !!x.card && (
+          gameServices.dataService.getNumbersSection(x.card.card_type) === section ||
+          // A family that can be activated from hand always lands on the
+          // Expeditors page, so its Activate button can never end up homeless
+          // even if a reskin files it under another section.
+          (section === 'expeditors' && gameServices.dataService.isCardTypePlayableFromHand(x.card.card_type))
+        ));
 
   const sectionLabel: React.CSSProperties = {
     fontSize: 10,
@@ -199,6 +235,30 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
     );
   };
 
+  // One tappable card row: opens the card's detail. Optional trailing control.
+  const cardRow = (key: string, cardId: string, name: string, emoji: string, extra?: React.ReactNode, trailing?: React.ReactNode) => (
+    <div key={key} style={{ ...row, padding: '4px 6px 4px 10px' }}>
+      <button
+        type="button"
+        onClick={() => onOpenCard?.(cardId)}
+        disabled={!onOpenCard}
+        aria-label={`Details for ${name}`}
+        style={{
+          flex: 1, display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
+          border: 'none', background: 'transparent', color: p.text, font: 'inherit',
+          cursor: onOpenCard ? 'pointer' : 'default', padding: '4px 0', minHeight: 36,
+        }}
+      >
+        <span aria-hidden style={{ width: 18, textAlign: 'center' }}>{emoji}</span>
+        <span style={{ flex: 1 }}>
+          {name} <span aria-hidden style={{ color: p.muted }}>ⓘ</span>
+          {extra}
+        </span>
+      </button>
+      {trailing}
+    </div>
+  );
+
   const footer = (
     <button
       onClick={onClose}
@@ -223,8 +283,8 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
-      title="Your numbers"
-      emoji="📋"
+      title={page === 'scope' ? NUMBERS.SECTION_SCOPE : page === 'expeditors' ? NUMBERS.SECTION_EXPEDITORS : NUMBERS.SECTION_MONEY}
+      emoji={page === 'scope' ? '🏢' : page === 'expeditors' ? '⚡' : '💰'}
       maxWidth="420px"
       footer={footer}
       testId="player-numbers-v2"
@@ -232,6 +292,7 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
     >
       <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: p.text }}>
         {/* Scope — what you're building, and what each piece cost */}
+        {page === 'scope' && (
         <div style={{ marginBottom: 12 }}>
           <p style={sectionLabel}>What you&apos;re building (scope)</p>
           {fin.workPackages.length === 0 ? (
@@ -309,11 +370,12 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
             </>
           )}
         </div>
+        )}
 
         {/* Where your money's going — spent vs budget per area (the old ledger's
             "uses" breakdown, in plain language). Only shown once there's scope to
             budget against, so an empty early-game view stays clean. */}
-        {fin.scopeTotal > 0 && (
+        {page === 'money' && fin.scopeTotal > 0 && (
           <div style={{ marginBottom: 12 }}>
             <p style={sectionLabel}>Where your money&apos;s going</p>
             {areaRow('📐', 'Design & professional fees', fin.design.spent, fin.design.budget)}
@@ -324,6 +386,7 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
         )}
 
         {/* Money — raised, spent, on hand, and whether you've raised enough */}
+        {page === 'money' && (
         <div style={{ marginBottom: 12 }}>
           <p style={sectionLabel}>Your money</p>
           {moneyRow('💰', 'Cash on hand', fin.cash)}
@@ -343,6 +406,87 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
             </div>
           )}
         </div>
+        )}
+
+        {/* Money page: the money-family cards you hold (loans, investments on
+            the stock board) and anything still costing you each turn — both
+            used to sit in "What's affecting you" (fb:adad1561). */}
+        {page === 'money' && (() => {
+          const moneyCards = cardsFor('money');
+          const types = [...new Set(moneyCards.map((x) => x.card.card_type))];
+          const effects = player.activeEffects ?? [];
+          return (
+            <>
+              {types.map((t) => {
+                const ofType = moneyCards.filter((x) => x.card.card_type === t);
+                return (
+                  <div key={t} style={{ marginBottom: 12 }}>
+                    <p style={sectionLabel}>{getCardTypeName(t, ofType.length)}</p>
+                    {ofType.map(({ id, card }) =>
+                      cardRow(id, id, card.card_name, colors.game.cardTypes[t]?.emoji ?? '📄'))}
+                  </div>
+                );
+              })}
+              {effects.length > 0 && (
+                <div style={{ marginBottom: 12 }} data-testid="numbers-ongoing">
+                  <p style={sectionLabel}>{NUMBERS.MONEY_ONGOING}</p>
+                  {effects.map((eff, i) => {
+                    const key = String(eff.effectId || i);
+                    const src = eff.sourceCardId ? gameServices.dataService.getCardById(eff.sourceCardId) : null;
+                    const emoji = src ? (colors.game.cardTypes[src.card_type]?.emoji ?? '⏳') : '⏳';
+                    return src && eff.sourceCardId
+                      ? cardRow(key, eff.sourceCardId, eff.description ?? '', emoji)
+                      : (
+                        <div key={key} style={row}>
+                          <span aria-hidden style={{ width: 18, textAlign: 'center' }}>{emoji}</span>
+                          <span style={{ flex: 1 }}>{eff.description}</span>
+                        </div>
+                      );
+                  })}
+                </div>
+              )}
+            </>
+          );
+        })()}
+
+        {/* Expeditors page: every expeditor-family card you hold, with Activate
+            on the ones you can use right now (moved from "What's affecting
+            you"; fb:adad1561). */}
+        {page === 'expeditors' && (() => {
+          const held = cardsFor('expeditors');
+          if (held.length === 0) {
+            return <div style={{ fontSize: 13, color: p.muted, padding: '6px 2px' }}>{NUMBERS.EXPEDITORS_EMPTY}</div>;
+          }
+          return (
+            <div data-testid="numbers-expeditors">
+              {held.map(({ id, card }) => {
+                const playable = playableCardIds.includes(id);
+                const summary = playable ? getCardEffectSummary(card, player.timeSpent) : null;
+                const phase = card.phase_restriction && card.phase_restriction !== 'Any'
+                  ? <span style={{ color: p.muted, marginLeft: 6 }}>· {card.phase_restriction} phase</span>
+                  : null;
+                const activate = playable && onActivate ? (
+                  <button
+                    type="button"
+                    onClick={() => onActivate(id)}
+                    disabled={playingCardId !== null}
+                    aria-label={`Activate ${card.card_name}`}
+                    className={playingCardId === null ? 'uc-hint-glow' : undefined}
+                    style={{
+                      flex: '0 0 auto', border: `1px solid ${p.accent}`, background: p.accent, color: '#fff',
+                      borderRadius: 8, padding: '5px 11px', fontSize: 11, fontWeight: 600,
+                      cursor: playingCardId !== null ? 'default' : 'pointer',
+                      opacity: playingCardId !== null && playingCardId !== id ? 0.5 : 1,
+                    }}
+                  >
+                    {playingCardId === id ? 'Working…' : summary ? `Activate (${summary})` : 'Activate'}
+                  </button>
+                ) : undefined;
+                return cardRow(id, id, card.card_name, colors.game.cardTypes[card.card_type]?.emoji ?? '📄', phase, activate);
+              })}
+            </div>
+          );
+        })()}
       </div>
     </ModalBase>
   );

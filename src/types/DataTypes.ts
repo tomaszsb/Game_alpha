@@ -106,7 +106,15 @@ export interface CardTypeLabel {
    * DataService.isProjectScopeCard, never directly.
    */
   is_project_scope?: boolean;
+  /**
+   * v3.2.62: where this family's cards appear in the player panel's numbers
+   * (fb:adad1561 redesign) — money | scope | expeditors | history. Read through
+   * DataService.getNumbersSection, never directly.
+   */
+  numbers_section?: NumbersSection;
 }
+
+export type NumbersSection = 'money' | 'scope' | 'expeditors' | 'history';
 
 /**
  * 2026-08-09: CSV-portability lift, reskin item 4. One row of

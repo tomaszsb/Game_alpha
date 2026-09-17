@@ -25,11 +25,11 @@ describe('PlayerNumbersV2 — recall reference', () => {
     expenditures: { design: 20000, fees: 5000, construction: 0 },
   };
 
-  const renderModal = (p: any = player) => {
+  const renderModal = (p: any = player, page: 'money' | 'scope' | 'expeditors' = 'money', extra: any = {}) => {
     services.stateService.getPlayer.mockReturnValue(p);
     return render(
       <DictionaryProvider>
-        <PlayerNumbersV2 isOpen onClose={vi.fn()} playerId="player1" gameServices={services as any} mode="light" />
+        <PlayerNumbersV2 isOpen onClose={vi.fn()} playerId="player1" gameServices={services as any} mode="light" page={page} {...extra} />
       </DictionaryProvider>,
     );
   };
@@ -51,7 +51,7 @@ describe('PlayerNumbersV2 — recall reference', () => {
   const openScope = () => fireEvent.click(screen.getByRole('button', { name: /Total scope/i }));
 
   it('lists each work package by name (recall what they were) and the money section', () => {
-    renderModal();
+    renderModal(player, 'scope');
     expect(screen.getByText(/What you're building/i)).toBeInTheDocument();
     // Collapsed by default — packages appear once the scope header is opened.
     expect(screen.queryByText('Foundation')).not.toBeInTheDocument();
@@ -60,14 +60,56 @@ describe('PlayerNumbersV2 — recall reference', () => {
     expect(screen.getByText('Foundation')).toBeInTheDocument();
     expect(screen.getByText('Steel Frame')).toBeInTheDocument();
     expect(screen.queryByText('Rush Rep')).not.toBeInTheDocument();
-    // Money labels present.
+    // The money figures live on their own page now (fb:adad1561).
+    expect(screen.queryByText('Cash on hand')).not.toBeInTheDocument();
+    cleanup();
+    renderModal(player, 'money');
     expect(screen.getByText('Cash on hand')).toBeInTheDocument();
     expect(screen.getByText('Funding raised')).toBeInTheDocument();
     expect(screen.getByText('Spent so far')).toBeInTheDocument();
+    expect(screen.queryByText('Foundation')).not.toBeInTheDocument();
+  });
+
+  // fb:adad1561 — loans/investments and ongoing effects moved here from
+  // "What's affecting you"; which family goes where is CARD_TYPES data.
+  it('money page lists money-family cards and what is still affecting you', () => {
+    const onOpenCard = vi.fn();
+    services.dataService.getCardById.mockImplementation((id: string) => {
+      if (id === 'B1') return { card_id: 'B1', card_type: 'B', card_name: 'Bridge Loan' } as any;
+      if (id === 'L1') return { card_id: 'L1', card_type: 'L', card_name: 'Fee Hike' } as any;
+      return null;
+    });
+    renderModal(
+      { ...player, hand: ['B1', 'L1'], activeEffects: [{ effectId: 'x', description: 'Fee Hike still costing you', sourceCardId: 'L1' }] },
+      'money',
+      { onOpenCard },
+    );
+    expect(screen.getByText('Bridge Loan')).toBeInTheDocument();
+    expect(screen.getByTestId('numbers-ongoing')).toHaveTextContent('Fee Hike still costing you');
+    fireEvent.click(screen.getByRole('button', { name: /Details for Bridge Loan/i }));
+    expect(onOpenCard).toHaveBeenCalledWith('B1');
+    // A life event itself is History's, not Money's.
+    expect(screen.queryByRole('button', { name: /Details for Fee Hike$/i })).not.toBeInTheDocument();
+  });
+
+  it('expeditors page lists every expeditor and offers Activate only on playable ones', () => {
+    const onActivate = vi.fn();
+    services.dataService.getCardById.mockImplementation((id: string) => {
+      if (id === 'E1') return { card_id: 'E1', card_type: 'E', card_name: 'Rush Rep', phase_restriction: 'Any' } as any;
+      if (id === 'E2') return { card_id: 'E2', card_type: 'E', card_name: 'Late Rep', phase_restriction: 'CONSTRUCTION' } as any;
+      return null;
+    });
+    renderModal({ ...player, hand: ['E1', 'E2'] }, 'expeditors', { playableCardIds: ['E1'], onActivate });
+    const page = screen.getByTestId('numbers-expeditors');
+    expect(page).toHaveTextContent('Rush Rep');
+    expect(page).toHaveTextContent('Late Rep');
+    expect(screen.queryByRole('button', { name: /Activate Late Rep/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Activate Rush Rep/i }));
+    expect(onActivate).toHaveBeenCalledWith('E1');
   });
 
   it('collapses the work packages behind the Total scope drill-down', () => {
-    renderModal();
+    renderModal(player, 'scope');
     const scope = screen.getByRole('button', { name: /Total scope/i });
     expect(scope).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByText('Foundation')).not.toBeInTheDocument();
@@ -79,7 +121,7 @@ describe('PlayerNumbersV2 — recall reference', () => {
   });
 
   it('groups work packages under their trade and drops the redundant days row', () => {
-    renderModal();
+    renderModal(player, 'scope');
     openScope();
     const modal = screen.getByTestId('player-numbers-v2');
     // Both W cards are Structural → grouped under that trade heading.
@@ -89,7 +131,7 @@ describe('PlayerNumbersV2 — recall reference', () => {
   });
 
   it('shows an empty-state when no work packages are held yet', () => {
-    renderModal({ ...player, hand: ['E1'] }); // only a non-W card
+    renderModal({ ...player, hand: ['E1'] }, 'scope'); // only a non-W card
     expect(screen.getByText(/No work packages yet/i)).toBeInTheDocument();
   });
 
@@ -110,7 +152,7 @@ describe('PlayerNumbersV2 — recall reference', () => {
   // the test DictionaryProvider doesn't load real glossary data in jsdom.
 
   it('drills a work package open to show where its full cost goes', () => {
-    renderModal();
+    renderModal(player, 'scope');
     openScope();
     // Collapsed: the breakdown lines are not in the DOM yet.
     expect(screen.queryByText(/The build itself/i)).not.toBeInTheDocument();
@@ -130,7 +172,7 @@ describe('PlayerNumbersV2 — recall reference', () => {
   });
 
   it('shows the full project budget that "Still to raise" is measured against', () => {
-    renderModal();
+    renderModal(player, 'scope');
     const modal = screen.getByTestId('player-numbers-v2');
     expect(modal).toHaveTextContent('Full project budget');
     // The plain-language reconciliation explaining why it exceeds the scope.

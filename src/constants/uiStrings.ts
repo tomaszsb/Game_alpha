@@ -46,6 +46,22 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // replace expeditor". Skippable actions never gate the move (by design), but
   // nothing on screen said so. Rendered as a quiet tag inside the action button.
   'ACTION_ROW.optional': 'optional',
+  // v3.2.62 (fb:adad1561, Tom 2026-09-17): "What's affecting you" folded into
+  // the numbers — four tappable glance boxes, each opening its own page.
+  // Placeholder wording taken from Tom's brief; every label is his to rename
+  // here in UI_STRINGS.csv.
+  'NUMBERS.tile.money': 'Money',
+  'NUMBERS.tile.time': 'Time',
+  'NUMBERS.tile.expeditors': 'Expeditors',
+  'NUMBERS.tile.scope': 'Scope',
+  'NUMBERS.tile.days': '{days} days',
+  'NUMBERS.tile.ready': '{n} ready to use',
+  'NUMBERS.tile.none': 'None yet',
+  'NUMBERS.section.money': 'Money',
+  'NUMBERS.section.scope': 'Scope',
+  'NUMBERS.section.expeditors': 'Expeditors',
+  'NUMBERS.expeditors.empty': 'No expeditors yet.',
+  'NUMBERS.money.ongoing': 'Still affecting you',
   'DICE_BUTTON.WORK': 'Get Work Packages',
   'DICE_BUTTON.BANK': 'Apply for Bank Loans',
   'DICE_BUTTON.EXPEDITOR': 'Hire Expeditors',
@@ -224,6 +240,21 @@ export const _testOnly = { resetUIStringOverrides: () => UI_STRING_OVERRIDES.cle
 export const COMMIT = {
   withDestination: (label: string, destination: string): string =>
     getUIString('COMMIT.withDestination', { label, destination }),
+};
+
+export const NUMBERS = {
+  get TILE_MONEY() { return getUIString('NUMBERS.tile.money'); },
+  get TILE_TIME() { return getUIString('NUMBERS.tile.time'); },
+  get TILE_EXPEDITORS() { return getUIString('NUMBERS.tile.expeditors'); },
+  get TILE_SCOPE() { return getUIString('NUMBERS.tile.scope'); },
+  days: (days: number) => getUIString('NUMBERS.tile.days', { days }),
+  ready: (n: number) => getUIString('NUMBERS.tile.ready', { n }),
+  get NONE() { return getUIString('NUMBERS.tile.none'); },
+  get SECTION_MONEY() { return getUIString('NUMBERS.section.money'); },
+  get SECTION_SCOPE() { return getUIString('NUMBERS.section.scope'); },
+  get SECTION_EXPEDITORS() { return getUIString('NUMBERS.section.expeditors'); },
+  get EXPEDITORS_EMPTY() { return getUIString('NUMBERS.expeditors.empty'); },
+  get MONEY_ONGOING() { return getUIString('NUMBERS.money.ongoing'); },
 };
 
 export const ACTION_ROW = {

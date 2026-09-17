@@ -1,6 +1,6 @@
-card_type,label,is_playable_from_hand,is_project_scope
-W,Work Package,No,Yes
-B,Bank Loan,No,No
-E,Expeditor,Yes,No
-L,Life Event,No,No
-I,Investment,No,No
+card_type,label,is_playable_from_hand,is_project_scope,numbers_section
+W,Work Package,No,Yes,scope
+B,Bank Loan,No,No,money
+E,Expeditor,Yes,No,expeditors
+L,Life Event,No,No,history
+I,Investment,No,No,money

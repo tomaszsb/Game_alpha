@@ -19,6 +19,8 @@ import { IServiceContainer } from '../../types/ServiceContracts';
 import { HistoryFeed, HistoryFeedFilters } from '../game/HistoryFeed';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { panelPalettes, PanelMode } from './panelTheme';
+import { getCardTypeName } from '../../utils/cardTypeNames';
+import { colors } from '../../styles/theme';
 
 export interface PlayerChronicleV2Props {
   isOpen: boolean;
@@ -34,6 +36,11 @@ export interface PlayerChronicleV2Props {
    *  text when omitted (e.g. the phone/controller view, which has no board
    *  on the same screen to pan). */
   onNavigateToSpace?: (spaceId: string) => void;
+  /** Cards whose family CARD_TYPES.csv files under history (Life Events on the
+   *  stock board) — they used to sit in "What's affecting you" (fb:adad1561).
+   *  Shown above the feed, grouped by family, each tappable for details. */
+  historyCards?: Array<{ id: string; name: string; type: string }>;
+  onOpenCard?: (cardId: string) => void;
 }
 
 export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
@@ -43,6 +50,8 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
   gameServices,
   mode = 'light',
   onNavigateToSpace,
+  historyCards = [],
+  onOpenCard,
 }) => {
   const p = panelPalettes[mode];
   // Opens on "just me" — the panel's frame of reference — but it's a chip, not
@@ -80,6 +89,38 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
       testId="player-chronicle-v2"
       mode={mode}
     >
+      {historyCards.length > 0 && (
+        <div data-testid="chronicle-history-cards" style={{ marginBottom: 12 }}>
+          {[...new Set(historyCards.map((c) => c.type))].map((type) => {
+            const ofType = historyCards.filter((c) => c.type === type);
+            return (
+              <div key={type} style={{ marginBottom: 6 }}>
+                <p style={{ fontSize: 10, letterSpacing: '0.05em', color: p.muted, textTransform: 'uppercase', margin: '0 0 6px' }}>
+                  {getCardTypeName(type, ofType.length)}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {ofType.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => onOpenCard?.(c.id)}
+                      disabled={!onOpenCard}
+                      aria-label={`Details for ${c.name}`}
+                      style={{
+                        fontSize: 12, padding: '5px 9px', borderRadius: 8, background: p.surf2,
+                        border: `1px solid ${p.border}`, color: p.text,
+                        cursor: onOpenCard ? 'pointer' : 'default',
+                      }}
+                    >
+                      {colors.game.cardTypes[type]?.emoji ?? '📄'} {c.name} <span aria-hidden style={{ color: p.muted }}>ⓘ</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <HistoryFeed
         gameServices={gameServices}
         mode={mode}

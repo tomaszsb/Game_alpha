@@ -2,6 +2,14 @@
 
 ---
 
+## v3.2.62 — Your numbers at a glance (September 17, 2026)
+
+- **"What's affecting you" is gone.** Your panel now opens with four boxes: **Money**, **Time**, **Expeditors** and **Scope**. Each one shows the headline number, and you tap a box to see everything behind it.
+- **Money** shows your cash and any shortfall in colour, and opens your full money picture, including loans, investments and anything still costing you.
+- **Time** shows the days that have passed and opens your History, which now also lists the life events that happened to you.
+- **Expeditors** shows how many you have and how many are ready to use. It lights up when one is ready, and opens a list of all of them with an **Activate** button on the ones you can use now.
+- **Scope** shows your work packages and their total, and opens the list of each package and what it costs.
+
 ## v3.2.61 — Clearer swaps, your choice on the board, and dark mode everywhere (September 17, 2026)
 
 - **Choosing which helper to swap out now has its own button.** Each card used to have only a big "Details" button, which didn't choose anything. Every card now says **"Swap this one out"**, and Details is a small link beside it. If you tap the wrong card, tap another one to switch.

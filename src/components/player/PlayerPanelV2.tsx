@@ -16,17 +16,14 @@ import { PlayerPanelProps } from './panelTypes';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { PanelMode, panelPalettes } from './panelTheme';
 import { shortName } from '../../utils/boardCommon';
-import { colors } from '../../styles/theme';
 import { formatManualEffectButton, getManualEffectTooltip } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
 import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
-import { PlayerNumbersV2 } from './PlayerNumbersV2';
+import { PlayerNumbersV2, NumbersPage } from './PlayerNumbersV2';
 import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { TurnCommitControl } from './TurnCommitControl';
 import { getEndTurnCostPreview, getTryAgainCostPreview, isManualEffectCompleted } from '../../utils/costPreview';
-import { ModalBase } from '../modals/shared/ModalBase';
-import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
-import { ACTION_ROW, COMMIT } from '../../constants/uiStrings';
+import { ACTION_ROW, COMMIT, NUMBERS } from '../../constants/uiStrings';
 import { setDestinationPreview } from '../../utils/destinationPreview';
 import { computeProjectFinances } from '../../utils/projectFinances';
 import { isSkippableEffectAction } from '../../utils/skippableActions';
@@ -99,25 +96,19 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const [affidavitResult, setAffidavitResult] = useState<{ success: boolean; feeCharged: number; onTime: boolean } | null>(null);
   const [playingCardId, setPlayingCardId] = useState<string | null>(null);
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
-  // When a count chip with several cards is tapped, list them so the player can
-  // pick which one to view (a "×3" tag can't open three different cards).
-  const [listType, setListType] = useState<string | null>(null);
   // Between-turns "you moved" moment (fb:15499d9b) — re-adds the classic panel's
   // movement overlay to the new panel, which had dropped it. Track the player's
   // space across renders; when it changes, briefly show where they came from.
   const prevSpaceRef = useRef<string | null>(null);
   const [moveFrom, setMoveFrom] = useState<string | null>(null);
   // "Recall my numbers" reference (fb:f028e262, fb:cea108fb) — openable any time.
-  const [showNumbers, setShowNumbers] = useState(false);
+  // Since v3.2.62 (fb:adad1561) each glance box opens its own page of it.
+  const [numbersPage, setNumbersPage] = useState<NumbersPage | null>(null);
   // "What's happened" history (Pile 3 Chronicle, first slice).
   const [showChronicle, setShowChronicle] = useState(false);
   // "What to do & why" — collapsed by default (supporting info, not the
   // headline), so it doesn't eat phone screen space (fb:f6e100b7).
   const [showWhy, setShowWhy] = useState(false);
-  // "What's affecting you" — same reasoning: collapsed by default so the
-  // panel doesn't read as overwhelming; the toggle glows instead when an
-  // Expeditor is ready to activate, so nothing actionable hides silently.
-  const [showEffects, setShowEffects] = useState(false);
   // Movement destinations — collapsed behind one "Move" row instead of N
   // separate buttons, so a choice space doesn't visually inflate the action
   // count (fb:feedback-1782843206015-8edd02b4). Once expanded, every option
@@ -212,20 +203,23 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       if (!firstIdByType[card.card_type]) firstIdByType[card.card_type] = id;
     }
   });
-  const cardChips = Object.keys(counts).map((type) => {
-    const meta = colors.game.cardTypes[type];
-    return {
-      type,
-      cardId: firstIdByType[type],
-      label: meta ? meta.label : type,
-      emoji: meta ? meta.emoji : '📄', // voice rule: no 🃏 deck icon
-      n: counts[type],
-      // Life Events are past occurrences, not live influences — show them grayed
-      // (still tappable to review what happened). User call 2026-06-23 (fb:3aad5f84).
-      inactive: type === 'L',
-    };
-  });
-  const activeEffects = player.activeEffects ?? [];
+  // Glance counts, grouped by where CARD_TYPES.csv's numbers_section puts each
+  // family (fb:adad1561) — never by a card-type letter.
+  const sectionCardIds = (section: string) =>
+    player.hand.filter((id) => {
+      const card = gameServices.dataService.getCardById(id);
+      return !!card && gameServices.dataService.getNumbersSection(card.card_type) === section;
+    });
+  const historyCardIds = sectionCardIds('history');
+  // Same set the Expeditors page lists: filed under expeditors, or activatable
+  // from hand (see PlayerNumbersV2 cardsFor).
+  const expeditorPageCount = player.hand.filter((id) => {
+    const card = gameServices.dataService.getCardById(id);
+    return !!card && (
+      gameServices.dataService.getNumbersSection(card.card_type) === 'expeditors' ||
+      gameServices.dataService.isCardTypePlayableFromHand(card.card_type)
+    );
+  }).length;
   // Replace/return/give expeditor all act on the player's E cards
   // (CardEffectService.handleReplace/Return/GiveCards → getPlayerCards) and no-op
   // SILENTLY when there are none — the button fired but no modal appeared
@@ -575,7 +569,6 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     textTransform: 'uppercase',
     margin: '0 0 6px',
   };
-  const stat: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 500 };
   const actionBtn: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
@@ -603,33 +596,30 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     color: p.text,
     fontWeight: 600,
   };
-  // "My numbers" is the recall players actually reach for — keep it the primary
-  // affordance, filling the row.
-  const recallBtn: React.CSSProperties = {
-    flex: 1,
-    border: `1px solid ${p.borderStrong}`,
+  // At-a-glance boxes (fb:adad1561). The whole box is the button — no separate
+  // "details" control (Tom, 2026-09-17: "can't we just press the area?"). The
+  // › marks it as tappable.
+  const glanceTile: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 1,
+    minWidth: 0,
+    minHeight: 58,
+    boxSizing: 'border-box',
+    textAlign: 'left',
     background: p.surf,
+    border: `1px solid ${p.border}`,
+    borderRadius: 9,
+    padding: '7px 9px',
     color: p.text,
-    borderRadius: 8,
-    padding: '5px 10px',
-    fontSize: 11,
-    fontWeight: 500,
+    font: 'inherit',
     cursor: 'pointer',
   };
-  // History is rarely opened (fb:341475d7 — "very prominent, can almost be
-  // hidden"); demote it to a quiet, borderless, muted text link beside it.
-  const historyBtn: React.CSSProperties = {
-    flex: '0 0 auto',
-    border: 'none',
-    background: 'transparent',
-    color: p.muted,
-    borderRadius: 8,
-    padding: '5px 8px',
-    fontSize: 11,
-    fontWeight: 500,
-    cursor: 'pointer',
-    opacity: 0.7,
-  };
+  const glanceLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, width: '100%', fontSize: 11, color: p.muted };
+  const glanceArrow: React.CSSProperties = { marginLeft: 'auto', fontSize: 13, color: p.muted };
+  const glanceValue: React.CSSProperties = { fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' };
+  const glanceSub: React.CSSProperties = { fontSize: 10.5, color: p.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' };
   // A finished one-shot action: grayed, checked, not interactive. Shares
   // actionBtn's geometry so a used action keeps the exact same footprint as the
   // live button it replaced (fb:44df6d5d) — only the colors/cursor differ.
@@ -708,22 +698,42 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         {phaseLabel && <div style={{ fontSize: 11, color: p.muted, textAlign: 'right' }}>{phaseLabel}</div>}
       </div>
 
-      {/* Status */}
+      {/* Status — at a glance (fb:adad1561, Tom 2026-09-17). Four tappable
+          boxes replace the money/time row, the "My numbers" and "History"
+          buttons, and the old "What's affecting you" zone. Each box opens its
+          own page; Time opens History. */}
       <div style={pad}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={stat} title="Cash on hand">
-            <span aria-hidden>💰</span>
-            <span style={{ color: moneyCue.color, fontWeight: 600 }}>${player.money.toLocaleString()}</span>
-            {moneyCue.word && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: moneyCue.color, marginLeft: 2 }}>
-                {moneyCue.word}
-              </span>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 7 }}>
+          <button type="button" data-testid="glance-money" onClick={() => setNumbersPage('money')} style={glanceTile}
+            aria-label={`${NUMBERS.TILE_MONEY}: $${player.money.toLocaleString()}${moneyCue.word ? `, ${moneyCue.word}` : ''}`}>
+            <span style={glanceLabel}><span aria-hidden>💰</span> {NUMBERS.TILE_MONEY}<span aria-hidden style={glanceArrow}>›</span></span>
+            <span style={{ ...glanceValue, color: moneyCue.color }}>${player.money.toLocaleString()}</span>
+            {moneyCue.word && <span style={{ ...glanceSub, color: moneyCue.color, fontWeight: 700 }}>{moneyCue.word}</span>}
+          </button>
+          <button type="button" data-testid="glance-time" onClick={() => setShowChronicle(true)} style={glanceTile}
+            aria-label={`${NUMBERS.TILE_TIME}: ${NUMBERS.days(player.timeSpent)}`}>
+            <span style={glanceLabel}><span aria-hidden>🕐</span> {NUMBERS.TILE_TIME}<span aria-hidden style={glanceArrow}>›</span></span>
+            <span style={glanceValue}>{NUMBERS.days(player.timeSpent)}</span>
+          </button>
+          <button type="button" data-testid="glance-expeditors" onClick={() => setNumbersPage('expeditors')}
+            className={playableExpeditors.length > 0 && playingCardId === null ? 'uc-hint-glow' : undefined}
+            style={glanceTile}
+            aria-label={`${NUMBERS.TILE_EXPEDITORS}: ${expeditorPageCount}${playableExpeditors.length > 0 ? `, ${NUMBERS.ready(playableExpeditors.length)}` : ''}`}>
+            <span style={glanceLabel}><span aria-hidden>⚡</span> {NUMBERS.TILE_EXPEDITORS}<span aria-hidden style={glanceArrow}>›</span></span>
+            <span style={glanceValue}>{expeditorPageCount > 0 ? expeditorPageCount : NUMBERS.NONE}</span>
+            {playableExpeditors.length > 0 && (
+              <span style={{ ...glanceSub, color: p.accent, fontWeight: 700 }}>{NUMBERS.ready(playableExpeditors.length)}</span>
             )}
-          </span>
-          <span style={stat} title="Days spent">
-            <span aria-hidden>🕐</span>{player.timeSpent}
-          </span>
-          {(dob || fdny || violation) && (
+          </button>
+          <button type="button" data-testid="glance-scope" onClick={() => setNumbersPage('scope')} style={glanceTile}
+            aria-label={`${NUMBERS.TILE_SCOPE}: ${fin.workPackages.length}, ${FormatUtils.formatMoney(fin.scopeTotal)}`}>
+            <span style={glanceLabel}><span aria-hidden>🏢</span> {NUMBERS.TILE_SCOPE}<span aria-hidden style={glanceArrow}>›</span></span>
+            <span style={glanceValue}>{fin.workPackages.length > 0 ? fin.workPackages.length : NUMBERS.NONE}</span>
+            {fin.scopeTotal > 0 && <span style={glanceSub}>{FormatUtils.formatMoney(fin.scopeTotal)}</span>}
+          </button>
+        </div>
+        {(dob || fdny || violation) && (
+          <div style={{ display: 'flex', marginTop: 8 }}>
             <span style={{ marginLeft: 'auto', display: 'flex', gap: 9, fontSize: 11, color: p.muted }}>
               {dob && (
                 <span title={`DOB ${dob.label}`}>
@@ -750,24 +760,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                 </span>
               )}
             </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-          <button
-            onClick={() => setShowNumbers(true)}
-            aria-label="See your numbers — scope, work packages, money and time"
-            style={recallBtn}
-          >
-            📋 My numbers
-          </button>
-          <button
-            onClick={() => setShowChronicle(true)}
-            aria-label="See what's happened — your move and change history"
-            style={historyBtn}
-          >
-            📜 History
-          </button>
-        </div>
+          </div>
+        )}
         {player.violationStatus === 'active' && (
           <div style={{ marginTop: 10 }}>
             <ActionButton
@@ -1129,193 +1123,6 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         </div>
       )}
 
-      {/* Influence */}
-      <div style={pad}>
-        {activeEffects.length === 0 && cardChips.length === 0 && playableExpeditors.length === 0 ? (
-          <>
-            <p style={zlbl}>What&apos;s affecting you</p>
-            <div style={{ fontSize: 12, color: p.muted, background: p.surf, borderRadius: 9, padding: '8px 10px' }}>
-              Nothing affecting you yet
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Collapsed by default — this list grows noisy fast, and it's
-                supporting detail, not the headline (fb:f6e100b7 follow-up).
-                The toggle glows the same way action buttons do (fb:e84e4d11)
-                when there's an Expeditor ready to activate, so collapsing it
-                can't hide something actionable. */}
-            <button
-              type="button"
-              onClick={() => setShowEffects((v) => !v)}
-              aria-expanded={showEffects}
-              className={playableExpeditors.length > 0 ? 'uc-hint-glow' : undefined}
-              style={{
-                ...zlbl,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                width: '100%',
-                padding: '4px 2px',
-                margin: '0 0 4px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                borderRadius: 6,
-                textAlign: 'left',
-              }}
-            >
-              <span aria-hidden>{showEffects ? '▾' : '▸'}</span> What&apos;s affecting you
-              {playableExpeditors.length > 0 && (
-                <span style={{ color: p.accent, fontWeight: 700, textTransform: 'none', letterSpacing: 0 }}>
-                  · {playableExpeditors.length} to activate
-                </span>
-              )}
-            </button>
-            {showEffects && (
-            <>
-            {/* Expeditors you can deploy right now (optional E-card play) */}
-            {playableExpeditors.map(({ id, card }) => (
-              <div
-                key={id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  background: p.surf,
-                  borderRadius: 9,
-                  padding: '8px 10px',
-                  marginBottom: 6,
-                }}
-              >
-                <button
-                  onClick={() => setDetailCardId(id)}
-                  aria-label={`Details for ${card.card_name}`}
-                  style={{
-                    flex: 1,
-                    textAlign: 'left',
-                    border: 'none',
-                    background: 'transparent',
-                    color: p.text,
-                    fontSize: 12,
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                >
-                  ⚡ {card.card_name} <span aria-hidden style={{ color: p.muted }}>ⓘ</span>
-                  {card.phase_restriction && card.phase_restriction !== 'Any' && (
-                    <span style={{ color: p.muted, marginLeft: 6 }}>· {card.phase_restriction} phase</span>
-                  )}
-                </button>
-                <button
-                  onClick={() => handlePlayExpeditor(id)}
-                  disabled={playingCardId !== null}
-                  aria-label={`Activate ${card.card_name}`}
-                  // Matches the parent "What's affecting you" toggle's own
-                  // glow condition just above (also gated on
-                  // playableExpeditors.length > 0, not firstVisitHint) —
-                  // the actual choose-this-one action deserves the same cue
-                  // as the section that led here. Maintainer feedback
-                  // 2026-08-18: choosing an expeditor had no obvious "choose
-                  // this one" affordance.
-                  className={playableExpeditors.length > 0 && playingCardId === null ? 'uc-hint-glow' : undefined}
-                  style={{
-                    flex: '0 0 auto',
-                    border: `1px solid ${p.accent}`,
-                    background: p.accent,
-                    color: '#fff',
-                    borderRadius: 8,
-                    padding: '5px 11px',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: playingCardId !== null ? 'default' : 'pointer',
-                    opacity: playingCardId !== null && playingCardId !== id ? 0.5 : 1,
-                  }}
-                >
-                  {playingCardId === id
-                    ? 'Working…'
-                    // fb:17cc481c — state the effect instead of a bare "Activate".
-                    : (() => {
-                        const summary = getCardEffectSummary(card, player.timeSpent);
-                        return summary ? `Activate (${summary})` : 'Activate';
-                      })()}
-                </button>
-              </div>
-            ))}
-            {activeEffects.map((eff, i) => {
-              // Tap an ongoing effect to open the card that created it (when that
-              // card resolves) — same intuitive "tap for details" as the chips.
-              const srcCard = eff.sourceCardId ? gameServices.dataService.getCardById(eff.sourceCardId) : null;
-              const src = srcCard ? eff.sourceCardId : null;
-              // Icon reflects WHAT created the effect, not a generic ⚡ (the ⚡ is
-              // the Expeditor mark, so a Life Event carrying it read as an
-              // expeditor — fb:308653b9). Use the source card type's emoji
-              // (Life Event → 📰, Expeditor → ⚡); fall back to a neutral
-              // "ongoing" hourglass when the source can't be resolved.
-              const effEmoji = srcCard ? (colors.game.cardTypes[srcCard.card_type]?.emoji ?? '⏳') : '⏳';
-              return (
-                <button
-                  key={eff.effectId || i}
-                  onClick={() => src && setDetailCardId(src)}
-                  disabled={!src}
-                  title={src ? 'Tap to see details' : undefined}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    fontSize: 12,
-                    background: p.surf,
-                    border: `1px solid ${p.border}`,
-                    color: p.text,
-                    borderRadius: 9,
-                    padding: '8px 10px',
-                    marginBottom: 6,
-                    cursor: src ? 'pointer' : 'default',
-                  }}
-                >
-                  {effEmoji} {eff.description}
-                </button>
-              );
-            })}
-            {cardChips.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {cardChips.map((c) => (
-                  <button
-                    key={c.type}
-                    // One card → open its detail; several → open a list to pick
-                    // which (user call 2026-06-23, fb:88a88773 — a "×3" tag must
-                    // be able to reveal all three cards, not just the first).
-                    onClick={() => {
-                      if (!c.cardId) return;
-                      if (c.n > 1) setListType(c.type);
-                      else setDetailCardId(c.cardId);
-                    }}
-                    disabled={!c.cardId}
-                    title={c.inactive ? 'Already happened — tap to see what it did' : 'Tap to see details'}
-                    style={{
-                      fontSize: 11,
-                      padding: '4px 8px',
-                      borderRadius: 8,
-                      background: p.surf2,
-                      border: `1px solid ${p.border}`,
-                      // Grayed = finished/not currently affecting you (Life Events);
-                      // full color = a resource you hold. Both tappable.
-                      color: c.inactive ? p.muted : p.text,
-                      opacity: c.inactive ? 0.55 : 1,
-                      cursor: c.cardId ? 'pointer' : 'default',
-                    }}
-                  >
-                    {c.emoji} {c.label} ×{c.n}
-                  </button>
-                ))}
-              </div>
-            )}
-            </>
-            )}
-          </>
-        )}
-      </div>
-
       {/* Footer: negotiate + commit spine */}
       <div style={{ padding: '11px 13px' }}>
         {endTurnError && (
@@ -1429,8 +1236,13 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
 
       {/* "Recall my numbers" reference — scope, work packages, money, time. */}
       <PlayerNumbersV2
-        isOpen={showNumbers}
-        onClose={() => setShowNumbers(false)}
+        isOpen={numbersPage !== null}
+        onClose={() => setNumbersPage(null)}
+        page={numbersPage ?? 'money'}
+        onOpenCard={setDetailCardId}
+        playableCardIds={playableExpeditors.map((x) => x.id)}
+        onActivate={handlePlayExpeditor}
+        playingCardId={playingCardId}
         playerId={playerId}
         gameServices={gameServices}
         mode={mode}
@@ -1440,6 +1252,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       <PlayerChronicleV2
         isOpen={showChronicle}
         onClose={() => setShowChronicle(false)}
+        historyCards={historyCardIds.map((id) => {
+          const card = gameServices.dataService.getCardById(id);
+          return { id, name: card?.card_name ?? id, type: card?.card_type ?? '' };
+        })}
+        onOpenCard={setDetailCardId}
         playerId={playerId}
         gameServices={gameServices}
         mode={mode}
@@ -1456,49 +1273,6 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         mode={mode}
       />
 
-      {/* Pick-a-card list — a count chip holding several cards opens this so the
-          player can choose which one to view, then taps through to its detail
-          (fb:88a88773 — "×3" must reveal all three, not just the first). */}
-      <ModalBase
-        isOpen={listType !== null}
-        onClose={() => setListType(null)}
-        title={listType ? `Your ${getCardTypeName(listType, 2)}` : ''}
-        emoji={listType ? colors.game.cardTypes[listType]?.emoji || '📄' : ''}
-        testId="affecting-card-list"
-        maxWidth="360px"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {player.hand
-            .map((id) => ({ id, card: gameServices.dataService.getCardById(id) }))
-            .filter((x) => x.card && x.card.card_type === listType)
-            .map(({ id, card }) => (
-              <button
-                key={id}
-                onClick={() => {
-                  setListType(null);
-                  setDetailCardId(id);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  width: '100%',
-                  textAlign: 'left',
-                  border: '1px solid #e2e8f0',
-                  background: '#fff',
-                  color: '#1e293b',
-                  borderRadius: 9,
-                  padding: '10px 12px',
-                  fontSize: 13,
-                  cursor: 'pointer',
-                }}
-              >
-                <span>{card!.card_name}</span>
-                <span aria-hidden style={{ opacity: 0.45 }}>›</span>
-              </button>
-            ))}
-        </div>
-      </ModalBase>
     </div>
   );
 };

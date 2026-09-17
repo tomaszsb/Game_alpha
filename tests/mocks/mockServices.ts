@@ -47,6 +47,7 @@ export const createMockDataService = (): any => ({
   shouldAutoRollDice: vi.fn(() => false),
   // Stock board: only Expeditors are played from hand (CARD_TYPES.csv).
   isCardTypePlayableFromHand: vi.fn((cardType: string) => cardType === 'E'),
+  getNumbersSection: vi.fn((cardType: string) => ({ W: 'scope', B: 'money', E: 'expeditors', L: 'history', I: 'money' } as Record<string, any>)[cardType] ?? null),
   // Stock board: Work Packages are the project-scope family. The mock keys off
   // the ID prefix because mocked hands rarely carry card data; the real
   // DataService reads card_type (tests/regression/ProjectScopeCardFamily.test.ts).

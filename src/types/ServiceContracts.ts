@@ -160,6 +160,7 @@ export interface IDataService {
   shouldAutoRollDice(spaceName: string): boolean;
   isCardTypePlayableFromHand(cardType: string): boolean;
   getProjectScopeCardTypes(): string[];
+  getNumbersSection(cardType: string): import('./DataTypes').NumbersSection | null;
   isProjectScopeCard(cardId: string): boolean;
   getAutoTriggerCardTypes(spaceName: string): string[];
   // 2026-05-18 audit: funding-source data flag (replaces hardcoded space arrays).

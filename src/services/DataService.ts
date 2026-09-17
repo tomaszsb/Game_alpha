@@ -16,7 +16,8 @@ import {
   CardTypeLabel,
   CharacterCsvRow,
   ViolationRuleCsvRow,
-  UIStringCsvRow
+  UIStringCsvRow,
+  NumbersSection
 } from '../types/DataTypes';
 import { getDataBasePath } from '../utils/dataInstance';
 
@@ -32,6 +33,16 @@ export const BUILT_IN_HAND_PLAYABLE_CARD_TYPES: readonly string[] = ['E'];
  * isProjectScopeCard. Kept equal to the CSV by a regression test.
  */
 export const BUILT_IN_PROJECT_SCOPE_CARD_TYPES: readonly string[] = ['W'];
+
+/**
+ * Same fallback-only role for CARD_TYPES.csv's numbers_section column — see
+ * getNumbersSection. Kept equal to the CSV by a regression test.
+ */
+export const BUILT_IN_NUMBERS_SECTIONS: Readonly<Record<string, NumbersSection>> = {
+  W: 'scope', B: 'money', E: 'expeditors', L: 'history', I: 'money',
+};
+
+const NUMBERS_SECTIONS: readonly NumbersSection[] = ['money', 'scope', 'expeditors', 'history'];
 
 export class DataService implements IDataService {
   private gameConfigs: GameConfig[] = [];
@@ -72,6 +83,8 @@ export class DataService implements IDataService {
   // v3.2.58 (audit II, leak #14): card families that make up the project scope
   // (Work Packages on the stock board). null = column (or file) not loaded.
   private projectScopeCardTypes: Set<string> | null = null;
+  private numbersSections: Map<string, NumbersSection> | null = null;
+  private warnedNumbersSectionFallback = false;
   private warnedProjectScopeFallback = false;
   // 2026-08-09: CSV-portability lift, reskin item 4 — reskin hook for the NPC roster.
   private characterRows: CharacterCsvRow[] = [];
@@ -737,6 +750,7 @@ export class DataService implements IDataService {
     const header = this.parseCsvLine(lines[0]).map(h => h.trim());
     const hasPlayableColumn = header.includes('is_playable_from_hand');
     const hasScopeColumn = header.includes('is_project_scope');
+    const hasNumbersColumn = header.includes('numbers_section');
     const rows = lines.slice(1)
       .map(line => {
         const values = this.parseCsvLine(line);
@@ -748,6 +762,9 @@ export class DataService implements IDataService {
             : undefined,
           is_project_scope: hasScopeColumn
             ? (get(values, 'is_project_scope') || '').trim() === 'Yes'
+            : undefined,
+          numbers_section: hasNumbersColumn
+            ? (NUMBERS_SECTIONS.find(v => v === (get(values, 'numbers_section') || '').trim()) ?? undefined)
             : undefined
         };
       })
@@ -757,6 +774,9 @@ export class DataService implements IDataService {
       : null;
     this.projectScopeCardTypes = hasScopeColumn
       ? new Set(rows.filter(r => r.is_project_scope).map(r => r.card_type))
+      : null;
+    this.numbersSections = hasNumbersColumn
+      ? new Map(rows.filter(r => r.numbers_section).map(r => [r.card_type, r.numbers_section as NumbersSection]))
       : null;
     return rows;
   }
@@ -794,6 +814,26 @@ export class DataService implements IDataService {
    * Missing file/column → the built-in stock rule, with a warning (same
    * convention as isCardTypePlayableFromHand).
    */
+  /**
+   * v3.2.62 (fb:adad1561 — "What's affecting you" folded into the numbers):
+   * which part of the player panel's numbers a card family belongs to —
+   * money, scope, expeditors, or history. Authored in CARD_TYPES.csv
+   * (numbers_section) so a reskin decides where its own families appear.
+   * A family with no value is shown nowhere in the numbers (it stays reachable
+   * from the log). Missing file/column → the built-in stock map, with a
+   * warning (same convention as isCardTypePlayableFromHand).
+   */
+  getNumbersSection(cardType: string): NumbersSection | null {
+    if (this.numbersSections === null) {
+      if (!this.warnedNumbersSectionFallback) {
+        this.warnedNumbersSectionFallback = true;
+        console.warn('CARD_TYPES.csv has no numbers_section column — using the built-in default.');
+      }
+      return BUILT_IN_NUMBERS_SECTIONS[cardType] ?? null;
+    }
+    return this.numbersSections.get(cardType) ?? null;
+  }
+
   getProjectScopeCardTypes(): string[] {
     return [...this.projectScopeTypeSet()];
   }

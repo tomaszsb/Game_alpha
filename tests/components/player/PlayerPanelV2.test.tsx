@@ -17,10 +17,12 @@ import { createAllMockServices } from '../../mocks/mockServices';
 import { DictionaryProvider } from '../../../src/dictionary';
 import * as uiStrings from '../../../src/constants/uiStrings';
 
-// "What's affecting you" is collapsed by default (fb:f6e100b7 follow-up) —
-// tests that assert on its contents (chips, Activate rows) need to open it first.
+// v3.2.62 (fb:adad1561, Tom 2026-09-17): "What's affecting you" is gone. Its
+// contents live behind the at-a-glance boxes — the Expeditors box opens the
+// Expeditors page (Activate rows), Scope opens the work packages, Time opens
+// History (life events).
 const expandEffects = () => {
-  fireEvent.click(screen.getByRole('button', { name: /What's affecting you/i }));
+  fireEvent.click(screen.getByTestId('glance-expeditors'));
 };
 
 describe('PlayerPanelV2 — E-card play from the influence zone', () => {
@@ -95,8 +97,18 @@ describe('PlayerPanelV2 — E-card play from the influence zone', () => {
     expandEffects();
     expect(screen.getByText(/Permit Expediter/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Activate Permit Expediter/i })).toBeInTheDocument();
-    // The phase-restricted, not-currently-playable expeditor gets no Activate row.
-    expect(screen.queryByText(/Zoning Specialist/)).not.toBeInTheDocument();
+    // The Expeditors page lists every expeditor you hold, but the
+    // phase-restricted, not-currently-playable one gets no Activate button.
+    expect(screen.getByText(/Zoning Specialist/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Activate Zoning Specialist/i })).not.toBeInTheDocument();
+  });
+
+  it('the Expeditors box counts what you hold, says how many are ready, and glows', () => {
+    renderPanel();
+    const box = screen.getByTestId('glance-expeditors');
+    expect(box).toHaveTextContent('2');
+    expect(box).toHaveTextContent(uiStrings.NUMBERS.ready(1));
+    expect(box).toHaveClass('uc-hint-glow');
   });
 
   it('plays the expeditor through the service rule when Activate is clicked', async () => {
@@ -150,7 +162,7 @@ describe('PlayerPanelV2 — E-card play from the influence zone', () => {
   });
 });
 
-describe('PlayerPanelV2 — "What\'s affecting you" chips (tappable + graying)', () => {
+describe('PlayerPanelV2 — at-a-glance boxes replace "What\'s affecting you" (fb:adad1561)', () => {
   let services: ReturnType<typeof createAllMockServices>;
 
   // A player holding a Work Package and a (past) Life Event, no playable expeditor.
@@ -197,26 +209,39 @@ describe('PlayerPanelV2 — "What\'s affecting you" chips (tappable + graying)',
 
   afterEach(() => cleanup());
 
-  it('grays the Life Event chip (finished) but not a held Work Package', () => {
+  it('shows no "What\'s affecting you" section and no separate numbers/history buttons', () => {
     renderPanel();
-    expandEffects();
-    const lifeChip = screen.getByRole('button', { name: /Life Event ×1/i });
-    const workChip = screen.getByRole('button', { name: /Work Package ×1/i });
-    // Grayed = finished/not affecting you; full opacity = a resource you hold.
-    expect(lifeChip).toHaveStyle({ opacity: '0.55' });
-    expect(workChip).toHaveStyle({ opacity: '1' });
+    expect(screen.queryByText(/What's affecting you/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /See your numbers/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /See what's happened/i })).not.toBeInTheDocument();
   });
 
-  it('opens the detail view directly when a single-card chip is tapped', () => {
+  it('the Scope box counts held work packages and opens the scope page', () => {
     renderPanel();
-    expandEffects();
-    fireEvent.click(screen.getByRole('button', { name: /Life Event ×1/i }));
+    const box = screen.getByTestId('glance-scope');
+    expect(box).toHaveTextContent('1');
+    fireEvent.click(box);
+    expect(screen.getByTestId('player-numbers-v2')).toHaveTextContent(uiStrings.NUMBERS.SECTION_SCOPE);
+  });
+
+  it('the Money box opens the money page', () => {
+    renderPanel();
+    fireEvent.click(screen.getByTestId('glance-money'));
+    expect(screen.getByTestId('player-numbers-v2')).toHaveTextContent(/Cash on hand/);
+  });
+
+  it('the Time box opens History, which lists the life event; tapping it opens its detail', () => {
+    renderPanel();
+    fireEvent.click(screen.getByTestId('glance-time'));
+    const cards = screen.getByTestId('chronicle-history-cards');
+    expect(cards).toHaveTextContent('Permit Fee Hike');
+    fireEvent.click(screen.getByRole('button', { name: /Details for Permit Fee Hike/i }));
     // The L-type teaching callout is unique to the detail view.
     expect(screen.getByText(/real-world surprises/i)).toBeInTheDocument();
   });
 });
 
-describe('PlayerPanelV2 — multi-card chip opens a pick list (fb:88a88773)', () => {
+describe('PlayerPanelV2 — Expeditors page lists every expeditor (fb:88a88773)', () => {
   let services: ReturnType<typeof createAllMockServices>;
 
   // Three expeditors held, none currently playable — they collapse to "×3".
@@ -263,14 +288,13 @@ describe('PlayerPanelV2 — multi-card chip opens a pick list (fb:88a88773)', ()
   it('lists all three expeditors, then drills into the chosen one', () => {
     renderPanel();
     expandEffects();
-    // Tapping the "×3" chip opens a list of all three, not just the first.
-    fireEvent.click(screen.getByRole('button', { name: /Expeditor ×3/i }));
+    // The Expeditors page shows all three held expeditors, not just the first.
     expect(screen.getByText('Equipment Rush Order')).toBeInTheDocument();
     expect(screen.getByText('Permit Expediter')).toBeInTheDocument();
     expect(screen.getByText('Zoning Specialist')).toBeInTheDocument();
 
     // Choosing one opens its detail (the teaching callout is detail-only).
-    fireEvent.click(screen.getByText('Zoning Specialist'));
+    fireEvent.click(screen.getByRole('button', { name: /Details for Zoning Specialist/i }));
     expect(screen.getByText(/real NYC permitting pros/i)).toBeInTheDocument();
   });
 });
