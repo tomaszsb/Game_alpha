@@ -1,7 +1,7 @@
 # Next session starter — written 2026-09-14 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.60 — **PENDING DEPLOY** (pushed 2026-09-14). v3.2.59 IS live (`/health` = `9103e13` at 2026-09-14 11:02Z). **Run `curl -sS https://game.unravelcodes.com/health` before believing this line.**
+- **Version:** v3.2.60 — **LIVE** (confirmed by `/health` = `2cd3120` = HEAD at 2026-09-17 03:28Z, during /start). **Run `curl -sS https://game.unravelcodes.com/health` before believing this line.**
 - **Branch:** master, clean and pushed. Untracked: `idea.txt` — **READ IT, never modify or commit it.** It is Tom's own brief, the origin of the D&D dual-function constraint, and his standing instructions on how he wants to be worked with.
 - **Last shipped:** v3.2.56 (Workstream 6 CSV-only-reskin audit II: 4 condition evaluators → 1, fail-closed; "The Banker"; phase table; `auto_roll_dice` flag; `CARD_TYPES.is_playable_from_hand`), v3.2.57 (5 dead UI_STRINGS rows that logged 5 console errors per page load), v3.2.58 (leak #14: "what counts as a Work Package" defined once — CARD_TYPES `is_project_scope`, read by `card_type` at all six former `startsWith('W')` sites), v3.2.59 (`data-testid="app-loading"` on the button-less startup screen), and v3.2.60 (the commit control names a picked destination — "Sign off on the design → Find an Engineer" — via UI_STRINGS `COMMIT.withDestination`; Tom's call).
 - **Test suite:** `npx vitest run` **3175/3175 across 218 files**, green on the first attempt at v3.2.60. Typecheck ✅, build ✅.

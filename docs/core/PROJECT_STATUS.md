@@ -7,7 +7,7 @@
 
 **Last Updated:** September 14, 2026 (v3.2.60)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.60 — PENDING DEPLOY.** v3.2.59 IS live: `/health` read `9103e13` at 2026-09-14 11:02Z. **Trust `/health` over this line**: status lines have gone stale within hours more than once. 3.2.46 stays permanently skipped.
+**Current Version:** **3.2.60 — LIVE.** `/health` read `2cd3120` (= HEAD) at 2026-09-17 03:28Z. **Trust `/health` over this line**: status lines have gone stale within hours more than once. 3.2.46 stays permanently skipped.
 
 ## Current sprint
 **Onboarding Phase C, teaching a beginner the game**, is still the main arc. v3.2.50–54 named the tiles, wrote the button labels, and started the "What's this?" teaching layer. The tutorial, the micro-lessons and the voice pass on the 44 `ACTION_TOOLTIPS.csv` rows are still to do.
@@ -18,7 +18,7 @@
 - **Tests (v3.2.60):** `npx vitest run`, the whole suite including ghost: **3175/3175 across 218 files**, green on the first attempt. Typecheck ✅, production build ✅. (v3.2.56's first full run failed 2 fixtures that expected the old "Bank:" label; both were updated.)
 - **Flake note:** a lone `tests/server/**` failure is probably Windows temp-dir load (`EPERM`/`ENOTEMPTY`). Re-run before investigating. It did not occur this session.
 - **Security:** `npm audit` 0 vulnerabilities as of v3.2.44.
-- **Deploy:** ⏳ v3.2.60 pending; v3.2.59 live (see above). `bash deploy.sh` is Tom's to run, from a Windows terminal. A stock CSV change also re-bakes every classroom's `resolved/` copy on the next boot, so never hand-edit those.
+- **Deploy:** ✅ v3.2.60 live (see above). `bash deploy.sh` is Tom's to run, from a Windows terminal. A stock CSV change also re-bakes every classroom's `resolved/` copy on the next boot, so never hand-edit those.
 - **Dashboard feedback:** fb:93449bf2 is still deliberately unflipped. It needs the maintainer's eyes on the real TV.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
