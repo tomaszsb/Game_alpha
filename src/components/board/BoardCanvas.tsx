@@ -62,7 +62,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, formatEdgeLabel, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX, TV_TARGET_MIN_TILE_PX } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, formatEdgeLabel, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, resolveDestinationHighlight, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX, TV_TARGET_MIN_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 import { resolveFundingAmountToken } from '../../utils/templateInterpolation';
@@ -78,10 +78,15 @@ import { resolveFundingAmountToken } from '../../utils/templateInterpolation';
 // see the theming block inside BoardNode below.
 import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
 import { PlayerAvatar } from '../common/PlayerAvatar';
+import { useDestinationPreview } from '../../utils/destinationPreview';
 
 // ===================================================================
 // Custom node — preserves the look of BoardV3 tiles
 // ===================================================================
+
+/** The player panel's selection accent (panelTheme `accent`), reused so a
+ *  picked destination looks the same on the board as on its panel row. */
+const PICKED_MOVE_ACCENT = panelPalettes.light.accent;
 
 interface BoardNodeData {
   spaceName: string;
@@ -89,6 +94,12 @@ interface BoardNodeData {
   phase: string;
   isCurrent: boolean;       // current player is on this space
   isValidMove: boolean;     // current player can move here
+  // fb:71935ebb / fb:6416f76e — the destination the current player has PICKED
+  // (moveIntent, synced), and the one they are POINTING AT in the panel right
+  // now (local). Same accent as the panel's selected row, so the two read as
+  // one choice shown in two places.
+  isPickedMove?: boolean;
+  isPreviewMove?: boolean;
   // Chronicle click-entry-to-replay-highlight (TODO P1 change-legibility) —
   // true for a few seconds on the tile the player just jumped to from
   // PlayerChronicleV2's "What's happened" log. Deliberately doesn't affect
@@ -161,7 +172,9 @@ interface BoardNodeData {
 
 function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
   const phaseColors = PHASE_COLORS[data.phase] || { border: '#adb5bd', text: '#495057' };
-  const borderColor = data.isValidMove ? '#10b981' : phaseColors.border;
+  const borderColor = data.isPickedMove || data.isPreviewMove
+    ? PICKED_MOVE_ACCENT
+    : data.isValidMove ? '#10b981' : phaseColors.border;
   // Dark-mode coverage — CHROME only (tile surface fill + generic text).
   // Phase border/text above and everything validity/status/identity-colored
   // stays a fixed hex regardless of mode; see the field doc on
@@ -186,7 +199,7 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
   // fb:97fa9c75 — the CURRENT tile must be the visual focal point. Give it the
   // thickest border; valid-move tiles get a lighter outline so they read as a
   // secondary "you can go here" cue rather than competing for attention.
-  const borderWidth = data.isCurrent ? 4 : data.isValidMove ? 2 : 1.5;
+  const borderWidth = data.isCurrent ? 4 : data.isPickedMove ? 3 : data.isValidMove ? 2 : 1.5;
 
   // D — center-anchored growth (fb:97fa9c75). React Flow places tiles by their
   // top-left, so a grow from 150×60 → 220×120 pushes only right+down onto the
@@ -207,11 +220,25 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
   //  - Valid move: outline-only green cue (thin ring, NO background fill) so it
   //    reads as "available" without out-shouting the current tile. The green
   //    border (set above) still signals it's a destination.
+  // A tint is LAYERED over the tile surface, never a replacement for it. It used
+  // to be a bare 8%-alpha colour, which let the canvas show through: fine on a
+  // light board, but in dark mode the current tile — the one you are reading —
+  // came out pale with pale text on it (fb:b6963218, "the currently open tile is
+  // not in dark mode").
+  const tileSurface = isDark ? dp.surf : '#fff';
+  const tinted = (color: string) => `linear-gradient(${color}14, ${color}14), ${tileSurface}`;
   const ringStyle: React.CSSProperties = data.isCurrent
     ? {
         boxShadow: `0 0 0 4px ${phaseColors.border}66, 0 8px 22px rgba(0,0,0,0.30)`,
-        background: `${phaseColors.border}14`,
+        background: tinted(phaseColors.border),
       }
+    : data.isPickedMove
+      ? {
+          boxShadow: `0 0 0 4px ${PICKED_MOVE_ACCENT}88, 0 6px 16px rgba(0,0,0,0.22)`,
+          background: tinted(PICKED_MOVE_ACCENT),
+        }
+    : data.isPreviewMove
+      ? { boxShadow: `0 0 0 3px ${PICKED_MOVE_ACCENT}55, 0 4px 12px rgba(0,0,0,0.16)` }
     : data.isValidMove
       ? { boxShadow: '0 0 0 2px #10b98133, 0 2px 6px rgba(0,0,0,0.12)' }
       : isBig
@@ -1085,6 +1112,8 @@ function BoardCanvasInner({
   // not a finite CSS iteration-count, is what actually stops re-clicks from
   // being no-ops).
   const [highlightedSpaceId, setHighlightedSpaceId] = useState<string | null>(null);
+  // The destination the player is pointing at in the panel (local, not synced).
+  const previewMove = useDestinationPreview();
   const hoverTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 150ms hover delay to avoid flicker as the cursor moves across tiles.
@@ -1340,6 +1369,19 @@ function BoardCanvasInner({
       // keeps the default flat gray so the editor matches its old look.
       if (!allowedIds) return { ...e, data: dataPatch, zIndex };
       const isNextMove = nextMoveIds.has(e.id);
+      // The arrow to the picked (or pointed-at) destination takes the panel's
+      // selection accent, matching the tile (fb:71935ebb).
+      const leadsToChoice = isNextMove && !!currentPlayer && e.source === currentPlayer.currentSpace &&
+        (e.target === currentPlayer.moveIntent || e.target === previewMove);
+      if (leadsToChoice) {
+        return {
+          ...e,
+          data: dataPatch,
+          zIndex: zIndex ?? 900,
+          style: { stroke: PICKED_MOVE_ACCENT, strokeWidth: 3.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: PICKED_MOVE_ACCENT },
+        };
+      }
       if (isNextMove) {
         return {
           ...e,
@@ -1358,7 +1400,7 @@ function BoardCanvasInner({
         markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#adb5bd' },
       };
     });
-  }, [edges, edgesVisible, hiddenEdgeIds, isAdmin, currentPlayerId, players, validMoves, movementChoiceUnlocked, edgeWaypoints, onSetEdgeWaypoints, onClearEdgeWaypoint, edgeAnchors, onSetEdgeAnchor, onClearEdgeAnchor, edgeEndpoints, armedAnchorId]);
+  }, [edges, edgesVisible, hiddenEdgeIds, isAdmin, currentPlayerId, players, validMoves, movementChoiceUnlocked, edgeWaypoints, onSetEdgeWaypoints, onClearEdgeWaypoint, edgeAnchors, onSetEdgeAnchor, onClearEdgeAnchor, edgeEndpoints, armedAnchorId, previewMove]);
 
   // Click an edge in admin mode → hide it. Single-click is the gesture
   // (React Flow has no native double-click on edges, and right-click
@@ -1422,6 +1464,7 @@ function BoardCanvasInner({
     // dataService.getSpaceContent() call the initial First-visit build uses,
     // just with the resolved visit type.
     const activePlayer = currentPlayerId ? players.find(p => p.id === currentPlayerId) : undefined;
+    const pickedMove = activePlayer?.moveIntent ?? null;
     setNodes(prev => prev.map(n => {
       const playersHere = players.filter(p => p.currentSpace === n.id);
       const isCurrent = !!currentPlayerId && playersHere.some(p => p.id === currentPlayerId);
@@ -1436,12 +1479,17 @@ function BoardCanvasInner({
       const displayStory = baseStory
         ? resolveFundingAmountToken(baseStory, activePlayer || {}, fundingSource)
         : baseStory;
+      const destinationHighlight = resolveDestinationHighlight({
+        spaceId: n.id, validMoves, pickedMove, previewMove, isAdmin,
+      });
       return {
         ...n,
         data: {
           ...n.data,
           isCurrent,
           isValidMove: validMoves.includes(n.id),
+          isPickedMove: destinationHighlight === 'picked',
+          isPreviewMove: destinationHighlight === 'preview',
           isHighlighted: highlightedSpaceId === n.id,
           playerCount: playersHere.length,
           playerColors: playersHere.map(p => p.color || '#666'),
@@ -1467,7 +1515,7 @@ function BoardCanvasInner({
         },
       };
     }));
-  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick, actionCounts, mode, dataService, highlightedSpaceId]);
+  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick, actionCounts, mode, dataService, highlightedSpaceId, previewMove]);
 
   // TV mode auto-focus. Two-phase since fb:2b5b9f2a ("when I moved from one
   // space to another the zoom level changes — it should not"):
@@ -1777,8 +1825,16 @@ function BoardCanvasInner({
         fitViewOptions={{ padding: 0.1 }}
         minZoom={0.2}
         maxZoom={2}
+        colorMode={mode}
       >
-        <Background color={mode === 'dark' ? panelPalettes.dark.bg : '#e9ecef'} gap={20} />
+        {/* fb:b6963218 — "the background is not in dark mode". `color` is the
+            DOT colour; the canvas fill is `bgColor`, which was never set, so
+            the board stayed light with dark dots on it. */}
+        <Background
+          color={mode === 'dark' ? panelPalettes.dark.border : '#e9ecef'}
+          bgColor={mode === 'dark' ? panelPalettes.dark.bg : undefined}
+          gap={20}
+        />
         <Controls showInteractive={false}>
           {/* Pan buttons — arrow indicates direction the camera moves.
               Required for gameplay where left-click drag is disabled (v2.69.5). */}

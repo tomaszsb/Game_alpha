@@ -95,6 +95,18 @@ describe('buildCardChanges', () => {
     ]);
   });
 
+  // fb:c8769e0d — a swap that records what left becomes an out/in pair
+  // instead of one "Swapped" row naming only the arrival.
+  it('turns a swap with removedCardIds into a lost row per card out and a gained row per card in', () => {
+    const effects: DiceResultEffect[] = [
+      { type: 'cards', description: 'swapped', cardAction: 'replace', cardType: 'E', cardCount: 1, cardIds: ['E2'], removedCardIds: ['E1'] },
+    ];
+    expect(buildCardChanges(effects, resolveCard)).toEqual([
+      { action: 'lost', type: 'E', name: 'Zoning Expeditor', count: 1 },
+      { action: 'gained', type: 'E', name: 'Sprinkler Expeditor', count: 1 },
+    ]);
+  });
+
   it('degrades to a generic count row when the payload carries no ids', () => {
     const effects: DiceResultEffect[] = [
       { type: 'cards', description: 'lost', cardAction: 'remove', cardCount: 2, cardType: 'E', cardIds: [] },
@@ -126,17 +138,19 @@ describe('buildCardChangesFromSnapshot (legacy fallback)', () => {
 });
 
 describe('filterLedgerCardChanges', () => {
-  it('drops named gains but keeps unnamed gains and all losses/swaps', () => {
+  // Every named card is already a tappable chip above the ledger; repeating it
+  // read as a duplicated card (fb:c8769e0d). Only generic counts remain.
+  it('drops every named row and keeps only generic counts', () => {
     const changes = [
       { action: 'gained' as const, type: 'W', name: 'Water Mains', count: 1 },
       { action: 'gained' as const, type: 'E', name: null, count: 2 },
       { action: 'lost' as const, type: 'E', name: 'Zoning Expeditor', count: 1 },
+      { action: 'lost' as const, type: 'W', name: null, count: 1 },
       { action: 'swapped' as const, type: 'I', name: 'Bond', count: 1 },
     ];
     expect(filterLedgerCardChanges(changes)).toEqual([
       { action: 'gained', type: 'E', name: null, count: 2 },
-      { action: 'lost', type: 'E', name: 'Zoning Expeditor', count: 1 },
-      { action: 'swapped', type: 'I', name: 'Bond', count: 1 },
+      { action: 'lost', type: 'W', name: null, count: 1 },
     ]);
   });
 });
@@ -149,7 +163,7 @@ describe('OutcomeChangesV2 render', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows the numeric delta and names the lost expeditor', () => {
+  it('shows the numeric delta but does not repeat a named lost card (its chip above names it)', () => {
     render(
       <OutcomeChangesV2
         before={snap({ money: 120000, cardCountsByType: { W: 0, B: 0, E: 2, I: 0, L: 0 } })}
@@ -164,8 +178,8 @@ describe('OutcomeChangesV2 render', () => {
     expect(screen.getByTestId('outcome-changes-v2')).toBeInTheDocument();
     expect(screen.getByText('Cash on hand')).toBeInTheDocument();
     expect(screen.getByText('−$40K')).toBeInTheDocument();
-    expect(screen.getByText('Lost:')).toBeInTheDocument();
-    expect(screen.getByText('Zoning Expeditor')).toBeInTheDocument();
+    expect(screen.queryByText('Lost:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Zoning Expeditor')).not.toBeInTheDocument();
   });
 
   it('does not repeat a named gained card in the ledger (already named by the effect-row chip above it)', () => {

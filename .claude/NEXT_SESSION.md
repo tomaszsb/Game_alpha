@@ -19,6 +19,7 @@
 
 ## Flip after deploy
 - **fb:93449bf2 — do NOT flip on deploy alone.** Only after Tom confirms the TV reads well across a room.
+- **Once v3.2.61 is confirmed live, flip these 8 (fixed in v3.2.61):** fb:feedback-1788494446686-f33ae50b, fb:feedback-1788865610603-0a945993, fb:feedback-1788493844027-c8769e0d, fb:feedback-1788494608093-ba16e596, fb:feedback-1788865772330-71935ebb, fb:feedback-1788494150808-6416f76e, fb:feedback-1788865148274-b6963218, fb:feedback-1788865395583-e8508e3d. **Leave open:** fb:9e31b860 and fb:adad1561 (design calls, in TODO).
 
 ## Suggested first move
 Check `/health`. If v3.2.60 isn't live, hand Tom `bash deploy.sh`. Then start the teaching layer: it's the real work and needs no one else.

@@ -17,6 +17,7 @@ import { OutcomeChangesV2 } from '../player/OutcomeChangesV2';
 import { getStoredPanelMode, panelPalettes } from '../player/panelTheme';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { getCardTypeName } from '../../utils/cardTypeNames';
+import { OUTCOME_CARDS } from '../../constants/uiStrings';
 
 // Re-export for convenience
 export type DiceRollResult = TurnEffectResult;
@@ -174,9 +175,8 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
     }
 
     // Get card details if card IDs are available
-    let cardDetails: Array<{ id: string; name: string; type: string }> = [];
-    if (effect.type === 'cards' && effect.cardIds && effect.cardIds.length > 0) {
-      cardDetails = effect.cardIds.map(cardId => {
+    const toCardDetails = (ids: string[] | undefined) =>
+      (effect.type === 'cards' && ids ? ids : []).map(cardId => {
         const card = dataService.getCardById(cardId);
         return {
           id: cardId,
@@ -184,7 +184,49 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
           type: card ? card.card_type : ''
         };
       });
-    }
+    const cardDetails = toCardDetails(effect.cardIds);
+    // fb:c8769e0d — a swap names both halves: what left, then what arrived.
+    // Labels only appear when there are two groups to tell apart.
+    const removedCardDetails = toCardDetails(effect.removedCardIds);
+    const labelCardGroups = removedCardDetails.length > 0 && cardDetails.length > 0;
+
+    const renderCardChips = (cards: typeof cardDetails, label: string | null, testId: string) => (
+      <div style={{ marginTop: '6px' }} data-testid={testId}>
+        {label && (
+          <div style={{ fontSize: '11px', fontWeight: 600, color: p.muted, marginBottom: '2px' }}>{label}</div>
+        )}
+        {cards.map((card, cardIndex) => {
+          const cardColors = getCardTypeColors(card.type);
+          return (
+            <button
+              key={cardIndex}
+              onClick={() => setDetailCardId(card.id)}
+              aria-label={`Details for ${card.name}`}
+              title="Tap to see details"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+                textAlign: 'left',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                marginBottom: '4px',
+                backgroundColor: cardColors.bg,
+                borderRadius: 8,
+                border: `1px solid ${cardColors.border}`,
+              }}
+            >
+              <span style={{ fontSize: '14px' }}>{getCardTypeEmoji(card.type)}</span>
+              <span style={{ fontStyle: 'italic', color: cardColors.text, fontSize: '13px', flex: 1 }}>
+                {card.name}
+              </span>
+              <span aria-hidden style={{ color: cardColors.text, opacity: 0.5, fontSize: '13px' }}>ⓘ</span>
+            </button>
+          );
+        })}
+      </div>
+    );
 
     return (
       <div
@@ -218,40 +260,10 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
             {effect.description}
           </span>
           {/* Display each card on its own line with type icon and colors */}
-          {cardDetails.length > 0 && (
-            <div style={{ marginTop: '6px' }}>
-              {cardDetails.map((card, cardIndex) => {
-                const cardColors = getCardTypeColors(card.type);
-                return (
-                  <button
-                    key={cardIndex}
-                    onClick={() => setDetailCardId(card.id)}
-                    aria-label={`Details for ${card.name}`}
-                    title="Tap to see details"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      width: '100%',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      padding: '4px 8px',
-                      marginBottom: '4px',
-                      backgroundColor: cardColors.bg,
-                      borderRadius: 8,
-                      border: `1px solid ${cardColors.border}`,
-                    }}
-                  >
-                    <span style={{ fontSize: '14px' }}>{getCardTypeEmoji(card.type)}</span>
-                    <span style={{ fontStyle: 'italic', color: cardColors.text, fontSize: '13px', flex: 1 }}>
-                      {card.name}
-                    </span>
-                    <span aria-hidden style={{ color: cardColors.text, opacity: 0.5, fontSize: '13px' }}>ⓘ</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          {removedCardDetails.length > 0 &&
+            renderCardChips(removedCardDetails, labelCardGroups ? OUTCOME_CARDS.OUT : null, 'effect-cards-out')}
+          {cardDetails.length > 0 &&
+            renderCardChips(cardDetails, labelCardGroups ? OUTCOME_CARDS.IN : null, 'effect-cards-in')}
         </div>
       </div>
     );

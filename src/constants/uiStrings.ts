@@ -42,6 +42,10 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // the destination, and it is a TEMPLATE so a reskin can change the connector
   // or the word order without a code edit (the D&D skin's verb is its own).
   'COMMIT.withDestination': '{label} → {destination}',
+  // fb:ba16e596 — "move forward should still be unusable, I still did not do
+  // replace expeditor". Skippable actions never gate the move (by design), but
+  // nothing on screen said so. Rendered as a quiet tag inside the action button.
+  'ACTION_ROW.optional': 'optional',
   'DICE_BUTTON.WORK': 'Get Work Packages',
   'DICE_BUTTON.BANK': 'Apply for Bank Loans',
   'DICE_BUTTON.EXPEDITOR': 'Hire Expeditors',
@@ -85,6 +89,18 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'CARD_REPLACE.empty': 'No {typeName} available to {action}',
   'CARD_REPLACE.counter': '{selected} of {max} selected',
   'CARD_REPLACE.RETURN_BUTTON': 'Return to Main Panel',
+  // fb:0a945993 — each card's only button was "Details", so the one prominent
+  // control did something other than choosing. Each card now carries its own
+  // choose button, worded per mode; Details drops to a quiet secondary link.
+  'CARD_REPLACE.pick.replace': 'Swap this one out',
+  'CARD_REPLACE.pick.return': 'Let this one go',
+  'CARD_REPLACE.pick.give': 'Give this one',
+  'CARD_REPLACE.picked': '✓ Chosen (tap to undo)',
+  'CARD_REPLACE.DETAILS': 'Details',
+  // fb:c8769e0d — a swap's result named only the card that arrived. When an
+  // effect also records what left, the two groups are labelled.
+  'OUTCOME_CARDS.out': 'Out:',
+  'OUTCOME_CARDS.in': 'In:',
 
   'CARD_DETAILS.TRANSFER_TOGGLE': '↔ Transfer',
   'CARD_DETAILS.TRANSFER_CONFIRM': 'Transfer',
@@ -210,6 +226,10 @@ export const COMMIT = {
     getUIString('COMMIT.withDestination', { label, destination }),
 };
 
+export const ACTION_ROW = {
+  get OPTIONAL() { return getUIString('ACTION_ROW.optional'); },
+};
+
 // --- Dice roll button labels ---
 // Consumed by formatManualEffectButton (the live dice-action path) and by the
 // editor's PlayerPreviewPanel. FUNDING / EFFECTS / BONUS / BONUS_FUNDING /
@@ -284,6 +304,15 @@ export const CARD_REPLACE = {
   empty: (typeName: string, action: string) => getUIString('CARD_REPLACE.empty', { typeName, action }),
   counter: (selected: number, max: number) => getUIString('CARD_REPLACE.counter', { selected, max }),
   get RETURN_BUTTON() { return getUIString('CARD_REPLACE.RETURN_BUTTON'); },
+  pick: (mode: 'replace' | 'return' | 'give') => getUIString(`CARD_REPLACE.pick.${mode}`),
+  get PICKED() { return getUIString('CARD_REPLACE.picked'); },
+  get DETAILS() { return getUIString('CARD_REPLACE.DETAILS'); },
+};
+
+// --- DiceResultModal: cards that left / arrived in one effect ---
+export const OUTCOME_CARDS = {
+  get OUT() { return getUIString('OUTCOME_CARDS.out'); },
+  get IN() { return getUIString('OUTCOME_CARDS.in'); },
 };
 
 // --- CardDetailsModal ---

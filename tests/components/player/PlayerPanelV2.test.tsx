@@ -979,6 +979,21 @@ describe('PlayerPanelV2 — commit spine names the gate that is actually open (2
     expect(screen.queryByText(/Swap one helper for another.{0,3} above first/i)).not.toBeInTheDocument();
   });
 
+  // fb:ba16e596 — a player who skipped the swap read the open gate as a bug
+  // ("I still did not do replace expeditor"). The skippable action says it is
+  // optional; the required one does not.
+  it('tags a skippable action as optional and leaves a required one untagged', () => {
+    setup({ effects: [drawEffect, swapEffect], movementType: 'choice', requiredActions: 2, completedActionCount: 0 });
+    renderPanel();
+
+    const buttons = screen.getAllByTestId('action-button');
+    const swap = buttons.find((b) => /replace_e/.test(b.getAttribute('data-effect-key') || ''))!;
+    const draw = buttons.find((b) => /draw_e/.test(b.getAttribute('data-effect-key') || ''))!;
+    expect(swap).toHaveTextContent(/optional/);
+    expect(draw).not.toHaveTextContent(/optional/);
+    expect(screen.getAllByTestId('action-optional-tag')).toHaveLength(1);
+  });
+
   it('is unchanged on a space with no destination to pick (fixed movement)', () => {
     setup({ effects: [drawEffect], movementType: 'fixed', requiredActions: 1, completedActionCount: 0 });
     renderPanel();

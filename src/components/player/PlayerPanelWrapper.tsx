@@ -70,6 +70,7 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
 
   return (
     <div className="player-panel-wrapper" style={{ position: 'relative' }}>
+      {onOpenGlossary && (
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, padding: '4px 6px' }}>
         {/* Phone/controller glossary entry point ("no way to access
             glossary words in tv mode", bug report 2026-07-22) — same icon + label as the desktop
@@ -79,17 +80,20 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
             i.e. on this player's own phone view — the desktop panel list
             already has one Glossary button up in ProjectProgress and doesn't
             need a second copy per player card. */}
-        {onOpenGlossary && (
-          <button style={toggleBtn} onClick={onOpenGlossary} title="Look up a term">
-            <IconBookOpen size="1em" />
-            Glossary
-          </button>
-        )}
+        <button style={toggleBtn} onClick={onOpenGlossary} title="Look up a term">
+          <IconBookOpen size="1em" />
+          Glossary
+        </button>
+        {/* The desktop toggle lives in ProjectProgress's toolbar now
+            (fb:b6963218: "light and dark mode button should go to the main
+            menu in the progress tracking area"). The phone/controller view has
+            no toolbar, so it keeps its own here — same shared setting. */}
         <button style={toggleBtn} onClick={toggleMode} title="Light / dark mode">
           {mode === 'light' ? <IconMoon size="1em" /> : <IconSun size="1em" />}
           {mode === 'light' ? 'Dark' : 'Light'}
         </button>
       </div>
+      )}
 
       <PlayerPanelV2
         gameServices={gameServices}

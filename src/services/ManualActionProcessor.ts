@@ -18,6 +18,19 @@ import { calculateOwnerSeedMoney } from '../utils/ownerSeedMoney';
 import { debugWarn } from '../utils/debugLog';
 import { isSkippableEffectAction } from '../utils/skippableActions';
 
+/** Cards in `from` that are not matched one-for-one in `minus` (multiset difference). */
+export function handDifference(from: string[], minus: string[]): string[] {
+  const remaining = new Map<string, number>();
+  for (const id of minus) remaining.set(id, (remaining.get(id) ?? 0) + 1);
+  const out: string[] = [];
+  for (const id of from) {
+    const n = remaining.get(id) ?? 0;
+    if (n > 0) remaining.set(id, n - 1);
+    else out.push(id);
+  }
+  return out;
+}
+
 export class ManualActionProcessor {
   private effectEngineService?: IEffectEngineService;
 
@@ -230,7 +243,13 @@ export class ManualActionProcessor {
       // Determine which cards were drawn by comparing before/after hands
       const beforeHand = beforePlayer.hand || [];
       const afterHand = afterPlayer.hand || [];
-      const drawnCardIds = afterHand.filter(cardId => !beforeHand.includes(cardId));
+      // Counted, not `includes`: a hand can hold two copies of one card id, and
+      // swapping one of them out must still register as a card leaving.
+      const drawnCardIds = handDifference(afterHand, beforeHand);
+      // And which left — a swap/return/give names what the player gave up, not
+      // only what arrived (fb:c8769e0d: "it should say what was lost and what
+      // was gained").
+      const removedCardIds = handDifference(beforeHand, afterHand);
 
       // Parse effect_value - extract number from strings like "Draw 1" or just use numeric value
       let count: number;
@@ -277,6 +296,7 @@ export class ManualActionProcessor {
         cardCount: count,
         cardAction: cardAction,
         cardIds: drawnCardIds,
+        ...(cardAction !== 'draw' && removedCardIds.length > 0 ? { removedCardIds } : {}),
         modalConfig: effectModalConfig
       });
     } else if (baseType === 'money') {

@@ -1,6 +1,7 @@
 // src/components/layout/GameLayout.tsx
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { usePanelMode, panelPalettes } from '../player/panelTheme';
 import { IconBug } from '../icons/SetupIcons';
 import { colors } from '../../styles/theme';
 import { CardDetailsModal } from '../modals/CardDetailsModal';
@@ -59,6 +60,18 @@ interface GameLayoutProps {
  * This provides the main grid-based layout for the game application.
  */
 export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: GameLayoutProps = {}): JSX.Element {
+  // The game screen's own backdrop and footer follow the shared light/dark
+  // setting too (fb:b6963218) — otherwise dark panels and board sat on a light
+  // page with a light footer strip under them.
+  const [screenMode] = usePanelMode();
+  useEffect(() => {
+    const body = document.body;
+    const previous = body.style.backgroundColor;
+    if (screenMode === 'dark') body.style.backgroundColor = panelPalettes.dark.bg;
+    return () => {
+      body.style.backgroundColor = previous;
+    };
+  }, [screenMode]);
   const {
     stateService,
     dataService,
@@ -1550,10 +1563,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         <div style={{
           gridColumn: '1 / -1',
           gridRow: isGameLogVisible ? '4' : '3',
-          backgroundColor: colors.primary.light,
+          backgroundColor: screenMode === 'dark' ? panelPalettes.dark.surf : colors.primary.light,
           padding: '0.25rem 0.5rem',
           fontSize: '0.7rem',
-          color: colors.text.secondary,
+          color: screenMode === 'dark' ? panelPalettes.dark.muted : colors.text.secondary,
           textAlign: 'center',
           borderTop: `1px solid ${colors.primary.main}`,
           flexShrink: 0,

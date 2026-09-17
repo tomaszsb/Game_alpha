@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState, resolveTileOverlap, resolveTileVisitType } from '../../../src/utils/boardCommon';
+import { computeTileVisualState, resolveTileOverlap, resolveTileVisitType, resolveDestinationHighlight } from '../../../src/utils/boardCommon';
 
 describe('computeTileVisualState — tile size state machine', () => {
 
@@ -162,5 +162,32 @@ describe('resolveTileVisitType — hover/expand narrative refresh on re-entry (P
     const activePlayer = { visitedSpaces: ['ARCH-INITIATION'] };
     expect(resolveTileVisitType(activePlayer, 'ARCH-INITIATION')).toBe('Subsequent');
     expect(resolveTileVisitType(activePlayer, 'ENG-INITIATION')).toBe('First');
+  });
+});
+
+// fb:71935ebb / fb:6416f76e — the board shows the destination the player
+// picked, and the one they are pointing at in the panel.
+describe('resolveDestinationHighlight', () => {
+  const validMoves = ['LEND-SCOPE-CHECK', 'ARCH-INITIATION'];
+
+  it('marks the picked destination', () => {
+    expect(resolveDestinationHighlight({ spaceId: 'LEND-SCOPE-CHECK', validMoves, pickedMove: 'LEND-SCOPE-CHECK', previewMove: null })).toBe('picked');
+  });
+
+  it('marks the destination being pointed at', () => {
+    expect(resolveDestinationHighlight({ spaceId: 'ARCH-INITIATION', validMoves, pickedMove: 'LEND-SCOPE-CHECK', previewMove: 'ARCH-INITIATION' })).toBe('preview');
+  });
+
+  it('reads as picked when a tile is both picked and pointed at', () => {
+    expect(resolveDestinationHighlight({ spaceId: 'LEND-SCOPE-CHECK', validMoves, pickedMove: 'LEND-SCOPE-CHECK', previewMove: 'LEND-SCOPE-CHECK' })).toBe('picked');
+  });
+
+  it('never lights a tile that is not a valid move, or in the layout editor', () => {
+    expect(resolveDestinationHighlight({ spaceId: 'FINISH', validMoves, pickedMove: 'FINISH', previewMove: 'FINISH' })).toBeNull();
+    expect(resolveDestinationHighlight({ spaceId: 'LEND-SCOPE-CHECK', validMoves, pickedMove: 'LEND-SCOPE-CHECK', previewMove: null, isAdmin: true })).toBeNull();
+  });
+
+  it('is null for an ordinary valid move', () => {
+    expect(resolveDestinationHighlight({ spaceId: 'ARCH-INITIATION', validMoves, pickedMove: null, previewMove: null })).toBeNull();
   });
 });

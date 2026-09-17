@@ -495,6 +495,10 @@ export interface DiceResultEffect {
   cardCount?: number;
   cardAction?: 'draw' | 'remove' | 'replace' | 'give' | 'return';  // For cards: what action was performed
   cardIds?: string[];  // IDs of the actual cards that were drawn/removed
+  // IDs of the cards that LEFT the hand in a swap/return/give, when the effect
+  // also brought cards in (cardIds). Without it a swap could only name the new
+  // card, so "what did I give up?" went unanswered (fb:c8769e0d).
+  removedCardIds?: string[];
   moveOptions?: string[];
   destination?: string;  // For single movement destination
   // For 'qualitative_outcome' rows from CON-INITIATION dice rolls (Quality / Multiplier).

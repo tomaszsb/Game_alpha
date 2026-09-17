@@ -827,3 +827,26 @@ export function computeFocusCenter(
     y: (Math.min(...ys) + Math.max(...ys)) / 2,
   };
 }
+
+/**
+ * How a board tile shows the current player's destination choice
+ * (fb:71935ebb, fb:6416f76e): 'picked' for the chosen destination
+ * (moveIntent, synced to every screen), 'preview' for the one the player is
+ * pointing at in the panel right now (local), otherwise null. Only a real valid
+ * move can light up, and never in the layout editor. A tile that is both
+ * picked and pointed at reads as picked.
+ */
+export function resolveDestinationHighlight(args: {
+  spaceId: string;
+  validMoves: string[];
+  pickedMove: string | null | undefined;
+  previewMove: string | null | undefined;
+  isAdmin?: boolean;
+}): 'picked' | 'preview' | null {
+  const { spaceId, validMoves, pickedMove, previewMove, isAdmin } = args;
+  if (isAdmin || !validMoves.includes(spaceId)) return null;
+  if (pickedMove === spaceId) return 'picked';
+  if (previewMove === spaceId) return 'preview';
+  return null;
+}
+

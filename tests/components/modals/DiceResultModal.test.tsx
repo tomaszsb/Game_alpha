@@ -276,6 +276,49 @@ describe('DiceResultModal', () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
+  // fb:c8769e0d — "when swapping it should say what was lost and what was
+  // gained". A swap names both halves, labelled, each tappable for details.
+  describe('swap names what left and what arrived', () => {
+    const swapResult: DiceRollResult = {
+      diceValue: 0,
+      spaceName: 'PM-DECISION-CHECK',
+      effects: [{
+        type: 'cards',
+        description: 'Swapped an Expeditor',
+        cardType: 'E',
+        cardCount: 1,
+        cardAction: 'replace',
+        cardIds: ['E-NEW'],
+        removedCardIds: ['E-OLD'],
+      }],
+      summary: '',
+      hasChoices: false,
+    };
+
+    beforeEach(() => {
+      mockServices.dataService.getCardById.mockImplementation((id: string) => ({
+        card_id: id, card_type: 'E', card_name: id === 'E-OLD' ? 'On the Radar' : 'Expeditor Lunch Meeting', description: 'A filing rep.',
+      }));
+      mockServices.cardService.canPlayCard.mockReturnValue(false);
+    });
+
+    it('labels the card out and the card in, each once', () => {
+      render(
+        <DictionaryProvider><GameContext.Provider value={mockServices}>
+          <DiceResultModal isOpen result={swapResult} onClose={mockOnClose} />
+        </GameContext.Provider></DictionaryProvider>
+      );
+      const out = screen.getByTestId('effect-cards-out');
+      const inn = screen.getByTestId('effect-cards-in');
+      expect(out).toHaveTextContent('Out:');
+      expect(out).toHaveTextContent('On the Radar');
+      expect(inn).toHaveTextContent('In:');
+      expect(inn).toHaveTextContent('Expeditor Lunch Meeting');
+      expect(screen.getAllByText('Expeditor Lunch Meeting')).toHaveLength(1);
+      expect(screen.getAllByText('On the Radar')).toHaveLength(1);
+    });
+  });
+
   // Surface B (fb:0c523a17 / fb:b413cc2e): a drawn card is shown as its own row,
   // and tapping it opens the card detail. Reference by default; Activate self-
   // gates on budget + phase via canPlayCard (false here → info-only, as at setup).

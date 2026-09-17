@@ -10,7 +10,7 @@
 // removed 2026-07-14 along with the classic ActionCenterPanel itself —
 // PlayerPanelV2 is now the only panel.
 
-import { useCallback, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 export type PanelMode = 'light' | 'dark';
 
@@ -99,20 +99,40 @@ function writeStored(key: string, value: string): void {
  * the `usePanelMode` hook cleanly — it reads the flag once at render instead.
  */
 export function getStoredPanelMode(): PanelMode {
-  return readStored(MODE_KEY, 'light') === 'dark' ? 'dark' : 'light';
+  return readStored(MODE_KEY, sessionMode) === 'dark' ? 'dark' : 'light';
 }
 
-/** Light/dark for the player panel. Persisted in localStorage. */
+// In-session fallback so the toggle still works when localStorage is blocked.
+let sessionMode: PanelMode = 'light';
+
+// One shared mode for the whole screen (fb:feedback-1788865148274-b6963218).
+// `usePanelMode` used to keep its own useState per caller, so each player card,
+// the board and the progress bar read localStorage on their own schedule: a
+// toggle in one panel did not reach a second panel, and surfaces that did not
+// happen to re-render stayed light. Every hook caller now subscribes to the
+// same value and re-renders the moment it flips.
+const modeListeners = new Set<() => void>();
+
+function subscribeMode(listener: () => void): () => void {
+  modeListeners.add(listener);
+  return () => {
+    modeListeners.delete(listener);
+  };
+}
+
+export function setPanelMode(next: PanelMode): void {
+  if (getStoredPanelMode() === next) return;
+  sessionMode = next;
+  writeStored(MODE_KEY, next);
+  modeListeners.forEach((l) => l());
+}
+
+export function togglePanelMode(): void {
+  setPanelMode(getStoredPanelMode() === 'light' ? 'dark' : 'light');
+}
+
+/** Light/dark for the whole game screen. Persisted in localStorage, shared by every caller. */
 export function usePanelMode(): [PanelMode, () => void] {
-  const [mode, setMode] = useState<PanelMode>(() =>
-    readStored(MODE_KEY, 'light') === 'dark' ? 'dark' : 'light',
-  );
-  const toggle = useCallback(() => {
-    setMode((m) => {
-      const next: PanelMode = m === 'light' ? 'dark' : 'light';
-      writeStored(MODE_KEY, next);
-      return next;
-    });
-  }, []);
-  return [mode, toggle];
+  const mode = useSyncExternalStore(subscribeMode, getStoredPanelMode, getStoredPanelMode);
+  return [mode, togglePanelMode];
 }

@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.61] - 2026-09-17
+
+### Eight of ten reviewer reports from 2026-09-04/08, which had never been triaged
+
+**Player-visible.** Ten dashboard reports from two review sittings (v3.2.50 and v3.2.54) never reached TODO.md. None of their ids appeared anywhere in the repo until 2026-09-16. Eight are fixed here. The other two need a design call and are recorded in TODO. Every fix was reproduced or checked in a running local game, not only in tests.
+
+**The helper swap (fb:0a945993, fb:c8769e0d, fb:ba16e596)**
+- **The picker's only button didn't choose.** Each card's single button was a big blue "Details". Choosing meant clicking the card body, which nothing pointed to. Each card now has its own choose button, worded per mode ("Swap this one out" / "Let this one go" / "Give this one"; chosen reads "✓ Chosen (tap to undo)"). Details is a quiet link. When only one card can be chosen, choosing another **switches** instead of silently doing nothing. Strings are UI_STRINGS `CARD_REPLACE.pick.*` / `.picked` / `.DETAILS`.
+- **The result named only the arrival, and named it twice.** The swap's result carried only the ids that came *in* (`cardIds`), so no screen could name what left. `DiceResultEffect` gains `removedCardIds`, set by `ManualActionProcessor` for replace/return/give. "What happened" now shows **Out:** and **In:**, each tappable for details (UI_STRINGS `OUTCOME_CARDS.out/in`). The "What changed" ledger drops named card rows: every named card is already a chip directly above it, and the reporter read the repeat as a duplicated card. Only generic counts stay (e.g. "2 Expeditors" when the payload had no ids).
+- **The hand comparison is counted, not `includes`.** Found while verifying. In one local game the Out row came back empty. The hand could hold two copies of a card id, and `includes` then found the leftover copy and concluded nothing had left. `handDifference` is a multiset difference, used for both the drawn and removed lists, with a test that fails on the old form.
+- **"Move forward" worked with the swap undone, and it read as a bug.** It's by design: skippable actions are left out of `requiredActions`. But nothing on screen said so. Skippable action buttons now carry a quiet "· optional" tag (UI_STRINGS `ACTION_ROW.optional`).
+
+**The board shows your destination choice (fb:71935ebb, fb:6416f76e `extra`)**
+- **Picking a destination now shows on the board.** The picked tile, and the arrow to it, take the panel's selection accent. The source is `moveIntent`, already synced, so the TV sees it too.
+- **Pointing at a choice in the panel lights that tile.** Hover or keyboard focus does it. This is local pointer state, so it deliberately isn't game state (that would sync a cursor across devices). It lives in a tiny `useSyncExternalStore` store, `utils/destinationPreview.ts`. The decision is the pure `resolveDestinationHighlight` in boardCommon: only a real valid move, never in the layout editor, and picked beats pointed-at.
+
+**Dark mode covers the whole screen (fb:b6963218, fb:e8508e3d)**
+- **The mode is one shared setting.** `usePanelMode` used to keep its own `useState` per caller. A toggle in one player card didn't reach a second card, and surfaces that didn't happen to re-render stayed light. It's now a single store every caller subscribes to, with an in-session fallback when localStorage is blocked.
+- **The tile you stand on was the hardest to read in dark mode.** Its tint was a bare 8%-alpha colour that let the light canvas through, so a pale tile carried pale text. Tints now layer over the tile surface. The canvas had never been dark either: `<Background color>` is the *dot* colour, and `bgColor` was never set.
+- **Also dark now:** the progress tracker (full and collapsed), the page backdrop and footer, React Flow's controls (`colorMode`), and cards inside modals (`CardDisplay` `mode`, used by the replace picker).
+- **The toggle moved** from above each player card to the progress tracker's toolbar, as the report's `extra` asked. The phone/controller view has no toolbar, so it keeps its own toggle. The TV's tracker follows the shared TV theme (`mode` prop), not this device's setting.
+
+**The bug-report screenshot lost modals opened from the player panel (fb:f33ae50b)**
+- **Reproduced with "Your Expeditors".** The capture showed the panel dimmed and no modal. Mechanism: a ModalBase opened from inside the panel renders its `position: fixed` overlay as a DOM descendant of the panel card, which has `overflow: hidden`. A browser doesn't clip a fixed element to that. html2canvas does, so the backdrop was painted only inside the panel's rectangle and the centred dialog was cut away. Modals rendered outside the panel (dice results, the replace picker) were never affected, which is why only some reports lost theirs.
+- **The fix touches the clone only.** html2canvas's `onclone` moves each open modal's outermost fixed layer to the clone's `<body>` (`utils/screenshotClone.ts`). The live page is untouched, verified.
+
+**Not fixed, recorded in TODO as design calls:**
+- **fb:9e31b860** — undoing a *confirmed* swap. It would let a player peek at a random draw and take it back.
+- **fb:adad1561** — rewording "What's affecting you" per card source. That's voice copy.
+
+**Tests:** new `screenshotClone`, `ManualActionProcessor.swapNames` (5), `destinationPreview`, `panelThemeShared`, `CardDisplayDark`. Extended `CardReplacementModal`, `DiceResultModal`, `OutcomeChangesV2`, `PlayerPanelV2`, `BoardCanvas` (`resolveDestinationHighlight`) and `ProjectProgress`. Lint adds no new warnings.
+
 ## [3.2.60] - 2026-09-13
 
 ### The control that moves you now says where you're going

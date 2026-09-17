@@ -36,6 +36,13 @@ CARD_REPLACE.confirm.zero,{mode}
 CARD_REPLACE.empty,No {typeName} available to {action}
 CARD_REPLACE.counter,{selected} of {max} selected
 CARD_REPLACE.RETURN_BUTTON,Return to Main Panel
+CARD_REPLACE.pick.replace,Swap this one out
+CARD_REPLACE.pick.return,Let this one go
+CARD_REPLACE.pick.give,Give this one
+CARD_REPLACE.picked,✓ Chosen (tap to undo)
+CARD_REPLACE.DETAILS,Details
+OUTCOME_CARDS.out,Out:
+OUTCOME_CARDS.in,In:
 CARD_DETAILS.TRANSFER_TOGGLE,↔ Transfer
 CARD_DETAILS.TRANSFER_CONFIRM,Transfer
 CARD_DETAILS.TRANSFER_HEADING,Select player to transfer to:
@@ -79,3 +86,4 @@ RULES.negotiation.body,"Some spaces allow negotiation. If you have a snapshot fr
 RULES.winning.heading,Winning
 RULES.winning.body,Successfully navigate through all phases of development and reach the final completion space to win the game. Manage your resources wisely and make strategic decisions to overcome challenges along the way.
 COMMIT.withDestination,{label} → {destination}
+ACTION_ROW.optional,optional

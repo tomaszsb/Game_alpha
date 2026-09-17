@@ -26,7 +26,8 @@ import { TurnCommitControl } from './TurnCommitControl';
 import { getEndTurnCostPreview, getTryAgainCostPreview, isManualEffectCompleted } from '../../utils/costPreview';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
-import { COMMIT } from '../../constants/uiStrings';
+import { ACTION_ROW, COMMIT } from '../../constants/uiStrings';
+import { setDestinationPreview } from '../../utils/destinationPreview';
 import { computeProjectFinances } from '../../utils/projectFinances';
 import { isSkippableEffectAction } from '../../utils/skippableActions';
 import { FormatUtils } from '../../utils/FormatUtils';
@@ -940,6 +941,14 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                     {a.isDiceEffect && isRollingDice
                       ? 'Deciding…'
                       : `${a.icon ? a.icon + ' ' : ''}${a.label.replace(/^🎲\s*/, '')}`}
+                    {/* Skippable actions never gate the move (StateService leaves
+                        them out of requiredActions), so say so — a player who
+                        skipped one read the open gate as a bug (fb:ba16e596). */}
+                    {isSkippableEffectAction(a.effectKey) && !(a.isDiceEffect && isRollingDice) && (
+                      <span data-testid="action-optional-tag" style={{ marginLeft: 6, fontSize: 11, fontWeight: 400, color: p.muted }}>
+                        · {ACTION_ROW.OPTIONAL}
+                      </span>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -1067,6 +1076,13 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                             : undefined
                         }
                         onClick={() => movementChoiceUnlocked && handleMovementChoice(opt.id)}
+                        // Light the matching board tile while pointing at a
+                        // choice (fb:6416f76e extra, fb:71935ebb). Local only —
+                        // the picked one is already shown via moveIntent.
+                        onMouseEnter={() => movementChoiceUnlocked && setDestinationPreview(opt.id)}
+                        onMouseLeave={() => setDestinationPreview(null)}
+                        onFocus={() => movementChoiceUnlocked && setDestinationPreview(opt.id)}
+                        onBlur={() => setDestinationPreview(null)}
                       >
                         {!movementChoiceUnlocked ? '➡️' : isSelected ? '✅' : '➡️'} {label}
                       </button>

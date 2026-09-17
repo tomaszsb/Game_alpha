@@ -360,6 +360,7 @@ export function TVDisplay(): JSX.Element {
               hideButtons
               compact
               collapsed={!isProgressExpanded}
+              mode={tvMode}
             />
           </div>
         )}

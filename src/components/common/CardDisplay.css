@@ -212,3 +212,27 @@
   flex-shrink: 0;
   margin-right: 8px;
 }
+
+/* Dark surface (fb:e8508e3d — cards stayed white inside dark modals).
+   Values match panelPalettes.dark in player/panelTheme.ts. */
+.card-display--dark.card-display--compact {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+.card-display--dark .card-display__description {
+  color: #a3b3c7;
+}
+
+.card-display--dark.card-display--selectable {
+  border-color: #334155;
+}
+
+.card-display--dark.card-display--selectable:hover {
+  border-color: #52627a;
+  background-color: #2a3950;
+}
+
+.card-display--dark.card-display--selected {
+  background-color: #1e3a5f;
+}

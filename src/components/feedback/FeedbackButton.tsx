@@ -9,6 +9,7 @@ import { ModalBase, modalButtonStyles } from '../modals/shared/ModalBase';
 import { colors } from '../../styles/theme';
 import { getGameStateAPIPath, getCurrentGameId } from '../../utils/networkDetection';
 import { getConsoleLogs } from '../../utils/consoleCapture';
+import { liftModalsForCapture } from '../../utils/screenshotClone';
 import { IconBug } from '../icons/SetupIcons';
 
 interface FeedbackForm {
@@ -117,6 +118,9 @@ export function FeedbackButton(): JSX.Element {
         useCORS: true,
         logging: false,
         scale: 1, // 1x scale to keep file size manageable
+        // A modal opened inside the player panel was clipped out of the
+        // capture by the panel's overflow (fb:f33ae50b) — see screenshotClone.
+        onclone: (clonedDoc) => { liftModalsForCapture(clonedDoc); },
       });
       const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
       setScreenshot(dataUrl);

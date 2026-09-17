@@ -16,6 +16,9 @@ export type CardDisplayVariant = 'compact' | 'detailed' | 'inline';
 export interface CardDisplayProps {
   /** The card data to display */
   card: Card;
+  /** Light/dark surface. A card inside a dark modal used to stay white
+   *  (fb:feedback-1788865395583-e8508e3d). Defaults to light. */
+  mode?: 'light' | 'dark';
   /** Display variant - compact (minimal), detailed (full info), inline (single line) */
   variant?: CardDisplayVariant;
   /** Whether the card is expanded (for detailed variant) */
@@ -71,12 +74,14 @@ export function CardDisplay({
   selectedColor,
   onSelect,
   cardTypeIcon,
-  headerBadge
+  headerBadge,
+  mode = 'light'
 }: CardDisplayProps) {
   const { openWithTerm } = useDictionaryPanel();
   const highlightClass = highlight !== 'none' ? `card-display--${highlight}` : '';
   const selectableClass = selectable ? 'card-display--selectable' : '';
   const selectedClass = isSelected ? 'card-display--selected' : '';
+  const modeClass = mode === 'dark' ? 'card-display--dark' : '';
 
   if (variant === 'inline') {
     return (
@@ -100,7 +105,7 @@ export function CardDisplay({
 
     return (
       <div
-        className={`card-display card-display--compact ${highlightClass} ${selectableClass} ${selectedClass}`}
+        className={`card-display card-display--compact ${highlightClass} ${selectableClass} ${selectedClass} ${modeClass}`}
         onClick={handleClick}
         style={selectedStyle}
         role={selectable ? 'button' : undefined}

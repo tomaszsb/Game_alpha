@@ -140,18 +140,29 @@ export function buildCardChanges(
     const action = ACTION_FROM_CARD_ACTION[eff.cardAction || 'draw'];
     if (!action) continue;
 
+    // A swap that names what left becomes an honest pair: the cards out are
+    // losses, the cards in are gains (fb:c8769e0d).
+    const removedIds = eff.removedCardIds ?? [];
+    if (removedIds.length > 0) {
+      for (const id of removedIds) {
+        const resolved = resolveCard(id);
+        changes.push({ action: 'lost', type: resolved?.type || (eff.cardType ?? ''), name: resolved?.name ?? null, count: 1 });
+      }
+    }
+    const inAction: CardChange['action'] = removedIds.length > 0 && action === 'swapped' ? 'gained' : action;
+
     const ids = eff.cardIds ?? [];
     if (ids.length > 0) {
       for (const id of ids) {
         const resolved = resolveCard(id);
         changes.push({
-          action,
+          action: inAction,
           type: resolved?.type || (eff.cardType ?? ''),
           name: resolved?.name ?? null,
           count: 1,
         });
       }
-    } else if (eff.cardCount && eff.cardType) {
+    } else if (removedIds.length === 0 && eff.cardCount && eff.cardType) {
       // No ids on the payload — degrade to a generic "N <type>" row rather
       // than drop the change entirely.
       changes.push({ action, type: eff.cardType, name: null, count: eff.cardCount });
@@ -184,19 +195,20 @@ export function buildCardChangesFromSnapshot(
 }
 
 /**
- * Drop named card GAINS from the ledger — they're already shown as an
- * interactive "tap for details" chip in the modal's "What happened" effects
+ * Drop NAMED card rows from the ledger — every named card is already shown as
+ * an interactive "tap for details" chip in the modal's "What happened" effects
  * list (DiceResultModal's renderEffect), directly above this block, so
  * repeating the name here is duplication, not reinforcement. Confirmed live
- * 2026-07-10: hiring 3 Expeditors listed the same 3 names twice in one
- * modal, back to back. Generic/unnamed gains (no cardIds on the effect
- * payload — e.g. the deck ran dry mid-draw) get no chip up there, so their
- * count stays the only place the player sees it. Losses/swaps keep both —
- * the effect row names what's changing hands, this ledger confirms it left
- * the player's count, which reads as confirmation rather than noise.
+ * 2026-07-10 for gains (hiring 3 Expeditors listed the same 3 names twice).
+ * Losses and swaps used to keep both as "confirmation"; a player read that as
+ * the card being duplicated (fb:c8769e0d, 2026-09-04: "the card right now seems
+ * to be duplicated. remove one without ability to show details"), so the chip
+ * — the copy that opens details — is now the only one. Generic/unnamed rows
+ * (no ids on the payload, e.g. the deck ran dry mid-draw) get no chip up
+ * there, so their count stays the only place the player sees it.
  */
 export function filterLedgerCardChanges(changes: CardChange[]): CardChange[] {
-  return changes.filter((c) => !(c.action === 'gained' && c.name !== null));
+  return changes.filter((c) => c.name === null);
 }
 
 interface OutcomeChangesV2Props {

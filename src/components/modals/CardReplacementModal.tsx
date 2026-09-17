@@ -75,6 +75,10 @@ export function CardReplacementModal({
         return prev.filter(id => id !== cardId);
       } else if (prev.length < maxReplacements) {
         return [...prev, cardId];
+      } else if (maxReplacements === 1) {
+        // Only one can be chosen: picking another card switches the choice
+        // instead of silently doing nothing, so a mis-tap is easy to correct.
+        return [cardId];
       }
       return prev;
     });
@@ -257,27 +261,55 @@ export function CardReplacementModal({
 
               if (!card) return null;
 
-              const detailsButton = (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDetailCardId(cardId);
-                  }}
-                  style={{
-                    padding: '4px 12px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    backgroundColor: colors.primary.main,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: theme.borderRadius.sm,
-                    cursor: 'pointer',
-                    transition: theme.transitions.fast,
-                    minHeight: theme.mobile.minTapTarget
-                  }}
-                >
-                  {theme.emoji.info} Details
-                </button>
+              // fb:0a945993 — "the detail button is prominent and does something
+              // other than choosing the card". The choosing control is now the
+              // prominent one and says what it does; Details is a quiet link.
+              const cardActions = (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    data-testid="card-replacement-pick"
+                    aria-pressed={isSelected}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCardToggle(cardId);
+                    }}
+                    style={{
+                      padding: '4px 12px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      backgroundColor: isSelected ? currentCardColors.primary : colors.primary.main,
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: theme.borderRadius.sm,
+                      cursor: 'pointer',
+                      transition: theme.transitions.fast,
+                      minHeight: theme.mobile.minTapTarget,
+                    }}
+                  >
+                    {isSelected ? CARD_REPLACE.PICKED : CARD_REPLACE.pick(mode)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDetailCardId(cardId);
+                    }}
+                    style={{
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      backgroundColor: 'transparent',
+                      color: colors.primary.main,
+                      border: 'none',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      minHeight: theme.mobile.minTapTarget,
+                    }}
+                  >
+                    {theme.emoji.info} {CARD_REPLACE.DETAILS}
+                  </button>
+                </div>
               );
 
               return (
@@ -285,13 +317,14 @@ export function CardReplacementModal({
                   key={cardId}
                   card={card}
                   variant="compact"
+                  mode={panelMode}
                   selectable={true}
                   isSelected={isSelected}
                   selectedColor={currentCardColors.primary}
                   onSelect={() => handleCardToggle(cardId)}
                   cardTypeIcon={getCardTypeEmoji(cardType)}
                   displayAmount={FormatUtils.formatCardCost(card.cost || 0)}
-                  actions={detailsButton}
+                  actions={cardActions}
                   // Expeditors: show the phase chip inline so the player can tell
                   // which phase each rep serves when choosing which to let go,
                   // without opening Details on every one (fb:76fa69c7). Same chip

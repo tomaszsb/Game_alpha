@@ -12,7 +12,8 @@ import { playerLifecyclePosition } from '../../utils/lifecycleProgress';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { friendlySpaceName } from '../../utils/logFormatting';
 import { computeProjectFinances } from '../../utils/projectFinances';
-import { IconMoon, IconClipboard, IconNotepad, IconEye, IconBookOpen } from '../icons/SetupIcons';
+import { IconMoon, IconSun, IconClipboard, IconNotepad, IconEye, IconBookOpen } from '../icons/SetupIcons';
+import { usePanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
 
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
@@ -59,6 +60,9 @@ interface ProjectProgressProps {
   /** Callback to flip the shared TV theme. Provided by the parent, which
    *  owns the stateService.setTVDarkMode() call and the admin/teacher gate. */
   onToggleTVDarkMode?: () => void;
+  /** Force a theme (TVDisplay passes the shared TV theme). Omitted on a PC, where
+   *  this device's own light/dark setting applies. */
+  mode?: PanelMode;
 }
 
 /** Small green dot marking a toolbar button whose panel is currently open.
@@ -83,7 +87,14 @@ function ActiveDot({ show }: { show?: boolean }): JSX.Element | null {
  * ProjectProgress component displays global project progress for all players.
  * Shows current phase, overall progress, and player positions in the project lifecycle.
  */
-export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed, isRulesOpen, isGameLogOpen, isDisplaySettingsOpen, onToggleGlossary, isGlossaryOpen, tvDarkMode, onToggleTVDarkMode }: ProjectProgressProps): JSX.Element {
+export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed, isRulesOpen, isGameLogOpen, isDisplaySettingsOpen, onToggleGlossary, isGlossaryOpen, tvDarkMode, onToggleTVDarkMode, mode: modeProp }: ProjectProgressProps): JSX.Element {
+  // fb:feedback-1788865148274-b6963218 — "the progress tracker is not in dark
+  // mode", and the light/dark toggle belongs in this toolbar rather than above
+  // one player's card. Chrome only: phase/status colours keep their meaning.
+  const [storedMode, toggleMode] = usePanelMode();
+  const mode: PanelMode = modeProp ?? storedMode;
+  const dark = mode === 'dark';
+  const dp = panelPalettes.dark;
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
   // Active indicator helpers (ActiveDot lives at module scope, just above)
@@ -183,7 +194,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   if (collapsed) {
     return (
       <div style={{
-        background: `linear-gradient(135deg, ${colors.secondary.bg}, ${colors.primary.light})`,
+        background: dark ? dp.bg : `linear-gradient(135deg, ${colors.secondary.bg}, ${colors.primary.light})`,
         borderRadius: '12px',
         padding: '6px 16px',
         margin: '4px 0',
@@ -194,11 +205,11 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         gap: '12px',
         flexWrap: 'wrap',
       }}>
-        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: colors.primary.text }}>
+        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: dark ? dp.text : colors.primary.text }}>
           📊 {overallProgress.leadingPhase}
         </span>
         {currentPlayer && (
-          <span style={{ fontSize: '0.8rem', color: colors.secondary.dark }}>
+          <span style={{ fontSize: '0.8rem', color: dark ? dp.muted : colors.secondary.dark }}>
             ▶ {currentPlayer.name}’s Turn
           </span>
         )}
@@ -213,14 +224,14 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           // "gap" numbers for the same player (2026-07-26 fix).
           const fin = computeProjectFinances(currentPlayer, (id) => dataService.getCardById(id));
           return (
-            <span style={{ fontSize: '0.75rem', color: colors.secondary.dark }}>
+            <span style={{ fontSize: '0.75rem', color: dark ? dp.muted : colors.secondary.dark }}>
               💰 {FormatUtils.formatMoney(fin.totalCapital)}/{FormatUtils.formatMoney(fin.commitments)}
               {fin.spent > 0 && <span style={{ color: '#f44336' }}> (-{FormatUtils.formatMoney(fin.spent)})</span>}
               {fin.fundingGap > 0 && <span style={{ color: '#f44336', fontWeight: 'bold' }}> Gap {FormatUtils.formatMoney(fin.fundingGap)}</span>}
             </span>
           );
         })()}
-        <span style={{ fontSize: '0.8rem', color: colors.secondary.dark }}>
+        <span style={{ fontSize: '0.8rem', color: dark ? dp.muted : colors.secondary.dark }}>
           {Math.round(overallProgress.averageProgress)}%
         </span>
         <span style={{
@@ -349,7 +360,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   }
 
   const containerStyle = {
-    background: `linear-gradient(135deg, ${colors.secondary.bg}, ${colors.primary.light})`,
+    background: dark ? dp.bg : `linear-gradient(135deg, ${colors.secondary.bg}, ${colors.primary.light})`,
     borderRadius: '8px',
     padding: compact ? '4px 6px' : '6px 10px',
     margin: compact ? '2px 0' : '4px 0',
@@ -360,7 +371,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   const titleStyle = {
     fontSize: '0.75rem',
     fontWeight: 'bold' as const,
-    color: colors.primary.text,
+    color: dark ? dp.text : colors.primary.text,
     marginBottom: '0',
     textAlign: 'center' as const,
     textTransform: 'uppercase' as const,
@@ -368,7 +379,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   };
 
   const progressBarContainerStyle = {
-    background: '#e0e0e0',
+    background: dark ? dp.surf2 : '#e0e0e0',
     borderRadius: '2px',
     height: compact ? '4px' : '5px',
     marginBottom: compact ? '2px' : '4px',
@@ -394,7 +405,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   const phaseIndicatorStyle = (phase: string, index: number) => ({
     fontSize: compact ? '0.5rem' : '0.55rem',
     fontWeight: 'bold' as const,
-    color: overallProgress.averageProgress >= ((index + 1) / phases.length) * 100 ? colors.success.main : colors.secondary.main,
+    color: overallProgress.averageProgress >= ((index + 1) / phases.length) * 100 ? colors.success.main : dark ? dp.muted : colors.secondary.main,
     textAlign: 'center' as const,
     minWidth: compact ? '30px' : '40px'
   });
@@ -407,16 +418,16 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   };
 
   const playerItemStyle = {
-    background: colors.white,
+    background: dark ? dp.surf : colors.white,
     borderRadius: '6px',
     padding: compact ? '3px 6px' : '4px 8px',
-    border: `1px solid ${colors.secondary.border}`,
+    border: `1px solid ${dark ? dp.border : colors.secondary.border}`,
     fontSize: compact ? '0.65rem' : '0.7rem'
   };
 
   const playerNameStyle = {
     fontWeight: 'bold' as const,
-    color: colors.secondary.dark,
+    color: dark ? dp.text : colors.secondary.dark,
     marginBottom: '1px'
   };
 
@@ -461,6 +472,9 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             // Only rendered for admin/teacher (GameLayout gates the props); a
             // regular player never sees this button. Harmless no-op if no TV
             // is currently connected to this game.
+            // This device's light/dark (moved here from above the player card,
+            // fb:b6963218 extra). Hidden on the TV, which follows the shared TV theme.
+            { onClick: toggleMode, icon: dark ? <IconSun size="1em" /> : <IconMoon size="1em" />, label: dark ? 'Light' : 'Dark', bg: '#475569', active: false, title: 'Light / dark mode' },
             ...(onToggleTVDarkMode ? [{ onClick: onToggleTVDarkMode, icon: <IconMoon size="1em" />, label: 'TV theme', bg: '#607d8b', active: tvDarkMode, title: 'Switch the shared TV screen between light and dark' }] : []),
           ].map((btn, i) => (
             <button key={i} onClick={btn.onClick} title={(btn as { title?: string }).title} style={{
@@ -536,9 +550,9 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
       {!compact && (
         <div style={{
           padding: '3px 8px',
-          backgroundColor: colors.success.bg,
+          backgroundColor: dark ? dp.goodSurf : colors.success.bg,
           borderRadius: '4px',
-          border: `1px solid ${colors.success.main}`,
+          border: `1px solid ${dark ? dp.goodBorder : colors.success.main}`,
           marginBottom: '4px',
           display: 'flex',
           alignItems: 'center',
@@ -549,7 +563,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           <span style={{
             fontSize: '0.65rem',
             fontWeight: 'bold',
-            color: colors.text.success
+            color: dark ? dp.good : colors.text.success
           }}>
             Goal: Complete construction and reach the FINISH space
           </span>
@@ -564,15 +578,15 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         gap: compact ? '4px' : '6px',
         marginBottom: compact ? '2px' : '4px',
         fontSize: compact ? '0.6rem' : '0.65rem',
-        color: colors.secondary.dark,
+        color: dark ? dp.muted : colors.secondary.dark,
         flexWrap: 'wrap'
       }}>
         <span>
           <strong>{Math.round(overallProgress.averageProgress)}%</strong> | {overallProgress.leadingPhase}
         </span>
         <div style={{
-          background: colors.primary.light,
-          color: colors.primary.text,
+          background: dark ? dp.surf2 : colors.primary.light,
+          color: dark ? dp.text : colors.primary.text,
           padding: '1px 6px',
           borderRadius: '8px',
           fontSize: '0.6rem',
@@ -582,8 +596,8 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         </div>
         {currentPlayer && (
           <div style={{
-            background: colors.success.bg,
-            color: colors.text.success,
+            background: dark ? dp.goodSurf : colors.success.bg,
+            color: dark ? dp.good : colors.text.success,
             padding: '1px 6px',
             borderRadius: '8px',
             fontSize: '0.6rem',
@@ -598,8 +612,8 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           return (
             <div
               style={{
-                background: colors.warning.bg,
-                color: colors.warning.text,
+                background: dark ? dp.warnSurf : colors.warning.bg,
+                color: dark ? '#fbbf24' : colors.warning.text,
                 padding: '1px 6px',
                 borderRadius: '8px',
                 fontSize: '0.6rem',
@@ -634,12 +648,12 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                 <div style={{ ...playerNameStyle, display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <PlayerAvatar avatar={player.avatar} color={player.color} size={20} title={player.name} /> {player.name}
                 </div>
-                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }} title={`Project completion: ${Math.round(playerProgress.progress)}% — how far through all phases you've progressed (Funding → Design → Regulatory → Construction). Advances each time you reach a new phase.`}>
-                  <span style={{ whiteSpace: 'nowrap' }}>🚀 <span style={{ fontWeight: 'bold', color: colors.secondary.dark }}>{Math.round(playerProgress.progress)}% done</span></span>
-                  <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden' }}>
+                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: dark ? dp.muted : '#666' }} title={`Project completion: ${Math.round(playerProgress.progress)}% — how far through all phases you've progressed (Funding → Design → Regulatory → Construction). Advances each time you reach a new phase.`}>
+                  <span style={{ whiteSpace: 'nowrap' }}>🚀 <span style={{ fontWeight: 'bold', color: dark ? dp.text : colors.secondary.dark }}>{Math.round(playerProgress.progress)}% done</span></span>
+                  <div style={{ flex: 1, height: '4px', backgroundColor: dark ? dp.surf2 : '#e0e0e0', borderRadius: '2px', overflow: 'hidden' }}>
                     <div style={getPlayerProgressBarFill(playerProgress.progress)}></div>
                   </div>
-                  <span style={{ whiteSpace: 'nowrap', fontSize: '0.5rem', color: '#888' }}>{playerProgress.phase}</span>
+                  <span style={{ whiteSpace: 'nowrap', fontSize: '0.5rem', color: dark ? dp.muted : '#888' }}>{playerProgress.phase}</span>
                 </div>
                 {/* Comparison stats row — redesigned 2026-07-26 (maintainer:
                     "poorly laid out, needs a real design pass"). Was 3 stacked

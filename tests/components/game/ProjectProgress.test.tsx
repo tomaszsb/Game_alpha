@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProjectProgress } from '../../../src/components/game/ProjectProgress';
 import { IDataService, IGameRulesService } from '../../../src/types/ServiceContracts';
 import { Player } from '../../../src/types/StateTypes';
+import { setPanelMode, getStoredPanelMode } from '../../../src/components/player/panelTheme';
 
 describe('ProjectProgress', () => {
   beforeEach(() => {
@@ -105,6 +106,45 @@ describe('ProjectProgress', () => {
 
     fireEvent.click(rulesButton);
     expect(mockOnOpenRulesModal).toHaveBeenCalledTimes(1);
+  });
+
+  // fb:b6963218 — the light/dark toggle lives in this toolbar, and the tracker
+  // itself follows the shared setting.
+  it('has a light/dark toggle that flips the shared mode and darkens the tracker', () => {
+    setPanelMode('light');
+    const { container } = render(
+      <ProjectProgress
+        players={mockPlayers}
+        currentPlayerId="player1"
+        dataService={mockDataService}
+        gameRulesService={mockGameRulesService}
+        onToggleGameLog={mockOnToggleGameLog}
+        onOpenRulesModal={mockOnOpenRulesModal}
+      />
+    );
+    const toggle = screen.getByTitle('Light / dark mode');
+    expect(toggle).toHaveTextContent('Dark');
+    fireEvent.click(toggle);
+    expect(getStoredPanelMode()).toBe('dark');
+    expect(screen.getByTitle('Light / dark mode')).toHaveTextContent('Light');
+    expect((container.firstChild as HTMLElement).style.background).toContain('rgb(15, 23, 42)');
+    setPanelMode('light');
+  });
+
+  it('shows no toggle when buttons are hidden (the TV follows the shared TV theme)', () => {
+    render(
+      <ProjectProgress
+        players={mockPlayers}
+        currentPlayerId="player1"
+        dataService={mockDataService}
+        gameRulesService={mockGameRulesService}
+        onToggleGameLog={mockOnToggleGameLog}
+        onOpenRulesModal={mockOnOpenRulesModal}
+        hideButtons
+        mode="dark"
+      />
+    );
+    expect(screen.queryByTitle('Light / dark mode')).not.toBeInTheDocument();
   });
 
   it('should render the Log button and call onToggleGameLog when clicked', () => {

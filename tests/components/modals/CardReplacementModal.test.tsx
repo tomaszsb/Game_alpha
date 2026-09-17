@@ -203,9 +203,63 @@ describe('CardReplacementModal', () => {
     fireEvent.click(foundationCard!);
     expect(screen.getByText(CARD_REPLACE.counter(1, 1))).toBeInTheDocument();
 
-    // Try to select second card - should not work
+    // Selecting a second card never exceeds the limit (with a limit of one it
+    // switches the choice instead — see the test below).
     fireEvent.click(electricalCard!);
     expect(screen.getByText(CARD_REPLACE.counter(1, 1))).toBeInTheDocument();
+  });
+
+  // fb:0a945993 — the only button on each card used to be "Details", which
+  // does not choose. Each card now has a choose button worded per mode.
+  it('gives each card a choose button worded for the mode, separate from Details', () => {
+    renderWithDictionary(
+      <CardReplacementModal
+        isOpen={true}
+        player={mockPlayer}
+        cardType="W"
+        maxReplacements={2}
+        mode="return"
+        onReplace={mockOnReplace}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const picks = screen.getAllByTestId('card-replacement-pick');
+    expect(picks).toHaveLength(2);
+    expect(picks[0]).toHaveTextContent(CARD_REPLACE.pick('return'));
+    expect(screen.getAllByText(new RegExp(CARD_REPLACE.DETAILS))).toHaveLength(2);
+
+    fireEvent.click(picks[0]);
+    expect(screen.getByText(CARD_REPLACE.counter(1, 2))).toBeInTheDocument();
+    expect(picks[0]).toHaveTextContent(CARD_REPLACE.PICKED);
+    expect(picks[0]).toHaveAttribute('aria-pressed', 'true');
+
+    // Tapping it again undoes the choice.
+    fireEvent.click(picks[0]);
+    expect(screen.getByText(CARD_REPLACE.counter(0, 2))).toBeInTheDocument();
+    expect(picks[0]).toHaveTextContent(CARD_REPLACE.pick('return'));
+  });
+
+  it('switches the choice when only one card can be chosen', () => {
+    renderWithDictionary(
+      <CardReplacementModal
+        isOpen={true}
+        player={mockPlayer}
+        cardType="W"
+        maxReplacements={1}
+        onReplace={mockOnReplace}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    const [first, second] = screen.getAllByTestId('card-replacement-pick');
+    fireEvent.click(first);
+    fireEvent.click(second);
+    expect(first).toHaveAttribute('aria-pressed', 'false');
+    expect(second).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByText(CARD_REPLACE.confirm('Replace', 1)));
+    expect(mockOnReplace).toHaveBeenCalledWith(['W2'], 'W');
   });
 
   it('should display card details with proper formatting', () => {
