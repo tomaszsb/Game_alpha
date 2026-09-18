@@ -2,6 +2,12 @@
 
 ---
 
+## v3.2.68 — "Pass a team member" really passes one (September 18, 2026)
+
+- **The four "Pass a team member to your left / right" buttons now do what they say.** They used to read "Pass help…" and, oddly, gave *you* a free team member instead of handing one over. Now, if you press one, one of your team members goes to the player on that side. If you hold more than one, you choose which; you can also cancel. The button is marked **optional**, and it only shows up when you have someone to pass and someone to pass them to (so it never appears in a solo game).
+
+*Also since v3.2.62, in plain words:* "helper" is now **team member** everywhere, the section header **"Things you can do"** is now **"This turn"**, and the move-on button lights up whenever it is ready — not just the first time you visit a space. Bank Review's title now says the bank is **reviewing** your file (it used to say "underwriting"). The lender no longer says "pound of flesh". The user manual was rewritten to match the current screen.
+
 ## v3.2.62 — Your numbers at a glance (September 17, 2026)
 
 - **"What's affecting you" is gone.** Your panel now opens with four boxes: **Money**, **Time**, **Expeditors** and **Scope**. Each one shows the headline number, and you tap a box to see everything behind it.

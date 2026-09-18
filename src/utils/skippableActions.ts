@@ -1,7 +1,9 @@
 /**
  * Which manual space effects are OPTIONAL (skippable) rather than required.
  *
- * The expeditor replace/return/give actions are offered but never demanded:
+ * The expeditor replace/return/give/transfer actions are offered but never
+ * demanded (`transfer` is "pass one to the player on your left/right"; the card
+ * picker it opens has a Cancel, exactly like `give_e`, so it cannot be forced):
  * `StateService.calculateRequiredActions` deliberately leaves them OUT of
  * `requiredActions` (counting them made backing out of the modal a dead-end —
  * Move stayed disabled with no Skip), and `ManualActionProcessor` lets them
@@ -23,5 +25,5 @@ export function isSkippableEffectAction(action: string | undefined | null): bool
   if (!action) return false;
   const colon = action.lastIndexOf(':');
   const bare = (colon >= 0 ? action.slice(colon + 1) : action).trim();
-  return /^(replace_|return_|give_)/i.test(bare);
+  return /^(replace_|return_|give_|transfer$)/i.test(bare);
 }

@@ -270,10 +270,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     };
   });
   const pendingActions = collapsePairedDiceActions(mapped);
-  const expeditorTargetAction = /(replace|return|give)_e\b/i;
+  const expeditorTargetAction = /((replace|return|give)_e|transfer)\b/i;
+  // "Pass a team member to your left/right" also needs someone to pass it TO —
+  // in a solo game there is no neighbour, so it would be a button that can only
+  // say "nobody there".
+  const hasNeighbor = gameState.players.length > 1;
   const visiblePendingActions = pendingActions
     .filter((a) => !a.isCompleted)
-    .filter((a) => hasExpeditorCards || !expeditorTargetAction.test(a.effectKey));
+    .filter((a) => hasExpeditorCards || !expeditorTargetAction.test(a.effectKey))
+    .filter((a) => hasNeighbor || !/transfer\b/i.test(a.effectKey));
   // Completed draw/roll actions stay on screen as a grayed ✓ trace instead of
   // vanishing, so the player can see what they already did this turn (fb:d2070ed1
   // — "every button vanishes on press, I want a leftover hint"). Movement keeps

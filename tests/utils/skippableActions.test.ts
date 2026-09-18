@@ -8,16 +8,25 @@ import { describe, it, expect } from 'vitest';
 import { isSkippableEffectAction } from '../../src/utils/skippableActions';
 
 describe('isSkippableEffectAction', () => {
-  it('treats the three optional expeditor actions as skippable, bare or compound', () => {
-    for (const bare of ['replace_e', 'replace_l', 'return_e', 'return_l', 'give_e']) {
+  it('treats the optional expeditor actions as skippable, bare or compound', () => {
+    // `transfer` ("pass one to the player on your left/right") joined the list
+    // when the data pipeline started emitting it (2026-09-18): its card picker
+    // has a Cancel exactly like give_e's, so it can never be a gate — and with
+    // no expeditor to pass it must not strand the turn.
+    for (const bare of ['replace_e', 'replace_l', 'return_e', 'return_l', 'give_e', 'transfer']) {
       expect(isSkippableEffectAction(bare)).toBe(true);
       expect(isSkippableEffectAction(`cards:${bare}`)).toBe(true);
       expect(isSkippableEffectAction(bare.toUpperCase())).toBe(true);
     }
   });
 
+  it('matches `transfer` exactly, not any action that merely starts with it', () => {
+    expect(isSkippableEffectAction('transfer_funds')).toBe(false);
+    expect(isSkippableEffectAction('cards:transferred')).toBe(false);
+  });
+
   it('does not treat required actions as skippable', () => {
-    for (const bare of ['draw_w', 'draw_b', 'draw_e', 'draw_l', 'draw_i', 'dice_outcome', 'transfer']) {
+    for (const bare of ['draw_w', 'draw_b', 'draw_e', 'draw_l', 'draw_i', 'dice_outcome']) {
       expect(isSkippableEffectAction(bare)).toBe(false);
       expect(isSkippableEffectAction(`cards:${bare}`)).toBe(false);
     }

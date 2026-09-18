@@ -1263,13 +1263,13 @@ The old TODO item said the 44 rows of `ACTION_TOOLTIPS.csv` need a beginner-voic
 
 | Where the text can appear | Rows | Reachable today? |
 |---|---|---|
-| The **"?"** on an action row in the player panel (`getManualEffectTooltip`) — **cards** actions only | `draw_W`, `draw_B`, `draw_I`, `draw_E`, `replace_E`, `return_E` | **Yes — 6 rows, covering 35 real buttons** (`draw_E` alone is 16 of them) |
+| The **"?"** on an action row in the player panel (`getManualEffectTooltip`) — **cards** actions only | `draw_W`, `draw_B`, `draw_I`, `draw_E`, `replace_E`, `return_E`, `transfer_E` (no row yet — proposed below) | **Yes — 7 rows, covering 35 real buttons** (`draw_E` is 12 of them; the 4 "Pass a team member to your left/right" buttons became their own `transfer` row on 2026-09-18, when they were fixed to really pass one on) |
 | The **"?"** on a **dice** action (45 source rows — most of the game's action row) | none — falls back to the button's own label | **No text exists for them in practice.** Proved live 2026-09-18: tapping "?" on **"See what he wants built"** opens a box that says **"See what he wants built."** |
 | `draw_L` (Life Event), `give_E` | 2 | No — Life Events are automatic (no button), and no row uses `give_E` |
 | The 7 `dice_outcome_*` rows, `roll_to_move`, `end_turn`, `negotiate`, `pay_fees`, `scope_check` | 12 | No — their helper functions (`getDiceRollTooltip`, `getEndTurnTooltip`, `getNegotiateTooltip`) have **no callers** in the app |
 | The 24 `choice` rows ("Go to Architect", …) | 24 | No — the only reader is `ChoiceModal`'s movement branch, and `ChoiceModal` never renders a movement choice (`isRegularChoice` excludes it; the panel's Move row handles it) |
 
-So the real work is **6 live rows to reword** plus **one gap to fill: a "?" answer for dice actions** — which is the biggest teaching hole on the screen, because the row a beginner most needs explained ("See how long it slows you", "See what happens") is the one whose "?" says nothing.
+So the real work is **7 live rows to reword** plus **one gap to fill: a "?" answer for dice actions** — which is the biggest teaching hole on the screen, because the row a beginner most needs explained ("See how long it slows you", "See what happens") is the one whose "?" says nothing.
 
 The existing `dice_outcome_*` rows are not the answer as written: they say *"The dice determine…"*, *"Higher rolls mean more…"*, *"Roll for Time"* — game language your voice rule bans. So the dice part needs new copy first; the wiring (a small code change) follows approval.
 
@@ -1282,7 +1282,7 @@ The existing `dice_outcome_*` rows are not the answer as written: they say *"The
 
 ---
 
-### Part 1 — the 6 live rows (reword)
+### Part 1 — the 7 live rows (reword)
 
 Format: **now** → **proposed**. Line 1 is `tooltip_why`, line 2 is `tooltip_context`.
 
@@ -1298,10 +1298,10 @@ Format: **now** → **proposed**. Line 1 is `tooltip_why`, line 2 is `tooltip_co
 - **now:** *Investors fund larger projects but take longer and charge higher rates. Investments provide substantial capital for big scope projects.* / *Investor funding suits projects over $4M. Higher fees but more capital available.*
 - **proposed:** *Investors can put in much more money than a bank, but they take longer to decide and cost more.* / *Best for projects over $4 million.*
 
-#### 4. `draw_E` — "Add a team member" / "Bring in extra hands" / "Bring in more help" (12 of its 16 buttons; the other 4, "Pass help to your left/right", are the separate decision in TODO 🙋)
+#### 4. `draw_E` — "Add a team member" / "Bring in extra hands" / "Bring in more help" (12 buttons)
 - **now:** *Expeditors are your secret weapon. They provide special abilities to speed up approvals or avoid problems.* / *Expeditors can be played strategically to bypass delays or reduce costs. Save them for critical moments.*
 - **proposed (recommended):** *A team member here is an **expeditor**: a specialist who knows how city approvals work. They can save you days or money later.* / *Keep them for when they help most — your Expeditors box shows who you have.*
-- **why this one matters most:** it is the only place that connects the button word ("team member") to the trade word ("expeditor") the rest of the game uses. Today the "?" on "Add a team member" never says "team member".
+- **why this one matters most (and the row below is its sibling):** it is the only place that connects the button word ("team member") to the trade word ("expeditor") the rest of the game uses. Today the "?" on "Add a team member" never says "team member".
 
 #### 5. `replace_E` — "Swap a team member" / "Swap in the right specialist" (5 buttons)
 - **now:** *Trading one expeditor for another gives you a chance to get a more useful ability for your current situation.* / *Sometimes the expeditor you have does not fit your needs. Replace them for a better match.*
@@ -1312,6 +1312,11 @@ Format: **now** → **proposed**. Line 1 is `tooltip_why`, line 2 is `tooltip_co
 - **now:** *An expeditor leaving means losing that ability. This often happens when negotiating or facing setbacks.* / *You may be forced to give up help when things go wrong or deals change.*
 - **proposed:** *One of your expeditors leaves your team, and the help they could give you leaves with them.* / *Choose this only if you no longer need them.*
 - **check needed (yours):** the current context line says it can be forced. The button is one you press, so I wrote it as a choice; if some spaces make it mandatory, that line should say so.
+
+#### 7. `transfer_E` — "Pass a team member to your left" / "…to your right" (4 buttons; **no tooltip row exists yet**)
+- **now:** none. Since the buttons were fixed (2026-09-18) the "?" falls back to the button's own label, the same gap the dice actions have. (Before the fix these buttons wrongly showed the `draw_E` text, "Expeditors are your secret weapon", because they were secretly drawing one.)
+- **proposed:** *You hand one of your expeditors to the player next to you. They keep working for them, not for you.* / *Optional. You need at least one to pass, and someone to pass it to.*
+- **check needed (yours):** "They keep working for them" assumes the expeditor keeps their phase restriction and abilities under the new owner — true in the engine (the card just changes hands), but say if you want the story voice instead.
 
 ---
 
@@ -1342,4 +1347,4 @@ Format: **now** → **proposed**. Line 1 is `tooltip_why`, line 2 is `tooltip_co
 
 ### What I need from you
 
-Per row: **ok / edit / no**. Part 1 (6 rows) and Part 2 (9 rows) are independent — Part 1 can ship alone the moment you answer; Part 2 needs the small wiring change too, which I would make and test in the same release. Nothing changes until you answer.
+Per row: **ok / edit / no**. Part 1 (7 rows) and Part 2 (9 rows) are independent — Part 1 can ship alone the moment you answer; Part 2 needs the small wiring change too, which I would make and test in the same release. Nothing changes until you answer.

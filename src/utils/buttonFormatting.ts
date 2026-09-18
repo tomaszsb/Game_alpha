@@ -4,6 +4,7 @@ import React from 'react';
 import { SpaceEffect, DiceEffect } from '../types/DataTypes';
 import { getTooltipService } from '../services/TooltipService';
 import { FormatUtils } from './FormatUtils';
+import { neighborDirection } from './playerNeighbor';
 import { DICE_BUTTON, DICE_FEEDBACK } from '../constants/uiStrings';
 import { colors } from '../styles/theme';
 import { getCardTypeName } from './cardTypeNames';
@@ -122,7 +123,7 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
       } else if (actionLower.startsWith('give_')) {
         text = 'Fire Expeditor';
       } else if (actionLower === 'transfer') {
-        const direction = effect.condition === 'left' ? 'left' : 'right';
+        const direction = neighborDirection(effect.condition) ?? 'right';
         text = `Expeditor Reassigned (${direction})`;
       } else if (actionLower.startsWith('return_')) {
         // Action verb, not a status ("Expeditor Left" read like state, not a

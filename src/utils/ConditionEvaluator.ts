@@ -129,8 +129,9 @@ export class ConditionEvaluator {
       }
 
       // Rows that use the condition column as a PARAMETER, not a gate — who
-      // receives a transfer (to_left/to_right, read by SpaceEffectService.
-      // getTargetPlayer) or how an amount scales (per_200k, read by
+      // receives a transfer (to_left/to_right, resolved by the shared
+      // utils/playerNeighbor — CardEffectService's `transfer` is the live
+      // reader) or how an amount scales (per_200k, read by
       // applySpaceMoneyEffect/applySpaceTimeEffect). The effect must run so its
       // handler can read the parameter.
       if (this.isTargetingDirective(conditionLower) || this.isCalculationModifier(conditionLower)) {

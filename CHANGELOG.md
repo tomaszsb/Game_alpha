@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.68] - 2026-09-18
+
+### "Pass a team member to your left/right" now really passes one (Tom picked option A)
+
+**Player-visible.** Four Subsequent-visit buttons — `PM-DECISION-CHECK`, `ARCH-SCOPE-CHECK`, `CON-ISSUES` (right) and `INVESTOR-FUND-REVIEW` (left) — read "Pass help to your …" and told the story of a rival taking one of your expeditors, but pressing one GAVE the presser a free expeditor. Found 2026-09-18 by running the real row through the real services (Alice 0 → 1, Bob 0 → 0) after reading the label, the story and the engine each looked right.
+
+**Cause.** `Spaces.csv` authors the legacy board-game sentence *"The person to your right takes a card."* `processGameData.js` recognised only `Return|Replace|Give|Draw` + a number, so the sentence fell through to the default `draw_E` and `parseInt(...) || 1` read "no digits" as one card. The engine's `transfer` action (`CardEffectService.handleTransferCard`, with a "which one?" picker) had existed for months with no producer.
+
+**Fix.**
+- The pipeline now recognises the sentence (either side, with or without "The"/the full stop, case-insensitive, E column only) and emits `transfer`, count 1, with `to_left` / `to_right` as the condition. No `Spaces.csv` text changed, so a reskin authoring the same sentence gets the same behaviour; regenerated `SPACE_EFFECTS.csv` differs in exactly those four rows.
+- **Two vocabularies for one idea, found on the way and fixed.** The condition column names a neighbour `to_left`/`to_right` (the directives `ConditionEvaluator` lets through as *parameters*), but the transfer handler understood only `left`/`right`/`next_player`/`prev_player`. A `to_left` row would have passed the evaluator and then handed the card to the **wrong side**; a `left` row would have been dropped by the evaluator as an unknown condition and never shown. New `src/utils/playerNeighbor.ts` resolves every spelling in one place; `CardEffectService`, the button-label fallback and the evaluator's comment all use it.
+- **Optional, like its siblings.** `transfer` joins `replace_/return_/give_` in the shared `isSkippableEffectAction`: the card picker has a Cancel exactly like `give_e`'s, so it cannot be forced without removing Cancel, and counting it as required would strand the turn for anyone with nothing to pass. The panel shows it only when the player holds an expeditor **and** has a neighbour (never in a solo game); the outcome modal reads it as a give (an expeditor that left the hand), not a draw.
+- **Button wording:** "Pass help to your left/right" → "Pass a team member to your left/right" — only the word "team member", already Tom's from 09-18.
+
+**Tests (all red against the old code, green now):** `playerNeighbor` (6), the pipeline parse (5 — 3 fail on the old `processGameData.js`), `CardEffectService` neighbour vocabulary (5), `skippableActions` (`transfer` moved from "required" to "skippable"), the panel guard (3), and 10 end-to-end tests through the real service graph (`tests/ghost/neighborTransfer.test.ts`: right and left, wrap-around, expeditor count conserved, two-expeditor choice, none-held and solo no-ops, the outcome modal) — 10/10 fail against the old `SPACE_EFFECTS.csv`.
+
+**Balance.** Players no longer receive a free expeditor on revisits to those four spaces, and nobody is forced to give one up either (optional). Ghost before/after is below. Making the pass mandatory is possible but needs the picker's Cancel removed for this choice — left as a follow-up decision in NEXT_SESSION.
+
+**Verified:** `tsc --noEmit` clean, `npm run lint` 0 errors, full suite **3245/3245** (30 new tests; one `ENOTEMPTY` in `tests/server/instanceResolver.test.ts` — the documented Windows temp-dir flake — re-ran 160/160 with `instanceStore` in isolation). **Ghost, before → after, seed 100001:** smart-bot **50/50 → 49/50 wins**, avgTurns **70.8 → 70.1**, longGames 21 → 19, **0 hard failures both times**; the strict and negotiate-coverage gates stay green. The bot plays solo, so it simply stopped receiving the free draw. This is a new sample of 50, not a like-for-like comparison: fewer deck draws shift the seeded RNG stream, re-dealing every game after the first divergence — so one game flipping is not a regression signal on its own, and the number to watch is hard failures (0).
+
 ## [3.2.67] - 2026-09-18
 
 ### Three dependency majors taken, each tested for real

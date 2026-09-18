@@ -14,6 +14,7 @@ import { ICardService, IStateService, IDataService, IChoiceService } from '../ty
 import { debugLog } from '../utils/debugLog';
 import { SpaceEffect, CardType } from '../types/DataTypes';
 import { Player } from '../types/StateTypes';
+import { neighborDirection, neighborOf } from '../utils/playerNeighbor';
 
 /**
  * Result of a card effect operation
@@ -440,7 +441,7 @@ export class CardEffectService implements ICardEffectService {
         };
       });
 
-      const directionText = effect.condition === 'left' ? 'left' : 'right';
+      const directionText = neighborDirection(effect.condition) ?? 'right';
       const selectedCardId = await this.choiceService.createChoice(
         playerId,
         'CARD_GIVE',
@@ -471,25 +472,14 @@ export class CardEffectService implements ICardEffectService {
   }
 
   /**
-   * Get target player based on condition string
+   * Get target player based on condition string. Every spelling of a
+   * left/right directive (`to_left`, `left`, `prev_player`, ...) is resolved by
+   * the one shared helper, so this and the condition column can't disagree
+   * about which side a card goes to. No directive keeps the historical default:
+   * the next player.
    */
   private getTargetPlayer(playerId: string, condition?: string): Player | null {
-    const gameState = this.stateService.getGameState();
-    const players = gameState.players;
-    const currentPlayerIndex = players.findIndex(p => p.id === playerId);
-
-    if (condition === 'next_player' || condition === 'right') {
-      const nextIndex = (currentPlayerIndex + 1) % players.length;
-      return players[nextIndex].id !== playerId ? players[nextIndex] : null;
-    }
-
-    if (condition === 'prev_player' || condition === 'left') {
-      const prevIndex = (currentPlayerIndex - 1 + players.length) % players.length;
-      return players[prevIndex].id !== playerId ? players[prevIndex] : null;
-    }
-
-    // Default: next player
-    const nextIndex = (currentPlayerIndex + 1) % players.length;
-    return players[nextIndex].id !== playerId ? players[nextIndex] : null;
+    const players = this.stateService.getGameState().players;
+    return neighborOf(players, playerId, neighborDirection(condition) ?? 'right');
   }
 }

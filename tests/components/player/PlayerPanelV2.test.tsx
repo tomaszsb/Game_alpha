@@ -359,6 +359,78 @@ describe('PlayerPanelV2 — expeditor-action guard', () => {
   });
 });
 
+// "Pass a team member to your left/right" (`transfer`) needs two things the
+// other expeditor actions need one of: an expeditor to pass AND someone to pass
+// it to. In a solo game it would be a button that can only say "nobody there".
+describe('PlayerPanelV2 — pass-a-team-member (transfer) guard', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const passEffect: any = {
+    effect_type: 'cards', effect_action: 'transfer', trigger_type: 'manual',
+    condition: 'to_right', effect_value: 1,
+    description: 'Pass a team member to your right', button_label: 'Pass a team member to your right',
+  };
+
+  const makePlayer = (id: string, hand: string[]): any => ({
+    id, name: id === 'player1' ? 'Test Player' : 'Other Player', currentSpace: 'PM-DECISION-CHECK',
+    visitType: 'Subsequent', money: 100000, timeSpent: 5, color: '#007bff',
+    hand, activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null,
+  });
+
+  const setup = (hand: string[], seated: number) => {
+    vi.clearAllMocks();
+    services = createAllMockServices();
+    const player = makePlayer('player1', hand);
+    const players = [player, ...Array.from({ length: seated - 1 }, (_, i) => makePlayer(`player${i + 2}`, []))];
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players, currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null,
+      requiredActions: 0, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'PM Check', story: '' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'OWNER' });
+    services.dataService.getSpaceEffects.mockReturnValue([passEffect]);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([passEffect]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockImplementation((id: string) =>
+      id.startsWith('E') ? { card_id: id, card_type: 'E', card_name: 'Filing Rep' } : null);
+  };
+
+  const renderPanel = () =>
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+
+  afterEach(() => cleanup());
+
+  it('shows the button, tagged optional, when there is an expeditor to pass and a neighbour to pass it to', () => {
+    setup(['E001'], 2);
+    renderPanel();
+    expect(screen.getByText(/Pass a team member to your right/i)).toBeInTheDocument();
+    expect(screen.getByTestId('action-optional-tag')).toBeInTheDocument();
+  });
+
+  it('hides the button when the player holds no expeditor', () => {
+    setup([], 2);
+    renderPanel();
+    expect(screen.queryByText(/Pass a team member/i)).not.toBeInTheDocument();
+  });
+
+  it('hides the button in a solo game — there is nobody to pass it to', () => {
+    setup(['E001'], 1);
+    renderPanel();
+    expect(screen.queryByText(/Pass a team member/i)).not.toBeInTheDocument();
+  });
+});
+
 describe('PlayerPanelV2 — movement check/uncheck (Pile 2: fb:c2e489dc / fb:45cb8b0c)', () => {
   let services: ReturnType<typeof createAllMockServices>;
 

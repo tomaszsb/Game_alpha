@@ -506,6 +506,24 @@ function processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup = new Map
         }
       }
 
+      // The legacy board-game sentence for "a neighbour takes one of your
+      // expeditors" -- "The person to your right takes a card." -- matches none
+      // of the verbs above, so it used to fall through to the default `draw_E`
+      // and GIVE the pressing player an expeditor: the opposite of what the
+      // button, the story and the engine's own `transfer` action all say. Found
+      // 2026-09-18 by running the real row. Recognise it: `transfer` (the
+      // engine's hand-a-card-to-a-neighbour action) with the side carried as a
+      // `to_left` / `to_right` targeting directive, the vocabulary
+      // ConditionEvaluator already lets through as a parameter.
+      const neighborMatch = cardLetter === 'E'
+        ? cardValue.match(/^(?:the\s+)?person\s+to\s+your\s+(left|right)\s+takes\s+a\s+card\.?$/i)
+        : null;
+      if (neighborMatch) {
+        cardAction = 'transfer';
+        cardCount = '1';
+        condition = `to_${neighborMatch[1].toLowerCase()}`;
+      }
+
       // Per-action narrative text from Spaces.csv (e.g., w_card_narrative)
       const narrative = (row[cardNarrativeCols[colName]] || '').trim();
 

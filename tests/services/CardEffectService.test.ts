@@ -436,6 +436,65 @@ describe('CardEffectService', () => {
       expect(result.message).toBe('No E cards to transfer');
       expect(mockCardService.transferCard).not.toHaveBeenCalled();
     });
+
+    // The CSV names a neighbour `to_left` / `to_right` (the directives
+    // ConditionEvaluator passes through as parameters). This handler used to
+    // understand only `left` / `right`, so a `to_left` row would run and hand the
+    // card to the WRONG side. Every spelling now resolves through one helper.
+    describe('neighbour directive vocabulary (to_left / to_right)', () => {
+      const seat = (n: number) => {
+        const others: any[] = [];
+        for (let i = 2; i <= n; i++) others.push({ ...mockPlayer, id: `player${i}`, name: `Player ${i}` });
+        mockStateService.getGameState.mockReturnValue({
+          players: [mockPlayer, ...others],
+          currentPlayerId: 'player1',
+          gamePhase: 'PLAY'
+        });
+        mockCardService.getPlayerCards.mockReturnValue(['e-card-1']);
+      };
+      const transferWith = (condition: string | undefined) =>
+        cardEffectService.executeCardEffect('player1', {
+          space_name: 'TEST', visit_type: 'Subsequent', effect_type: 'cards',
+          effect_action: 'transfer', effect_value: '1', condition, is_manual: true
+        } as any, 'cards:transfer');
+      const givenTo = () => mockCardService.transferCard.mock.calls[0]?.[1];
+
+      it('to_right hands the card to the next player', async () => {
+        seat(3);
+        await transferWith('to_right');
+        expect(givenTo()).toBe('player2');
+      });
+
+      it('to_left hands the card to the previous player, wrapping around the table', async () => {
+        seat(3);
+        await transferWith('to_left');
+        expect(givenTo()).toBe('player3');
+      });
+
+      it('the older left/right/next_player/prev_player spellings still resolve', async () => {
+        for (const [condition, expected] of [['right', 'player2'], ['next_player', 'player2'], ['left', 'player3'], ['prev_player', 'player3']] as const) {
+          mockCardService.transferCard.mockClear();
+          seat(3);
+          await transferWith(condition);
+          expect(givenTo()).toBe(expected);
+        }
+      });
+
+      it('two players: left and right are the same neighbour', async () => {
+        seat(2);
+        await transferWith('to_left');
+        expect(givenTo()).toBe('player2');
+      });
+
+      it('a solo game has no neighbour: nothing moves and the action reports it cannot', async () => {
+        seat(1);
+        const result = await transferWith('to_right');
+        expect(result.success).toBe(true);
+        expect(result.cardsAffected).toEqual([]);
+        expect(result.message).toBe('No target player found');
+        expect(mockCardService.transferCard).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('executeCardEffect - error handling', () => {

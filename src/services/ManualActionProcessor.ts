@@ -235,9 +235,15 @@ export class ManualActionProcessor {
     const effects: DiceResultEffect[] = [];
 
     if (baseType === 'cards') {
-      const cardType = manualEffect.effect_action.replace('draw_', '').replace('replace_', '').replace('give_', '').replace('return_', '').toUpperCase();
+      // `transfer` ("pass one to the player on your left/right") carries no type
+      // suffix — it only ever moves an expeditor — and reads to the modal as a
+      // give: a card leaves this player's hand for another player's.
+      const isTransferAction = manualEffect.effect_action === 'transfer';
+      const cardType = isTransferAction
+        ? 'E'
+        : manualEffect.effect_action.replace('draw_', '').replace('replace_', '').replace('give_', '').replace('return_', '').toUpperCase();
       const isReplaceAction = manualEffect.effect_action.startsWith('replace_');
-      const isGiveAction = manualEffect.effect_action.startsWith('give_');
+      const isGiveAction = manualEffect.effect_action.startsWith('give_') || isTransferAction;
       const isReturnAction = manualEffect.effect_action.startsWith('return_');
 
       // Determine which cards were drawn by comparing before/after hands

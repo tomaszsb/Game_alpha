@@ -19,7 +19,7 @@ PM-DECISION-CHECK,First,cards,draw_L,1,dice_roll_1,Draw 1 if you roll a 1 L card
 PM-DECISION-CHECK,First,cards,replace_e,1,,Swap a team member,manual,,,,,,,Swap a team member
 PM-DECISION-CHECK,First,time,add,5,,Spend 5 days,auto,,,,,,,
 PM-DECISION-CHECK,Subsequent,cards,draw_L,1,dice_roll_2,Draw 1 if you roll a 2 L cards,auto,,,,,,,
-PM-DECISION-CHECK,Subsequent,cards,draw_E,The person to your right takes a card.,,Pass help to your right,manual,,,,,,,Pass help to your right
+PM-DECISION-CHECK,Subsequent,cards,transfer,1,to_right,Pass a team member to your right,manual,,,,,,,Pass a team member to your right
 PM-DECISION-CHECK,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
 LEND-SCOPE-CHECK,First,cards,draw_L,1,dice_roll_3,Draw 1 if you roll a 3 L cards,auto,,,,,,,
 LEND-SCOPE-CHECK,First,cards,draw_E,1,,Add a team member,manual,,,,,,,Add a team member
@@ -43,7 +43,7 @@ INVESTOR-FUND-REVIEW,First,dice,dice_outcome,I Cards,,See what they'll put in,ma
 INVESTOR-FUND-REVIEW,First,dice,dice_outcome,Time outcomes,,See how long they take,manual,,,,,,,See how long they take
 INVESTOR-FUND-REVIEW,First,fee,deduct,5% of amount borrowed,,Pay 5% of amount borrowed fees,auto,LOAN_PERCENTAGE,,,,,,
 INVESTOR-FUND-REVIEW,Subsequent,cards,draw_L,1,dice_roll_6,Draw 1 if you roll a 6 L cards,auto,,,,,,,
-INVESTOR-FUND-REVIEW,Subsequent,cards,draw_E,The person to your left takes a card.,,Pass help to your left,manual,,,,,,,Pass help to your left
+INVESTOR-FUND-REVIEW,Subsequent,cards,transfer,1,to_left,Pass a team member to your left,manual,,,,,,,Pass a team member to your left
 INVESTOR-FUND-REVIEW,Subsequent,dice,dice_outcome,I Cards,,See what's left on the table,manual,,,,,,,See what's left on the table
 INVESTOR-FUND-REVIEW,Subsequent,dice,dice_outcome,Time outcomes,,See how long they take,manual,,,,,,,See how long they take
 INVESTOR-FUND-REVIEW,Subsequent,fee,deduct,5% of amount borrowed,,Pay 5% of amount borrowed fees,auto,LOAN_PERCENTAGE,,,,,,
@@ -64,7 +64,7 @@ ARCH-SCOPE-CHECK,First,cards,replace_e,1,,Swap a team member,manual,,,,,,,Swap a
 ARCH-SCOPE-CHECK,First,dice,dice_outcome,W Cards,,See what the design adds,manual,,,,,,,See what the design adds
 ARCH-SCOPE-CHECK,First,time,add,50,,Spend 50 days,auto,,,,,,,
 ARCH-SCOPE-CHECK,Subsequent,cards,draw_L,1,dice_roll_6,Draw 1 if you roll a 6 L cards,auto,,,,,,,
-ARCH-SCOPE-CHECK,Subsequent,cards,draw_E,The person to your right takes a card.,,Pass help to your right,manual,,,,,,,Pass help to your right
+ARCH-SCOPE-CHECK,Subsequent,cards,transfer,1,to_right,Pass a team member to your right,manual,,,,,,,Pass a team member to your right
 ARCH-SCOPE-CHECK,Subsequent,dice,dice_outcome,W Cards,,See what changed,manual,,,,,,,See what changed
 ARCH-SCOPE-CHECK,Subsequent,time,add,15,,Spend 15 days,auto,,,,,,,
 ENG-INITIATION,First,cards,draw_L,1,dice_roll_1,Draw 1 if you roll a 1 L cards,auto,,,,,,,
@@ -150,7 +150,7 @@ CON-ISSUES,First,cards,draw_L,1,dice_roll_5,Draw 1 if you roll a 5 L cards,auto,
 CON-ISSUES,First,cards,replace_e,1,,Swap in the right specialist,manual,,,,,,,Swap in the right specialist
 CON-ISSUES,First,dice,dice_outcome,Time outcomes,,See how long you're stopped,manual,,,,,,,See how long you're stopped
 CON-ISSUES,Subsequent,cards,draw_L,1,dice_roll_6,Draw 1 if you roll a 6 L cards,auto,,,,,,,
-CON-ISSUES,Subsequent,cards,draw_E,The person to your right takes a card.,,Pass help to your right,manual,,,,,,,Pass help to your right
+CON-ISSUES,Subsequent,cards,transfer,1,to_right,Pass a team member to your right,manual,,,,,,,Pass a team member to your right
 CON-ISSUES,Subsequent,dice,dice_outcome,Time outcomes,,See how long it slows you,manual,,,,,,,See how long it slows you
 CON-INSPECT,First,cards,draw_L,1,dice_roll_1,Draw 1 if you roll a 1 L cards,auto,,,,,,,
 CON-INSPECT,First,cards,return_e,1,,Let a team member go,manual,,,,,,,Let a team member go

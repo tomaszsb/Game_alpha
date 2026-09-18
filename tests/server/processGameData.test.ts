@@ -125,6 +125,58 @@ describe('processGameData — card action parsing', () => {
     expect(effect).toContain('draw_E');
   });
 
+  // 2026-09-18: "The person to your right takes a card." matches none of the
+  // verbs above, so it fell through to the default draw_E and GAVE the pressing
+  // player an expeditor — while the button said "pass", the story said a rival
+  // took one, and the engine had a `transfer` action built for exactly this.
+  // Found by running the real row, not by reading it.
+  describe('neighbour-takes-a-card sentence', () => {
+    const effectFor = (name: string, e_card: string) => {
+      const csv = [spacesHeader, spacesLabelRow, makeSpaceRow(name, { e_card })].join('\n');
+      processGameData(csv, diceRollCsv, tmpDir);
+      return findEffect(readEffects(), name, ',cards,')?.split(',');
+    };
+    // space_name, visit_type, effect_type, effect_action, effect_value, condition
+    const ACTION = 3, VALUE = 4, CONDITION = 5;
+
+    it('becomes transfer with a to_right directive, not a free draw_E', () => {
+      const f = effectFor('TEST-NEIGHBOR-R', 'The person to your right takes a card.');
+      expect(f).toBeDefined();
+      expect(f![ACTION]).toBe('transfer');
+      expect(f![VALUE]).toBe('1');
+      expect(f![CONDITION]).toBe('to_right');
+    });
+
+    it('becomes transfer with a to_left directive', () => {
+      const f = effectFor('TEST-NEIGHBOR-L', 'The person to your left takes a card.');
+      expect(f![ACTION]).toBe('transfer');
+      expect(f![CONDITION]).toBe('to_left');
+    });
+
+    it('accepts the sentence without the leading "The" or the full stop, in any case', () => {
+      for (const text of ['Person to your right takes a card', 'the PERSON TO YOUR RIGHT TAKES A CARD.']) {
+        const f = effectFor('TEST-NEIGHBOR-LOOSE', text);
+        expect(f![ACTION]).toBe('transfer');
+        expect(f![CONDITION]).toBe('to_right');
+      }
+    });
+
+    it('does not swallow other text: an unrelated sentence still falls back to draw_E', () => {
+      const f = effectFor('TEST-NEIGHBOR-OTHER', 'The person to your right takes a walk.');
+      expect(f![ACTION]).toBe('draw_E');
+      expect(f![CONDITION]).toBe('');
+    });
+
+    it('only ever applies to the expeditor column', () => {
+      const csv = [spacesHeader, spacesLabelRow,
+        makeSpaceRow('TEST-NEIGHBOR-W', { w_card: 'The person to your right takes a card.' })
+      ].join('\n');
+      processGameData(csv, diceRollCsv, tmpDir);
+      const f = findEffect(readEffects(), 'TEST-NEIGHBOR-W', ',cards,')?.split(',');
+      expect(f![ACTION]).not.toBe('transfer');
+    });
+  });
+
   it('should extract numeric count from action text', () => {
     const csv = [spacesHeader, spacesLabelRow,
       makeSpaceRow('TEST-COUNT', { e_card: 'Return 2' })
