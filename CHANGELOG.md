@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.66] - 2026-09-18
+
+### Dependencies brought current (same-major refresh)
+
+**Not player-visible on its own, but it changes the shipped bundle** (`npm ci` on the Unraid build picks these up from the lockfile). `npm update` moved 113 packages inside their existing semver ranges; `package.json` ranges were already wide enough, so only `package-lock.json` changed. Notable: `react`/`react-dom` 19.2.6 → 19.3.0 (+ `@types/react` and `-dom` 19.3.0), `vite` 8.0.16 → 8.3.0, `@vitejs/plugin-react` 6.0.2 → 6.1.1, `framer-motion` 12.40.0 → 12.43.0, `@xyflow/react` 12.10.2 → 12.11.6, `recharts` 3.10.0 → 3.10.1, `terser` 5.48.0 → 5.51.2, `eslint` 9.39.4 → 9.39.5, `typescript-eslint` 8.60 → 8.70, `playwright` 1.60 → 1.63, `puppeteer` 25.8 → 25.11, `tsx` 4.22 → 4.23, `@testing-library/react` 16.3.3, `@testing-library/user-event` 14.6.7. `npm audit`: still 0. Verified: `tsc --noEmit` clean, `vite build` OK, full suite 3214/3214 (three `tests/server/**` filesystem errors — two `EPERM` renames in `instanceResolver`, one `ENOTEMPTY` in `instanceStore` — the documented Windows temp-dir flake; both files re-ran 160/160 in isolation).
+
+**Majors looked at and deliberately not taken here** (each checked against the registry, not assumed): `eslint` 10 — `eslint-plugin-react` 7.37.5 is still the latest and its peer range stops at `^9.7`. `vitest`/`@vitest/coverage-v8` 5 — vitest 5 requires Node `^22.12 || ^24 || >=26` and **this machine runs Node 20.19.0**. `typescript` 7 — `@typescript-eslint` 8.70 caps its peer at `<6.1.0`, so 7 would break lint; 6.0.3 is the newest version the toolchain accepts.
+
+### USER_MANUAL.md accuracy pass
+
+**Player-facing docs.** The manual still described the panel from before v3.2.62/v3.2.64. Rewritten against the current panel code, not find/replaced: the four tappable boxes (Money / Time / Expeditors / Scope) and what each opens, "This turn" (with the "optional" tag and the "Already done this turn" list), the commit control's real captions (the space's own forward label, the second "what's left" line, the `label → destination` signpost, "Waiting for …"), and the Expeditors-page path to **Activate**. Also fixed statements that were simply wrong, checked in code: the win rule was written as "finish with lowest time" — the game ends when a player **reaches the FINISH space** (`GameRulesService.checkWinCondition`, `TurnService`), days only feed the final score; the phase list said SETUP/FINISH where `GAME_CONFIG.csv` has OWNER/FUNDING/…/END; and it never mentioned the two no-winner endings (bankruptcy, design fees past 20% of scope). The "Not yet" hint for an unusable expeditor was attributed to the panel; it lives in the expeditor's detail view. Line endings kept CRLF so the diff is the real 40/32 lines, not the whole file.
+
 ## [3.2.65] - 2026-09-18
 
 ### Security: 9 → 0 npm vulnerabilities

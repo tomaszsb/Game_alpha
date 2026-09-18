@@ -1,6 +1,6 @@
 # User Manual - Unravel Codes: The Game
 
-**Last Updated:** August 1, 2026
+**Last Updated:** September 18, 2026
 **Version:** 3.1.85
 **Status:** Beta — live at https://game.unravelcodes.com
 
@@ -37,7 +37,7 @@ Welcome to Unravel Codes: The Game! This manual will help you understand how to 
    - Or enter a Game Code to join an existing game
 3. **Add players** in the setup screen (2-4 players)
 4. **Start game** - players automatically placed at START space
-5. **Play turns** - follow the "Things you can do" list and the End Turn control at the bottom of your panel
+5. **Play turns** - follow the "This turn" list and the End turn control at the bottom of your panel
 6. **Win** by completing your construction project first!
 
 ### Game Lobby
@@ -67,32 +67,39 @@ When you first access the game, you'll see the **Game Lobby**:
 
 ### Objective
 
-Navigate through construction project phases, manage resources (money and time), collect work cards, and complete your project before other players.
+Navigate through construction project phases, manage resources (money and time), collect work cards, and complete your project before other players. **The first player to reach the FINISH space wins.**
+
+A game can also end early with no winner: if a mandatory bill drops your cash below zero (bankruptcy), or if design fees climb past 20% of your project scope.
 
 ### Game Phases
 
-- **SETUP:** Initial project definition and funding
+Your current phase is shown at the top right of your panel.
+
+- **OWNER:** Meet the owner, define what you're building, and decide how to fund it
+- **FUNDING:** Line up the money — bank, investors, or your own funds
 - **DESIGN:** Architectural and engineering work
 - **REGULATORY:** Permits and approvals
 - **CONSTRUCTION:** Building execution
-- **FINISH:** Project completion
+- **END:** Project completion (the FINISH space)
 
 ### Resources
 
 **Money:**
 - Earn from loans, investments, owner funding
 - Spend on permits, fees, card costs
-- Shown in your panel's status row; tap 📋 **My numbers** for the full breakdown
+- Shown in the 💰 **Money** box at the top of your panel; tap it for the full breakdown — cash on hand, funding raised, what you've spent, and where the money is going
 
 **Time:**
 - Measured in "days" (weeks/months)
 - Affected by space effects and cards
-- Win condition: Finish with lowest time
+- Shown in the 🕐 **Time** box; tap it to open your History
+- Days count against your final score, so a faster project scores better
 
 **Project Scope:**
 - Based on Work (W) cards collected
 - Determines funding amounts
 - Recalculated automatically as you draw Work Package cards
+- Shown in the 🏢 **Scope** box; tap it to see your work packages by trade
 
 ---
 
@@ -106,35 +113,35 @@ The Player Panel is a **single scrolling mobile-first view**, not a set of separ
 ┌─────────────────────────────────┐
 │ ● Player Name          Phase   │  ← Header
 ├─────────────────────────────────┤
-│ 💰 $Money   🕐 Days   DOB FDNY │  ← Status row (+ VIOLATION if active)
-│ [📋 My numbers] [📜 History]   │
+│ [💰 Money  ›] [🕐 Time  ›]      │  ← Four at-a-glance boxes
+│ [⚡ Expeditors ›] [🏢 Scope ›]  │     (+ DOB / FDNY / VIOLATION marks)
 ├─────────────────────────────────┤
 │ 📍 Where you are & why         │  ← Current space + story
 ├─────────────────────────────────┤
-│ Things you can do              │  ← Action buttons, incl. Move
+│ This turn                      │  ← Action buttons, incl. Move
 ├─────────────────────────────────┤
-│ What's affecting you           │  ← Expeditors, effects, your cards
-├─────────────────────────────────┤
-│ [ Try Again  |  End Turn ]     │  ← Tap to compare, hold to confirm
+│ [ Try Again  |  End turn ]     │  ← Tap to compare, hold to confirm
 └─────────────────────────────────┘
 ```
 
 ### Panel Zones
 
-- **Status row:** Your cash on hand and days spent, plus small DOB/FDNY approval marks and a VIOLATION mark (only if you have an open violation — see [Homeowner Violations](#homeowner-violations)). Two buttons live here:
-  - **📋 My numbers** opens a read-only recall screen with your project scope, work packages, money, and time.
-  - **📜 History** opens a log of what's happened to you this game (moves and changes).
+- **The four boxes:** Your key numbers at a glance. Each one is tappable — tap it to open its own page:
+  - **💰 Money** — your cash on hand. The page shows funding raised, what you've spent so far, where the money is going (design, filings, construction, your buffer), and how much you still need to raise. Any loan or investment cards you hold are listed here too, along with anything that's **still costing you** each turn.
+  - **🕐 Time** — days spent so far. Tap it to open your **History**, a log of what's happened to you this game (moves and changes).
+  - **⚡ Expeditors** — how many you've hired. It glows and says "N you can use now" when one is ready; the page lists your expeditors, each usable one with its own **Activate** button.
+  - **🏢 Scope** — how many work packages you hold. The page shows your total scope; tap it to see each work package grouped by trade, and tap a package to see its full cost.
+  - Small **DOB** / **FDNY** approval marks appear beside the boxes, plus a **VIOLATION** mark only if you have an open violation — see [Homeowner Violations](#homeowner-violations).
 - **Where you are & why:** The space you're on, its story, and — if there's more to know — a "What to do & why" toggle that expands into what's expected of you and why.
-- **Things you can do:** Every action currently available to you — manual effects (like accepting a loan or rolling for an outcome), and a **Move** row when you have a destination to choose. Tap **Move** to expand your route options; once expanded they stay visible so you can change your mind until you end your turn. Completed actions show with a checkmark.
-- **What's affecting you:** Collapsed by default. Expand it to see any Expeditor cards you can activate right now (each has its own **Activate** button), ongoing effects currently applied to you, and the cards in your hand grouped by type (tap a group to see the cards in it, tap a single card for its details).
+- **This turn:** Every action available to you right now — manual effects (like accepting a loan or rolling for an outcome), and a **Move** row when you have a destination to choose. Tap **Move** to expand your route options; once expanded they stay visible so you can change your mind until you end your turn. Actions you can skip are tagged "optional". Completed actions move to an **Already done this turn** list with a checkmark.
 
 ### Ending Your Turn / Try Again
 
-The footer merges **Try Again** and **End Turn** into one control instead of two separate buttons:
+The footer merges **Try Again** and **End turn** into one control instead of two separate buttons:
 
 - **Tap** either side to preview what it costs (money/time) before committing — nothing happens yet.
 - **Press and hold** the side you want to commit to; a ring sweeps around the button as you hold, and releasing after it fills locks in that choice. This is deliberate — these are the most consequential actions in your turn (spending money or burning a day), so a stray tap can't trigger one by accident.
-- The End Turn side's label changes with your situation: **"N action(s) left"** (grayed out) while you still have pending actions, a dice/movement prompt like **"Take your next step"** when it's time to roll or move, and **"End turn"** once everything is done. When it isn't your turn at all, it reads **"Waiting for [Player Name]"**.
+- The End turn side is named for the step the space is asking of you — for example **"Sign off on the design"** — and falls back to **"End turn"** (or **"Take your next step"** when it's time to roll or move) on spaces that don't name one. While something is still open it stays grayed out, with a second line saying what's left: **"Finish “…” above first"** or **"Pick where you're going first"**. Once you've picked a destination, the label names it (for example **"Sign off on the design → Pick Your Path"**). When it isn't your turn at all, it reads **"Waiting for [Player Name]"**.
 - Try Again only appears on spaces that actually offer it.
 
 ---
@@ -157,18 +164,18 @@ The footer merges **Try Again** and **End Turn** into one control instead of two
 
 #### Get Funding
 - **When:** At a funding space (e.g. the bank or investor loan review)
-- **How:** A funding action shows up under "Things you can do" for that space (for example, "Accept Bank Loan") — tap it.
+- **How:** A funding action shows up under "This turn" for that space (for example, "See the bank's terms" at the bank) — tap it.
 - **Effect:** Draws the appropriate loan card and applies its fees.
 
 #### Activate an Expeditor Card
 - **When:** Anytime during your turn (phase restrictions apply)
 - **How:**
-  1. Expand "What's affecting you"
-  2. Expeditor cards you can currently use are listed with their own **Activate** button
+  1. Tap the **⚡ Expeditors** box at the top of your panel (it glows and reads "N you can use now" when one is ready)
+  2. Expeditors you can currently use show their own **Activate** button
   3. Tap **Activate**
 - **Effect:** The card's effect applies immediately.
 
-Expeditors are the only cards you actively play from your hand. Work Package, loan (Bank/Investor), and Life Event cards apply themselves automatically when you draw them — tapping one in "What's affecting you" just opens its details for reference, with nothing to activate.
+Expeditors are the only cards you actively play from your hand. Work Package, loan (Bank/Investor), and Life Event cards apply themselves automatically when you draw them — tapping a loan on the **Money** page or an expeditor you can't use yet just opens its details for reference, with nothing to activate.
 
 #### Propose a Trade
 - **When:** You're holding a card that offers a trade (e.g. "Backchannel Favor")
@@ -176,7 +183,7 @@ Expeditors are the only cards you actively play from your hand. Work Package, lo
 - **Effect:** If the other player accepts, money and/or cards change hands immediately.
 
 #### Try Again
-- **When:** Available on certain spaces (appears as one side of the End Turn control)
+- **When:** Available on certain spaces (appears as one side of the End turn control)
 - **How:** Tap "Try Again" to preview its cost, then press and hold it to commit
 - **Effect:** Reverts to state before current space entry (time penalty may apply)
 
@@ -245,10 +252,10 @@ Certain Expeditor cards (for example, **"Backchannel Favor"**) let you propose a
 - Take loans early to fund permits and cards
 - Bank loans (<$4M projects) have lower interest
 - Investor loans (>$4M projects) for large projects
-- Track loan balances via 📋 **My numbers**
+- Track your loans and what you've spent on the 💰 **Money** page
 
 **Time:**
-- Minimize time to win
+- Fewer days means a better final score — but reaching FINISH first is what wins
 - Use E (Expeditor) cards to reduce time
 - Avoid L (Life Event) cards that add time
 - "Try Again" costs time but may save money
@@ -291,18 +298,19 @@ Certain Expeditor cards (for example, **"Backchannel Favor"**) let you propose a
 
 ### Common Issues
 
-**"N actions left" - can't end turn**
-- Check "Things you can do" for anything still unfinished
+**The End turn control is grayed out - can't end turn**
+- Read the second line under it: it says what's still open ("Finish “…” above first", or "Pick where you're going first")
+- Check "This turn" for anything still unfinished
 - Pending choice modals must be resolved
 - Some spaces require mandatory actions
 
 **Expeditor won't activate**
-- Check phase restrictions (it may not be usable in the current phase — a "Not yet" hint explains why)
+- Check phase restrictions (it may not be usable in the current phase — tap it on the **Expeditors** page and its details show a "Not yet" note explaining why)
 - Verify you have enough money for its cost
 - Ensure it's your turn
 
 **Movement not working**
-- **CHEAT dice spaces:** Tap the dice action button under "Things you can do" first (e.g. "Roll for...")
+- **CHEAT dice spaces:** Tap the dice action button under "This turn" first (e.g. "Roll for...")
 - **REG dice spaces:** Wait for auto-roll (happens automatically)
 - Choice spaces require selecting destination
 - Terminal spaces (FINISH) have no movement
@@ -380,4 +388,4 @@ The Space Data Editor allows game designers to edit space data directly from the
 
 **Feedback:** Use the in-app bug-report button (floating ladybug icon) — submits with screenshot directly to the host.
 
-**Last Updated:** August 1, 2026
+**Last Updated:** September 18, 2026
