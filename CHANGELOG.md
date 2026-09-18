@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.65] - 2026-09-18
+
+### Security: 9 → 0 npm vulnerabilities
+
+**Not player-visible.** `npm audit` reported 9 (5 moderate, 4 high) after deploying v3.2.64 — `npm audit fix` itself crashes on an unrelated `@npmcli/arborist` bug (`Cannot read properties of null (reading 'edgesOut')`) while resolving vitest's peer set, so each package was bumped by hand instead: `vitest`/`@vitest/coverage-v8` 4.1.8 → 4.1.11, `sharp` 0.35.3 → 0.35.4, `nodemailer` 9.0.3 → 9.1.1 — all same-major, no breaking changes. The remaining four (`browserslist`, `js-yaml`, `qs`, `baseline-browser-mapping`) are transitive, pulled in by `@babel/helper-compilation-targets`, `eslint`'s `@eslint/eslintrc`, and `express`'s `body-parser` respectively; pinned to their patched versions via `package.json` `overrides` since none are direct dependencies. Typecheck, build, and the full suite all verified clean after.
+
+### Commit control now highlights whenever it's pressable, not just on a first visit (fb:ae480630)
+
+**Player-visible.** `fb:ae480630`'s `extra` field, surfaced 2026-09-01, carried a request the one-line summary never showed: *"also when actions are completed the negotiate and/or accept buttons should become the highlighted buttons."* The commit control's green-dot highlight (`showGreenDot`) was gated to `player.visitType === 'First'` — so finishing a space's actions on a SUBSEQUENT visit (a real, common case: re-entering the same space via Try Again) never lit the control that had just become pressable. Now tracks `commit.ready` alone, on both the single-button path (no negotiate option) and the two-tab `TurnCommitControl`. The report's ORIGINAL complaint (a highlight going stale, chased since July) is a separate, still-open question — see TODO. Possible live match: fb:11662ac3 ("no pulsating buttons" at Lender Review, filed against v3.2.62) — too thin to confirm from the record, flagged for a live re-check.
+
+### Engagement data can now tell the maintainer's own testing from real players
+
+**Not player-visible — new admin-API field, `byOrigin`.** TODO tracked this since 2026-08-15/09-01: a prior read of `/api/admin/engagement-stats` drew a confident conclusion ("4 of 9 games never got a second player") that dissolved once the maintainer confirmed those were his own solo test sessions, with no way in the data to tell them apart from real players. `aggregateEngagementStats` now takes an `isHomeIP` option (same contract as the acquisition-funnel dashboard's existing one) and returns `byOrigin: {home, foreign}` — `gamesStarted`/`gamesFinished`/`gamesAbandoned` broken down by whether each game's own `GAME_STARTED` event came from the maintainer's home IP. A game's origin is fixed at creation (its own start event), not recomputed from every later event, so a real remote player joining a maintainer-created game can't flip it foreign mid-game. Wired to the same `isHomeIP()` the foreign-game text alert already uses. Existing totals are unchanged (purely additive). Not re-run against live data yet — fixing the instrument and re-reading it are deliberately kept separate, per the standing caution already in TODO about this exact dataset.
+
+### "Underwriting" — a jargon header the glossary couldn't reach (Bank Review)
+
+**Player-visible.** From this morning's 2026-09-18 03:45 Jarvis playtest (5 hits): `DiceResultModal`'s own title at Bank Review's first visit was `spaceContent.title` verbatim ("We're underwriting your file") — titles never run through `TextWithTerms`, so the existing GLOSSARY.csv `underwriting` entry couldn't help the way it can in flowing prose. Tom picked "reviewing"/"reviewed" from three drafted options. Title → "We're reviewing your file"; Subsequent-visit story → "We've already reviewed this project once…"; a third occurrence found in the First-visit story body ("Underwriting will work the numbers…") got the same treatment for consistency ("We'll work the numbers…"), since it's the identical word in the identical space. `Spaces.csv` (SOURCE) edited, `SPACE_CONTENT.csv` (CLEAN) regenerated.
+
+Most of that same report's other top findings (the "helper"/"pound of flesh"/"THINGS YOU CAN DO" items above) were already fixed by v3.2.64 — the report ran at 03:45, before that morning's deploy. Three more findings (9 hits total, three phrasings of the same root question: does the collapsed destination picker read as clickable?) were folded into TODO's already-tracked "should the picker auto-expand" decision as supporting evidence, not raised as new. One finding ("See the bank's terms" reveals nothing before pressing) is probably the robot not understanding an inherent game rule — a dice roll's outcome can't be previewed before rolling — not a copy defect.
+
+### Housekeeping
+
+Cleared three TODO items that were already done but never removed (the commit-caption-fallbacks and "helper"/"pound of flesh"/"THINGS YOU CAN DO" items, both closed by v3.2.64; the "My numbers" placeholder-naming item, closed by v3.2.63).
+
 ## [3.2.64] - 2026-09-18
 
 ### Three worst copy offenders from the 2026-09-12 playtest

@@ -132,3 +132,54 @@ describe('aggregateEngagementStats', () => {
     });
   });
 });
+
+// TODO.md 2026-08-15/09-01: the maintainer's own testing had no way to be
+// excluded from "real player" counts — a prior read of this dataset drew a
+// conclusion that later dissolved once that was pointed out (RETRACTED note
+// in TODO.md). `byOrigin` makes the maintainer's own home-IP sessions
+// distinguishable from everyone else's without discarding either.
+describe('aggregateEngagementStats — byOrigin (session attribution)', () => {
+  const isHomeIP = (ip: string) => ip === '192.168.1.50';
+
+  it('buckets a game by its OWN GAME_STARTED ip, defaults to all-foreign when isHomeIP is omitted', () => {
+    const entries = [
+      at(1000, { action: 'GAME_STARTED', gameId: 'G1', ip: '192.168.1.50' }), // home
+      at(900, { action: 'GAME_STARTED', gameId: 'G2', ip: '90.128.59.214' }), // foreign
+    ];
+    const withOrigin = aggregateEngagementStats(entries, { now: NOW, isHomeIP });
+    expect(withOrigin.byOrigin).toEqual({
+      home: { gamesStarted: 1, gamesFinished: 0, gamesAbandoned: 0 },
+      foreign: { gamesStarted: 1, gamesFinished: 0, gamesAbandoned: 0 },
+    });
+
+    const noOption = aggregateEngagementStats(entries, { now: NOW });
+    expect(noOption.byOrigin.home.gamesStarted).toBe(0);
+    expect(noOption.byOrigin.foreign.gamesStarted).toBe(2);
+  });
+
+  it('a later event from a different ip (e.g. a remote player joining) does not flip the game\'s origin', () => {
+    const entries = [
+      at(1000, { action: 'GAME_STARTED', gameId: 'G1', ip: '192.168.1.50' }), // maintainer creates it, at home
+      at(900, { action: 'PLAYTEST_SPACE_REACHED', gameId: 'G1', playerId: 'p2', spaceId: 'OWNER-SCOPE-INITIATION', ip: '90.128.59.214' }), // a real remote player joins
+    ];
+    const result = aggregateEngagementStats(entries, { now: NOW, isHomeIP });
+    expect(result.byOrigin.home.gamesStarted).toBe(1);
+    expect(result.byOrigin.foreign.gamesStarted).toBe(0);
+  });
+
+  it('tracks gamesFinished and gamesAbandoned per origin, on top of the unchanged totals', () => {
+    const entries = [
+      at(1000, { action: 'GAME_STARTED', gameId: 'G1', ip: '192.168.1.50' }), // home, finished
+      at(500, { action: 'PLAYTEST_GAME_FINISHED', gameId: 'G1' }),
+      at(ABANDON_THRESHOLD_MS + 60_000, { action: 'GAME_STARTED', gameId: 'G2', ip: '90.128.59.214' }), // foreign, abandoned
+    ];
+    const result = aggregateEngagementStats(entries, { now: NOW, isHomeIP });
+    expect(result.gamesStarted).toBe(2);
+    expect(result.gamesFinished).toBe(1);
+    expect(result.gamesAbandoned).toBe(1);
+    expect(result.byOrigin).toEqual({
+      home: { gamesStarted: 1, gamesFinished: 1, gamesAbandoned: 0 },
+      foreign: { gamesStarted: 1, gamesFinished: 0, gamesAbandoned: 1 },
+    });
+  });
+});

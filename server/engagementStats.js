@@ -31,20 +31,36 @@ export const ABANDON_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4h — generous for a
  * @param {Array<object>} rawEntries - output of parseLogLine (nulls filtered), same shape visitorStats.js consumes
  * @param {object} [options]
  * @param {number} [options.now] - epoch ms "current time" (injectable for tests)
+ * @param {(ip: string) => boolean} [options.isHomeIP] - same contract as
+ *   visitorStats.js's option of the same name (server.js's isHomeIP() wraps
+ *   the pure homeIP.js helper). A game's origin is decided from its OWN
+ *   GAME_STARTED event's ip — whoever created it — not from every event
+ *   that later touched it (a remote player joining a maintainer-created game
+ *   would otherwise flip it foreign mid-game). TODO.md 2026-08-15/09-01: the
+ *   maintainer's own testing had no way to be excluded from "real player"
+ *   counts, and a prior read of this dataset drew a conclusion ("4 of 9
+ *   games never got a second player") that dissolved once that was pointed
+ *   out — see the RETRACTED note in TODO.md. `byOrigin` makes that
+ *   exclusion possible without discarding the maintainer's own data (still
+ *   useful for verifying a feature works, just not as a "do real players
+ *   get stuck" signal). Defaults to `() => false` (everything foreign) so
+ *   omitting the option is a safe no-op, matching visitorStats.js.
  */
 export function aggregateEngagementStats(rawEntries, options = {}) {
-  const { now = Date.now() } = options;
+  const { now = Date.now(), isHomeIP = () => false } = options;
   const entries = (rawEntries || []).filter((e) => e && typeof e.action === 'string');
 
   const spaceReachedKeys = new Set(); // `${gameId}|${playerId}|${spaceId}`
   const spacesReached = {};
   const panelOpens = {};
-  const startedGames = new Map(); // gameId -> _ts
+  const startedGames = new Map(); // gameId -> { ts: _ts, origin: 'home'|'foreign' }
   const finishedGameIds = new Set();
 
   for (const e of entries) {
     if (e.action === 'GAME_STARTED' && e.gameId) {
-      if (!startedGames.has(e.gameId)) startedGames.set(e.gameId, e._ts);
+      if (!startedGames.has(e.gameId)) {
+        startedGames.set(e.gameId, { ts: e._ts, origin: isHomeIP(e.ip) ? 'home' : 'foreign' });
+      }
     } else if (e.action === 'PLAYTEST_SPACE_REACHED' && e.gameId && e.playerId && e.spaceId) {
       const key = `${e.gameId}|${e.playerId}|${e.spaceId}`;
       if (!spaceReachedKeys.has(key)) {
@@ -59,9 +75,19 @@ export function aggregateEngagementStats(rawEntries, options = {}) {
   }
 
   let gamesAbandoned = 0;
-  for (const [gameId, startedTs] of startedGames) {
-    if (finishedGameIds.has(gameId)) continue;
-    if (typeof startedTs === 'number' && (now - startedTs) > ABANDON_THRESHOLD_MS) gamesAbandoned++;
+  const byOrigin = {
+    home: { gamesStarted: 0, gamesFinished: 0, gamesAbandoned: 0 },
+    foreign: { gamesStarted: 0, gamesFinished: 0, gamesAbandoned: 0 },
+  };
+  for (const [gameId, game] of startedGames) {
+    const bucket = byOrigin[game.origin];
+    bucket.gamesStarted++;
+    const finished = finishedGameIds.has(gameId);
+    if (finished) bucket.gamesFinished++;
+    if (!finished && typeof game.ts === 'number' && (now - game.ts) > ABANDON_THRESHOLD_MS) {
+      gamesAbandoned++;
+      bucket.gamesAbandoned++;
+    }
   }
 
   const spacesReachedSorted = Object.entries(spacesReached)
@@ -76,6 +102,7 @@ export function aggregateEngagementStats(rawEntries, options = {}) {
     gamesStarted: startedGames.size,
     gamesFinished: finishedGameIds.size,
     gamesAbandoned,
+    byOrigin,
     spacesReached: spacesReachedSorted,
     panelOpens: panelOpensSorted,
   };

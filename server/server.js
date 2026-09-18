@@ -3233,7 +3233,7 @@ app.get('/api/admin/engagement-stats', async (req, res) => {
   if (!requireAdmin(req, res)) return;
   try {
     const entries = await getVisitorLogEntries();
-    res.json(aggregateEngagementStats(entries));
+    res.json(aggregateEngagementStats(entries, { isHomeIP }));
   } catch (err) {
     console.error('Failed to compute engagement stats:', err.message);
     res.status(500).json({ error: 'Failed to compute engagement stats' });

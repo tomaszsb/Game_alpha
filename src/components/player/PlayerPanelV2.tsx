@@ -518,7 +518,14 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     isMyTurn && selectedMovementLabel && !isEndingTurn
       ? COMMIT.withDestination(commit.label, selectedMovementLabel)
       : commit.label;
-  const showGreenDot = isMyTurn && commit.ready && player.visitType === 'First';
+  // v3.2.65 (fb:ae480630): "when actions are completed the negotiate and/or
+  // accept buttons should become the highlighted buttons" — previously gated
+  // to player.visitType === 'First', so completing the actions on a
+  // SUBSEQUENT visit (a common case: Try Again re-enters the same space)
+  // never highlighted the control that just became pressable. The dot now
+  // tracks commit.ready alone — it lights up the instant there is something
+  // to press, on any visit, and goes dark again once the turn ends.
+  const showGreenDot = isMyTurn && commit.ready;
   // First-visit nudge: the action buttons themselves glow so a new player's eye
   // lands on what to press (fb:e84e4d11 — expected the green hint ON the action
   // buttons, not only the commit spine). Same green as the commit dot. Once an
@@ -1185,8 +1192,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             // as the next-move hint doesn't carry the "pick this one over
             // that one" ambiguity it would inside TurnCommitControl's two-
             // tab control above (maintainer feedback 2026-08-18: glow End
-            // Turn "only when negotiate button is not shown").
-            className={firstVisitHint && commit.ready ? 'uc-hint-glow' : undefined}
+            // Turn "only when negotiate button is not shown"). v3.2.65
+            // (fb:ae480630): dropped the first-visit-only gate to match
+            // showGreenDot above — glows whenever it's actually pressable.
+            className={showGreenDot ? 'uc-hint-glow' : undefined}
             style={{
               width: '100%',
               border: 'none',

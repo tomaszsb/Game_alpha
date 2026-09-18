@@ -493,6 +493,81 @@ describe('PlayerPanelV2 — movement check/uncheck (Pile 2: fb:c2e489dc / fb:45c
   });
 });
 
+// v3.2.65 (fb:ae480630): "when actions are completed the negotiate and/or
+// accept buttons should become the highlighted buttons." Previously the
+// commit control's highlight (green dot / uc-hint-glow) was gated to
+// player.visitType === 'First' — so a player who completed a space's
+// actions on a SUBSEQUENT visit (a real case: re-entering a space via Try
+// Again, or a board loop) never saw the commit control light up, even
+// though it had just become pressable. Fixed by tracking commit.ready
+// alone, independent of visit count.
+describe('PlayerPanelV2 — commit control highlights once actionable, any visit (fb:ae480630)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const makePlayer = (): any => ({
+    id: 'player1', name: 'Test Player', currentSpace: 'LEND-SCOPE-CHECK',
+    visitType: 'Subsequent', money: 100000, timeSpent: 5, color: '#007bff',
+    hand: [], activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null,
+  });
+
+  const setup = () => {
+    vi.clearAllMocks();
+    services = createAllMockServices();
+    const player = makePlayer();
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null,
+      requiredActions: 0, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'FUNDING' });
+    services.dataService.getSpaceEffects.mockReturnValue([]);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    // The action(s) are already done; the turn is ready to commit right now.
+    services.gameRulesService.canEndTurn.mockReturnValue(true);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockReturnValue(null);
+  };
+
+  afterEach(() => cleanup());
+
+  it('single-button path: glows on a Subsequent visit once ready (previously required First)', () => {
+    setup();
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'You again', story: '' }); // no can_negotiate
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+    const commit = screen.getByTestId('commit-end-turn');
+    expect(commit.getAttribute('data-ready')).toBe('true');
+    expect(commit).toHaveClass('uc-hint-glow');
+  });
+
+  it('two-tab path: the End side carries the dot on a Subsequent visit once ready', () => {
+    setup();
+    services.dataService.getSpaceContent.mockReturnValue({
+      title: 'You again', story: '',
+      can_negotiate: true, end_turn_label: 'Take what they\'re offering', try_again_label: 'Push for better terms',
+    });
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" onTryAgain={vi.fn()} />
+      </DictionaryProvider>,
+    );
+    const end = screen.getAllByTestId('commit-side').find((b) => b.getAttribute('data-side') === 'end')!;
+    expect(end.getAttribute('data-actionable')).toBe('true');
+    // The dot is an aria-hidden span with no testid of its own — assert it
+    // exists inside the actionable End tab by its distinctive fill color.
+    // jsdom normalizes the inline hex (#34d399) to rgb() on serialization.
+    expect(end.querySelector('span[style*="rgb(52, 211, 153)"]')).not.toBeNull();
+  });
+});
+
 describe('PlayerPanelV2 — completed-action checkmark trace (Pile 2: fb:d2070ed1)', () => {
   let services: ReturnType<typeof createAllMockServices>;
 

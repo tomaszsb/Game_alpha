@@ -5,24 +5,24 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** September 18, 2026 (v3.2.64)
+**Last Updated:** September 18, 2026 (v3.2.65)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.64 — PENDING DEPLOY.** Live is v3.2.63: `/health` read `15aae59` at 2026-09-18. **Trust `/health` over this line**: status lines have gone stale within hours more than once. 3.2.46 stays permanently skipped.
+**Current Version:** **3.2.65 — PENDING DEPLOY.** Live is v3.2.64: `/health` read `3a87964` at 2026-09-18. **Trust `/health` over this line**: status lines have gone stale within hours more than once. 3.2.46 stays permanently skipped.
 
 ## Current sprint
 **Onboarding Phase C, teaching a beginner the game**, is still the main arc. The tutorial and the micro-lessons are still to do; the voice pass on the 44 `ACTION_TOOLTIPS.csv` rows is still to do too.
 
-**v3.2.64 fixes the three worst copy offenders from the 2026-09-12 playtest (~50/150 recorded confusions):** "helper"/"help" (28 hits) → "team member" across `e_card_label` rows; the Lender's "pound of flesh" idiom (12 hits) → "squeeze you"; "THINGS YOU CAN DO" (10 hits) → "This turn". All three replacements were Tom's pick from 2-3 drafted options each — see CHANGELOG. Also made `PlayerPanelV2`'s commit-caption fallbacks CSV-portable (`COMMIT.*` UI_STRINGS keys), no wording change. Found in passing: `docs/user/USER_MANUAL.md` has drifted (still shows "Things you can do" and "What's affecting you", the latter removed in v3.2.62) — flagged in TODO, not patched.
+**v3.2.65 — security patches, a real UI bug fix, and one more copy fix from this morning's Jarvis report.** `npm audit` 9 → 0 vulnerabilities (`npm audit fix` itself crashes on an unrelated npm/arborist bug; each package bumped by hand or pinned via `overrides`). Fixed fb:ae480630's hidden second request: the commit control's highlight was gated to `player.visitType === 'First'`, so finishing a space's actions on a SUBSEQUENT visit never lit the control that had just become pressable — now tracks `commit.ready` alone. Added `byOrigin` (home/foreign) to `/api/admin/engagement-stats` so the maintainer's own testing can finally be told apart from real players — the prerequisite a 2026-08-15/09-01 TODO item had been waiting on. "Underwriting" (Bank Review's DiceResultModal title, unreachable by the glossary linker since titles don't route through `TextWithTerms`) → "reviewing"/"reviewed", Tom's pick. Full detail in CHANGELOG.
 
-**v3.2.63 named the "My numbers" placeholders (fb:adad1561, RESOLVED):** the five approved wording rows (`NUMBERS.*` in UI_STRINGS.csv) replaced the v3.2.62 placeholder text. Tom saw the four boxes on a real phone 2026-09-18 and is happy; fb:adad1561 flipped resolved on the dashboard.
+**v3.2.64 fixed the three worst copy offenders from the 2026-09-12 playtest (~50/150 recorded confusions):** "helper"/"help" (28 hits) → "team member" across `e_card_label` rows; the Lender's "pound of flesh" idiom (12 hits) → "squeeze you"; "THINGS YOU CAN DO" (10 hits) → "This turn". Also made `PlayerPanelV2`'s commit-caption fallbacks CSV-portable. `docs/user/USER_MANUAL.md` has drifted (still shows "Things you can do" and "What's affecting you", the latter removed in v3.2.62) — flagged in TODO, not patched.
 
-**v3.2.62 is Tom's "My numbers" redesign (fb:adad1561):** "What's affecting you" is gone. Four tappable at-a-glance boxes (Money, Time, Expeditors, Scope) each open their own page, and Time opens History. Which card family lands where is data (CARD_TYPES `numbers_section`).
+**v3.2.62 is Tom's "My numbers" redesign (fb:adad1561, RESOLVED v3.2.63):** "What's affecting you" is gone. Four tappable at-a-glance boxes (Money, Time, Expeditors, Scope) each open their own page, and Time opens History. Which card family lands where is data (CARD_TYPES `numbers_section`).
 
 ## Health
-- **Tests (v3.2.64):** `npx vitest run`, the whole suite including ghost — see the koniec run below for the final count. Typecheck ✅, `node scripts/regen-clean-files.mjs` faithful (pipelineFaithful.test.ts green).
+- **Tests (v3.2.65):** `npx vitest run`, the whole suite including ghost: **3214/3214 across 224 files** (one `tests/server/**` ENOTEMPTY flake, confirmed non-regression on isolated re-run — the documented Windows temp-dir pattern). Typecheck ✅, `node scripts/regen-clean-files.mjs` faithful (pipelineFaithful.test.ts green).
 - **Flake note:** a lone `tests/server/**` failure is probably Windows temp-dir load (`EPERM`/`ENOTEMPTY`). Re-run before investigating.
-- **Security:** `npm audit` 0 vulnerabilities as of v3.2.44.
-- **Deploy:** ⏳ v3.2.64 pending; v3.2.63 live (`/health` = `15aae59`, 2026-09-18). `bash deploy.sh` is Tom's to run, from a Windows terminal.
+- **Security:** `npm audit` **0 vulnerabilities** (was 9 as of the v3.2.64 deploy log — see CHANGELOG v3.2.65).
+- **Deploy:** ⏳ v3.2.65 pending; v3.2.64 live (`/health` = `3a87964`, 2026-09-18). `bash deploy.sh` is Tom's to run, from a Windows terminal.
 - **Dashboard feedback:** fb:adad1561 flipped resolved 2026-09-18 (Tom confirmed on a real phone). v3.2.61's 8 fixes were flipped resolved 2026-09-17. fb:93449bf2 is still deliberately unflipped: it needs the maintainer's eyes on the real TV. fb:9e31b860 is a design call in TODO. The three v3.2.64 copy fixes have no individual `fb:` ids (sourced from the 2026-09-12 playtest report directly).
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
