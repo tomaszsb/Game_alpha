@@ -4,7 +4,7 @@
 // This mirrors PlayerPanelV2 (src/components/player/PlayerPanelV2.tsx), the
 // panel every real player sees in-game — same theme source (panelPalettes/
 // usePanelMode), same typography scale, spacing rhythm, section layout
-// (header → status → "Where you are & why" → "Things you can do" → commit
+// (header → status → "Where you are & why" → "This turn" → commit
 // footer), and the same light/dark handling. It is NOT a mount of the real
 // component: PlayerPanelV2 takes a live IServiceContainer + playerId and
 // reads/subscribes to running game state, which this editor screen doesn't
@@ -28,7 +28,7 @@ import { editRegionLabel, regionById, REGION_EDITING_CLASS, REGION_PULSE_CLASS }
 import { usePanelMode, panelPalettes } from '../player/panelTheme';
 import { colors } from '../../styles/theme';
 import { shortName } from '../../utils/boardCommon';
-import { DICE_BUTTON } from '../../constants/uiStrings';
+import { ACTION_ROW, DICE_BUTTON } from '../../constants/uiStrings';
 import { IconMoon, IconSun } from '../icons/SetupIcons';
 
 interface PlayerPreviewPanelProps {
@@ -594,12 +594,12 @@ export function PlayerPreviewPanel({
         )}
       </div>
 
-      {/* Things you can do — card + outcome actions, plus movement.
+      {/* This turn — card + outcome actions, plus movement.
           Also drawn for a ghost slot alone: editing an unset action on a space
           with nothing else to do must still have somewhere to point. */}
       {(hasThingsToDo || ghostActionId) && (
         <div style={pad}>
-          <p style={zlbl}>Things you can do</p>
+          <p style={zlbl}>{ACTION_ROW.HEADER}</p>
           {cardActions.length === 0 && diceActions.length === 0 && !ghostActionId && (
             <div style={{ fontSize: 12, color: p.muted, fontStyle: 'italic', marginBottom: 7 }}>No actions authored yet</div>
           )}

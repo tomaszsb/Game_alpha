@@ -42,10 +42,28 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // the destination, and it is a TEMPLATE so a reskin can change the connector
   // or the word order without a code edit (the D&D skin's verb is its own).
   'COMMIT.withDestination': '{label} → {destination}',
+  // v3.2.64: the commit control's own captions (not the space's authored
+  // end_turn_label — these are what shows when there's no per-space label,
+  // or while a turn-ending/dice-rolling request is in flight, or while
+  // waiting on the other player's turn). Previously plain string literals
+  // inline in PlayerPanelV2 — unreachable by a reskin CSV, breaking the
+  // D&D dual-function constraint (idea.txt). Wording unchanged; only the
+  // sourcing moved.
+  'COMMIT.waitingFor': 'Waiting for {name}',
+  'COMMIT.working': 'Working…',
+  'COMMIT.takeYourNextStep': 'Take your next step',
+  'COMMIT.ending': 'Ending…',
+  'COMMIT.endTurn': 'End turn',
   // fb:ba16e596 — "move forward should still be unusable, I still did not do
   // replace expeditor". Skippable actions never gate the move (by design), but
   // nothing on screen said so. Rendered as a quiet tag inside the action button.
   'ACTION_ROW.optional': 'optional',
+  // v3.2.64 (10 confusion hits, 2026-09-12 playtest): "THINGS YOU CAN DO" named
+  // itself as one thing (an action to take) while the list under it mixes
+  // pending actions, already-completed ones, and movement choices — the
+  // header claimed a category that didn't fit everything below it. Tom's
+  // pick: a neutral umbrella that doesn't claim to be any one of the three.
+  'ACTION_ROW.header': 'This turn',
   // v3.2.62 (fb:adad1561, Tom 2026-09-17): "What's affecting you" folded into
   // the numbers — four tappable glance boxes, each opening its own page.
   // Placeholder wording taken from Tom's brief; every label is his to rename
@@ -240,6 +258,11 @@ export const _testOnly = { resetUIStringOverrides: () => UI_STRING_OVERRIDES.cle
 export const COMMIT = {
   withDestination: (label: string, destination: string): string =>
     getUIString('COMMIT.withDestination', { label, destination }),
+  waitingFor: (name: string): string => getUIString('COMMIT.waitingFor', { name }),
+  get WORKING() { return getUIString('COMMIT.working'); },
+  get TAKE_YOUR_NEXT_STEP() { return getUIString('COMMIT.takeYourNextStep'); },
+  get ENDING() { return getUIString('COMMIT.ending'); },
+  get END_TURN() { return getUIString('COMMIT.endTurn'); },
 };
 
 export const NUMBERS = {
@@ -259,6 +282,7 @@ export const NUMBERS = {
 
 export const ACTION_ROW = {
   get OPTIONAL() { return getUIString('ACTION_ROW.optional'); },
+  get HEADER() { return getUIString('ACTION_ROW.header'); },
 };
 
 // --- Dice roll button labels ---

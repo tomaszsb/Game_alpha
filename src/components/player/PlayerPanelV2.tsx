@@ -475,18 +475,18 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // showed when the turn was gated on an unpicked destination, not on actions.
   let commit: { label: string; ready: boolean; subLabel?: string; onClick?: () => void };
   if (!isMyTurn) {
-    commit = { label: `Waiting for ${currentPlayerName || 'the other player'}`, ready: false };
+    commit = { label: COMMIT.waitingFor(currentPlayerName || 'the other player'), ready: false };
   } else if (showMovementDiceButton) {
     commit = {
-      label: isRollingDice ? 'Working…' : content?.end_turn_label || 'Take your next step',
+      label: isRollingDice ? COMMIT.WORKING : content?.end_turn_label || COMMIT.TAKE_YOUR_NEXT_STEP,
       ready: true,
       onClick: handleDiceRoll,
     };
   } else if (canEndTurn) {
-    commit = { label: isEndingTurn ? 'Ending…' : content?.end_turn_label || 'End turn', ready: true, onClick: handleEndTurn };
+    commit = { label: isEndingTurn ? COMMIT.ENDING : content?.end_turn_label || COMMIT.END_TURN, ready: true, onClick: handleEndTurn };
   } else {
     commit = {
-      label: content?.end_turn_label || 'End turn',
+      label: content?.end_turn_label || COMMIT.END_TURN,
       ready: false,
       // Say which of the two gates is actually open, in this order: real
       // outstanding actions first (they must be done before the destination
@@ -892,11 +892,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         )}
       </div>
 
-      {/* Things you can do */}
+      {/* This turn — pending actions, done traces, movement */}
       {isMyTurn &&
         (visiblePendingActions.length > 0 || doneActionTraces.length > 0 || showMovementOptions) && (
         <div style={pad}>
-          <p style={zlbl}>Things you can do</p>
+          <p style={zlbl}>{ACTION_ROW.HEADER}</p>
           {visiblePendingActions.map((a) => {
             // Teaching layer (Onboarding Phase C, v3.2.54). The explanation is a
             // SIBLING of the action button, never a child, and that is structural

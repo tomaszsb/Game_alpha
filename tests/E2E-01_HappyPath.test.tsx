@@ -275,11 +275,14 @@ describe('E2E-01: Happy Path with New UI', () => {
     // "Hire 3 Expeditors" / "Get Work Packages" before that, when no row had an authored label.
     // Anchored, not a bare substring: since v3.2.54 each action row also renders a
     // sibling "What's this?" disclosure whose accessible name NAMES its action
-    // ("What's this? Bring in extra help") — deliberately, so a screen-reader user
+    // ("What's this? Add a team member") — deliberately, so a screen-reader user
     // tabbing past two of them can tell which row each belongs to. A loose
-    // /Bring in extra help/ therefore matches two buttons and findByRole throws.
+    // /Add a team member/ therefore matches two buttons and findByRole throws.
     // Anchor on the action button's own accessible name, icon prefix included.
-    const pickUpCardsButton = await screen.findByRole('button', { name: /^\S*\s*Bring in extra help$/i }, { timeout: 5000 });
+    // "Add a team member" is v3.2.64's replacement for "Bring in extra help" —
+    // "helper"/"help" confused 28 playtest hits (2026-09-12), and buttons can't
+    // say "Expeditor" (that word is jargon, reserved for the tooltip).
+    const pickUpCardsButton = await screen.findByRole('button', { name: /^\S*\s*Add a team member$/i }, { timeout: 5000 });
     const rollForWCardsButton = await screen.findByRole('button', { name: /^\S*\s*See what he wants built$/i });
 
     // UI Interaction 1: Execute Manual Action: hire expeditors

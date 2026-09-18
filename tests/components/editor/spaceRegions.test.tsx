@@ -267,13 +267,13 @@ describe('the part being edited is always somewhere you can see it', () => {
     });
 
     it('gives a blank space somewhere to point even with nothing else to do', () => {
-      // No actions, no destinations — "Things you can do" would not render at
+      // No actions, no destinations — "This turn" would not render at
       // all, so the ghost has to bring its own section with it.
       const { container } = preview(
         { w_card: '', b_card: '', i_card: '', l_card: '', e_card: '', space_1: '', space_2: '' },
         'action-B',
       );
-      expect(screen.getByText('Things you can do')).toBeTruthy();
+      expect(screen.getByText('This turn')).toBeTruthy();
       expect(regionEl(container, 'action-B')).toBeTruthy();
     });
 

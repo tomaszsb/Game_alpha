@@ -349,13 +349,13 @@ describe('PlayerPanelV2 — expeditor-action guard', () => {
   it('hides a Replace-Expeditor action when the player has no expeditors (fb:3accbe92)', () => {
     setup([]); // no E cards
     renderPanel();
-    expect(screen.queryByText(/Things you can do/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/This turn/i)).not.toBeInTheDocument();
   });
 
   it('shows the Replace-Expeditor action when the player has an expeditor to act on', () => {
     setup(['E001']); // has an E card
     renderPanel();
-    expect(screen.getByText(/Things you can do/i)).toBeInTheDocument();
+    expect(screen.getByText(/This turn/i)).toBeInTheDocument();
   });
 });
 

@@ -5,23 +5,25 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** September 18, 2026 (v3.2.63)
+**Last Updated:** September 18, 2026 (v3.2.64)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.63 — PENDING DEPLOY.** Live is v3.2.62: `/health` read `337ebf0` at 2026-09-18 09:28Z. **Trust `/health` over this line**: status lines have gone stale within hours more than once. 3.2.46 stays permanently skipped.
+**Current Version:** **3.2.64 — PENDING DEPLOY.** Live is v3.2.63: `/health` read `15aae59` at 2026-09-18. **Trust `/health` over this line**: status lines have gone stale within hours more than once. 3.2.46 stays permanently skipped.
 
 ## Current sprint
-**Onboarding Phase C, teaching a beginner the game**, is still the main arc. The tutorial, the micro-lessons and the voice pass on the 44 `ACTION_TOOLTIPS.csv` rows are still to do.
+**Onboarding Phase C, teaching a beginner the game**, is still the main arc. The tutorial and the micro-lessons are still to do; the voice pass on the 44 `ACTION_TOOLTIPS.csv` rows is still to do too.
 
-**v3.2.63 names the "My numbers" placeholders (fb:adad1561):** the five approved wording rows (`NUMBERS.*` in UI_STRINGS.csv) replace the v3.2.62 placeholder text — see CHANGELOG. **Do not flip fb:adad1561 yet** — that waits until Tom has seen the four boxes on a real phone.
+**v3.2.64 fixes the three worst copy offenders from the 2026-09-12 playtest (~50/150 recorded confusions):** "helper"/"help" (28 hits) → "team member" across `e_card_label` rows; the Lender's "pound of flesh" idiom (12 hits) → "squeeze you"; "THINGS YOU CAN DO" (10 hits) → "This turn". All three replacements were Tom's pick from 2-3 drafted options each — see CHANGELOG. Also made `PlayerPanelV2`'s commit-caption fallbacks CSV-portable (`COMMIT.*` UI_STRINGS keys), no wording change. Found in passing: `docs/user/USER_MANUAL.md` has drifted (still shows "Things you can do" and "What's affecting you", the latter removed in v3.2.62) — flagged in TODO, not patched.
 
-**v3.2.62 is Tom's "My numbers" redesign (fb:adad1561):** "What's affecting you" is gone. Four tappable at-a-glance boxes (Money, Time, Expeditors, Scope) each open their own page, and Time opens History. Which card family lands where is data (CARD_TYPES `numbers_section`). v3.2.61 cleared eight untriaged reviewer reports.
+**v3.2.63 named the "My numbers" placeholders (fb:adad1561, RESOLVED):** the five approved wording rows (`NUMBERS.*` in UI_STRINGS.csv) replaced the v3.2.62 placeholder text. Tom saw the four boxes on a real phone 2026-09-18 and is happy; fb:adad1561 flipped resolved on the dashboard.
+
+**v3.2.62 is Tom's "My numbers" redesign (fb:adad1561):** "What's affecting you" is gone. Four tappable at-a-glance boxes (Money, Time, Expeditors, Scope) each open their own page, and Time opens History. Which card family lands where is data (CARD_TYPES `numbers_section`).
 
 ## Health
-- **Tests (v3.2.63):** `npx vitest run`, the whole suite including ghost: **3209/3209 across 224 files**, green on the first attempt. Typecheck ✅, production build ✅. No `src/` files changed (data + docs only), so lint N/A.
-- **Flake note:** a lone `tests/server/**` failure is probably Windows temp-dir load (`EPERM`/`ENOTEMPTY`). Re-run before investigating. It did not occur this session.
+- **Tests (v3.2.64):** `npx vitest run`, the whole suite including ghost — see the koniec run below for the final count. Typecheck ✅, `node scripts/regen-clean-files.mjs` faithful (pipelineFaithful.test.ts green).
+- **Flake note:** a lone `tests/server/**` failure is probably Windows temp-dir load (`EPERM`/`ENOTEMPTY`). Re-run before investigating.
 - **Security:** `npm audit` 0 vulnerabilities as of v3.2.44.
-- **Deploy:** ⏳ v3.2.63 pending; v3.2.62 live (`/health` = `337ebf0`, 2026-09-18 09:28Z). `bash deploy.sh` is Tom's to run, from a Windows terminal.
-- **Dashboard feedback:** 9 open (was 17). v3.2.61's 8 fixes were flipped resolved 2026-09-17. fb:93449bf2 is still deliberately unflipped: it needs the maintainer's eyes on the real TV. fb:9e31b860 and fb:adad1561 are design calls in TODO.
+- **Deploy:** ⏳ v3.2.64 pending; v3.2.63 live (`/health` = `15aae59`, 2026-09-18). `bash deploy.sh` is Tom's to run, from a Windows terminal.
+- **Dashboard feedback:** fb:adad1561 flipped resolved 2026-09-18 (Tom confirmed on a real phone). v3.2.61's 8 fixes were flipped resolved 2026-09-17. fb:93449bf2 is still deliberately unflipped: it needs the maintainer's eyes on the real TV. fb:9e31b860 is a design call in TODO. The three v3.2.64 copy fixes have no individual `fb:` ids (sourced from the 2026-09-12 playtest report directly).
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
 1. **The teaching layer: tutorial, micro-lessons, tooltip voice pass.** The largest remaining part of Phase C. Never put a glossary term inside an action button.

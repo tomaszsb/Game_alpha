@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.64] - 2026-09-18
+
+### Three worst copy offenders from the 2026-09-12 playtest
+
+**Player-visible.** Tom picked all three replacements from the options offered; ~50 of 150 recorded playtest confusions trace to these three strings.
+
+- **"helper" (28 hits) — a newcomer doesn't know what a helper is or why swapping matters, and the button can't say "Expeditor" (that word is jargon, reserved for the tooltip).** All `e_card_label` rows renamed to a consistent "team member": "Bring in extra help" → "Add a team member", "Swap one helper for another" → "Swap a team member", "Let one helper go" → "Let a team member go". A fourth, related occurrence found during the sweep — REG-DOB-FEE-REVIEW/Subsequent's outcome text "Swap a worn-out helper. Pay the extra." — got the same word swap ("team member") for consistency, since it's the identical concept in the identical word family. `Spaces.csv` (SOURCE) edited, `SPACE_EFFECTS.csv`/`SPACE_CONTENT.csv` (CLEAN) regenerated via `node scripts/regen-clean-files.mjs`.
+- **"pound of flesh" (12 hits) — a Shakespeare idiom in the Lender's Lender Review dialogue, confusing mostly for non-native English speakers.** "I'll cut you a rate, but I want my pound of flesh on the scope first." → "...but I'm going to squeeze you on the scope first." Keeps the Lender's established blunt, tough-negotiator voice ("the warmth's gone... you take it") in a phrase everyone recognizes.
+- **"THINGS YOU CAN DO" (10 hits) — the header didn't say whether the list under it was actions to take, things already done, or a movement choice (it's genuinely a mix of all three).** Renamed to "This turn" — a neutral umbrella that doesn't misclaim to be any one of the three. New `ACTION_ROW.header` UI_STRINGS key; `PlayerPanelV2.tsx` and its editor preview mirror (`PlayerPreviewPanel.tsx`) both updated. Closes the parked TODO item tracking this exact header (open since the 2026-09-05 playtest).
+
+Found in the process: `docs/user/USER_MANUAL.md` has drifted — it still shows "Things you can do" and still lists "What's affecting you" as its own panel zone, which the v3.2.62 four-box redesign already removed. Flagged in TODO rather than patched (a one-line fix on an already-stale diagram would leave it half-wrong).
+
+### Commit-caption fallbacks are now CSV-portable
+
+**Not player-visible — wording unchanged.** `PlayerPanelV2.tsx`'s commit-control fallback strings ("End turn", "Take your next step", "Ending…", "Working…", "Waiting for {name}") were plain string literals a reskin CSV couldn't reach, breaking the permanent D&D dual-function constraint (`idea.txt`). Moved to `COMMIT.*` UI_STRINGS keys, routed through `getUIString()`. No behavior change.
+
+### Housekeeping
+
+`TODO.md`/`PROJECT_STATUS.md`/`.claude/NEXT_SESSION.md` corrected — both docs had said v3.2.62 was "PENDING DEPLOY" a full day after `/health` showed it live at `337ebf0`. fb:adad1561 flipped resolved on the dashboard (Tom confirmed the four "My numbers" boxes on a real phone, 2026-09-18).
+
 ## [3.2.63] - 2026-09-18
 
 ### My numbers placeholder wording, approved

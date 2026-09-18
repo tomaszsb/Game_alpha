@@ -434,15 +434,15 @@ describe('DataEditor', () => {
       });
     });
 
-    it('renders "Things you can do" section with dice + card actions when requires_dice_roll is Yes', async () => {
+    it('renders "This turn" section with dice + card actions when requires_dice_roll is Yes', async () => {
       // PlayerPreviewPanel now mirrors PlayerPanelV2's section copy
-      // ("Things you can do") instead of the retired classic panel's
+      // ("This turn", v3.2.64) instead of the retired classic panel's
       // "YOUR ACTIONS (N)" header — see PlayerPreviewPanel.tsx (2026-08-22
       // rebuild, docs/core/CARD_LIBRARY_DESIGN.md stage 3).
       await selectSpace('TEST-SPACE-1');
 
       await waitFor(() => {
-        expect(screen.getByText('Things you can do')).toBeInTheDocument();
+        expect(screen.getByText('This turn')).toBeInTheDocument();
       });
     });
 

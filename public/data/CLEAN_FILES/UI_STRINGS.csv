@@ -86,7 +86,13 @@ RULES.negotiation.body,"Some spaces allow negotiation. If you have a snapshot fr
 RULES.winning.heading,Winning
 RULES.winning.body,Successfully navigate through all phases of development and reach the final completion space to win the game. Manage your resources wisely and make strategic decisions to overcome challenges along the way.
 COMMIT.withDestination,{label} → {destination}
+COMMIT.waitingFor,Waiting for {name}
+COMMIT.working,Working…
+COMMIT.takeYourNextStep,Take your next step
+COMMIT.ending,Ending…
+COMMIT.endTurn,End turn
 ACTION_ROW.optional,optional
+ACTION_ROW.header,This turn
 NUMBERS.tile.money,Money
 NUMBERS.tile.time,Time
 NUMBERS.tile.expeditors,Expeditors
