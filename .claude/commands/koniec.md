@@ -262,6 +262,16 @@ git status --short            # eyeball what's staged
 - Push: `git push origin master`, then verify `git log origin/master..master` is empty. This project deploys from master via `git pull`, so an unpushed commit is its own kind of drift.
 - `.claude/settings.local.json` is local machine config — include it only if it changed meaningfully; it's fine to leave.
 
+## 5d. Notify the manager — ONLY when Tom asks (added 2026-09-18)
+
+*Why this step exists:* on 2026-09-18 Tom said "do /koniec and notify manager" and nothing in this file said what that means, so the mechanism had to be reverse-engineered from the manager's own record (~10 minutes). The manager is a role a session takes with `/manager`; it is usually **not** a running session, and an idle session never messages anyone — the manager reads project handoffs itself. So "notify" is:
+
+1. `ListAgents`. If a manager session is live, `SendMessage` it a five-line summary: live version from `/health`, what shipped, what is waiting on Tom, and anything that touches Jarvis or the Mac.
+2. If none is live (the usual case), leave a report at `E:\Documents\People\AI\Hermes - Jarvis Biel\handouts\game-alpha-report-YYYY-MM-DD.md` — **a new, untracked file**, exactly like the 09-17 one. Plain English, evidence not conclusions, and say which claims are verified vs relayed. Lead with anything in `command/README.md` that is now stale (it said "v3.2.63 LIVE" when v3.2.67 was).
+3. **Never commit in that repo, never edit `command/` or anything else there** — its `/mkoniec` reconciles the record, and other sessions keep work-in-progress in the same tree. Say in the wrap line that no manager was live and where the report is.
+
+Skip this step unless Tom asks; the handoff files are what the manager reads by default.
+
 ## 6. Three-line wrap, then stop
 
 End with three lines. No structured summary report — the user is about to `/exit` and the next `/start` will surface everything actionable.
