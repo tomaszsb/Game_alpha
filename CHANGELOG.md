@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.63] - 2026-09-18
+
+### My numbers placeholder wording, approved
+
+**Player-visible.** Five `NUMBERS.*` placeholder strings from v3.2.62's four-box redesign get Tom's approved wording: "{n} ready to use" → "{n} you can use now", "None yet" → "Nothing yet", "No expeditors yet." → "You haven't hired anyone yet.", "Still affecting you" → "Still costing you". "{days} days" is unchanged. Data-only, in `UI_STRINGS.csv`.
+
 ## [3.2.62] - 2026-09-17
 
 ### "What's affecting you" is gone; its contents live behind four at-a-glance boxes

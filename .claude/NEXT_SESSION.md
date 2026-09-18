@@ -1,10 +1,10 @@
-# Next session starter — written 2026-09-17 by /koniec (amended same day after v3.2.62)
+# Next session starter — written 2026-09-17 by /koniec (amended 2026-09-18 after v3.2.63)
 
 ## State at handoff
-- **Version:** v3.2.62 — **PENDING DEPLOY** (pushed 2026-09-17). v3.2.61 is live (`/health` = `f2f81be`). **Run `curl -sS https://game.unravelcodes.com/health` before believing this line.**
+- **Version:** v3.2.63 — **PENDING DEPLOY** (pushed 2026-09-18). Live is v3.2.62 (`/health` = `337ebf0` at 2026-09-18 09:28Z). **Run `curl -sS https://game.unravelcodes.com/health` before believing this line.**
 - **Branch:** master, clean and pushed. Untracked: `idea.txt` — **READ IT, never modify or commit it.** It is Tom's own brief (D&D dual-function constraint + how he wants to be worked with).
-- **Last shipped:** v3.2.62 — Tom's "My numbers" redesign: four tappable glance boxes (Money/Time/Expeditors/Scope) replace "What's affecting you"; CARD_TYPES `numbers_section` decides where each family shows. v3.2.61 — 8 reviewer-report fixes.
-- **Test suite:** `npx vitest run` **3209/3209 across 224 files**; typecheck ✅, build ✅.
+- **Last shipped:** v3.2.63 — named the five approved "My numbers" placeholder strings (fb:adad1561, `UI_STRINGS.csv` `NUMBERS.*`), data-only. v3.2.62 — Tom's "My numbers" redesign: four tappable glance boxes (Money/Time/Expeditors/Scope) replace "What's affecting you"; CARD_TYPES `numbers_section` decides where each family shows.
+- **Test suite (v3.2.63):** `npx vitest run` **3209/3209 across 224 files**; typecheck ✅, build ✅.
 - **Dashboard:** 9 open (was 17). The 8 v3.2.61 fixes are already flipped resolved.
 
 ## Top 3 open items
@@ -13,13 +13,13 @@
 3. **Audit II leftovers ranked in TODO.md** — win condition, closed card-family union. Each is a dedicated session and Tom's call.
 
 ## Decisions waiting on the user
-- **Name the v3.2.62 placeholders** (UI_STRINGS `NUMBERS.*`): "N ready to use", "N days", "None yet", "No expeditors yet.", "Still affecting you". Box titles use his brief's words. Then he should look at it on a real phone (controller view).
+- **v3.2.62 placeholders are named (v3.2.63, done).** Still waiting: Tom looking at the four boxes on a real phone (controller view) before fb:adad1561 flips.
 - Settled 2026-09-17: a confirmed swap is NOT undoable (fb:9e31b860 resolved).
 - Carried: auto-expand the destination picker? "What's this?" more than `?`? `data-testid` on `RoutingExplanationModal`? Stray CR bytes in `DiceRoll Info.csv` / `CARDS_EXPANDED.csv`? Card library Stage 4.
 
 ## Flip after deploy
 - **fb:93449bf2 — do NOT flip on deploy alone.** Only after Tom confirms the TV reads well across a room.
-- **fb:adad1561 — flip only after v3.2.62 is live AND Tom has named the placeholders / looked on a phone.**
+- **fb:adad1561 — flip only after v3.2.63 is live AND Tom has looked at the four boxes on a real phone.** Placeholders are named (v3.2.63); the phone look is still outstanding.
 
 ## Suggested first move
 Check `/health`, then start the teaching layer's tooltip voice pass. Want the two design calls above settled first?

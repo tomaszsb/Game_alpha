@@ -5,20 +5,22 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** September 17, 2026 (v3.2.62)
+**Last Updated:** September 18, 2026 (v3.2.63)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.62 — PENDING DEPLOY.** Live is v3.2.61: `/health` read `f2f81be` at 2026-09-17 04:41Z. **Trust `/health` over this line**: status lines have gone stale within hours more than once. 3.2.46 stays permanently skipped.
+**Current Version:** **3.2.63 — PENDING DEPLOY.** Live is v3.2.62: `/health` read `337ebf0` at 2026-09-18 09:28Z. **Trust `/health` over this line**: status lines have gone stale within hours more than once. 3.2.46 stays permanently skipped.
 
 ## Current sprint
 **Onboarding Phase C, teaching a beginner the game**, is still the main arc. The tutorial, the micro-lessons and the voice pass on the 44 `ACTION_TOOLTIPS.csv` rows are still to do.
 
-**v3.2.62 is Tom's "My numbers" redesign (fb:adad1561):** "What's affecting you" is gone. Four tappable at-a-glance boxes (Money, Time, Expeditors, Scope) each open their own page, and Time opens History. Which card family lands where is data (CARD_TYPES `numbers_section`). The placeholder labels are waiting on Tom's wording and a real-phone look. v3.2.61 cleared eight untriaged reviewer reports.
+**v3.2.63 names the "My numbers" placeholders (fb:adad1561):** the five approved wording rows (`NUMBERS.*` in UI_STRINGS.csv) replace the v3.2.62 placeholder text — see CHANGELOG. **Do not flip fb:adad1561 yet** — that waits until Tom has seen the four boxes on a real phone.
+
+**v3.2.62 is Tom's "My numbers" redesign (fb:adad1561):** "What's affecting you" is gone. Four tappable at-a-glance boxes (Money, Time, Expeditors, Scope) each open their own page, and Time opens History. Which card family lands where is data (CARD_TYPES `numbers_section`). v3.2.61 cleared eight untriaged reviewer reports.
 
 ## Health
-- **Tests (v3.2.62):** `npx vitest run`, the whole suite including ghost: **3209/3209 across 224 files**, green on the first attempt. Typecheck ✅, production build ✅, lint clean on changed files.
+- **Tests (v3.2.63):** `npx vitest run`, the whole suite including ghost: **3209/3209 across 224 files**, green on the first attempt. Typecheck ✅, production build ✅. No `src/` files changed (data + docs only), so lint N/A.
 - **Flake note:** a lone `tests/server/**` failure is probably Windows temp-dir load (`EPERM`/`ENOTEMPTY`). Re-run before investigating. It did not occur this session.
 - **Security:** `npm audit` 0 vulnerabilities as of v3.2.44.
-- **Deploy:** ⏳ v3.2.62 pending; v3.2.61 live. `bash deploy.sh` is Tom's to run, from a Windows terminal.
+- **Deploy:** ⏳ v3.2.63 pending; v3.2.62 live (`/health` = `337ebf0`, 2026-09-18 09:28Z). `bash deploy.sh` is Tom's to run, from a Windows terminal.
 - **Dashboard feedback:** 9 open (was 17). v3.2.61's 8 fixes were flipped resolved 2026-09-17. fb:93449bf2 is still deliberately unflipped: it needs the maintainer's eyes on the real TV. fb:9e31b860 and fb:adad1561 are design calls in TODO.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
