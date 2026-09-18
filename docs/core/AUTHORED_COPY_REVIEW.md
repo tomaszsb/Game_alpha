@@ -1250,3 +1250,96 @@ Every material effect fires a modal — including `Time` and `Fee`. PM has to fe
 | **FDNY clerk** | REG-FDNY-FEE-REVIEW |
 | **FDNY plan examiner** | REG-FDNY-PLAN-EXAM |
 | **Contractor** | CON-INITIATION, CON-ISSUES, CON-INSPECT *(multi-NPC scene)* |
+
+---
+
+# ACTION TOOLTIPS ("What's this?") — beginner-voice draft, 2026-09-18
+
+**Status:** DRAFT, nothing applied. Written 2026-09-18. Same convention as the button-label pass (v3.2.51): approve, edit, or reject line by line — the voice is yours, I only drafted options.
+
+### Read this first: the job is smaller and different than "44 rows"
+
+The old TODO item said the 44 rows of `ACTION_TOOLTIPS.csv` need a beginner-voice pass. I traced which of them a player can actually reach, and it is **not 44**:
+
+| Where the text can appear | Rows | Reachable today? |
+|---|---|---|
+| The **"?"** on an action row in the player panel (`getManualEffectTooltip`) — **cards** actions only | `draw_W`, `draw_B`, `draw_I`, `draw_E`, `replace_E`, `return_E` | **Yes — 6 rows, covering 35 real buttons** (`draw_E` alone is 16 of them) |
+| The **"?"** on a **dice** action (45 source rows — most of the game's action row) | none — falls back to the button's own label | **No text exists for them in practice.** Proved live 2026-09-18: tapping "?" on **"See what he wants built"** opens a box that says **"See what he wants built."** |
+| `draw_L` (Life Event), `give_E` | 2 | No — Life Events are automatic (no button), and no row uses `give_E` |
+| The 7 `dice_outcome_*` rows, `roll_to_move`, `end_turn`, `negotiate`, `pay_fees`, `scope_check` | 12 | No — their helper functions (`getDiceRollTooltip`, `getEndTurnTooltip`, `getNegotiateTooltip`) have **no callers** in the app |
+| The 24 `choice` rows ("Go to Architect", …) | 24 | No — the only reader is `ChoiceModal`'s movement branch, and `ChoiceModal` never renders a movement choice (`isRegularChoice` excludes it; the panel's Move row handles it) |
+
+So the real work is **6 live rows to reword** plus **one gap to fill: a "?" answer for dice actions** — which is the biggest teaching hole on the screen, because the row a beginner most needs explained ("See how long it slows you", "See what happens") is the one whose "?" says nothing.
+
+The existing `dice_outcome_*` rows are not the answer as written: they say *"The dice determine…"*, *"Higher rolls mean more…"*, *"Roll for Time"* — game language your voice rule bans. So the dice part needs new copy first; the wiring (a small code change) follows approval.
+
+### What I held to
+
+- **Button says the action; the tooltip is where a trade word is taught** (your rule). Every "?" below names the trade word once — **expeditor**, **scope** — because that is exactly where the glossary link works (`TextWithTerms`), and the button ("Add a team member") already told the player what they're doing.
+- **No game language:** no "dice", "roll", "card", "draw".
+- **Two sentences at most** in the main line (`tooltip_why`); the smaller grey second line (`tooltip_context`) carries the one fact worth remembering. Plain words, no idioms — non-native English readers are the main audience.
+- I kept every **number** that is already in the current rows ($4M split, 15% quality gap, 80–130% price band). I did not invent any.
+
+---
+
+### Part 1 — the 6 live rows (reword)
+
+Format: **now** → **proposed**. Line 1 is `tooltip_why`, line 2 is `tooltip_context`.
+
+#### 1. `draw_W` — "Add work to the job" (2 buttons)
+- **now:** *Your project scope is defined by Work Packages. Adding Work Packages brings new tasks and materials to your project - increasing both value and cost.* / *Scope determines project value and construction budget. Each Work Package adds specific work items.*
+- **proposed:** *Adding work makes your project bigger, and more expensive. All the work you take on together is your scope.* / *Your scope decides how much money you need to raise.*
+
+#### 2. `draw_B` — "Borrow from the bank" / "See the bank's terms" (4 buttons)
+- **now:** *Banks provide quick funding at lower rates for smaller projects. Bank Loans give you working capital to pay fees and staff.* / *Bank loans are faster but capped at lower amounts. Good for projects under $4M scope.*
+- **proposed:** *A bank lends you money that you pay back with interest. It is quicker and cheaper than an investor, but it lends less.* / *Best for projects under $4 million.*
+
+#### 3. `draw_I` — "Raise money from investors" (2 buttons)
+- **now:** *Investors fund larger projects but take longer and charge higher rates. Investments provide substantial capital for big scope projects.* / *Investor funding suits projects over $4M. Higher fees but more capital available.*
+- **proposed:** *Investors can put in much more money than a bank, but they take longer to decide and cost more.* / *Best for projects over $4 million.*
+
+#### 4. `draw_E` — "Add a team member" / "Bring in extra hands" / "Bring in more help" (12 of its 16 buttons; the other 4, "Pass help to your left/right", are the separate decision in TODO 🙋)
+- **now:** *Expeditors are your secret weapon. They provide special abilities to speed up approvals or avoid problems.* / *Expeditors can be played strategically to bypass delays or reduce costs. Save them for critical moments.*
+- **proposed (recommended):** *A team member here is an **expeditor**: a specialist who knows how city approvals work. They can save you days or money later.* / *Keep them for when they help most — your Expeditors box shows who you have.*
+- **why this one matters most:** it is the only place that connects the button word ("team member") to the trade word ("expeditor") the rest of the game uses. Today the "?" on "Add a team member" never says "team member".
+
+#### 5. `replace_E` — "Swap a team member" / "Swap in the right specialist" (5 buttons)
+- **now:** *Trading one expeditor for another gives you a chance to get a more useful ability for your current situation.* / *Sometimes the expeditor you have does not fit your needs. Replace them for a better match.*
+- **proposed:** *Trade one of your expeditors for a different one. Do it when the one you have will not help you soon.* / *Each expeditor only helps in certain stages of the project.*
+- **check needed (yours):** I did not verify whether the player *chooses* the replacement or it is picked for them — the sentence above avoids saying either. If you want it said, tell me which.
+
+#### 6. `return_E` — "Let a team member go" (6 buttons)
+- **now:** *An expeditor leaving means losing that ability. This often happens when negotiating or facing setbacks.* / *You may be forced to give up help when things go wrong or deals change.*
+- **proposed:** *One of your expeditors leaves your team, and the help they could give you leaves with them.* / *Choose this only if you no longer need them.*
+- **check needed (yours):** the current context line says it can be forced. The button is one you press, so I wrote it as a choice; if some spaces make it mandatory, that line should say so.
+
+---
+
+### Part 2 — the gap: a "?" answer for the 45 dice actions
+
+**What happens today:** the "?" on a dice action shows the button's own label (or "Complete this action to progress" if that is empty). **What I'd build after you approve the copy:** each dice button already carries its outcome category in its data row (`effect_value`: "Time outcomes", "W Cards", "Fees Paid", …), so the "?" can be answered **per button, with no new data column**. (The existing `getDiceRollTooltip()` is not the right hook — it picks a kind from the space's *first* dice effect, which would mislabel a space that has two different buttons, e.g. Investor Review's "what they'll put in" and "how long they take".) The copy is what I need from you — one entry per category:
+
+| Category (buttons) | Example button | Proposed `tooltip_why` / `tooltip_context` |
+|---|---|---|
+| **Time** (23) | "See how long it slows you" | *Some steps take longer than you planned for. This shows how many days this step costs you.* / *Days you spend count against your final score.* |
+| **Fee** (7) | "See what the fee is" | *This shows what you pay for this step. Fees are a share of your project's cost, so a bigger project pays more.* / *(no number — this category spans several spaces; see limit 1 below)* |
+| **Work added** (9) | "See what he wants built" | *The owner decides how much work he wants done. This shows how much work is added to your project.* / *More work means a bigger project, and more money to raise.* |
+| **Investor deal** (2) | "See what they'll put in" | *This shows the deal the investors offer: how much they put in.* / *They may take longer and charge more than a bank.* |
+| **New team member** (2) | "See who he sends you" | *This shows whether you get a new team member — an **expeditor** — from this step.* / *Your Expeditors box shows who you have.* |
+| **Contractor quality** (1) | "See how good his work is" | *A contractor's crew can be top, average, or budget quality. Better crews cost about 15% more but build faster; budget crews save money but slow the job.* / *This sets both your price and your schedule.* |
+| **Contractor bid** (1) | "See what it adds up to" | *The contractor's bid sets the price you agree to and how long the job takes. A higher bid means a higher price and a longer job.* / *The price lands between about 80% and 130% of your estimate; crew quality shifts both.* |
+| **Quality + bid together** (the one collapsed button) | "See what happens" | *Two things get decided here: how good the crew is, and the price and schedule they bid.* / *Better crews cost more up front but finish sooner.* |
+
+(The 45 = 23 + 9 + 7 + 2 + 2 + 1 + 1. The last table row is not an extra category: at Con-Initiation the quality and bid rows merge into one "See what happens" button, which needs the combined text.)
+
+**Two honest limits of the per-category approach**
+1. **A category is broader than one space.** "Fee" covers design fees *and* other fees, so I left the % ranges out (the old row's "architect 8–12%, engineer 2–6%" belongs to two specific spaces). If you want the numbers, the right shape is **per-space** text — a bigger change (a new column keyed by space), so I'd only do it if you want it.
+2. **The Con-Initiation pair** shows one button because two dice rows share a roll (`collapsePairedDiceActions`); the wiring has to pick the combined text for it, which the table already includes.
+
+### Part 3 — the dead rows (no action recommended)
+
+36 rows are unreachable (table at the top). **I recommend leaving them exactly as they are:** they are harmless, and rewording text nobody can see is effort with no player benefit. Two of them may earn a second life — the 24 `choice` rows are natural destination tooltips **if** you ever decide the destination picker should explain itself (that is the "should the picker auto-expand?" decision already in TODO 🙋). Delete or reuse them then, not now.
+
+### What I need from you
+
+Per row: **ok / edit / no**. Part 1 (6 rows) and Part 2 (9 rows) are independent — Part 1 can ship alone the moment you answer; Part 2 needs the small wiring change too, which I would make and test in the same release. Nothing changes until you answer.

@@ -95,13 +95,13 @@ function ExpiredGameLinkScreen({ onStartNew }: { onStartNew: () => void }): JSX.
     >
       <div style={{ marginBottom: '20px', fontSize: '48px' }}>🔗</div>
       <div style={{ fontSize: '22px', fontWeight: 600, color: colors.neutral.black, marginBottom: '8px' }}>
-        This game link isn't working
+        This game link isn&apos;t working
       </div>
       <div style={{ fontSize: '16px', color: colors.text.secondary, marginBottom: '10px', maxWidth: '440px' }}>
-        The game it points to may have expired, or the link may be mistyped. Ask whoever's hosting for a current link or code.
+        The game it points to may have expired, or the link may be mistyped. Ask whoever&apos;s hosting for a current link or code.
       </div>
       <div style={{ fontSize: '14px', color: colors.text.secondary, marginBottom: '28px', maxWidth: '440px' }}>
-        If you opened this from an app's built-in browser (e.g. Perplexity), try opening it in your regular browser instead — some in-app browsers block features this game needs.
+        If you opened this from an app&apos;s built-in browser (e.g. Perplexity), try opening it in your regular browser instead — some in-app browsers block features this game needs.
       </div>
       <button
         type="button"

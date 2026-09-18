@@ -73,13 +73,13 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'NUMBERS.tile.expeditors': 'Expeditors',
   'NUMBERS.tile.scope': 'Scope',
   'NUMBERS.tile.days': '{days} days',
-  'NUMBERS.tile.ready': '{n} ready to use',
-  'NUMBERS.tile.none': 'None yet',
+  'NUMBERS.tile.ready': '{n} you can use now',
+  'NUMBERS.tile.none': 'Nothing yet',
   'NUMBERS.section.money': 'Money',
   'NUMBERS.section.scope': 'Scope',
   'NUMBERS.section.expeditors': 'Expeditors',
-  'NUMBERS.expeditors.empty': 'No expeditors yet.',
-  'NUMBERS.money.ongoing': 'Still affecting you',
+  'NUMBERS.expeditors.empty': "You haven't hired anyone yet.",
+  'NUMBERS.money.ongoing': 'Still costing you',
   'DICE_BUTTON.WORK': 'Get Work Packages',
   'DICE_BUTTON.BANK': 'Apply for Bank Loans',
   'DICE_BUTTON.EXPEDITOR': 'Hire Expeditors',
@@ -246,7 +246,7 @@ export function configureUIStrings(rows: UIStringCsvRow[]): void {
  * that imports this module normally — see endGameInsights.ts's `_testOnly`
  * for the same pattern). Not used by app code.
  */
-export const _testOnly = { resetUIStringOverrides: () => UI_STRING_OVERRIDES.clear() };
+export const _testOnly = { resetUIStringOverrides: () => UI_STRING_OVERRIDES.clear(), defaults: DEFAULT_UI_STRINGS };
 
 // --- Commit control ---
 /**

@@ -100,7 +100,7 @@ picked.forEach((g, n) => {
   out.push('|---|---|---|---|---|');
   log.forEach((e, i) => {
     const where = e.details?.spaceName || '';
-    const desc = String(e.description || '').replace(/\|/g, '\|');
+    const desc = String(e.description || '').replace(/\|/g, '\\|');
     out.push(`| ${i + 1} | ${clock(e.timestamp)} | ${desc} | ${where} | ${e.type} |`);
   });
   out.push('');

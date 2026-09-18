@@ -46,7 +46,7 @@ export function PhoneScreenWarning(): JSX.Element | null {
           You can keep going, but things may feel cramped on a phone this small.
         </span>
         <span style={{ display: 'block', marginTop: '0.35rem', opacity: 0.85 }}>
-          On a TV but seeing this? Check your browser's menu for "Request desktop site" and turn it off, or just tap TV above.
+          On a TV but seeing this? Check your browser&apos;s menu for &quot;Request desktop site&quot; and turn it off, or just tap TV above.
         </span>
       </span>
     </div>

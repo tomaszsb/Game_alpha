@@ -1,7 +1,7 @@
 // src/utils/buttonFormatting.ts
 
 import React from 'react';
-import { SpaceEffect, DiceEffect, DiceOutcome } from '../types/DataTypes';
+import { SpaceEffect, DiceEffect } from '../types/DataTypes';
 import { getTooltipService } from '../services/TooltipService';
 import { FormatUtils } from './FormatUtils';
 import { DICE_BUTTON, DICE_FEEDBACK } from '../constants/uiStrings';

@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.67] - 2026-09-18
+
+### Three dependency majors taken, each tested for real
+
+**Not player-visible, but it changes the shipped bundle.** `typescript` 5.9.3 → **6.0.3**, `jsdom` 27.4.0 → **29.1.1**, `framer-motion` 12.43.0 → **13.4.0**. `typescript` is pinned `~6.0.3` on purpose: `@typescript-eslint` 8.70 peers `<6.1.0`, and 7.0.2 is what `latest` now points at.
+
+- **TypeScript 6** deprecates two `tsconfig` options this repo used, so both were migrated properly rather than silenced with `ignoreDeprecations`: `moduleResolution: "node"` → `"bundler"` (right for Vite + ESNext) and `baseUrl` removed (`paths` is now `./src/*`). Two more errors surfaced, both real: `tests/setup.ts` was an **orphan Jest leftover** — no vitest config references it (they all use `tests/vitest.setup.ts`) and it side-effect-imports `jest-environment-jsdom`, a package removed long ago — so it is deleted; and two tests import `dom-accessibility-api` without declaring it (it was reaching them through `@testing-library`'s dependency tree, at a hoisted 0.5.16 whose `exports` map has no `types`), so it is now a declared devDependency at `^0.7.1`, which ships them.
+- **jsdom 29:** 109 files / 1,423 tests (`components`, `utils`, `dictionary`, including the `forks`-pool files that mock `window.location`) pass unchanged.
+- **framer-motion 13:** its only production user is `ModalBase` (every modal). jsdom cannot judge an animation, and this session's Browser pane fires **zero** `requestAnimationFrame` frames, so animations there prove nothing either way. Checked instead in Playwright's own Chromium (31 frames per 500 ms): the Rules modal reaches opacity 1 in 291 ms and unmounts 279 ms after Close, leaving no overlay behind.
+- **Not taken:** `nodemailer` 10 — released 2026-09-04 with ten patch releases in the ten days since, and the only use is the Reminder Hub's SMTP send (`server/mailer.js`), which cannot be exercised without live credentials. Revisit once 10.x has been quiet for a while.
+
+### Lint can pass again
+
+`npm run lint` exited 1 on **8 hard errors** that had accumulated unnoticed, which makes a lint gate worthless (35 `no-explicit-any` warnings remain, deliberately left). Fixed: an unused `DiceOutcome` import (`buttonFormatting.ts`); six unescaped `'`/`"` in JSX text (`App.tsx` ×3, `PhoneScreenWarning.tsx`) via `&apos;`/`&quot;` — the rendered text is identical; and `scripts/playtest-transcript.mjs:103`, where `.replace(/\|/g, '\|')` replaced `|` with `|` (in a JS string `'\|'` *is* `'|'`) so the markdown-table pipe escaping it was written for **never happened** — now `'\\|'`.
+
+### In-code `NUMBERS.*` defaults synced with the approved CSV wording — and a guard so they stay synced
+
+Four `DEFAULT_UI_STRINGS` entries still carried v3.2.62's placeholder wording ("{n} ready to use", "None yet", "No expeditors yet.", "Still affecting you") for two releases after Tom's approved wording reached `UI_STRINGS.csv` (v3.2.63). Invisible at runtime, because the CSV overrides them — but a reskin CSV that omitted a row would have silently fallen back to stale copy. Now equal, and new test *"every value in the shipped UI_STRINGS.csv equals its in-code default"* fails naming the key on any future drift (sabotage-checked: it failed on a deliberately reverted default, then passed on restore).
+
+### Investigation closed: the Con-Initiation "Determine Outcome crashes the whole game panel" report (2026-08-15) is the bankruptcy ending, not a crash
+
+Reproduced in a real browser (2026-09-18) by injecting a game state parked on `CON-INITIATION`/First through the server's state API. With **$400,000** in cash, pressing the contractor roll ("See what happens") showed the outcome (*Quality: High*, *Agreed price: $760,725*) and then the "The project went under — Smoke ran out of money" end screen, which replaces the board and panel outright: `document.body.innerText` shrank to the end-screen text, no error boundary, and no console error beyond the routine new-game 404 — every symptom in the original report, including "no recovery". Control: the identical state with **$2,000,000** showed the same outcome (*Agreed price: $676,200*) with panel and board intact. The 08-15 sessions were automated and backgrounded (documented), and — an inference, since no log records their cash — probably under-funded; in a tab whose animation frames are throttled (the Browser pane's, as measured above) the end screen's entrance would sit at opacity 0, which reads as a blank page. No code change: bankruptcy on a mandatory bill is the maintainer's deliberate design (fb:0aae9865), and the orange "$… deficit" cue on the Money box already warns before it happens.
+
+**Verified:** `tsc --noEmit` clean on TypeScript 6.0.3, `npm run lint` 0 errors, `vite build` OK, full suite **3215/3215** (one more than v3.2.66 — the drift guard; three `EPERM` renames in `tests/server/instanceResolver.test.ts`, the documented Windows temp-dir flake, re-ran 160/160 with `instanceStore` in isolation).
+
 ## [3.2.66] - 2026-09-18
 
 ### Dependencies brought current (same-major refresh)

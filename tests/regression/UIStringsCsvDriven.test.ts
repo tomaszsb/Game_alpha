@@ -62,6 +62,25 @@ describe('button/notification text is CSV-driven (reskin: vocabulary swap)', () 
     expect(rejected).toEqual([]);
   });
 
+  // 2026-09-18: four NUMBERS.* defaults kept v3.2.62's placeholder wording for
+  // two releases after Tom's approved wording reached the CSV (v3.2.63). Nothing
+  // showed it — the CSV overrides at runtime — but a reskin CSV that simply
+  // omitted a row would have silently fallen back to stale copy. For the stock
+  // game the shipped CSV and the in-code defaults are the same text by contract.
+  it('every value in the shipped UI_STRINGS.csv equals its in-code default', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { parseCsvWithHeaders } = await import('../../server/processGameData.js');
+    const rows = parseCsvWithHeaders(
+      fs.readFileSync(path.join(process.cwd(), 'public/data/CLEAN_FILES/UI_STRINGS.csv'), 'utf-8')
+    ) as unknown as UIStringCsvRow[];
+    const ui = await import('../../src/constants/uiStrings');
+    const drift = rows
+      .filter(r => ui._testOnly.defaults[r.key] !== r.template)
+      .map(r => `${r.key}: csv=${JSON.stringify(r.template)} default=${JSON.stringify(ui._testOnly.defaults[r.key])}`);
+    expect(drift).toEqual([]);
+  });
+
   it('a reskin CSV swaps a plain-string button label', async () => {
     const ui = await import('../../src/constants/uiStrings');
     expect(ui.DICE_BUTTON.EXPEDITOR).toBe('Hire Expeditors');
