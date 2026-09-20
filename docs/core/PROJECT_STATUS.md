@@ -5,20 +5,20 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** September 18, 2026 (v3.2.68)
+**Last Updated:** September 19, 2026 (v3.2.70)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.68 — PENDING DEPLOY.** Live is v3.2.67: `/health` read `01c8fba` at 2026-09-18 (it carries v3.2.65 and v3.2.66 too). **Trust `/health` over this line** — status lines have gone stale within hours more than once. 3.2.46 stays permanently skipped.
+**Current Version:** **3.2.70 — PENDING DEPLOY** (v3.2.69 rides with it). Live is v3.2.68: `/health` read `bc1e44c` at 2026-09-19 ~21:08. **Trust `/health` over this line** — status lines have gone stale within hours more than once. 3.2.46 stays permanently skipped.
 
 ## Current sprint
-**Onboarding Phase C, teaching a beginner the game,** is still the main arc; the tutorial, the micro-lessons and the "What's this?" tooltip copy are still to do. **Every open design call is now waiting on Tom, and he asked (2026-09-18) that they come first next session** — see `.claude/NEXT_SESSION.md`. This cycle (v3.2.65–68): `npm audit` 9 → 0; dependencies current with TypeScript 6, jsdom 29 and framer-motion 13 taken (nodemailer 10 deferred, ESLint 10 and vitest 5 blocked); lint passes again; `USER_MANUAL.md` rewritten to the live panel; the 2026-08-15 "Con-Initiation crash" reproduced and closed as the bankruptcy ending; the commit control now lights whenever it is pressable; and **v3.2.68 fixes four "Pass help" buttons that gave the presser a free expeditor** — they now pass one to the neighbour (the data pipeline never recognised the legacy sentence; option A, Tom's pick; optional like the other team-member actions). A per-row draft for the "What's this?" tooltips is waiting for his ok/edit/no (`AUTHORED_COPY_REVIEW.md`, last section): only 7 of the 44 rows are reachable, and the "?" on the 45 dice actions repeats the button's own label.
+**Onboarding Phase C, teaching a beginner the game,** is still the main arc. Tom answered all eight open design calls on 2026-09-19, so nothing waits on him. This session built the three approved items: **v3.2.69**, every "?" answers — the 7 card rows in beginner voice plus all 45 dice buttons, with a merged button explaining every outcome it fires (8 space/visit combinations, not the 1 the draft assumed); **v3.2.70**, the destination list opens itself when choosing where to go is the only thing left ("narrow"). What is left of the arc is the tutorial and the story-based micro-lessons. The decisions Tom closed with no code change are recorded in CHANGELOG v3.2.70.
 
 ## Health
-- **Tests (v3.2.68):** `npx vitest run`, ghost included: **3245/3245 across 226 files** (one `tests/server/instanceResolver` ENOTEMPTY flake, confirmed non-regression: both server files re-ran 160/160 in isolation — the documented Windows temp-dir pattern). Typecheck ✅, `npm run lint` 0 errors, build ✅, `npm audit` 0. **Run on Node 20.19; production is Node 24** (TODO).
-- **Ghost, seed 100001:** smart-bot 49/50 wins, avgTurns 70.1, 0 hard failures (50/50 and 70.8 before v3.2.68 — a re-dealt sample, not a like-for-like comparison).
-- **Deploy:** ⏳ v3.2.68 pending. `bash deploy.sh` is Tom's, from a Windows terminal.
-- **Dashboard:** fb:adad1561 resolved. fb:93449bf2 deliberately unflipped (needs Tom's eyes on the real TV). fb:ae480630 and fb:11662ac3 (commit highlight, Lender Review) **not flipped — v3.2.65 is live now, so they need a live look.**
+- **Tests (v3.2.70):** `npm test` **216 files / 3280 tests green**. Ghost gates (`npm run test:ghost`): **11 files / 43 tests green**; smart-bot seed 100001 **49/50 wins, avgTurns 70.1, 0 hard failures — identical to the v3.2.68 baseline**, as expected (nothing this session touched the engine). Typecheck ✅, build ✅, `npm run lint` 0 errors (35 `no-explicit-any` warnings, permanent by policy). 72 tests added for v3.2.69 and 6 for v3.2.70, each proven by sabotage.
+- **Deploy:** ⏳ v3.2.69 + v3.2.70 pending. `bash deploy.sh` is Tom's, from a Windows terminal. `ACTION_TOOLTIPS.csv` is a data file — after deploying, `curl -s https://game.unravelcodes.com/data/CLEAN_FILES/ACTION_TOOLTIPS.csv | grep -c "picked for you"` should print `1`.
+- **Nightly robot:** blind at its start step since v3.2.64 (waits for "THINGS YOU CAN DO"; the header is now "This turn") — the 09-19 03:00 run started 0 of 6 games. The fix is in the Jarvis repo, not here.
+- **Dashboard:** fb:93449bf2 deliberately unflipped (needs Tom's eyes on the real TV). fb:ae480630 and fb:11662ac3 (commit highlight, Lender Review) **not flipped — v3.2.65 is live, so they need a live look.**
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Tom's decisions, first** — the destination picker, the bare "?", tooltip copy, the `RoutingExplanationModal` test id, whether "pass a team member" should be mandatory, and two inert-data questions.
-2. **The teaching layer:** tutorial, micro-lessons, tooltips. Never put a glossary term inside an action button.
-3. **The playtest robot still has zero real completions** (harness-side; Tom decided 2026-09-16 the game stays as is). **Audit II leftovers** (win condition, closed card-family union) are each a dedicated session and Tom's call.
+1. **Deploy v3.2.69–70,** then a real-phone check of a modal or two (the bundle carries React 19.3, Vite 8.3 and framer-motion 13 since v3.2.67).
+2. **The teaching layer:** the tutorial and story-based micro-lessons. Never put a glossary term inside an action button.
+3. **The playtest robot** needs its Jarvis-side fix (start step, and reading `aria-expanded` on the picker before clicking). **Audit II leftovers** (win condition, closed card-family union) are each a dedicated session and Tom's call. **Accessibility** is research-only until Tom asks (TODO parking lot).
