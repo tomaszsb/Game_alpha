@@ -68,6 +68,37 @@ export function getManualEffectButtonStyle(
 }
 
 /**
+ * The family of outcome a dice row belongs to, read from its `effect_value`
+ * ("W Cards", "Fees Paid", "Time outcomes", …).
+ *
+ * ONE reader for every surface that needs to know: the button wording in
+ * formatManualEffectButton and the "What's this?" text in getDiceOutcomeTooltip.
+ * The spellings are messy on purpose-of-history ("E cards" vs "W Cards", "Fee
+ * Paid" vs "Fees Paid", a trailing space on "Multiplier "), and a list of them
+ * kept by each consumer is exactly the rule-in-N-places shape that gets missed
+ * in the N+1th (see the skippable-action rule, v3.2.53).
+ */
+export type DiceCategory =
+  | 'work' | 'bank' | 'investment' | 'expeditor' | 'life'
+  | 'fee' | 'time' | 'quality' | 'multiplier' | 'next';
+
+export function diceCategoryOf(effectValue: string | number | null | undefined): DiceCategory | null {
+  switch (String(effectValue || '').trim().toLowerCase()) {
+    case 'w cards': return 'work';
+    case 'b cards': case 'b card': return 'bank';
+    case 'i cards': case 'i card': return 'investment';
+    case 'e cards': case 'e card': return 'expeditor';
+    case 'l cards': case 'l card': return 'life';
+    case 'fees paid': case 'fee paid': return 'fee';
+    case 'time outcomes': case 'time': return 'time';
+    case 'quality': return 'quality';
+    case 'multiplier': return 'multiplier';
+    case 'next step': return 'next';
+    default: return null;
+  }
+}
+
+/**
  * Get user-friendly button text and icon for manual space effects
  */
 export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
@@ -168,18 +199,20 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
     // dice category (stored in `effect_value`, e.g. "W Cards" / "I Cards" /
     // "E cards" / "Fees Paid" / "Time outcomes" / "Quality" / "Multiplier" /
     // "Next Step") to the friendly DICE_BUTTON strings.
-    const cat = String(effect.effect_value || '').trim().toLowerCase();
-    if (cat === 'w cards') text = DICE_BUTTON.WORK;
-    else if (cat === 'b cards' || cat === 'b card') text = DICE_BUTTON.BANK;
-    else if (cat === 'i cards' || cat === 'i card') text = DICE_BUTTON.INVESTMENT;
-    else if (cat === 'e cards' || cat === 'e card') text = DICE_BUTTON.EXPEDITOR;
-    else if (cat === 'l cards' || cat === 'l card') text = DICE_BUTTON.LIFE_EVENT;
-    else if (cat === 'fees paid' || cat === 'fee paid') text = DICE_BUTTON.FEE;
-    else if (cat === 'time outcomes' || cat === 'time') text = DICE_BUTTON.TIME;
-    else if (cat === 'quality') text = DICE_BUTTON.QUALITY;
-    else if (cat === 'multiplier') text = DICE_BUTTON.OUTCOME;
-    else if (cat === 'next step') text = DICE_BUTTON.NEXT_STEP;
-    else text = DICE_BUTTON.OUTCOME;
+    switch (diceCategoryOf(effect.effect_value)) {
+      case 'work': text = DICE_BUTTON.WORK; break;
+      case 'bank': text = DICE_BUTTON.BANK; break;
+      case 'investment': text = DICE_BUTTON.INVESTMENT; break;
+      case 'expeditor': text = DICE_BUTTON.EXPEDITOR; break;
+      case 'life': text = DICE_BUTTON.LIFE_EVENT; break;
+      case 'fee': text = DICE_BUTTON.FEE; break;
+      case 'time': text = DICE_BUTTON.TIME; break;
+      case 'quality': text = DICE_BUTTON.QUALITY; break;
+      case 'next': text = DICE_BUTTON.NEXT_STEP; break;
+      // 'multiplier' has no wording of its own on a button, and an unrecognised
+      // category gets the same neutral one.
+      default: text = DICE_BUTTON.OUTCOME;
+    }
   } else {
     // Fallback for other effect types
     text = effect.description || `${effect.effect_type}: ${effect.effect_action} ${count || ''}`;
@@ -299,9 +332,81 @@ export function formatActionFeedback(effects: DiceFeedbackEffect[]): string {
 }
 
 /**
- * Get tooltip for a manual effect button
+ * Which ACTION_TOOLTIPS.csv `dice_outcome_*` row answers each dice category
+ * (the suffix TooltipService.getDiceTooltip appends). A category with no entry
+ * here — bank, life, next — has no row and falls back to the button's own text.
  */
-export function getManualEffectTooltip(effect: SpaceEffect): { tooltip: string; context: string } {
+const DICE_TOOLTIP_ROW: Partial<Record<DiceCategory, string>> = {
+  work: 'W',
+  investment: 'I',
+  expeditor: 'E',
+  fee: 'fee',
+  time: 'time',
+  quality: 'quality',
+  multiplier: 'multiplier',
+};
+
+/**
+ * The "What's this?" text for a dice button, from the outcome categories it
+ * resolves — one per row that shares the button's roll.
+ *
+ * A dice button can stand for SEVERAL rows: two rows sharing a roll are merged
+ * into one "See what happens" button (collapsePairedDiceActions), and that
+ * happens on 8 space/visit combinations, in four different category pairs
+ * (contractor quality + bid; investor + time; work + team member; time + fee).
+ * Answering only for the first row would explain half of what pressing it does.
+ * So each distinct category contributes its own approved text, in row order,
+ * separated by a blank line. The one exception is quality + bid, which has a
+ * combined row of its own (both are contractor terms, and the maintainer wrote
+ * it that way). Nothing here is new copy — it is only the approved lines, joined.
+ *
+ * Returns null when no category has a row, so the caller can fall back.
+ */
+export function getDiceOutcomeTooltip(
+  effects: SpaceEffect[]
+): { tooltip: string; context: string } | null {
+  const tooltipService = getTooltipService();
+
+  const categories: DiceCategory[] = [];
+  for (const effect of effects) {
+    const category = diceCategoryOf(effect.effect_value);
+    if (category && !categories.includes(category)) categories.push(category);
+  }
+
+  const contractorPair =
+    categories.length === 2 && categories.includes('quality') && categories.includes('multiplier')
+      ? tooltipService.getDiceTooltip('quality_multiplier')
+      : undefined;
+
+  const rows = contractorPair
+    ? [contractorPair]
+    : categories
+        .map((category) => DICE_TOOLTIP_ROW[category])
+        .filter((row): row is string => !!row)
+        .map((row) => tooltipService.getDiceTooltip(row))
+        .filter((tooltip): tooltip is NonNullable<typeof tooltip> => !!tooltip);
+
+  if (rows.length === 0) return null;
+
+  return {
+    tooltip: rows.map((row) => row.tooltip_why).join('\n\n'),
+    // A row may have no grey line by design (Fee spans several spaces, so it
+    // carries no number); skip it rather than leave a blank paragraph.
+    context: rows.map((row) => row.tooltip_context).filter(Boolean).join('\n\n'),
+  };
+}
+
+/**
+ * Get tooltip for a manual effect button.
+ *
+ * `sharedWith` is every effect that resolves from the ONE button this row
+ * belongs to. It only matters for dice: a merged button (see
+ * getDiceOutcomeTooltip) answers for all of its rows, not just the first.
+ */
+export function getManualEffectTooltip(
+  effect: SpaceEffect,
+  sharedWith?: SpaceEffect[]
+): { tooltip: string; context: string } {
   const tooltipService = getTooltipService();
 
   // Extract card type and action from effect
@@ -335,6 +440,15 @@ export function getManualEffectTooltip(effect: SpaceEffect): { tooltip: string; 
         context: tooltipData.tooltip_context
       };
     }
+  }
+
+  // Dice actions: answered per outcome category, read from each row's own
+  // `effect_value` — no per-space text and no new column. (getDiceRollTooltip
+  // below is NOT the hook: it picks a kind from a space's FIRST dice effect,
+  // which would mislabel a space whose two buttons mean different things.)
+  if (effect.effect_type === 'dice') {
+    const dice = getDiceOutcomeTooltip(sharedWith && sharedWith.length > 0 ? sharedWith : [effect]);
+    if (dice) return dice;
   }
 
   // Fallback to description

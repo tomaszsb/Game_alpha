@@ -2,6 +2,14 @@
 
 ---
 
+## v3.2.69 — Every "?" now tells you something (September 19, 2026)
+
+- **The "?" beside "See what he wants built", "See how long it slows you" and the other "See…" buttons used to just repeat the button's own name.** Now each one explains what pressing it decides: how much work the owner adds to your project, how many days a step costs you, what a fee is, what the investors are offering, whether you get a new team member, and what kind of crew the contractor sends and what they charge.
+- **The "?" on the team-member, bank, investor and work buttons is rewritten in plainer words.** Each one now says what the thing is and when you would want it.
+- **"Pass a team member" has its "?" too.** It explains that you hand one of your team members to the player next to you, that it is optional, and that you need at least one to pass.
+- **"Swap a team member" now says the new one is picked for you.** You choose which one to give up; you do not choose who arrives.
+- **When one button decides two things at once, the "?" explains both.** For example, at the investors' review, one button finds out how much they put in *and* how long they take, so the "?" tells you about both.
+
 ## v3.2.68 — "Pass a team member" really passes one (September 18, 2026)
 
 - **The four "Pass a team member to your left / right" buttons now do what they say.** They used to read "Pass help…" and, oddly, gave *you* a free team member instead of handing one over. Now, if you press one, one of your team members goes to the player on that side. If you hold more than one, you choose which; you can also cancel. The button is marked **optional**, and it only shows up when you have someone to pass and someone to pass them to (so it never appears in a solo game).

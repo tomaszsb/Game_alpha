@@ -919,7 +919,9 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             // and nothing about what it means. Explaining alongside the button is
             // the only place the two can coexist, so this is where the hard words
             // finally get to define themselves.
-            const why = getManualEffectTooltip(a.effect);
+            // A merged dice button (two rows sharing one roll) explains BOTH
+            // outcomes — `mergedFrom` is what collapsePairedDiceActions folded in.
+            const why = getManualEffectTooltip(a.effect, a.mergedFrom?.map((m) => m.effect));
             const isOpen = openWhy === a.effectKey;
             return (
               <div key={a.effectKey}>
@@ -996,6 +998,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                       fontSize: 12.5,
                       lineHeight: 1.45,
                       color: p.text,
+                      // A merged button joins two authored explanations with a
+                      // blank line; without this the browser folds it to a space
+                      // and the two read as one run-on. Inherited by the grey line.
+                      whiteSpace: 'pre-line',
                     }}
                   >
                     <TextWithTerms text={why.tooltip} onTermClick={(term) => openWithTerm(term.id)} />

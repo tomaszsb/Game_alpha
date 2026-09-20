@@ -1255,7 +1255,7 @@ Every material effect fires a modal — including `Time` and `Fee`. PM has to fe
 
 # ACTION TOOLTIPS ("What's this?") — beginner-voice draft, 2026-09-18
 
-**Status:** DRAFT, nothing applied. Written 2026-09-18. Same convention as the button-label pass (v3.2.51): approve, edit, or reject line by line — the voice is yours, I only drafted options.
+**Status:** **APPLIED in v3.2.69 (2026-09-19).** Tom approved all 7 Part 1 rows and all 8 Part 2 categories exactly as drafted. What shipped differs from the draft in three ways, all of them facts checked in code rather than copy changes: (1) `replace_E`'s grey line gained *"The new one is picked for you."* — `CardService.replaceCard` draws the replacement off the deck, the player only chooses which expeditor to give up; (2) `return_E` gained nothing — all 6 rows are optional manual buttons, so the draft's "choice" wording was already true; (3) the draft assumed **one** merged dice button (Con-Initiation). There are **8 space/visit combinations in four category pairs** (quality + bid; investor + time; work + team member; time + fee), so a merged button's "?" now shows each merged category's approved text in row order, and only quality + bid uses its own combined row. Nothing new was written for those — the approved lines are only joined. Text below is the original draft, kept as the record of what was approved. Original status line: DRAFT, nothing applied. Written 2026-09-18. Same convention as the button-label pass (v3.2.51): approve, edit, or reject line by line — the voice is yours, I only drafted options.
 
 ### Read this first: the job is smaller and different than "44 rows"
 

@@ -16,6 +16,9 @@ import { PlayerPanelV2 } from '../../../src/components/player/PlayerPanelV2';
 import { createAllMockServices } from '../../mocks/mockServices';
 import { DictionaryProvider } from '../../../src/dictionary';
 import * as uiStrings from '../../../src/constants/uiStrings';
+import { initializeTooltipService, resetTooltipService } from '../../../src/services/TooltipService';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 // v3.2.62 (fb:adad1561, Tom 2026-09-17): "What's affecting you" is gone. Its
 // contents live behind the at-a-glance boxes — the Expeditors box opens the
@@ -1249,7 +1252,7 @@ describe('PlayerPanelV2 — "What\'s this?" action explanations (Onboarding Phas
     button_label: 'Bring in extra help',
   };
 
-  const setup = () => {
+  const setup = (effects: any[] = [drawEffect]) => {
     vi.clearAllMocks();
     services = createAllMockServices();
     const player: any = {
@@ -1268,9 +1271,9 @@ describe('PlayerPanelV2 — "What\'s this?" action explanations (Onboarding Phas
     services.stateService.subscribe.mockReturnValue(() => {});
     services.dataService.getSpaceContent.mockReturnValue({ title: 'Scope Initiation', story: '' });
     services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
-    services.dataService.getSpaceEffects.mockReturnValue([drawEffect]);
+    services.dataService.getSpaceEffects.mockReturnValue(effects);
     services.dataService.getMovement.mockReturnValue(undefined);
-    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([drawEffect]);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue(effects);
     services.gameRulesService.canEndTurn.mockReturnValue(false);
     services.cardService.canPlayCard.mockReturnValue(false);
     services.dataService.getCardById.mockImplementation((id: string) =>
@@ -1318,5 +1321,88 @@ describe('PlayerPanelV2 — "What\'s this?" action explanations (Onboarding Phas
     fireEvent.click(screen.getByRole('button', { name: /What's this\? Bring in extra help/i }));
     fireEvent.click(screen.getByRole('button', { name: /^⚡?\s*Bring in extra help$/i }));
     expect(services.turnService.triggerManualEffectWithFeedback).toHaveBeenCalled();
+  });
+
+  /**
+   * Dice actions (v3.2.69). Before this, the "?" on a dice button opened a box
+   * that repeated the button's own label — tapping it on "See what he wants
+   * built" said "See what he wants built." — so the row a beginner most needs
+   * explained was the one that explained nothing. These render the REAL
+   * ACTION_TOOLTIPS.csv through the real component; the unit-level guard is
+   * tests/utils/actionTooltips.test.ts.
+   */
+  describe('dice actions', () => {
+    const TOOLTIPS_CSV = readFileSync(
+      join(process.cwd(), 'public', 'data', 'CLEAN_FILES', 'ACTION_TOOLTIPS.csv'), 'utf-8');
+
+    const diceRow = (effect_value: string, button_label: string): any => ({
+      effect_type: 'dice', effect_action: 'dice_outcome', trigger_type: 'manual',
+      condition: '', effect_value, description: button_label, button_label,
+    });
+
+    // tests/vitest.setup.ts resets this singleton after EVERY test, so it is
+    // loaded per test here rather than once.
+    beforeEach(async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true, text: () => Promise.resolve(TOOLTIPS_CSV),
+      }) as unknown as typeof fetch;
+      await initializeTooltipService().loadTooltips();
+    });
+    afterEach(() => resetTooltipService());
+
+    it('explains what pressing it decides, not just what it is called', () => {
+      setup([diceRow('Time outcomes', 'See how long it slows you')]);
+      renderPanel();
+
+      fireEvent.click(screen.getByRole('button', { name: /What's this\? See how long it slows you/i }));
+
+      expect(screen.getByText(/Some steps take longer than you planned for/i)).toBeInTheDocument();
+      expect(screen.getByText(/Days you spend count against your final score/i)).toBeInTheDocument();
+    });
+
+    it('a merged button explains BOTH outcomes it fires', () => {
+      // Investor Review: two dice rows share one roll, so the panel shows ONE
+      // "See what happens" button — which decides how much they put in AND how
+      // long they take. Explaining only the first would be a half-truth.
+      setup([
+        diceRow('I Cards', "See what they'll put in"),
+        diceRow('Time outcomes', 'See how long they take'),
+      ]);
+      renderPanel();
+
+      expect(screen.getAllByTestId('action-button')).toHaveLength(1);
+      fireEvent.click(screen.getByRole('button', { name: /What's this\? See what happens/i }));
+
+      expect(screen.getByText(/how much they put in/i)).toBeInTheDocument();
+      expect(screen.getByText(/how many days this step costs you/i)).toBeInTheDocument();
+    });
+
+    it('keeps a blank line between the two explanations', () => {
+      setup([
+        diceRow('I Cards', "See what they'll put in"),
+        diceRow('Time outcomes', 'See how long they take'),
+      ]);
+      renderPanel();
+      fireEvent.click(screen.getByRole('button', { name: /What's this\? See what happens/i }));
+
+      // Two authored paragraphs are joined with "\n\n"; without pre-line the
+      // browser folds that to a single space and they read as one run-on.
+      const box = screen.getByText(/how much they put in/i).closest('[style*="pre-line"]');
+      expect(box).not.toBeNull();
+      expect(box!.textContent).toMatch(/put in\.\s*Some steps take longer/);
+      expect(box!.textContent).toContain('\n\n');
+    });
+
+    it('the contractor pair gets its own combined text', () => {
+      setup([
+        diceRow('Quality', 'See how good his work is'),
+        diceRow('Multiplier', 'See what it adds up to'),
+      ]);
+      renderPanel();
+      fireEvent.click(screen.getByRole('button', { name: /What's this\? See what happens/i }));
+
+      expect(screen.getByText(/Two things get decided here/i)).toBeInTheDocument();
+      expect(screen.getByText(/Better crews cost more up front but finish sooner/i)).toBeInTheDocument();
+    });
   });
 });

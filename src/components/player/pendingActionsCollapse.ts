@@ -31,21 +31,42 @@ export interface CollapsibleAction {
 // generic wording is now plain English, per the maintainer's button rule.
 export const COLLAPSED_DICE_LABEL = 'See what happens';
 
-export function collapsePairedDiceActions<T extends CollapsibleAction>(actions: T[]): T[] {
-  const collapsed: T[] = [];
-  const seenDiceKeys = new Set<string>();
+/**
+ * A surviving action, plus — only when other dice rows were merged into it — the
+ * rows it now stands for (itself first, in original order). The button's
+ * "What's this?" needs them: one button that fires two outcomes has to explain
+ * both, and the panel has no other way to know which rows were folded away.
+ * Recording it here keeps the grouping rule (same effectKey) in ONE place
+ * instead of the panel re-deriving it.
+ */
+export type CollapsedAction<T extends CollapsibleAction> = T & { mergedFrom?: T[] };
+
+export function collapsePairedDiceActions<T extends CollapsibleAction>(actions: T[]): CollapsedAction<T>[] {
+  const collapsed: CollapsedAction<T>[] = [];
+  const membersByKey = new Map<string, T[]>();
+  const survivorIndexByKey = new Map<string, number>();
   let diceCollapseCount = 0;
 
   for (const action of actions) {
     if (action.isDiceEffect) {
-      if (seenDiceKeys.has(action.effectKey)) {
+      const members = membersByKey.get(action.effectKey);
+      if (members) {
+        members.push(action);
         diceCollapseCount++;
         continue;
       }
-      seenDiceKeys.add(action.effectKey);
+      membersByKey.set(action.effectKey, [action]);
+      survivorIndexByKey.set(action.effectKey, collapsed.length);
     }
     collapsed.push(action);
   }
+
+  membersByKey.forEach((members, key) => {
+    if (members.length > 1) {
+      const i = survivorIndexByKey.get(key)!;
+      collapsed[i] = { ...collapsed[i], mergedFrom: members };
+    }
+  });
 
   if (diceCollapseCount > 0) {
     for (let i = 0; i < collapsed.length; i++) {

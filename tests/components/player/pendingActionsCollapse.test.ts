@@ -108,6 +108,59 @@ describe('collapsePairedDiceActions', () => {
   });
 });
 
+// v3.2.69: the merged button's "What's this?" has to explain EVERY outcome the
+// one press fires, so the survivor records the rows that were folded into it.
+// The panel has no other way to know — the folded rows are gone from the list.
+describe('collapsePairedDiceActions — mergedFrom', () => {
+  it('records the merged rows on the surviving button, itself first, in original order', () => {
+    const input = cheatBypassActions();
+    const result = collapsePairedDiceActions(input);
+
+    const dice = result.find(a => a.isDiceEffect)!;
+    expect(dice.mergedFrom).toEqual([input[1], input[2]]);
+    expect(dice.mergedFrom![0]).toBe(input[1]); // the survivor's own row, by identity
+  });
+
+  it('records every row when three share a roll', () => {
+    const three: TestAction[] = [
+      { effectKey: 'dice:dice_outcome', isDiceEffect: true, label: 'a' },
+      { effectKey: 'dice:dice_outcome', isDiceEffect: true, label: 'b' },
+      { effectKey: 'dice:dice_outcome', isDiceEffect: true, label: 'c' },
+    ];
+    expect(collapsePairedDiceActions(three)[0].mergedFrom).toEqual(three);
+  });
+
+  it('leaves mergedFrom off a dice button that merged nothing', () => {
+    const [only] = collapsePairedDiceActions([
+      { effectKey: 'dice:dice_outcome', isDiceEffect: true, label: 'Determine Time Impact' },
+    ]);
+    expect(only).not.toHaveProperty('mergedFrom');
+  });
+
+  it('never records anything on a non-dice action', () => {
+    const result = collapsePairedDiceActions(cheatBypassActions());
+    expect(result.find(a => !a.isDiceEffect)).not.toHaveProperty('mergedFrom');
+  });
+
+  it('keeps separate groups separate when distinct dice keys both merge', () => {
+    const a1 = { effectKey: 'dice:one', isDiceEffect: true, label: 'a1' };
+    const a2 = { effectKey: 'dice:one', isDiceEffect: true, label: 'a2' };
+    const b1 = { effectKey: 'dice:two', isDiceEffect: true, label: 'b1' };
+    const b2 = { effectKey: 'dice:two', isDiceEffect: true, label: 'b2' };
+    const result = collapsePairedDiceActions([a1, b1, a2, b2]);
+
+    expect(result).toHaveLength(2);
+    expect(result[0].mergedFrom).toEqual([a1, a2]);
+    expect(result[1].mergedFrom).toEqual([b1, b2]);
+  });
+
+  it('does not put mergedFrom on the caller\'s own objects', () => {
+    const input = cheatBypassActions();
+    collapsePairedDiceActions(input);
+    input.forEach(a => expect(a).not.toHaveProperty('mergedFrom'));
+  });
+});
+
 // Locks the v2.70.3 second half of the CHEAT-BYPASS two-button fix
 // (fb:89d9f101 b): the separate "Determine Next Step" movement button is
 // suppressed whenever a (collapsed) SPACE_EFFECTS dice button is already shown,
