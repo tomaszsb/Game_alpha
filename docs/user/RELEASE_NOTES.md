@@ -2,6 +2,12 @@
 
 ---
 
+## v3.2.70 — Where to go next opens when it's the only thing left (September 19, 2026)
+
+- **On a space where you choose where to go, the list of places now opens by itself once choosing is all that's left.** Before, you always had to tap "Move" first, even when you had nothing else to do. Now, when every action that has to be done is done, the choices are already there waiting.
+- **While something still has to be done, the list stays folded away,** so the thing you need to do first is the thing you see first. Actions marked "optional" don't count — you can skip those, so they don't hold the list back.
+- **Fold it and it stays folded. Pick a place and it stays open** so you can still change your mind, just as before.
+
 ## v3.2.69 — Every "?" now tells you something (September 19, 2026)
 
 - **The "?" beside "See what he wants built", "See how long it slows you" and the other "See…" buttons used to just repeat the button's own name.** Now each one explains what pressing it decides: how much work the owner adds to your project, how many days a step costs you, what a fee is, what the investors are offering, whether you get a new team member, and what kind of crew the contractor sends and what they charge.

@@ -113,8 +113,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // separate buttons, so a choice space doesn't visually inflate the action
   // count (fb:feedback-1782843206015-8edd02b4). Once expanded, every option
   // stays visible/switchable per fb:c2e489dc — this only collapses the FIRST
-  // look, it never hides options again after you've opened the picker.
+  // look, it never hides options again after you've opened the picker. The
+  // first look is folded UNLESS choosing where to go is the only thing left, in
+  // which case it opens itself (see `pickIsOnlyGate`).
   const [showMoveOptions, setShowMoveOptions] = useState(false);
+  // Whether, on the previous render, choosing a destination was the ONLY thing
+  // left on this turn. Not shown anywhere — it exists so the picker opens on the
+  // moment that becomes true (see `pickIsOnlyGate` below), once, and after that
+  // leaves the player free to fold it.
+  const [pickWasOnlyGate, setPickWasOnlyGate] = useState(false);
   // Teaching layer (Onboarding Phase C). Which action row has its "What's this?"
   // explanation open, by effectKey; null = none. One at a time — the panel is a
   // phone/TV-width column and two open cards push the commit spine off-screen.
@@ -148,6 +155,9 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     setPrevSpaceForToggles(currentSpaceForPopup);
     setShowWhy(false);
     setShowMoveOptions(false);
+    // A new space is a new situation: forget that the last one was pick-only, so
+    // arriving where the pick is ALSO the only thing left opens the list again.
+    setPickWasOnlyGate(false);
   }
 
   const player = gameServices.stateService.getPlayer(playerId);
@@ -369,6 +379,38 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // wrong thing at every choice space in the game.
   const movementPickOutstanding = movement?.movement_type === 'choice' && !selectedDestination ? 1 : 0;
   const blockingActionsRemaining = Math.max(0, remaining - movementPickOutstanding);
+
+  // Open the destination list for the player when choosing where to go is the
+  // ONLY thing left (Tom, 2026-09-19: "narrow"). The list starts folded so a
+  // choice space does not look like N extra actions (fb:feedback-1782843206015-
+  // 8edd02b4) — but once every real action is done the commit spine is gated on
+  // nothing else, and a folded list means the one thing left to do is hidden.
+  // The nightly playtest robot hit exactly that 13 times (09-08, 09-18: "the
+  // destination list never unfolded", at PM-DECISION-CHECK).
+  //
+  // Deliberately NOT "always open": while a real action remains the list stays
+  // folded, so the action is what the player sees first. `blockingActionsRemaining`
+  // and `movementChoiceUnlocked` are the same fact from two sides (the engine's
+  // "everything else is done" flag, which also decides whether the options are
+  // pressable), so opening on both can never show a list of disabled rows. A
+  // SKIPPABLE action does not count — it is never in requiredActions — so a
+  // player looking at "Swap a team member (optional)" still gets the list, which
+  // is the PM-DECISION-CHECK case.
+  //
+  // Edge-triggered, not derived: it opens on the moment this BECOMES true and
+  // then leaves the state alone, so a player who folds the list stays folded and
+  // picking a destination never closes it (fb:c2e489dc). The "adjust state while
+  // rendering" pattern, same as the space-change reset above.
+  const pickIsOnlyGate =
+    isMyTurn &&
+    showMovementOptions &&
+    !selectedDestination &&
+    movementChoiceUnlocked &&
+    blockingActionsRemaining === 0;
+  if (pickIsOnlyGate !== pickWasOnlyGate) {
+    setPickWasOnlyGate(pickIsOnlyGate);
+    if (pickIsOnlyGate) setShowMoveOptions(true);
+  }
 
   // This turn's tab so far (fb:06f7da3b / b53864af) — the money paid and the
   // days added by this visit, echoed under the commit spine so ending the turn

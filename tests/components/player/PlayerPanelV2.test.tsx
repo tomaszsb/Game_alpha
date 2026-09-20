@@ -1077,11 +1077,19 @@ describe('PlayerPanelV2 — commit spine names the gate that is actually open (2
     button_label: 'Bring in more help',
   };
 
+  // The player object the mocks hand out — kept so a test can move them or pick a
+  // destination and then re-render, the way the real StateService would.
+  let panelPlayer: any;
+
   const setup = (opts: {
     effects: any[];
     movementType?: string;
     requiredActions: number;
     completedActionCount: number;
+    // The engine's "everything else on this space is done" flag. Defaults true —
+    // the value every test here used before v3.2.70; the picker tests below set it
+    // to match `requiredActions`/`completedActionCount`, as the real engine does.
+    movementChoiceUnlocked?: boolean;
   }) => {
     vi.clearAllMocks();
     services = createAllMockServices();
@@ -1092,10 +1100,11 @@ describe('PlayerPanelV2 — commit spine names the gate that is actually open (2
       dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {},
       moveIntent: null,
     };
+    panelPlayer = player;
     services.stateService.getPlayer.mockReturnValue(player);
     services.stateService.getGameState.mockReturnValue({
       players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
-      hasPlayerRolledDice: false, movementChoiceUnlocked: true,
+      hasPlayerRolledDice: false, movementChoiceUnlocked: opts.movementChoiceUnlocked ?? true,
       awaitingChoice: opts.movementType === 'choice'
         ? { type: 'MOVEMENT', options: [
             { id: 'LEND-SCOPE-CHECK', label: 'Lender' },
@@ -1202,9 +1211,13 @@ describe('PlayerPanelV2 — commit spine names the gate that is actually open (2
     setup({ effects: [swapEffect], movementType: 'choice', requiredActions: 1, completedActionCount: 0 });
     renderPanel();
 
-    // The destination picker's opener, and its open/closed state.
+    // The destination picker's opener, and its open/closed state. Choosing where
+    // to go is the ONLY thing left on this screen (the swap is optional), so since
+    // v3.2.70 the list is already open when the robot arrives. That is the point —
+    // and it means a blind click on the opener would now FOLD the list it needs.
+    // The robot reads `aria-expanded`, never assumes.
     const expander = screen.getByTestId('move-expander');
-    expect(expander).toHaveAttribute('aria-expanded', 'false');
+    expect(expander).toHaveAttribute('aria-expanded', 'true');
 
     // The action that is on screen but skippable — findable without its label.
     expect(screen.getByTestId('action-button')).toBeInTheDocument();
@@ -1216,12 +1229,8 @@ describe('PlayerPanelV2 — commit spine names the gate that is actually open (2
     expect(commit).toHaveAttribute('data-ready', 'false');
     expect(commit).toBeDisabled();
 
-    // Destinations appear once the picker is open, each carrying its own space
-    // id so the robot never has to parse an authored label or a ➡️/✅ glyph.
-    expect(screen.queryAllByTestId('move-option')).toHaveLength(0);
-    fireEvent.click(expander);
-    expect(expander).toHaveAttribute('aria-expanded', 'true');
-
+    // Destinations, each carrying its own space id so the robot never has to
+    // parse an authored label or a ➡️/✅ glyph.
     const options = screen.getAllByTestId('move-option');
     expect(options.map((o) => o.getAttribute('data-space-id'))).toEqual([
       'LEND-SCOPE-CHECK', 'ARCH-INITIATION', 'CHEAT-BYPASS',
@@ -1230,6 +1239,124 @@ describe('PlayerPanelV2 — commit spine names the gate that is actually open (2
     // `disabled`/`aria-disabled` — never the glyph, which is ➡️ both when a
     // destination is locked and when it is merely unpicked.
     options.forEach((o) => expect(o).not.toBeDisabled());
+
+    // The opener still works in both directions: fold it, then open it again.
+    fireEvent.click(expander);
+    expect(expander).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryAllByTestId('move-option')).toHaveLength(0);
+    fireEvent.click(expander);
+    expect(expander).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getAllByTestId('move-option')).toHaveLength(3);
+  });
+
+  /**
+   * Tom, 2026-09-19 — the destination picker: "narrow". Open it for the player
+   * when choosing where to go is the ONLY thing left; keep it folded whenever a
+   * real action remains. (He was offered narrow / leave it / always open.)
+   *
+   * Why: the nightly robot hit a folded picker 13 times (09-08, 09-18). With the
+   * real actions done, the commit spine is gated on nothing but the pick, and a
+   * folded list hides the one thing left to do. Why not always open: a choice
+   * space would look like N more actions (fb:feedback-1782843206015-8edd02b4), and
+   * while an action is outstanding it should be the thing the player sees first.
+   */
+  describe('destination picker opens itself only when choosing is all that is left', () => {
+    // Re-render the way the real StateService does: change what the mocks return,
+    // then fire the panel's own subscription.
+    const pushState = (changes: Record<string, unknown>) => {
+      const next = { ...services.stateService.getGameState(), ...changes };
+      services.stateService.getGameState.mockReturnValue(next);
+      act(() => {
+        services.stateService.subscribe.mock.calls.forEach(([cb]: any) => cb());
+      });
+    };
+    const expander = () => screen.getByTestId('move-expander');
+
+    it('is open on arrival when only the pick is left, even with an optional action on screen', () => {
+      // PM-DECISION-CHECK/First: one SKIPPABLE swap (contributes nothing to
+      // `required`) and choice movement (+1). The swap is on screen; it is not a
+      // reason to hide the destinations.
+      setup({ effects: [swapEffect], movementType: 'choice', requiredActions: 1, completedActionCount: 0 });
+      renderPanel();
+
+      expect(screen.getByTestId('action-button')).toHaveTextContent(/optional/);
+      expect(expander()).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getAllByTestId('move-option')).toHaveLength(3);
+    });
+
+    it('stays folded while a real action remains', () => {
+      // draw_e is required (replace_e is not): required = 1 (draw) + 1 (pick). The
+      // engine keeps the destinations locked until the draw is done.
+      setup({
+        effects: [drawEffect, swapEffect], movementType: 'choice',
+        requiredActions: 2, completedActionCount: 0, movementChoiceUnlocked: false,
+      });
+      renderPanel();
+
+      expect(expander()).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryAllByTestId('move-option')).toHaveLength(0);
+    });
+
+    it('opens the moment the last real action is done', () => {
+      setup({
+        effects: [drawEffect, swapEffect], movementType: 'choice',
+        requiredActions: 2, completedActionCount: 0, movementChoiceUnlocked: false,
+      });
+      renderPanel();
+      expect(expander()).toHaveAttribute('aria-expanded', 'false');
+
+      // The player finishes the draw: 1 of 2 required done, and the engine
+      // unlocks the picker.
+      pushState({ completedActionCount: 1, movementChoiceUnlocked: true });
+
+      expect(expander()).toHaveAttribute('aria-expanded', 'true');
+      screen.getAllByTestId('move-option').forEach((o) => expect(o).not.toBeDisabled());
+    });
+
+    it('leaves a player who folds it alone', () => {
+      setup({ effects: [swapEffect], movementType: 'choice', requiredActions: 1, completedActionCount: 0 });
+      renderPanel();
+      expect(expander()).toHaveAttribute('aria-expanded', 'true');
+
+      fireEvent.click(expander());
+      expect(expander()).toHaveAttribute('aria-expanded', 'false');
+
+      // Unrelated state churn re-renders the panel; the fold must survive it.
+      // (Edge-triggered, not derived — a derived "open while pick-only" would
+      // make the opener look dead.)
+      pushState({ globalTurnCount: 7 });
+      expect(expander()).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('does not close when a destination is picked', () => {
+      // fb:c2e489dc: options stay on screen so the player can change their mind.
+      setup({ effects: [swapEffect], movementType: 'choice', requiredActions: 1, completedActionCount: 0 });
+      renderPanel();
+      expect(expander()).toHaveAttribute('aria-expanded', 'true');
+
+      panelPlayer.moveIntent = 'ARCH-INITIATION';
+      pushState({ completedActionCount: 1 });
+
+      expect(expander()).toHaveAttribute('aria-expanded', 'true');
+      expect(expander()).toHaveTextContent(/you picked Architect/i);
+      expect(screen.getAllByTestId('move-option')).toHaveLength(3);
+    });
+
+    it('opens again on the next space where the pick is also all that is left', () => {
+      // The player folds the list here, moves on, and arrives somewhere else that
+      // is ALSO pick-only. Without forgetting the last space's answer the panel
+      // would see "was pick-only: yes, is pick-only: yes" — no change — and leave
+      // the new space folded.
+      setup({ effects: [swapEffect], movementType: 'choice', requiredActions: 1, completedActionCount: 0 });
+      renderPanel();
+      fireEvent.click(expander());
+      expect(expander()).toHaveAttribute('aria-expanded', 'false');
+
+      panelPlayer.currentSpace = 'ARCH-SCOPE-CHECK';
+      pushState({ globalTurnCount: 8 });
+
+      expect(expander()).toHaveAttribute('aria-expanded', 'true');
+    });
   });
 });
 

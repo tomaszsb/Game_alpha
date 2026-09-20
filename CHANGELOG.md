@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.70] - 2026-09-19
+
+### The destination list opens itself when choosing where to go is the only thing left (Tom: "narrow")
+
+**Player-visible.** On a choice space the "Move — N places to pick from" row starts folded, so a space with three exits does not look like three more actions to do. That was right while a real action is outstanding and wrong once every real action is finished: the commit spine is then gated on nothing but the pick, and a folded list hides the one thing left to do. The nightly robot hit exactly that **13 times** (09-08, 09-18, independent of its harness bug). Now the list **opens by itself the moment choosing is the only thing left**, and stays **folded whenever a real action remains** — Tom's "narrow" option, picked from *narrow / leave it / always open*.
+
+**The rule, and why it is this rule.** `pickIsOnlyGate = isMyTurn && a picker exists && no destination picked && movementChoiceUnlocked && blockingActionsRemaining === 0`.
+- `movementChoiceUnlocked` is the engine's own "every other required action is done" flag (`StateService.calculateRequiredActions`: `otherRequired <= otherCompleted`), and it is also what decides whether the destination rows are pressable — so opening on it can never show a list of disabled rows. `blockingActionsRemaining` is the same fact from the panel's side and is what the commit spine's "Pick where you're going first" line already keys on, so **whenever the spine says that, the list is open**. Requiring both costs nothing in a real game (they agree) and keeps a half-consistent state from opening a dead list.
+- **A skippable action does not count as "a real action remaining"** — it is never in `requiredActions`. So at PM-DECISION-CHECK, with "Swap a team member · optional" on screen, the pick is the only gate and the list opens. That is the screen the robot was stranded on.
+- **Edge-triggered, not derived.** It opens on the moment the condition BECOMES true, then leaves the state alone: a player who folds it stays folded (a derived "open while pick-only" would make the opener look dead), and picking a destination never closes it (fb:c2e489dc — options stay so the player can change their mind). It is the render-time "adjust state when a value changes" pattern this component already uses for the space-change reset, not an effect, so there is no stray frame of the folded list.
+- **The space-change reset also forgets the last answer** (`setPickWasOnlyGate(false)`). Without it, arriving on a second pick-only space after folding the list on the first sees "was pick-only: yes, is pick-only: yes — no change" and leaves the new space folded. That is the one line the sabotage test below isolates.
+
+**For the nightly robot (Jarvis repo — not touched here).** The opener now reports `aria-expanded="true"` on arrival at a pick-only space, so a harness that clicks `[data-testid="move-expander"]` unconditionally would **fold the list it needs**. It must read `aria-expanded` first. No handle changed: `move-expander`, `move-option`, `data-space-id`, `commit-end-turn`, and every label are as they were.
+
+**Tests (+6 new, 1 rewritten).** The robot-hooks test asserted the picker starts folded on the PM-DECISION-CHECK screen, which is now the opposite of the intended behavior; it was rewritten on purpose to assert it is already open, and still exercises fold → reopen so the hook works in both directions. New: open on arrival with an optional action on screen; stays folded while a real action remains (engine locked); opens the moment the last real action is done; leaves a player who folds it alone; does not close when a destination is picked; opens again on the next pick-only space. **Proven by sabotage:** no auto-open at all → 6 fail; space-change reset removed → exactly the "next space" test fails; real-action guard dropped ("always open") → the stays-folded and opens-the-moment tests fail. The old setup helper hard-coded `movementChoiceUnlocked: true` even with an action outstanding, which is an inconsistent state the real engine never produces — it is now an option, and the rule's use of the panel's own arithmetic alongside the flag is why the older tests kept passing.
+
+**Verified live (dev server, real engine).** State-injected to PM-DECISION-CHECK/First with only the pick left: `aria-expanded="true"`, three enabled destinations, spine "Pick where you're going first", the optional swap still on screen. Then to ARCH-SCOPE-CHECK/First with a required outcome button outstanding: **folded**, no options. Pressed the real button ("See what the design adds"); the engine resolved it (the Architect's result pop-up), unlocked the picker, and the list **opened by itself** with both destinations enabled. `tsc --noEmit` clean; `npm test` re-run before commit.
+
+**Docs:** `USER_MANUAL.md` line 136 now says the options open by themselves when choosing is all that is left (a one-line, byte-safe patch — the file is stored CRLF and the Edit tool would have rewritten every line ending).
+
+**Decisions closed with no code change (Tom, 2026-09-19, relayed by the manager session; full record is DECISIONS.md §27 in the Jarvis repo).** Recorded here so nobody re-asks them:
+- **The bare "?" stays a bare "?".** The words "What's this?" are **not** added. (My recommendation was yes; his call.) The `aria-label` already carries them for screen readers, and the robot's 19 "?"-only findings are not being chased.
+- **Stray CR bytes in `DiceRoll Info.csv` / `CARDS_EXPANDED.csv`: leave them.** Inert — `DataService` trims every field; only strict external CSV tools would notice.
+- **"`server/data/.../DiceRoll Info.csv` lacks the 46 dice labels" was a stale item, closed.** Evidence (manager, read-only, 2026-09-19): all 13 copies of that file inside the live `game_alpha` container carry the labels (11 at 6,968 bytes; the 2 classroom-1 copies at 6,962); the copy on Tom's PC is 6,968 with the label; `server.js` `backupSourceFiles('pre-stock-refresh')` and `deploy.sh` show stock follows the deploy; `/server/data/` is git-ignored.
+- **"Pass a team member" stays optional**, as built in v3.2.68.
+- **`data-testid` on `RoutingExplanationModal`: ON HOLD.** Tom will not answer until we know what Jarvis can do visually (a picture test on a real game screenshot — a Jarvis-side to-do). Verified this session: the modal already has `role="dialog"`, `aria-modal="true"` and `aria-label="Where you're headed next"`; it has no testid, and its only exit is the "Got it" button.
+- **Card library Stage 4 (group tier + roles): skip.** Stays deferred.
+
 ## [3.2.69] - 2026-09-19
 
 ### Every "?" now answers: the 45 dice buttons explain themselves, and the card rows are in plain words (Tom approved all the copy, 2026-09-19)
