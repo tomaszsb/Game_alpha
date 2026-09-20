@@ -15,6 +15,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PlayerPanelProps } from './panelTypes';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { PanelMode, panelPalettes } from './panelTheme';
+import { HelpButton } from '../help/HelpButton';
+import { HelpCard } from '../help/HelpCard';
 import { shortName } from '../../utils/boardCommon';
 import { formatManualEffectButton, getManualEffectTooltip } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
@@ -106,9 +108,6 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const [numbersPage, setNumbersPage] = useState<NumbersPage | null>(null);
   // "What's happened" history (Pile 3 Chronicle, first slice).
   const [showChronicle, setShowChronicle] = useState(false);
-  // "What to do & why" — collapsed by default (supporting info, not the
-  // headline), so it doesn't eat phone screen space (fb:f6e100b7).
-  const [showWhy, setShowWhy] = useState(false);
   // Movement destinations — collapsed behind one "Move" row instead of N
   // separate buttons, so a choice space doesn't visually inflate the action
   // count (fb:feedback-1782843206015-8edd02b4). Once expanded, every option
@@ -122,10 +121,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // moment that becomes true (see `pickIsOnlyGate` below), once, and after that
   // leaves the player free to fold it.
   const [pickWasOnlyGate, setPickWasOnlyGate] = useState(false);
-  // Teaching layer (Onboarding Phase C). Which action row has its "What's this?"
-  // explanation open, by effectKey; null = none. One at a time — the panel is a
+  // Teaching layer (Onboarding Phase C, "one ? everywhere", v3.2.71). Which "?"
+  // has its help card open: 'step' for the space's own, `action:<effectKey>` for
+  // a row's; null = none. ONE at a time across the WHOLE panel — it is a
   // phone/TV-width column and two open cards push the commit spine off-screen.
-  const [openWhy, setOpenWhy] = useState<string | null>(null);
+  // (This used to be two separate pieces of state — the row "?" and the
+  // "What to do & why" fold-out — so both could be open at once, and a row card
+  // stayed open on the NEXT space because every dice row shares one key.)
+  // Collapsed by default: supporting info, not the headline (fb:f6e100b7).
+  const [openHelp, setOpenHelp] = useState<string | null>(null);
   const currentSpaceForPopup = gameServices.stateService.getPlayer(playerId)?.currentSpace ?? null;
 
   useEffect(() => {
@@ -145,7 +149,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     }
   }, [currentSpaceForPopup]);
 
-  // Collapse both toggles when the player's space changes. React's documented
+  // Collapse the toggles when the player's space changes. React's documented
   // "adjusting state when a prop changes" pattern (react.dev/learn/you-
   // might-not-need-an-effect) — comparing during render instead of a
   // useEffect avoids a stray render where the old space's expanded panels
@@ -153,7 +157,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const [prevSpaceForToggles, setPrevSpaceForToggles] = useState(currentSpaceForPopup);
   if (currentSpaceForPopup !== prevSpaceForToggles) {
     setPrevSpaceForToggles(currentSpaceForPopup);
-    setShowWhy(false);
+    setOpenHelp(null);
     setShowMoveOptions(false);
     // A new space is a new situation: forget that the last one was pick-only, so
     // arriving where the pick is ALSO the only thing left opens the list again.
@@ -170,6 +174,26 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const content = gameServices.dataService.getSpaceContent(player.currentSpace, player.visitType);
   const config = gameServices.dataService.getGameConfigBySpace(player.currentSpace);
   const spaceLabel = config?.display_label_override || (content && content.title) || shortName(player.currentSpace);
+
+  // A space's own "?" only exists when the space has something authored to say —
+  // never an empty card.
+  const hasGuidance = !!(content && (content.action_description || content.outcome_description));
+
+  // One toggle for every "?" in the panel (see `openHelp`). Opens are counted
+  // through the engagement pipeline that already tracked the old fold-out: only 8
+  // of 37 real outside games opened ANY help before v3.2.71, and we need to see
+  // whether one gesture changes that. Counts OPENS only, and outside the state
+  // updater — an updater can run twice under StrictMode and double-count.
+  // (The old fold-out logged `what_to_do_and_why`; the same thing is now
+  // `help:step`, so a before/after comparison must add the two.)
+  const toggleHelp = (id: string, kind: string) => {
+    const next = openHelp === id ? null : id;
+    setOpenHelp(next);
+    if (next) {
+      const gameId = getCurrentGameId();
+      if (gameId) trackPlaytestEvent('panel_opened', { gameId, playerId, panel: `help:${kind}` });
+    }
+  };
 
   // Resolve {fundingAmount} token so the NPC dialogue can quote the actual
   // dollar figure inline (fb:61a85444, mirrors ActionCenterPanel's fix —
@@ -837,7 +861,24 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       <div style={pad}>
         <p style={zlbl}>Where you are &amp; why</p>
         <div style={{ background: p.surf, borderLeft: `3px solid ${p.accent}`, padding: '10px 12px' }}>
-          <div style={{ fontSize: 13, fontWeight: 500 }}>📍 {spaceLabel}</div>
+          {/* The space's own "?" sits at the title's right edge — the same "?"
+              the action rows wear, so a newcomer learns ONE gesture. It replaces
+              the plain-text "▸ What to do & why" link (same two lines of text,
+              now in the shared card below the story). */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>📍 {spaceLabel}</div>
+            {hasGuidance && (
+              <HelpButton
+                kind="step"
+                label={spaceLabel}
+                isOpen={openHelp === 'step'}
+                cardId="help-card-step"
+                onToggle={() => toggleHelp('step', 'step')}
+                palette={p}
+                minHeight={32}
+              />
+            )}
+          </div>
           {content && renderedStory && (
             <div style={{ fontSize: 12, color: p.muted, marginTop: 4, lineHeight: 1.5 }}>
               {portraitSrc && npcInfo && (
@@ -871,56 +912,17 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             </div>
           )}
         </div>
-        {content && (content.action_description || content.outcome_description) && (
-          <>
-            <button
-              type="button"
-              onClick={() => setShowWhy((v) => {
-                const next = !v;
-                if (next) {
-                  const gameId = getCurrentGameId();
-                  if (gameId) trackPlaytestEvent('panel_opened', { gameId, playerId, panel: 'what_to_do_and_why' });
-                }
-                return next;
-              })}
-              aria-expanded={showWhy}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                marginTop: 6,
-                padding: '4px 2px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 11,
-                fontWeight: 600,
-                color: p.accent,
-              }}
-            >
-              <span aria-hidden>{showWhy ? '▾' : '▸'}</span> What to do &amp; why
-            </button>
-            {showWhy && (
-              <div style={{ marginTop: 4 }}>
-                {content.action_description && (
-                  <div style={{ background: p.surf2, borderLeft: `3px solid ${p.accent}`, padding: '8px 10px', marginTop: 4 }}>
-                    <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                      <strong>What to do:</strong>{' '}
-                      <TextWithTerms text={content.action_description} onTermClick={(term) => openWithTerm(term.id)} />
-                    </div>
-                  </div>
-                )}
-                {content.outcome_description && (
-                  <div style={{ background: p.surf2, borderLeft: `3px solid ${p.muted}`, padding: '8px 10px', marginTop: 4 }}>
-                    <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                      <strong>Why:</strong>{' '}
-                      <TextWithTerms text={content.outcome_description} onTermClick={(term) => openWithTerm(term.id)} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </>
+        {hasGuidance && openHelp === 'step' && content && (
+          <HelpCard
+            id="help-card-step"
+            kind="step"
+            palette={p}
+            onTermClick={(term) => openWithTerm(term.id)}
+            sections={[
+              { label: 'What to do:', text: content.action_description ?? '' },
+              { label: 'Why:', text: content.outcome_description ?? '' },
+            ]}
+          />
         )}
         {/* Ported from the classic panel (fb: playerNotification prop existed
             on ActionCenterPanelProps/GameLayout all along — this panel never
@@ -964,7 +966,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             // A merged dice button (two rows sharing one roll) explains BOTH
             // outcomes — `mergedFrom` is what collapsePairedDiceActions folded in.
             const why = getManualEffectTooltip(a.effect, a.mergedFrom?.map((m) => m.effect));
-            const isOpen = openWhy === a.effectKey;
+            // Namespaced so an action row and the space's own "?" share the ONE
+            // open-at-a-time slot without ever colliding on a key.
+            const helpId = `action:${a.effectKey}`;
+            const helpCardId = `help-card-${a.effectKey.replace(/[^A-Za-z0-9_-]/g, '-')}`;
+            const isOpen = openHelp === helpId;
             return (
               <div key={a.effectKey}>
                 <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
@@ -1000,59 +1006,28 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                       </span>
                     )}
                   </button>
-                  <button
-                    type="button"
-                    // Named for the question a beginner actually asks. The label
-                    // says what pressing it does, per the button rule; the glyph
-                    // alone would be colour/shape-only signalling.
-                    aria-label={`What's this? ${a.label.replace(/^🎲\s*/, '')}`}
-                    aria-expanded={isOpen}
-                    onClick={() => setOpenWhy(isOpen ? null : a.effectKey)}
-                    style={{
-                      flex: '0 0 auto',
-                      boxSizing: 'border-box',
-                      // 44px is the touch-target floor; measured at 34px on a
-                      // 375px viewport before this, which is under it. The row
-                      // still leaves ~299px for the action itself, and adds no
-                      // horizontal overflow at phone width.
-                      minWidth: 44,
-                      padding: '0 9px',
-                      background: isOpen ? p.surf2 : 'transparent',
-                      border: `1px solid ${isOpen ? p.accent : p.border}`,
-                      color: isOpen ? p.text : p.muted,
-                      borderRadius: 9,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    ?
-                  </button>
+                  {/* The shared "?" — the 44px touch target and the row-stretch
+                      it had here are now HelpButton's own (v3.2.71). */}
+                  <HelpButton
+                    kind="action"
+                    label={a.label.replace(/^🎲\s*/, '')}
+                    isOpen={isOpen}
+                    cardId={helpCardId}
+                    onToggle={() => toggleHelp(helpId, 'action')}
+                    palette={p}
+                  />
                 </div>
                 {isOpen && (
-                  <div
-                    style={{
-                      margin: '4px 0 2px',
-                      padding: '9px 11px',
-                      background: p.surf2,
-                      border: `1px solid ${p.border}`,
-                      borderRadius: 9,
-                      fontSize: 12.5,
-                      lineHeight: 1.45,
-                      color: p.text,
-                      // A merged button joins two authored explanations with a
-                      // blank line; without this the browser folds it to a space
-                      // and the two read as one run-on. Inherited by the grey line.
-                      whiteSpace: 'pre-line',
-                    }}
-                  >
-                    <TextWithTerms text={why.tooltip} onTermClick={(term) => openWithTerm(term.id)} />
-                    {why.context && (
-                      <div style={{ marginTop: 6, fontSize: 11.5, color: p.muted }}>
-                        <TextWithTerms text={why.context} onTermClick={(term) => openWithTerm(term.id)} />
-                      </div>
-                    )}
-                  </div>
+                  <HelpCard
+                    id={helpCardId}
+                    kind="action"
+                    palette={p}
+                    onTermClick={(term) => openWithTerm(term.id)}
+                    sections={[
+                      { text: why.tooltip },
+                      { text: why.context, muted: true },
+                    ]}
+                  />
                 )}
               </div>
             );

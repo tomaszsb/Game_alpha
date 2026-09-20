@@ -2,6 +2,12 @@
 
 ---
 
+## v3.2.71 — One "?" for everything (September 19, 2026)
+
+- **The "What to do & why" link under the story is now a "?" beside the space's name.** It's the same "?" you already see next to each action under "This turn". Tap it and the same two lines open: what to do here, and why.
+- **Only one explanation is open at a time,** so it never pushes your buttons off the screen. One you left open no longer follows you to the next space.
+- **Nothing was reworded.** This is the first step toward one help look for the whole game: one "?", one little card, everywhere you might wonder what something means.
+
 ## v3.2.70 — Where to go next opens when it's the only thing left (September 19, 2026)
 
 - **On a space where you choose where to go, the list of places now opens by itself once choosing is all that's left.** Before, you always had to tap "Move" first, even when you had nothing else to do. Now, when every action that has to be done is done, the choices are already there waiting.

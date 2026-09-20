@@ -164,6 +164,46 @@ describe('clicking the player view', () => {
     preview();
     expect(screen.queryByRole('button', { name: /^Edit / })).toBeNull();
   });
+
+  it('shows the same "?" a player sees, as a SIBLING of the click-to-edit story', () => {
+    // v3.2.71, "one ? everywhere": the space's own help is the shared "?" at the
+    // title's right edge. The story region is itself a real <button> (click to
+    // edit), so the "?" cannot live inside it — a button inside a button is not
+    // a thing — which also means pressing it must not select the story for
+    // editing. That is the whole reason it is overlaid instead of nested.
+    const onEditRegion = vi.fn();
+    preview({}, onEditRegion);
+
+    const help = screen.getByRole('button', { name: /What's this\?/ });
+    expect(help.getAttribute('data-help-kind')).toBe('step');
+    expect(help.closest('[data-region-id="story"]')).toBeNull();
+
+    fireEvent.click(help);
+    expect(onEditRegion).not.toHaveBeenCalled();
+    expect(screen.getByTestId('help-card').textContent).toContain('What to do:');
+  });
+
+  it('keeps the story text clear of the overlaid "?", the way the player panel does', () => {
+    // Found live: the "?" is OVERLAID here (the story region is a <button>, so it
+    // cannot sit inside), and an overlay takes no room — so it landed on top of
+    // the first line of the story. The player panel's "?" is in-flow and pushes
+    // the text down by its own 32px; the title row here must reserve the same.
+    preview();
+    const title = screen.getByText(/📍/);
+    expect(title).toHaveStyle({ minHeight: '32px', paddingRight: '52px' });
+  });
+
+  it('reserves nothing when there is no "?"', () => {
+    preview({ Action: '', Outcome: '' });
+    expect(screen.getByText(/📍/)).not.toHaveStyle({ minHeight: '32px' });
+  });
+
+  it('has no "?" when the space has nothing authored for it to say', () => {
+    // Same gate as the player panel (`hasGuidance`), so an author sees a "?" in
+    // exactly the cases a player would.
+    preview({ Action: '', Outcome: '' });
+    expect(screen.queryByRole('button', { name: /What's this\?/ })).toBeNull();
+  });
 });
 
 describe('what the pop-ups say is visible', () => {
@@ -314,7 +354,7 @@ describe('the part being edited is always somewhere you can see it', () => {
 
   describe('a section folded away', () => {
     it('opens itself when its own fields take the cursor', () => {
-      // "What to do & why" starts shut, matching what a player first sees.
+      // The space's "?" card starts shut, matching what a player first sees.
       const { container } = preview({}, null);
       expect(container.textContent).not.toContain('What to do:');
 
@@ -342,7 +382,9 @@ describe('the part being edited is always somewhere you can see it', () => {
       const { container } = preview({}, 'guidance');
       expect(container.textContent).toContain('What to do:');
 
-      fireEvent.click(screen.getByRole('button', { name: /What to do & why/ }));
+      // The space's own "?" (v3.2.71) — the same shared control the player panel
+      // wears. Named "What's this? <space>", not "What to do & why".
+      fireEvent.click(screen.getByRole('button', { name: /What's this\?/ }));
       expect(container.textContent).not.toContain('What to do:');
     });
 

@@ -132,7 +132,7 @@ The Player Panel is a **single scrolling mobile-first view**, not a set of separ
   - **⚡ Expeditors** — how many you've hired. It glows and says "N you can use now" when one is ready; the page lists your expeditors, each usable one with its own **Activate** button.
   - **🏢 Scope** — how many work packages you hold. The page shows your total scope; tap it to see each work package grouped by trade, and tap a package to see its full cost.
   - Small **DOB** / **FDNY** approval marks appear beside the boxes, plus a **VIOLATION** mark only if you have an open violation — see [Homeowner Violations](#homeowner-violations).
-- **Where you are & why:** The space you're on, its story, and — if there's more to know — a "What to do & why" toggle that expands into what's expected of you and why.
+- **Where you are & why:** The space you're on, its story, and — if there's more to know — a **?** beside the space's name. Tap it to see what's expected of you here, and why. It is the same **?** you will find beside each action under "This turn": one tap explains, another tap puts it away, and only one explanation is open at a time.
 - **This turn:** Every action available to you right now — manual effects (like accepting a loan or rolling for an outcome), and a **Move** row when you have a destination to choose. Tap **Move** to expand your route options. When choosing where to go is the only thing left on your turn, the options open by themselves; either way, once expanded they stay visible so you can change your mind until you end your turn. Actions you can skip are tagged "optional". Completed actions move to an **Already done this turn** list with a checkmark.
 
 ### Ending Your Turn / Try Again

@@ -26,6 +26,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
 import { editRegionLabel, regionById, REGION_EDITING_CLASS, REGION_PULSE_CLASS } from './spaceRegions';
 import { usePanelMode, panelPalettes } from '../player/panelTheme';
+import { HelpButton } from '../help/HelpButton';
+import { HelpCard } from '../help/HelpCard';
 import { colors } from '../../styles/theme';
 import { shortName } from '../../utils/boardCommon';
 import { ACTION_ROW, DICE_BUTTON } from '../../constants/uiStrings';
@@ -181,6 +183,9 @@ export function PlayerPreviewPanel({
   // Unless the panel is mounted already editing that very section, which the
   // change-detector below cannot catch (on the first render there is no
   // change to detect), so the initial value has to cover it.
+  // Whether the space has anything authored for its "?" to say — the same gate
+  // PlayerPanelV2 uses (`hasGuidance`), so the two show the "?" in the same cases.
+  const hasGuidance = !!(currentSpace?.Action || currentSpace?.Outcome);
   const [showWhy, setShowWhy] = useState(editingRegion === 'guidance');
   const [showMoveOptions, setShowMoveOptions] = useState(editingRegion === 'destinations');
 
@@ -533,64 +538,61 @@ export function PlayerPreviewPanel({
       {/* Purpose — "Where you are & why", matching PlayerPanelV2's Purpose zone. */}
       <div style={pad}>
         <p style={zlbl}>Where you are &amp; why</p>
-        <Region id="story" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
-          style={{ background: p.surf, borderLeft: `3px solid ${p.accent}`, padding: '10px 12px' }}>
-          <div style={{ fontSize: 13, fontWeight: 500 }}>📍 {spaceLabel}</div>
-          {currentSpace.Event ? (
-            <div style={{ fontSize: 12, color: p.muted, marginTop: 4, lineHeight: 1.5 }}>{currentSpace.Event}</div>
-          ) : (
-            <div style={{ fontSize: 12, color: p.muted, marginTop: 4, fontStyle: 'italic' }}>No story text yet</div>
+        {/* The space's own "?" — the same shared control PlayerPanelV2 wears
+            (v3.2.71, "one ? everywhere"), at the same spot, so an author sees
+            what a player sees. It is OVERLAID on the story region instead of
+            placed inside it: the Region is itself a real <button> (click to
+            edit), and a button inside a button is not a thing. The title keeps
+            clear of it so a long name never runs underneath. */}
+        <div style={{ position: 'relative' }}>
+          <Region id="story" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion}
+            style={{ background: p.surf, borderLeft: `3px solid ${p.accent}`, padding: '10px 12px' }}>
+            {/* The title row reserves the "?"'s own 32px height, exactly as the
+                player panel's in-flow row does. Without it the overlaid button
+                sits on top of the first line of the story text (found live,
+                v3.2.71: "let me walk you…" was half hidden). */}
+            <div style={{ fontSize: 13, fontWeight: 500, paddingRight: hasGuidance ? 52 : 0, minHeight: hasGuidance ? 32 : undefined }}>📍 {spaceLabel}</div>
+            {currentSpace.Event ? (
+              <div style={{ fontSize: 12, color: p.muted, marginTop: 4, lineHeight: 1.5 }}>{currentSpace.Event}</div>
+            ) : (
+              <div style={{ fontSize: 12, color: p.muted, marginTop: 4, fontStyle: 'italic' }}>No story text yet</div>
+            )}
+          </Region>
+          {hasGuidance && (
+            <HelpButton
+              kind="step"
+              label={spaceLabel}
+              isOpen={showWhy}
+              cardId="help-card-step-preview"
+              onToggle={() => setShowWhy((v) => !v)}
+              palette={p}
+              minHeight={32}
+              style={{ position: 'absolute', top: 10, right: 12 }}
+            />
           )}
-        </Region>
-        {/* The fold-out is already a control of its own, so the way through
-            to its fields sits BESIDE it as its own button rather than around
-            it — a button inside a button is not a thing, and a control inside
-            a <label> takes the label's words as its own name. */}
+        </div>
+        {/* The way through to the guidance fields sits BESIDE the "?" as its own
+            button rather than around it — a button inside a button is not a
+            thing, and a control inside a <label> takes the label's words as its
+            own name. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 6 }}>
-          {(currentSpace.Action || currentSpace.Outcome) ? (
-            <button
-              type="button"
-              onClick={() => setShowWhy((v) => !v)}
-              aria-expanded={showWhy}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '4px 2px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 11,
-                fontWeight: 600,
-                color: p.accent,
-              }}
-            >
-              <span aria-hidden>{showWhy ? '▾' : '▸'}</span> What to do &amp; why
-            </button>
-          ) : (
+          {!hasGuidance && (
             <span style={{ fontSize: 11, color: p.muted, fontStyle: 'italic', padding: '4px 2px' }}>
               Nothing written about what to do here yet
             </span>
           )}
           <EditChip id="guidance" onEdit={onEditRegion} highlight={highlightRegion} editing={editingRegion} accent={p.accent} />
         </div>
-        {showWhy && (
-          <div style={{ marginTop: 4 }}>
-            {currentSpace.Action && (
-              <div style={{ background: p.surf2, borderLeft: `3px solid ${p.accent}`, padding: '8px 10px', marginTop: 4 }}>
-                <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                  <strong>What to do:</strong> {currentSpace.Action}
-                </div>
-              </div>
-            )}
-            {currentSpace.Outcome && (
-              <div style={{ background: p.surf2, borderLeft: `3px solid ${p.muted}`, padding: '8px 10px', marginTop: 4 }}>
-                <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                  <strong>Why:</strong> {currentSpace.Outcome}
-                </div>
-              </div>
-            )}
-          </div>
+        {showWhy && hasGuidance && (
+          <HelpCard
+            id="help-card-step-preview"
+            kind="step"
+            palette={p}
+            sections={[
+              { label: 'What to do:', text: currentSpace.Action ?? '' },
+              { label: 'Why:', text: currentSpace.Outcome ?? '' },
+            ]}
+          />
         )}
       </div>
 

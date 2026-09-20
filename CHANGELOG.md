@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.71] - 2026-09-19
+
+### One "?" everywhere, slice 1: the space's own help now wears the same "?" as the actions — presentation only, no new wording
+
+**Where this came from.** After v3.2.70 Tom asked "what's next?" and the biggest open piece was the "teaching layer" (tutorial + micro-lessons). I researched first and proposed a new "tip strip" layer for the first spaces. **Tom pushed back, correctly:** *"we built all the helpful wording in already and it is under the question marks and tooltips already. Is it really necessary to add yet another training layer and create yet another set of instructions? Maybe we just have to unify the help ui / feel."* He also chose **a recurring mentor character**, **the whole game**, and, from two sketches, **"One ? everywhere"**. The approved plan is four slices (recorded in TODO's Onboarding Phase C item); **this is slice 1**, which needs no new wording and no new data file.
+
+**The evidence behind it (live visitor log, 2026-08-03 → 2026-09-19; the nightly robot's 149 games and the maintainer's own removed).** 37 real outside games: **18 (49%) never got past their first two spaces, 14 were last seen on the very first space ("Meet the Owner"), 5 finished (14%), 10 reached 6+ spaces (27%)**; 10 of the 18 early quitters left within a minute. **Only 8 of the 37 (22%) opened *any* help panel** — Rules 4 times in total; the most-used help was "What to do & why". Small sample: a pointer, not proof, and it cannot say *why* people left. These are the baselines to re-measure after ≥ 30 more outside games (same analysis; add the old `what_to_do_and_why` count to the new `help:step`).
+
+**Player-visible.** The plain-text **"▸ What to do & why"** link under the story is gone. The space's help is now a **"?" at the right edge of the space's name** — the *same* "?" already beside every action — and it opens the same two authored lines ("What to do:" / "Why:") in the same card the action "?" uses. **Only one help card is open at a time across the whole panel** (before, the space's fold-out and an action's card could both be open, pushing the buttons off a phone screen). Nothing is reworded.
+
+**A bug fixed on the way.** An action's card was tracked by its effect key, and **every dice row shares one key (`dice:dice_outcome`)** — so a card left open on one space was still open on the *next*, showing that space's text unasked. The panel's single open-help state now resets when the player's space changes.
+
+**How.**
+- New shared **`HelpButton`** (the "?": 44px touch target, `aria-label="What's this? <thing>"`, `aria-expanded`/`aria-controls`, `data-testid="help-button"` + `data-help-kind`) and **`HelpCard`** (`data-testid="help-card"`; sections of an optional bold lead-in + text, with a smaller grey section; `white-space: pre-line` for v3.2.69's merged dice buttons; glossary links only when a handler is passed) in `src/components/help/`. The action "?" was lifted out of `PlayerPanelV2` **unchanged in look**; the space's help now uses it too. Both are siblings of what they explain, never children of a `<button>` (a glossary term inside a button swallows the press).
+- `PlayerPanelV2`: `showWhy` + `openWhy` collapse into one `openHelp` (`'step'` or `action:<effectKey>`) and one `toggleHelp`.
+- **Counting.** Every open is logged through the existing `panel_opened` event as `panel: 'help:step'` / `'help:action'` (the server takes any label up to 60 chars — no server change). Counted **outside** the state updater, since an updater can run twice under StrictMode. The old fold-out logged `what_to_do_and_why`.
+- **The Space Data Editor's live preview mirrors it.** It is a separate hand-built renderer whose own header warns it drifts, and it had its own copy of the old link. Its story region is itself a real `<button>` (click to edit), so the "?" is **overlaid as a sibling**, not nested. Found only by looking at it live: an overlay takes no room, so the "?" **sat on top of the first line of the story** — fixed by reserving the same 32px title row the player panel has in flow, and pinned by a test.
+- Known and left alone: the preview has never had the per-action "?" (added to the player panel in v3.2.54) — drift that predates this change.
+
+**Tests (+34, 1 updated).** `HelpButton` (8), `HelpCard` (8), and `PlayerPanelV2Help` (14: the "?" beside the title; opens the same two lines; closes on a second press; the old link is gone; absent when nothing is authored; opening any "?" closes any other; two actions share the one slot; every "?" wears the same hooks; a new space starts fresh, including the shared-dice-key case; opens are counted with the right label, closes are not, and nothing is counted outside a real game). The editor's test that clicked "What to do & why" now clicks the shared "?", and two new ones pin the sibling-not-nested placement and the title spacing. **Proven by sabotage:** no reset on a new space → 2 fail; counting closes as opens → 1 fails; "?" shown with nothing to say → 1 fails; title spacing removed → 1 fails.
+
+**Verified live** (dev servers, the Playwright browser at **375×812**, light and dark). The "?" sits at the title's right edge; opening it shows the same card the actions use; opening an action's "?" closes it and vice versa; the card's glossary words are still tappable; nothing overflows. On a stale page that had survived a server restart the same clicks appeared to do nothing — a reload fixed it; a stale connection, not the code.
+
+**Also noticed (pre-existing, not touched, logged in TODO):** at 375px the panel column measured ~395px — about 20px wider than the phone — so the action row's "?" sits flush against the right edge and the commit button's label is clipped. Unchanged elements show the same; it needs a look on a real phone.
+
+**For the nightly robot (Jarvis repo):** the space's "?" is `What's this? <space name>`; the old "What to do & why" link no longer exists. New handles: `data-testid="help-button"` / `"help-card"` with `data-help-kind`. The action "?" label pattern and `action-button` handles are unchanged.
+
 ## [3.2.70] - 2026-09-19
 
 ### The destination list opens itself when choosing where to go is the only thing left (Tom: "narrow")
