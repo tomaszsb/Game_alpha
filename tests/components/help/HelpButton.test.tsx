@@ -68,9 +68,11 @@ describe('HelpButton', () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the 44px touch target and lets a title row set its own height', () => {
-    const { button } = renderButton({ minHeight: 32 });
-    expect(button).toHaveStyle({ minWidth: '44px', minHeight: '32px' });
+  it('keeps its minimum width and lets a title row set its own height', () => {
+    // 2026-09-22 (Tom, live feedback): shrunk from a 44px touch-target floor
+    // to match the header toolbar's small icon buttons — see HelpButton.tsx.
+    const { button } = renderButton({ minHeight: 26 });
+    expect(button).toHaveStyle({ minWidth: '26px', minHeight: '26px' });
   });
 
   it('accepts a placement-only style (the editor preview overlays it)', () => {

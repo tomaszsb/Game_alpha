@@ -54,6 +54,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { panelPalettes, PanelMode } from './panelTheme';
 import { CostPreviewRow, toFullRowSet } from '../../utils/costPreview';
+import { HelpButton } from '../help/HelpButton';
+import { HelpCard, HelpCardProps } from '../help/HelpCard';
+import { COMMIT_HELP } from '../../constants/uiStrings';
 
 /** How long (ms) the player must hold before a side commits. Long enough that a
  *  stray tap can't trigger it, short enough not to feel stuck. */
@@ -84,6 +87,12 @@ export interface TurnCommitControlProps {
   endCostLine?: string;
   /** First-visit green nudge dot on the End side. */
   showGreenDot?: boolean;
+  /** The panel's own `openHelp === 'commit'` — one help card open at a time
+   *  across the whole panel (Onboarding Phase C invariant, see PlayerPanelV2). */
+  isHelpOpen: boolean;
+  onToggleHelp: () => void;
+  /** Threaded through to the HelpCard's glossary links, same as every other "?". */
+  onTermClick?: HelpCardProps['onTermClick'];
 }
 
 type Side = 'end' | 'tryAgain';
@@ -100,6 +109,9 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
   onCommitTryAgain,
   endCostLine,
   showGreenDot,
+  isHelpOpen,
+  onToggleHelp,
+  onTermClick,
 }) => {
   const p = panelPalettes[mode];
   const [selected, setSelected] = useState<Side>('end');
@@ -424,10 +436,55 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         />
       </div>
 
-      {/* Gesture hint so the novel long-press is discoverable. */}
-      <div style={{ fontSize: 9.5, color: p.muted, textAlign: 'center', margin: '0 0 3px' }}>
+      {/* Gesture hint so the novel long-press is discoverable. Bumped from a
+          9.5px muted footnote to a real instruction (v3.2.72) — the words
+          were already right, but a first-time player scans straight past a
+          caption that small to the two clearly-labeled buttons below it and
+          taps. OWNER-FUND-INITIATION ("Owner's Money") is the first
+          `can_negotiate` space in the game, so this is the first time ANY
+          player meets a hold-to-confirm control — the 2026-09-21 playtest
+          report's #1 confusion, 24 trips, the biggest in the report. Same
+          words, just load-bearing now instead of a whisper. */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 5,
+          fontSize: 12,
+          fontWeight: 600,
+          color: p.text,
+          textAlign: 'center',
+          margin: '0 0 5px',
+        }}
+      >
+        <span aria-hidden="true">👆</span>
         Tap to compare · press &amp; hold to confirm
+        {/* Default 44px touch-target floor — same as every other "?" in the
+            panel (see HelpButton.tsx). Do not shrink it to fit this row. */}
+        <HelpButton
+          kind="commit"
+          label="the tap-and-hold control"
+          isOpen={isHelpOpen}
+          cardId="help-card-commit"
+          onToggle={onToggleHelp}
+          palette={p}
+          minHeight={26}
+        />
       </div>
+
+      {isHelpOpen && (
+        <HelpCard
+          id="help-card-commit"
+          kind="commit"
+          palette={p}
+          onTermClick={onTermClick}
+          sections={[
+            { text: COMMIT_HELP.how },
+            { text: COMMIT_HELP.why, muted: true },
+          ]}
+        />
+      )}
 
       <div
         role="tablist"

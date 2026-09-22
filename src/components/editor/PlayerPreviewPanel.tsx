@@ -566,7 +566,7 @@ export function PlayerPreviewPanel({
               cardId="help-card-step-preview"
               onToggle={() => setShowWhy((v) => !v)}
               palette={p}
-              minHeight={32}
+              minHeight={26}
               style={{ position: 'absolute', top: 10, right: 12 }}
             />
           )}

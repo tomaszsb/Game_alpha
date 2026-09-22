@@ -186,9 +186,12 @@ describe('PlayerPanelV2 — one "?" everywhere', () => {
       setup({ effects: [drawEffect, diceEffect] });
       renderPanel();
       const all = screen.getAllByTestId('help-button');
-      // The space's own, plus one per action.
-      expect(all).toHaveLength(3);
-      expect(all.map((b) => b.getAttribute('data-help-kind')).sort()).toEqual(['action', 'action', 'step']);
+      // The space's own, one per action, plus the glance-box grid's own "?"
+      // (v3.2.72, Slice 3 — always renders, not space-specific). This
+      // fixture's `guidance` content has no `can_negotiate`, so
+      // TurnCommitControl's own "?" doesn't join the count here.
+      expect(all).toHaveLength(4);
+      expect(all.map((b) => b.getAttribute('data-help-kind')).sort()).toEqual(['action', 'action', 'glance', 'step']);
     });
   });
 

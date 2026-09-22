@@ -2,6 +2,12 @@
 
 ---
 
+## v3.2.72 — The hold-and-confirm button explains itself, and so does "deficit" (September 22, 2026)
+
+- **"Tap to compare · press & hold to confirm" is easier to actually notice now.** The words were already there above the End Turn / Try Again buttons, but small and gray — easy to miss the first time. It's bigger and bolder now, with a 👆, and it has its own "?" if you want more detail on why you'd push back instead of confirming.
+- **The four number boxes at the top (Money, Time, Expeditors, Scope) now have a "?" that explains each one** — including what "deficit" means on the Money box: it shows up when your project now costs more than the funding you've secured, which is different from just running low on cash.
+- **Every "?" in the game is a bit smaller,** to match the small icon buttons at the top of the screen.
+
 ## v3.2.71 — One "?" for everything (September 19, 2026)
 
 - **The "What to do & why" link under the story is now a "?" beside the space's name.** It's the same "?" you already see next to each action under "This turn". Tap it and the same two lines open: what to do here, and why.

@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.72] - 2026-09-22
+
+### Onboarding Phase C, Slice 3 (partial): the press-and-hold control gets a "?" and a real hint, and the four glance boxes explain themselves — closes the top 2 confusions in the 2026-09-21 playtest report
+
+**Where this came from.** Last night's playtest report ranked its confusions by how often they tripped a first-time player. #1 by a wide margin (24 trips): the press-and-hold control (End Turn / Try Again) expects a long press, and nothing on screen said so clearly enough. #2 (12 trips): "deficit" appears on the Money box with no explanation anywhere. Both turned out to be exactly the gaps the approved Slice 3 plan already named — "the move-on/push-back control" and "the four boxes" — investigated and planned earlier today, then built the same session once Tom confirmed he wanted it done today.
+
+**Player-visible.**
+- **The tap-and-hold hint is now an instruction, not a footnote.** "Tap to compare · press & hold to confirm" was 9.5px muted gray above two clearly-labeled buttons — exactly the shape a first-time player scans past. Same words, now 12px/bold/full-contrast with a 👆, plus its own "?" opening a two-line explanation (how to use it, and why you'd negotiate).
+- **The four glance boxes (Money/Time/Expeditors/Scope) now have one shared "?"** above the grid, opening a card with a short caption for each. The Money caption explains all three colors — green (healthy, fully funded), orange (running low, OR a "deficit": your project now costs more than the funding you've secured), and red (below zero, bankruptcy territory) — the "deficit" complaint was that the word appeared with none of this context.
+- **Every "?" in the game is smaller now.** Tom, live: "if we put ? all over the place they are currently too large... make them smaller like the info icon for the glossary." `HelpButton`'s touch target shrank from a 44px floor (set for phone-tap accuracy at Slice 1) to 26px, matching the header toolbar's small icon buttons. Trades some touch-target margin for visual weight — his call on feel; revisit if mis-taps get reported.
+
+**How.**
+- `TurnCommitControl.tsx`: the hint row gained a `HelpButton`/`HelpCard` pair, threaded through two new required props (`isHelpOpen`, `onToggleHelp`) so it shares PlayerPanelV2's existing one-card-at-a-time `openHelp` state (new `kind='commit'`) rather than keeping its own.
+- `PlayerPanelV2.tsx`: one `HelpButton` above the 4-box grid (new `openHelp` id `'glance'`) — not four separate ones, since each box is itself a `<button>` (opens its detail page) and `HelpButton` must never nest inside a real `<button>`.
+- New copy lives in `uiStrings.ts` as `GLANCE_HELP.*` and `COMMIT_HELP.*` (code-only defaults, same pattern as `NOTIF.cardPlayDetailed` — kept out of `UI_STRINGS.csv` since the shared CSV parser can't round-trip a literal `"`, and the Money caption needed to talk about "deficit" without quoting it awkwardly).
+- The "why negotiate" line replaces `ACTION_TOOLTIPS.csv`'s `negotiation:negotiate` row, which turned out to be dead code (`TooltipService.getNegotiationTooltip()` has zero callers anywhere) and stale ("costs an extra turn" — real Try Again cost ranges 1–50+ days by space). Rewritten rather than wired up as-is.
+- `HelpButton.tsx`: `minWidth` 44→26, `padding` '0 9px'→'2px 7px', `fontSize` 13→11, `borderRadius` 9→7. Every existing call site's explicit `minHeight={32}` dropped to `26` for consistency (space-title "?", the editor preview's mirror).
+
+**Tests (+5 new, 2 updated).** `TurnCommitControl.test.tsx`: the "?" toggles on press, and the card shows/hides on `isHelpOpen`. `HelpButton.test.tsx`: touch-target assertion updated to the new 26px floor. `PlayerPanelV2Help.test.tsx`: the "every ? wears the same structural hooks" count updated 3→4 (the glance "?" always renders now, independent of space).
+
+**Verified live** (dev servers, real Chromium via the Browser pane, desktop + 375×812 mobile emulation). Both new "?"s open, show the right text, and respect the one-card-at-a-time rule (opening the commit "?" while the glance card was open closed the glance card). **Known, pre-existing, not touched here:** the ~20px phone-width overflow flagged in TODO (`display: flex` content near the panel's right edge clips on a 375px emulated viewport) also clips the new commit-control "?" there — same bug as the action-row "?"s already have, still needs a real phone to diagnose properly.
+
+**Not built today (deliberately, per the approved plan):** the mentor character (Slice 2, needs Tom to pick who), the 24 movement-choice tooltip rows, and the Rules → "How to play" rewrite — all still open, tracked in TODO.md.
+
 ## [3.2.71] - 2026-09-19
 
 ### One "?" everywhere, slice 1: the space's own help now wears the same "?" as the actions — presentation only, no new wording

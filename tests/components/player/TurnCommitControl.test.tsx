@@ -26,6 +26,7 @@ const tryAgainRows: CostPreviewRow[] = [
 const setup = (over: Partial<React.ComponentProps<typeof TurnCommitControl>> = {}) => {
   const onCommitEnd = vi.fn();
   const onCommitTryAgain = vi.fn();
+  const onToggleHelp = vi.fn();
   render(
     <TurnCommitControl
       mode="dark"
@@ -36,12 +37,14 @@ const setup = (over: Partial<React.ComponentProps<typeof TurnCommitControl>> = {
       tryAgainRows={tryAgainRows}
       onCommitEnd={onCommitEnd}
       onCommitTryAgain={onCommitTryAgain}
+      isHelpOpen={false}
+      onToggleHelp={onToggleHelp}
       {...over}
     />,
   );
   // Try Again renders first, End second (see renderSide order in the component).
   const [tryBtn, endBtn] = screen.getAllByRole('tab');
-  return { onCommitEnd, onCommitTryAgain, endBtn, tryBtn };
+  return { onCommitEnd, onCommitTryAgain, onToggleHelp, endBtn, tryBtn };
 };
 
 describe('TurnCommitControl (dark-mode merged control)', () => {
@@ -260,6 +263,32 @@ describe('TurnCommitControl (dark-mode merged control)', () => {
 
       act(() => vi.advanceTimersByTime(1100)); // now past the reset 3s window
       expect(bubble).toHaveAttribute('data-visible', 'false');
+    });
+  });
+
+  describe('the control\'s own "?" (Onboarding Phase C Slice 3, v3.2.72)', () => {
+    // 2026-09-21 playtest report's #1 confusion (24 trips): the hold gesture
+    // had a hint but no "?". This card is a real explanation, opened/closed
+    // by the panel's shared one-card-at-a-time state — the parent owns
+    // isHelpOpen/onToggleHelp, this component just renders what it's told.
+    it('renders a "?" and calls onToggleHelp when pressed', () => {
+      const { onToggleHelp } = setup();
+      const help = screen.getByTestId('help-button');
+      expect(help).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.click(help);
+      expect(onToggleHelp).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows nothing when isHelpOpen is false', () => {
+      setup({ isHelpOpen: false });
+      expect(screen.queryByTestId('help-card')).not.toBeInTheDocument();
+    });
+
+    it('shows the how/why text when isHelpOpen is true', () => {
+      setup({ isHelpOpen: true });
+      const card = screen.getByTestId('help-card');
+      expect(card).toHaveTextContent(/press and hold/i);
+      expect(card).toHaveTextContent(/push back and try again/i);
     });
   });
 

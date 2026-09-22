@@ -25,7 +25,7 @@ import { PlayerNumbersV2, NumbersPage } from './PlayerNumbersV2';
 import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { TurnCommitControl } from './TurnCommitControl';
 import { getEndTurnCostPreview, getTryAgainCostPreview, isManualEffectCompleted } from '../../utils/costPreview';
-import { ACTION_ROW, COMMIT, NUMBERS } from '../../constants/uiStrings';
+import { ACTION_ROW, COMMIT, NUMBERS, GLANCE_HELP } from '../../constants/uiStrings';
 import { setDestinationPreview } from '../../utils/destinationPreview';
 import { computeProjectFinances } from '../../utils/projectFinances';
 import { isSkippableEffectAction } from '../../utils/skippableActions';
@@ -779,8 +779,30 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       {/* Status — at a glance (fb:adad1561, Tom 2026-09-17). Four tappable
           boxes replace the money/time row, the "My numbers" and "History"
           buttons, and the old "What's affecting you" zone. Each box opens its
-          own page; Time opens History. */}
+          own page; Time opens History.
+
+          Onboarding Phase C, Slice 3 (v3.2.72): ONE shared "?" for all four,
+          not one each — each tile is itself a <button> (opens its detail
+          page), and HelpButton must never nest inside a real <button> (see
+          HelpButton.tsx), so a per-tile "?" would need restructuring every
+          tile. One "?" above the grid reads "4 short captions" as 4 sections
+          of the one card the rest of the panel already uses, instead of 4
+          separate cards. Closes the #2 confusion in the 2026-09-21 playtest
+          report (12 trips): "deficit" (the Money section below) had no
+          explanation anywhere — checked live against the glossary API,
+          0 of 274 terms. */}
       <div style={pad}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+          <HelpButton
+            kind="glance"
+            label="the numbers at a glance"
+            isOpen={openHelp === 'glance'}
+            cardId="help-card-glance"
+            onToggle={() => toggleHelp('glance', 'glance')}
+            palette={p}
+            minHeight={26}
+          />
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 7 }}>
           <button type="button" data-testid="glance-money" onClick={() => setNumbersPage('money')} style={glanceTile}
             aria-label={`${NUMBERS.TILE_MONEY}: $${player.money.toLocaleString()}${moneyCue.word ? `, ${moneyCue.word}` : ''}`}>
@@ -810,6 +832,20 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             {fin.scopeTotal > 0 && <span style={glanceSub}>{FormatUtils.formatMoney(fin.scopeTotal)}</span>}
           </button>
         </div>
+        {openHelp === 'glance' && (
+          <HelpCard
+            id="help-card-glance"
+            kind="glance"
+            palette={p}
+            onTermClick={(term) => openWithTerm(term.id)}
+            sections={[
+              { label: 'Money:', text: GLANCE_HELP.money },
+              { label: 'Time:', text: GLANCE_HELP.time },
+              { label: 'Expeditors:', text: GLANCE_HELP.expeditors },
+              { label: 'Scope:', text: GLANCE_HELP.scope },
+            ]}
+          />
+        )}
         {(dob || fdny || violation) && (
           <div style={{ display: 'flex', marginTop: 8 }}>
             <span style={{ marginLeft: 'auto', display: 'flex', gap: 9, fontSize: 11, color: p.muted }}>
@@ -875,7 +911,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                 cardId="help-card-step"
                 onToggle={() => toggleHelp('step', 'step')}
                 palette={p}
-                minHeight={32}
+                minHeight={26}
               />
             )}
           </div>
@@ -1198,6 +1234,9 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             onCommitTryAgain={() => onTryAgain(playerId)}
             endCostLine={turnCostLine ?? undefined}
             showGreenDot={showGreenDot}
+            isHelpOpen={openHelp === 'commit'}
+            onToggleHelp={() => toggleHelp('commit', 'commit')}
+            onTermClick={(term) => openWithTerm(term.id)}
           />
         ) : (
           <button

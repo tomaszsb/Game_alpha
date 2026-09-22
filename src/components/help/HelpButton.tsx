@@ -66,16 +66,22 @@ export function HelpButton({
       style={{
         flex: '0 0 auto',
         boxSizing: 'border-box',
-        // 44px is the touch-target floor; measured at 34px on a 375px viewport
-        // before v3.2.54, which is under it.
-        minWidth: 44,
+        // Sized to match the header toolbar's small icon buttons (the
+        // Glossary/Rules/Log 📖 buttons — ~4px padding, 11px glyph). Was a
+        // 44px touch-target floor through Slice 1 (measured at 34px on a
+        // 375px viewport before v3.2.54, which was under it); shrunk 2026-09-22
+        // (Tom, live feedback on Slice 3: "if we put ? all over the place they
+        // are currently too large... make them smaller like the info icon for
+        // the glossary"). Trades some touch-target margin for visual weight —
+        // his call on feel, revisit if mis-taps get reported.
+        minWidth: 26,
         minHeight,
-        padding: '0 9px',
+        padding: '2px 7px',
         background: isOpen ? p.surf2 : 'transparent',
         border: `1px solid ${isOpen ? p.accent : p.border}`,
         color: isOpen ? p.text : p.muted,
-        borderRadius: 9,
-        fontSize: 13,
+        borderRadius: 7,
+        fontSize: 11,
         fontWeight: 600,
         cursor: 'pointer',
         ...style,

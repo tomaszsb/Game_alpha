@@ -80,6 +80,26 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'NUMBERS.section.expeditors': 'Expeditors',
   'NUMBERS.expeditors.empty': "You haven't hired anyone yet.",
   'NUMBERS.money.ongoing': 'Still costing you',
+  // v3.2.72, Onboarding Phase C Slice 3 (2026-09-22 playtest report, #2
+  // confusion at 12 trips): the four glance boxes had no "?" at all, so
+  // "deficit" (the Money box's own orange sub-label) went unexplained.
+  // One shared "?" opens all 4 as sections of one card — see
+  // PlayerPanelV2.tsx's `openHelp === 'glance'` block.
+  'GLANCE_HELP.money':
+    "Your cash on hand. Green means it's healthy and your project is fully funded. Orange means either it's running low, or your project now costs more than the funding you've secured — that gap is called a deficit; either way you can keep going, just plan how you'll close it. Red means you've gone below zero — that's bankruptcy territory.",
+  'GLANCE_HELP.time':
+    "Days used so far. Every action, trip, and delay adds to this — think of it as your project's running clock, not a turn count.",
+  'GLANCE_HELP.expeditors': "The helpers you're holding right now. A highlighted number means one is ready to use this turn.",
+  'GLANCE_HELP.scope': 'The Work Packages that make up your project, and what they will cost to build.',
+  // v3.2.72, Onboarding Phase C Slice 3 (2026-09-22 playtest report, #1
+  // confusion at 24 trips — the single biggest in the report): the press-
+  // and-hold control had a visible hint (see TurnCommitControl.tsx) but no
+  // "?" of its own. This is the "?" card's content. The "why" line replaces
+  // ACTION_TOOLTIPS.csv's `negotiation:negotiate` row, which was dead code
+  // (TooltipService.getNegotiationTooltip has zero callers) and stale
+  // ("costs an extra turn" — the real cost ranges 1-50+ days by space).
+  'COMMIT_HELP.how': "Press and hold either button to confirm your choice. A quick tap doesn't commit — it just switches which side you're comparing.",
+  'COMMIT_HELP.why': "Not happy with this result? You can push back and try again — it costs time, and how much depends on where you are.",
   'DICE_BUTTON.WORK': 'Get Work Packages',
   'DICE_BUTTON.BANK': 'Apply for Bank Loans',
   'DICE_BUTTON.EXPEDITOR': 'Hire Expeditors',
@@ -278,6 +298,20 @@ export const NUMBERS = {
   get SECTION_EXPEDITORS() { return getUIString('NUMBERS.section.expeditors'); },
   get EXPEDITORS_EMPTY() { return getUIString('NUMBERS.expeditors.empty'); },
   get MONEY_ONGOING() { return getUIString('NUMBERS.money.ongoing'); },
+};
+
+/** The one shared "?" above the four glance boxes — see PlayerPanelV2.tsx. */
+export const GLANCE_HELP = {
+  get money() { return getUIString('GLANCE_HELP.money'); },
+  get time() { return getUIString('GLANCE_HELP.time'); },
+  get expeditors() { return getUIString('GLANCE_HELP.expeditors'); },
+  get scope() { return getUIString('GLANCE_HELP.scope'); },
+};
+
+/** The commit control's own "?" — see TurnCommitControl.tsx. */
+export const COMMIT_HELP = {
+  get how() { return getUIString('COMMIT_HELP.how'); },
+  get why() { return getUIString('COMMIT_HELP.why'); },
 };
 
 export const ACTION_ROW = {
