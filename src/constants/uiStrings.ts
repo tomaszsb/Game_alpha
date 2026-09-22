@@ -175,7 +175,11 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // the fix is the same as everywhere else: let a reskin CSV override the
   // label text directly, including the space names, same getUIString()
   // mechanism as the button/notification strings above.
-  'RULES.title': 'Rules',
+  // v3.2.72, Onboarding Phase C Slice 3: renamed to match the mentor voice
+  // ("Rules" reads like a legal document; the modal is a how-to). Header
+  // label only — the body content (raw space IDs, "Determine Outcome",
+  // "snapshot") is a separate, bigger rewrite still open in TODO.md.
+  'RULES.title': 'How to play',
   'RULES.footer.gotIt': 'Got it!',
   'RULES.objective.heading': 'Game Objective',
   'RULES.objective.body': 'Navigate through the development process from initial scope to project completion. Manage your time, money, and resources while making strategic decisions to successfully complete your construction project.',

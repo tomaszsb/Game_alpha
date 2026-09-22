@@ -2,6 +2,10 @@
 
 ---
 
+## v3.2.73 — "Rules" is now "How to play" (September 22, 2026)
+
+- **The header button that used to say "Rules" now says "How to play."** Same screen, same information for now — just a friendlier name for it.
+
 ## v3.2.72 — The hold-and-confirm button explains itself, and so does "deficit" (September 22, 2026)
 
 - **"Tap to compare · press & hold to confirm" is easier to actually notice now.** The words were already there above the End Turn / Try Again buttons, but small and gray — easy to miss the first time. It's bigger and bolder now, with a 👆, and it has its own "?" if you want more detail on why you'd push back instead of confirming.

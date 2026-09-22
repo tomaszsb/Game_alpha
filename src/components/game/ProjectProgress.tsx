@@ -464,7 +464,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         </div>
         {!hideButtons && <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           {[
-            { onClick: onOpenRulesModal, icon: <IconClipboard size="1em" />, label: 'Rules', bg: colors.purple.main, active: isRulesOpen },
+            { onClick: onOpenRulesModal, icon: <IconClipboard size="1em" />, label: 'How to play', bg: colors.purple.main, active: isRulesOpen },
             { onClick: onToggleGameLog, icon: <IconNotepad size="1em" />, label: 'Log', bg: colors.primary.main, active: isGameLogOpen },
             ...(onOpenDisplaySettings ? [{ onClick: onOpenDisplaySettings, icon: <IconEye size="1em" />, label: 'View', bg: colors.success.main, active: isDisplaySettingsOpen }] : []),
             ...(onToggleGlossary ? [{ onClick: onToggleGlossary, icon: <IconBookOpen size="1em" />, label: 'Glossary', bg: '#ff9800', active: isGlossaryOpen }] : []),

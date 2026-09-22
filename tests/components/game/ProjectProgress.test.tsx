@@ -101,7 +101,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    const rulesButton = screen.getByText('Rules');
+    // v3.2.72: renamed "Rules" → "How to play" (Onboarding Phase C Slice 3).
+    const rulesButton = screen.getByText('How to play');
     expect(rulesButton).toBeInTheDocument();
 
     fireEvent.click(rulesButton);

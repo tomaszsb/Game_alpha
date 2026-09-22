@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.73] - 2026-09-22
+
+### "Rules" → "How to play" (header button + modal title only)
+
+Small follow-up, same session as v3.2.72: closes one line item from Slice 3's still-open list ("Rules → How to play"). Renamed the header toolbar button (`ProjectProgress.tsx`) and the modal's own title (`RULES.title` in `uiStrings.ts`) — **found and fixed a real trap on the way**: `RULES.title` already had a live override row in `UI_STRINGS.csv` ("Rules"), which wins over the code default via `getUIString()`'s override-then-default lookup, so the code-only change silently did nothing until the CSV row was updated too. Verified live (dev server) — both the button and the modal header now read "How to play".
+
+**Deliberately NOT done here** — the modal's body content still says "Determine Outcome", raw space IDs ("OWNER-SCOPE-INITIATION:"), and "snapshot" (a stale mechanic reference). That's a real content rewrite needing Tom's voice pass, tracked separately in TODO.md — this fix is the header/title only.
+
 ## [3.2.72] - 2026-09-22
 
 ### Onboarding Phase C, Slice 3 (partial): the press-and-hold control gets a "?" and a real hint, and the four glance boxes explain themselves — closes the top 2 confusions in the 2026-09-21 playtest report

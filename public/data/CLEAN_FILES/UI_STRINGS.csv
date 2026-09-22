@@ -48,7 +48,7 @@ CARD_DETAILS.TRANSFER_CONFIRM,Transfer
 CARD_DETAILS.TRANSFER_HEADING,Select player to transfer to:
 DISCARD_PILE.EMPTY_STATE,No resources used yet
 DISCARD_PILE.FILTER_LABEL,Filter by type
-RULES.title,Rules
+RULES.title,How to play
 RULES.footer.gotIt,Got it!
 RULES.objective.heading,Game Objective
 RULES.objective.body,"Navigate through the development process from initial scope to project completion. Manage your time, money, and resources while making strategic decisions to successfully complete your construction project."
