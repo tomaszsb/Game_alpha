@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.75 — Pushing back now costs days everywhere (September 24, 2026)
+
+- **At Investor Review, Hire a Builder and Final Approval, pushing back and trying again now costs days, just like everywhere else.** It used to be free at those three places — you could throw away a bad roll and roll again without losing any time, even though in real life those steps take time. Now it costs **15 days at Investor Review, 5 days at Hire a Builder, and 1 day at Final Approval.** Tap the button first to see the cost before you commit.
+- **The note in the "?" that says pushing back "costs days" is now true on every push-back button.**
+
 ## v3.2.74 — The hold-and-confirm hint now says what a tap shows (September 24, 2026)
 
 - **The hint above End Turn / Try Again now reads "Tap to see the cost · press & hold to confirm."** It used to say "Tap to compare," which never said what was being compared. A quick tap on either button shows what that button would cost you, and doesn't commit anything — pressing and holding is what confirms.

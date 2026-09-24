@@ -17,7 +17,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getEndTurnCostPreview, getTryAgainCostPreview } from '../../src/utils/costPreview';
+import {
+  getEndTurnCostPreview,
+  getTryAgainCostPreview,
+  calculatePushBackDays,
+  calculateSpaceTimeAddTotal,
+} from '../../src/utils/costPreview';
 import type { SpaceEffect } from '../../src/types/DataTypes';
 import type { IServiceContainer } from '../../src/types/ServiceContracts';
 
@@ -37,6 +42,8 @@ interface FakeOptions {
   diceRoll?: string;
   globalTurnCount?: number;
   globalActionLog?: FakeLogEntry[];
+  /** The space's `try_again_days` (SPACE_CONTENT.csv). Omit = no price set. */
+  pushBackDays?: number;
 }
 
 function makeGameServices(effects: SpaceEffect[], opts: FakeOptions = {}): IServiceContainer {
@@ -46,6 +53,10 @@ function makeGameServices(effects: SpaceEffect[], opts: FakeOptions = {}): IServ
   return {
     dataService: {
       getSpaceEffects: () => effects,
+      getSpaceContent: () => ({
+        can_negotiate: true,
+        ...(opts.pushBackDays !== undefined ? { try_again_days: opts.pushBackDays } : {}),
+      }),
       shouldAutoApplyFunding: () => !!opts.autoFunding,
     },
     gameRulesService: {
@@ -299,5 +310,73 @@ describe('owner seed money (OWNER-FUND-INITIATION)', () => {
     const gs = makeGameServices(effects, { autoFunding: false, ownerFundingOffered: 3640000 });
     const preview = getEndTurnCostPreview(gs, 'OWNER-FUND-INITIATION', 'First', 'p1');
     expect(row(preview, 'money')).toBeUndefined();
+  });
+});
+
+// v3.2.75 (Tom, 2026-09-24): pushing back at Investor Review, Hire a Builder and
+// Final Approval was FREE — their time is a dice roll with no fixed time row, so
+// the push-back charge (the sum of fixed rows) came to 0 and a bad roll could be
+// thrown away for nothing. Real life says those steps take time. Such a space now
+// sets `try_again_days`, which REPLACES the fixed-rows total.
+describe('push-back price (try_again_days)', () => {
+  const time = (value: string): SpaceEffect => ({
+    space_name: 'S', visit_type: 'First', effect_type: 'time', effect_action: 'add', effect_value: value,
+    condition: '', description: '', trigger_type: 'auto',
+  });
+  // Investor Review's shape: the time is a dice outcome, no fixed time row.
+  const diceTimeOnly: SpaceEffect[] = [
+    { space_name: 'INVESTOR-FUND-REVIEW', visit_type: 'First', effect_type: 'dice', effect_action: 'dice_outcome', effect_value: 'Time outcomes', condition: '', description: '', trigger_type: 'manual' },
+  ];
+
+  describe('calculatePushBackDays', () => {
+    it('is the fixed time rows when the space sets no price (the original rule, unchanged)', () => {
+      expect(calculatePushBackDays([time('5'), time('10')], undefined)).toBe(15);
+      expect(calculatePushBackDays([time('5')], {})).toBe(5);
+      expect(calculatePushBackDays([time('5')], null)).toBe(5);
+    });
+
+    it('is 0 for a dice-timed space with no price — the free re-roll this closes', () => {
+      expect(calculatePushBackDays(diceTimeOnly, {})).toBe(0);
+    });
+
+    it('is the price when one is set', () => {
+      expect(calculatePushBackDays(diceTimeOnly, { try_again_days: 15 })).toBe(15);
+    });
+
+    it('a price REPLACES the fixed rows rather than adding to them', () => {
+      expect(calculateSpaceTimeAddTotal([time('50')])).toBe(50);
+      expect(calculatePushBackDays([time('50')], { try_again_days: 10 })).toBe(10);
+    });
+
+    it('an explicit 0 is honored — a designer can still make a space free on purpose', () => {
+      expect(calculatePushBackDays([time('50')], { try_again_days: 0 })).toBe(0);
+    });
+  });
+
+  describe('the push-back cost box', () => {
+    it('shows the price as the Time line', () => {
+      const gs = makeGameServices(diceTimeOnly, { pushBackDays: 15 });
+      expect(row(getTryAgainCostPreview(gs, 'p1'), 'time')).toBe('+15 days');
+    });
+
+    it('says "1 day", not "1 days"', () => {
+      const gs = makeGameServices(diceTimeOnly, { pushBackDays: 1 });
+      expect(row(getTryAgainCostPreview(gs, 'p1'), 'time')).toBe('+1 day');
+    });
+
+    it('a space with no price and no fixed row still shows no Time line (unchanged)', () => {
+      const gs = makeGameServices(diceTimeOnly);
+      expect(row(getTryAgainCostPreview(gs, 'p1'), 'time')).toBeUndefined();
+    });
+
+    it('a space with fixed rows and no price shows those rows (unchanged)', () => {
+      const gs = makeGameServices([time('5')]);
+      expect(row(getTryAgainCostPreview(gs, 'p1'), 'time')).toBe('+5 days');
+    });
+
+    it('the End Turn side is NOT touched by the price — its dice time still reads "Varies"', () => {
+      const gs = makeGameServices(diceTimeOnly, { pushBackDays: 15 });
+      expect(row(getEndTurnCostPreview(gs, 'INVESTOR-FUND-REVIEW', 'First', 'p1'), 'time')).toBe('Varies');
+    });
   });
 });

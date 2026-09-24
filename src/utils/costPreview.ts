@@ -27,7 +27,7 @@
  */
 
 import { IServiceContainer } from '../types/ServiceContracts';
-import { SpaceEffect, VisitType } from '../types/DataTypes';
+import { SpaceContent, SpaceEffect, VisitType } from '../types/DataTypes';
 import { FormatUtils } from './FormatUtils';
 import { extractPercentage, parseFeeFromDescription, determineFeeType } from './parseUtils';
 
@@ -99,6 +99,29 @@ export function calculateSpaceTimeAddTotal(effects: SpaceEffect[]): number {
   return effects
     .filter(e => e.effect_type === 'time' && e.effect_action === 'add')
     .reduce((total, e) => total + Number(e.effect_value || 0), 0);
+}
+
+/**
+ * What pushing back ("Try Again") charges at this space and visit, in days.
+ *
+ * The original rule is the space's own fixed time rows (above): its normal time
+ * cost, paid again for getting nothing. That left every space whose time comes
+ * from a dice roll — Investor Review, Hire a Builder, Final Approval — with NO
+ * fixed row, so a push-back there charged 0 and was a free re-roll. Such a space
+ * can now set `try_again_days` (SPACE_CONTENT.csv), which REPLACES the fixed-rows
+ * total. It is a column of its own, not a SPACE_EFFECTS time row, because any
+ * such row is also charged on End Turn (double-counting the roll).
+ *
+ * The one source for what `TurnService.tryAgainOnSpace` applies, what the cost
+ * box shows on the push-back side, and what the engagement count records, so the
+ * three can never disagree.
+ */
+export function calculatePushBackDays(
+  effects: SpaceEffect[],
+  content?: Pick<SpaceContent, 'try_again_days'> | null,
+): number {
+  const override = content?.try_again_days;
+  return typeof override === 'number' ? override : calculateSpaceTimeAddTotal(effects);
 }
 
 /** Strict numeric parse — only trusts a value that IS a number, never a
@@ -425,7 +448,8 @@ export function getEndTurnCostPreview(
 
 /**
  * "Push back" / Try Again preview — DIFFERENT numbers from End Turn:
- *   - Time: the same CSV time-add total (also applied by tryAgainOnSpace).
+ *   - Time: calculatePushBackDays — the space's fixed time rows, or its
+ *     `try_again_days` price where one is set (also applied by tryAgainOnSpace).
  *   - Money: the real TurnCostLedger.moneySpent for this turn — stays spent,
  *     is NOT refunded (tryAgainOnSpace deducts it from REAL money).
  *   - Work / Expediting / Labor: whichever of those categories this space
@@ -442,7 +466,10 @@ export function getTryAgainCostPreview(
   const effects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType) || [];
   const rows: CostPreviewRow[] = [];
 
-  const timeDays = calculateSpaceTimeAddTotal(effects);
+  const timeDays = calculatePushBackDays(
+    effects,
+    gameServices.dataService.getSpaceContent(player.currentSpace, player.visitType),
+  );
   if (timeDays !== 0) {
     rows.push({
       key: 'time',

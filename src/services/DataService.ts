@@ -44,6 +44,18 @@ export const BUILT_IN_NUMBERS_SECTIONS: Readonly<Record<string, NumbersSection>>
 
 const NUMBERS_SECTIONS: readonly NumbersSection[] = ['money', 'scope', 'expeditors', 'history'];
 
+/**
+ * SPACE_CONTENT.csv's `try_again_days`: the push-back price in days, or
+ * undefined for "no override" (blank cell, column missing from an older file,
+ * or anything that is not a plain non-negative number). Undefined — never 0 —
+ * is the safe reading of a bad cell: 0 would silently make the push-back free.
+ */
+function parsePushBackDays(raw: string | undefined): number | undefined {
+  const trimmed = (raw ?? '').trim();
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) return undefined;
+  return Number(trimmed);
+}
+
 export class DataService implements IDataService {
   private gameConfigs: GameConfig[] = [];
   // 2026-08-02: keyed lookups for the hottest DataService reads
@@ -1308,6 +1320,10 @@ export class DataService implements IDataService {
         can_negotiate: (get(values, 'can_negotiate') || '').toUpperCase() === 'YES',
         end_turn_label: get(values, 'end_turn_label') || 'End Turn',
         try_again_label: get(values, 'try_again_label') || 'Try Again',
+        // Blank / missing / not a non-negative number all mean "no override" —
+        // an older CSV without the column, or a stray typo, must fall back to the
+        // fixed-time-rows rule, never to a surprise price of 0.
+        try_again_days: parsePushBackDays(get(values, 'try_again_days')),
         shake_on: get(values, 'shake_on') || '',
         tts_field: get(values, 'tts_field') || ''
       };

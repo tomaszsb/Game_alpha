@@ -383,13 +383,19 @@ function processSpaceContent(spacesCsv) {
     end_turn_label: row.end_turn_label || 'End Turn',
     try_again_label: row.try_again_label || 'Try Again',
     shake_on: row.shake_on || '',
-    tts_field: row.tts_field || ''
+    tts_field: row.tts_field || '',
+    // Days a push-back charges at this space. Blank = the space's own fixed
+    // time rows (the original rule). A number REPLACES that — it exists for
+    // spaces whose time comes from a dice roll, which have no fixed row and so
+    // used to be free to push back on. Deliberately a column of its own, not a
+    // SPACE_EFFECTS time row: any such row is also charged on End Turn.
+    try_again_days: (row.try_again_days || '').trim()
   }));
 
   const fieldnames = [
     'space_name', 'visit_type', 'title', 'story', 'action_description',
     'outcome_description', 'can_negotiate', 'end_turn_label', 'try_again_label',
-    'shake_on', 'tts_field'
+    'shake_on', 'tts_field', 'try_again_days'
   ];
 
   return toCsv(contents, fieldnames);

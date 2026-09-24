@@ -332,6 +332,26 @@ describe('csvExport', () => {
 
     const realSpacesCSV = [fixtureHeaders.join(','), row1, row2].join('\n') + '\n';
 
+    // v3.2.75: `try_again_days` is the push-back price. The editor has no field for
+    // it, so it rides through as an unknown column — if a Save dropped it, the next
+    // save from the editor would quietly make those push-backs free again.
+    it('an editor Save keeps the push-back price (try_again_days) on the right row', () => {
+      const csv = [
+        'space_name,phase,visit_type,Negotiate,try_again_days',
+        'INVESTOR-FUND-REVIEW,FUNDING,First,YES,15',
+        'INVESTOR-FUND-REVIEW,FUNDING,Subsequent,NO,',
+      ].join('\n') + '\n';
+
+      const saved = exportSpacesCSV(parseSpacesCSV(csv));
+      const [header, first, second] = saved.trim().split('\n');
+      expect(header.split(',')).toContain('try_again_days');
+      const col = header.split(',').indexOf('try_again_days');
+      expect(first.split(',')[col]).toBe('15');
+      expect(second.split(',')[col]).toBe('');
+      // ...and it survives a second round trip unchanged.
+      expect(exportSpacesCSV(parseSpacesCSV(saved))).toBe(saved);
+    });
+
     it('round-trips a Spaces.csv with the 16 post-Workstream-6 columns intact', () => {
       const parsed = parseSpacesCSV(realSpacesCSV);
       expect(parsed.length).toBe(2);

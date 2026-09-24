@@ -185,7 +185,7 @@ Expeditors are the only cards you actively play from your hand. Work Package, lo
 #### Try Again
 - **When:** Available on certain spaces (appears as one side of the End turn control)
 - **How:** Tap "Try Again" to preview its cost, then press and hold it to commit
-- **Effect:** Reverts to state before current space entry (time penalty may apply)
+- **Effect:** Reverts to state before current space entry (it costs days; how many depends on the space, and the tap shows you)
 
 ### Automatic Actions
 

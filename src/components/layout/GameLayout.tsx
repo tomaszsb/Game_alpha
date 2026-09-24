@@ -48,7 +48,7 @@ import { fetchEdgeWaypoints, saveEdgeWaypoints, clearEdgeWaypoint, clearAllEdgeW
 import { fetchEdgeAnchors, saveEdgeAnchor, clearEdgeAnchor, type EdgeAnchorResult, type EdgeEnd } from '../../utils/saveEdgeAnchor';
 import type { BoxAnchor } from '../../utils/boardCommon';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
-import { calculateSpaceTimeAddTotal } from '../../utils/costPreview';
+import { calculatePushBackDays } from '../../utils/costPreview';
 import type { PushBackDetails } from '../player/panelTypes';
 
 interface GameLayoutProps {
@@ -1108,11 +1108,14 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     if (!currentPlayerId) return;
     try {
       // Snapshot what this push-back IS before the engine rolls the turn back:
-      // the space/visit, the fixed days it charges (the same sum
+      // the space/visit, the days it charges (the same figure
       // TurnService.tryAgainOnSpace applies), and which attempt it is.
       const before = stateService.getPlayer(currentPlayerId);
       const daysCharged = before
-        ? calculateSpaceTimeAddTotal(dataService.getSpaceEffects(before.currentSpace, before.visitType) || [])
+        ? calculatePushBackDays(
+            dataService.getSpaceEffects(before.currentSpace, before.visitType) || [],
+            dataService.getSpaceContent(before.currentSpace, before.visitType),
+          )
         : 0;
       const turn = stateService.getGameState().globalTurnCount;
       const attempt = stateService.getTryAgainCount(currentPlayerId) + 1;

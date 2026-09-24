@@ -351,6 +351,35 @@ describe('Phase 2 bake: teacher copies', () => {
     expect(report.warnings.some((w: any) => w.code === 'COPY_SCHEMA_DRIFT')).toBe(true);
     expect(report.warnings.some((w: any) => w.code === 'COPY_STOCK_UPDATED')).toBe(true);
   });
+
+  // v3.2.75: `try_again_days` is the push-back price (Investor Review, Hire a Builder,
+  // Final Approval). Every classroom is baked FROM stock, so if the bake dropped or
+  // blanked the column, each classroom would silently keep the free re-roll.
+  it('keeps the push-back price column, and a copy made before that column existed still gets the stock price', () => {
+    const csv = [
+      'space_name,phase,visit_type,Title,Event,Negotiate,try_again_days',
+      'INVESTOR-FUND-REVIEW,FUNDING,First,Investor,Stock words.,YES,15',
+      'INVESTOR-FUND-REVIEW,FUNDING,Subsequent,Investor,Again.,NO,',
+    ].join('\n') + '\n';
+    const plain: any = { meta: { id: 'classroom-1' }, slots: {}, teacherCopies: {}, detours: {}, insertions: {} };
+
+    const kept = parseCsvWithHeaders(applyConfigToSpacesCsv(csv, plain));
+    expect(kept.find((r: any) => r.visit_type === 'First')!.try_again_days).toBe('15');
+
+    const withCopy: any = {
+      ...plain,
+      slots: { 'INVESTOR-FUND-REVIEW': { used: true, card: 'investor_copy_1' } },
+      teacherCopies: {
+        investor_copy_1: {
+          slot: 'INVESTOR-FUND-REVIEW',
+          rows: { First: { space_name: 'INVESTOR-FUND-REVIEW', visit_type: 'First', Title: 'Teacher investor' } },
+        },
+      },
+    };
+    const first = parseCsvWithHeaders(applyConfigToSpacesCsv(csv, withCopy)).find((r: any) => r.visit_type === 'First')!;
+    expect(first.Title).toBe('Teacher investor'); // the teacher's wording is kept
+    expect(first.try_again_days).toBe('15');      // the price falls through from stock
+  });
 });
 
 // ===== Phase 4a: teacher-authored insertions =====

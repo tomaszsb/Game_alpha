@@ -1156,3 +1156,42 @@ describe('processGameData — per-action narratives', () => {
     }
   });
 });
+
+// v3.2.75: `try_again_days` (Spaces.csv) → SPACE_CONTENT.csv. The push-back price for
+// spaces whose time is a dice roll (no fixed time row). It has to survive the pipeline
+// or the next regeneration silently deletes the price.
+describe('processGameData — try_again_days (push-back price)', () => {
+  const header = 'space_name,phase,visit_type,Title,Event,Action,Outcome,w_card,b_card,i_card,l_card,e_card,Time,Fee,space_1,space_2,space_3,space_4,space_5,Negotiate,requires_dice_roll,path,rolls,try_again_days';
+  const row = (name: string, visit: string, days: string) =>
+    `${name},DESIGN,${visit},T,E,A,,,,,,,,,NEXT,,,,,YES,No,Main,,${days}`;
+
+  const contentRows = (spacesCsv: string) => {
+    processGameData(spacesCsv, diceRollCsv, tmpDir);
+    const lines = fs.readFileSync(path.join(tmpDir, 'SPACE_CONTENT.csv'), 'utf-8').trim().split('\n');
+    const cols = lines[0].split(',');
+    return {
+      cols,
+      rows: lines.slice(1).map((l) => Object.fromEntries(l.split(',').map((v, i) => [cols[i], v]))),
+    };
+  };
+
+  it('carries the price through to SPACE_CONTENT.csv, as its own column, and leaves blanks blank', () => {
+    const { cols, rows } = contentRows([header, row('S-A', 'First', '15'), row('S-B', 'First', '')].join('\n'));
+    expect(cols[cols.length - 1]).toBe('try_again_days');
+    expect(rows.find((r) => r.space_name === 'S-A')!.try_again_days).toBe('15');
+    expect(rows.find((r) => r.space_name === 'S-B')!.try_again_days).toBe('');
+  });
+
+  it('a Spaces.csv without the column still produces the column, blank on every row', () => {
+    const legacyHeader = header.replace(',try_again_days', '');
+    const legacyRow = row('S-C', 'First', '').replace(/,$/, '');
+    const { rows } = contentRows([legacyHeader, legacyRow].join('\n'));
+    expect(rows.find((r) => r.space_name === 'S-C')!.try_again_days).toBe('');
+  });
+
+  it('a price is NOT turned into a SPACE_EFFECTS time row (that row would also be charged on End Turn)', () => {
+    processGameData([header, row('S-D', 'First', '15')].join('\n'), diceRollCsv, tmpDir);
+    const effects = fs.readFileSync(path.join(tmpDir, 'SPACE_EFFECTS.csv'), 'utf-8');
+    expect(effects).not.toMatch(/S-D,First,time/);
+  });
+});

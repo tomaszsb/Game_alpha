@@ -265,6 +265,72 @@ describe('TurnService.tryAgainOnSpace', () => {
     expect(player.timeSpent).toBe(7); // 5 + 2 day penalty
   });
 
+  // v3.2.75 (Tom, 2026-09-24): a dice-timed space (Investor Review, Hire a Builder,
+  // Final Approval) has NO fixed time row, so a push-back there used to charge 0 —
+  // a bad roll could be thrown away for free. Such a space now sets `try_again_days`.
+  describe('push-back price (try_again_days)', () => {
+    const startAt = (space: string, timeSpent: number) => {
+      stateService.addPlayer('Player 1');
+      stateService.startGame();
+      const gameState = stateService.getGameStateDeepCopy();
+      const p = gameState.players[0];
+      p.currentSpace = space;
+      p.visitType = 'First';
+      p.timeSpent = timeSpent;
+      stateService.setGameState(gameState);
+      stateService.createTempStateFromReal({ playerId: p.id, spaceName: space, visitType: 'First' });
+      return p.id;
+    };
+
+    it('charges the price where the space has no fixed time row — and throws away the days it had rolled', async () => {
+      const id = startAt('INVESTOR-FUND-REVIEW', 5);
+      // The player rolled 70 days on this attempt (time comes from a dice roll here).
+      stateService.updateTempState(id, { timeSpent: 75 });
+      (dataService.getSpaceContent as any).mockReturnValue({ can_negotiate: true, try_again_days: 15 });
+      (dataService.getSpaceEffects as any).mockReturnValue([]); // no fixed time row
+
+      const result = await turnService.tryAgainOnSpace(id);
+
+      expect(result.success).toBe(true);
+      // 5 before + the 15-day price. The 70 rolled days are gone with the discarded attempt.
+      expect(stateService.getPlayer(id)!.timeSpent).toBe(20);
+    });
+
+    it('the price REPLACES the fixed time rows rather than adding to them', async () => {
+      const id = startAt('SOME-SPACE', 5);
+      (dataService.getSpaceContent as any).mockReturnValue({ can_negotiate: true, try_again_days: 10 });
+      (dataService.getSpaceEffects as any).mockReturnValue([
+        { effect_type: 'time', effect_action: 'add', effect_value: 50 },
+      ]);
+
+      await turnService.tryAgainOnSpace(id);
+
+      expect(stateService.getPlayer(id)!.timeSpent).toBe(15); // 5 + 10, not 5 + 50 (or 5 + 60)
+    });
+
+    it('with no price set the fixed rows apply, exactly as before', async () => {
+      const id = startAt('SOME-SPACE', 5);
+      (dataService.getSpaceContent as any).mockReturnValue({ can_negotiate: true });
+      (dataService.getSpaceEffects as any).mockReturnValue([
+        { effect_type: 'time', effect_action: 'add', effect_value: 2 },
+      ]);
+
+      await turnService.tryAgainOnSpace(id);
+
+      expect(stateService.getPlayer(id)!.timeSpent).toBe(7);
+    });
+
+    it('reports the price it charged in the penalty message', async () => {
+      const id = startAt('INVESTOR-FUND-REVIEW', 0);
+      (dataService.getSpaceContent as any).mockReturnValue({ can_negotiate: true, try_again_days: 15 });
+      (dataService.getSpaceEffects as any).mockReturnValue([]);
+
+      const result = await turnService.tryAgainOnSpace(id);
+
+      expect(result.message).toContain('15 days');
+    });
+  });
+
   it('should cancel any pending choice when Try Again is used', async () => {
     // Setup with a mock choiceService that has an active choice
     const mockChoiceService = {

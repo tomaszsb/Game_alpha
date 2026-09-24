@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.75] - 2026-09-24
+
+### Pushing back now costs days at the last three places where it was free — Investor Review, Hire a Builder, Final Approval
+
+**Where this came from.** v3.2.74's check of the push-back cost box found five of the 26 controls charging 0 days. Tom, asked what the box should say there: *"these items in real life take time — I think previous versions of the game had days assigned here."* So the question stopped being a label and became a rule. I checked the archive (`Game_Archive` code2026 / code2027 / early worktree, plus the 2024 and 2025 `Spaces Info.csv`) rather than assume: the dice days are the **same numbers in every version** (Investor Review 30–70, Hire a Builder change order 5–30, Final Approval 1–30), the original spreadsheet's Time column was **blank** for these spaces too, and every version's push-back code charged only the fixed time rows. Nothing was lost — **a push-back price for these spaces never existed.** What that meant in play: pushing back threw away the days you'd rolled (a 70 at Investor Review) and let you roll again for free, while the other 21 controls charge 1 / 5 / 10 / 15 / 50. Tom picked the numbers with me — my starting suggestions, accepted as-is ("these sound reasonable").
+
+**Player-visible.** Pushing back now costs **15 days at Investor Review, 5 days at Hire a Builder (both visits), 1 day at Final Approval (both visits)**. The push-back side's cost box shows it (`Time +15 days`, where it showed a bare "—"), and the v3.2.74 help line "That costs days — tap the button first to see how many" is now true on all 26 controls. The End side is untouched (its dice time still reads "Varies").
+
+**How.**
+- New column **`try_again_days`** in `SOURCE_FILES/Spaces.csv` → `SPACE_CONTENT.csv` (via `processGameData.js`). Blank = the space's fixed time rows (the original rule); a number **replaces** it. Read by `DataService` into `SpaceContent.try_again_days` — blank, missing or malformed means *no price* (undefined), never 0, so a typo cannot silently make a push-back free; an explicit `0` is honoured.
+- **Why a column and not a `SPACE_EFFECTS` time row:** a `time/add` row is also charged on End Turn, so typing the days into the effects table would have taxed every player who does NOT push back on top of the dice roll. `calculatePushBackDays(effects, content)` (`costPreview.ts`) is the one place that says what a push-back charges, and `TurnService.tryAgainOnSpace`, the cost box and the engagement count all read it, so they cannot drift.
+- Verified the two paths that could have silently dropped the prices: the Space Editor's Save keeps the column (it rides through as an unknown column) and a classroom bake keeps it — including for a teacher copy made *before* the column existed, which falls through to the stock price. Both pinned by tests. The editor has no field for it yet.
+- `regen-clean-files` reproduces every other CLEAN file byte-for-byte (checked before and after), so only `SPACE_CONTENT.csv` changed.
+
+**Verified in a real Chromium** (dev servers; a dev game's player moved to Investor Review): the push-back box read `Time +15 days` (End side unchanged); holding it took the player's Time from **0 to 15 days** and the counter logged `daysCharged: 15`.
+
+**Tests (3347 → 3371, +24; 220 files).** `costPreview.test.ts` (the rule, the box, singular "1 day", End side untouched), `TurnService-tryAgainOnSpace.test.ts` (an engine push-back charges the price and **throws away a 70-day roll**; replaces fixed rows; unchanged when no price), `DataService.test.ts` (parse: number / blank / words / negative / 0 / padded), `processGameData.test.ts` (column passes through, blank stays blank, never becomes a time row), `PushBackPrice.test.ts` (**real data**: no push-back is free, the five approved prices, the other controls untouched), plus the editor-Save and classroom-bake keep-the-column tests. Typecheck ✅, build ✅. **Ghost gates run this time** (game logic changed): 11 files / 43 tests green, including the aggressive push-back-everywhere gate; the smart-bot's recorded numbers are identical to every earlier run (49/50 wins, 70.1 turns) — meaning normal play doesn't route through these push-backs, so this proves the game doesn't break, **not** that the prices feel fair to a human. Those prices are unplaytested guesses; the v3.2.74 engagement counts (`pushBacks.foreign`) are how to find out.
+
+**Supersedes** TODO's "should a dice-timed time cost be exempt from push-back?" design question and the "No extra days" label idea (dropped — with a price there is always a number to show).
+
 ## [3.2.74] - 2026-09-24
 
 ### The push-back hint now says what a tap shows — and real push-backs are counted

@@ -14,7 +14,7 @@ import { SpaceEffect, VisitType } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
 import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlySpaceName } from '../utils/logFormatting';
-import { calculateSpaceTimeAddTotal } from '../utils/costPreview';
+import { calculatePushBackDays } from '../utils/costPreview';
 import { computeFilingFee } from '../utils/violationRules';
 
 export class TurnService implements ITurnService {
@@ -908,12 +908,14 @@ export class TurnService implements ITurnService {
         };
       }
 
-      // 4. Calculate the time penalty from space effects. Shared with the
-      // PlayerPanelV2 cost-preview toggle (src/utils/costPreview.ts) so the
-      // preview can never drift from what pressing this button actually
-      // does — see calculateSpaceTimeAddTotal.
+      // 4. Calculate the time penalty: the space's fixed time rows, or its own
+      // `try_again_days` price where it sets one (dice-timed spaces, which have
+      // no fixed row). Shared with the PlayerPanelV2 cost-preview and the
+      // engagement count (src/utils/costPreview.ts) so the preview can never
+      // drift from what pressing this button actually does — see
+      // calculatePushBackDays.
       const spaceEffects = this.dataService.getSpaceEffects(currentPlayer.currentSpace, currentPlayer.visitType);
-      const timePenalty = calculateSpaceTimeAddTotal(spaceEffects);
+      const timePenalty = calculatePushBackDays(spaceEffects, spaceContent);
 
 
       // 5. Emit turn_discarded — LogWriter's write must precede

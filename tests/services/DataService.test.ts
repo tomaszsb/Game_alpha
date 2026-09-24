@@ -688,6 +688,34 @@ START,First,Welcome,You have arrived.,Begin.,You moved on.`,
       // Defaults still apply for the absent optional columns.
       expect(content!.end_turn_label).toBe('End Turn');
       expect(content!.try_again_label).toBe('Try Again');
+      // An older file without the push-back price column means "no price set",
+      // so the original fixed-time-rows rule applies.
+      expect(content!.try_again_days).toBeUndefined();
+    });
+
+    it('parseSpaceContentCsv: try_again_days is a number when set, and undefined (never a surprise 0) when blank or malformed', async () => {
+      const header = 'space_name,visit_type,title,story,action_description,outcome_description,can_negotiate,end_turn_label,try_again_label,shake_on,tts_field,try_again_days';
+      const row = (name: string, days: string) => `${name},First,T,S,Act,Out,YES,Done,Retry,,,${days}`;
+      const svc = await loadWith({
+        '/data/CLEAN_FILES/SPACE_CONTENT.csv': [
+          header,
+          row('SET', '15'),
+          row('BLANK', ''),
+          row('WORDS', 'soon'),
+          row('NEGATIVE', '-3'),
+          row('ZERO', '0'),
+          row('PADDED', ' 5 '),
+        ].join('\n'),
+      });
+      const days = (name: string) => svc.getSpaceContent(name, 'First')!.try_again_days;
+      expect(days('SET')).toBe(15);
+      expect(days('BLANK')).toBeUndefined();
+      expect(days('WORDS')).toBeUndefined();
+      expect(days('NEGATIVE')).toBeUndefined();
+      // An explicit 0 is a real answer (a designer can make a space free on purpose)
+      // — it must survive, not be mistaken for "blank".
+      expect(days('ZERO')).toBe(0);
+      expect(days('PADDED')).toBe(5);
     });
   });
 });
