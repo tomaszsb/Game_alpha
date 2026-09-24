@@ -18,7 +18,7 @@ import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
 import { isHomeIP as isHomeIPPure, ipv6Prefix64 } from './homeIP.js';
 import { parseLogLine, aggregateVisitorStats } from './visitorStats.js';
-import { aggregateEngagementStats } from './engagementStats.js';
+import { aggregateEngagementStats, pushBackLogFields } from './engagementStats.js';
 import geoip from 'geoip-lite';
 import {
   DEFAULT_INSTANCE_ID,
@@ -3085,6 +3085,9 @@ const PLAYTEST_EVENTS = new Set([
   'space_reached',
   'game_finished',
   'panel_opened',
+  // A real push-back (Try Again): space, visit, days charged, attempt, and
+  // whether the player opened the cost box first. Decided 2026-09-24.
+  'push_back',
 ]);
 
 function sanitizeTrackField(value) {
@@ -3102,6 +3105,9 @@ app.post('/api/playtest/track', (req, res) => {
     playerId: sanitizeTrackField(playerId),
     spaceId: sanitizeTrackField(spaceId),
     panel: sanitizeTrackField(panel),
+    // Only push_back carries extra fields — every other event's log line is
+    // byte-for-byte what it was before.
+    ...(event === 'push_back' ? pushBackLogFields(req.body) : {}),
   });
   res.json({ success: true });
 });

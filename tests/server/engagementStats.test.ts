@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { parseLogLine } from '../../server/visitorStats.js';
-import { aggregateEngagementStats, ABANDON_THRESHOLD_MS } from '../../server/engagementStats.js';
+import { aggregateEngagementStats, pushBackLogFields, ABANDON_THRESHOLD_MS } from '../../server/engagementStats.js';
 
 const NOW = Date.parse('2026-08-02T12:00:00.000Z');
 
@@ -180,6 +180,189 @@ describe('aggregateEngagementStats — byOrigin (session attribution)', () => {
     expect(result.byOrigin).toEqual({
       home: { gamesStarted: 1, gamesFinished: 1, gamesAbandoned: 0 },
       foreign: { gamesStarted: 1, gamesFinished: 0, gamesAbandoned: 1 },
+    });
+  });
+});
+
+// v3.2.74 (decided 2026-09-24): count REAL push-backs by space so the question
+// "do players know a push-back costs days, and do they look first?" has data
+// behind it. A push-back is identified by (game, player, space, visit, turn,
+// attempt) — NOT by space alone like space-reach — because a player can
+// genuinely push back at the same space twice.
+describe('aggregateEngagementStats — pushBacks', () => {
+  const isHomeIP = (ip: string) => ip === '192.168.1.50';
+  const pb = (over: Record<string, unknown> = {}, msAgo = 1000) =>
+    at(msAgo, {
+      action: 'PLAYTEST_PUSH_BACK',
+      gameId: 'G1',
+      playerId: 'p1',
+      spaceId: 'ARCH-FEE-REVIEW',
+      visitType: 'First',
+      daysCharged: 50,
+      turn: 4,
+      attempt: 1,
+      costChecked: true,
+      ...over,
+    });
+  const started = (gameId: string, ip = '90.128.59.214') =>
+    at(9000, { action: 'GAME_STARTED', gameId, ip });
+
+  it('returns three empty buckets when nothing was pushed back', () => {
+    const result = aggregateEngagementStats([], { now: NOW });
+    const empty = { total: 0, bySpace: [] };
+    expect(result.pushBacks).toEqual({ home: empty, foreign: empty, unknown: empty });
+  });
+
+  it('counts by space + visit + days, most-pushed-back first', () => {
+    const entries = [
+      started('G1'),
+      pb({ attempt: 1 }),
+      pb({ attempt: 2 }),
+      pb({ spaceId: 'OWNER-SCOPE-INITIATION', daysCharged: 1, turn: 1, attempt: 1 }),
+    ];
+    const { foreign } = aggregateEngagementStats(entries, { now: NOW, isHomeIP }).pushBacks;
+    expect(foreign.total).toBe(3);
+    expect(foreign.bySpace.map((r: any) => [r.spaceId, r.visitType, r.daysCharged, r.count])).toEqual([
+      ['ARCH-FEE-REVIEW', 'First', 50, 2],
+      ['OWNER-SCOPE-INITIATION', 'First', 1, 1],
+    ]);
+  });
+
+  it('counts a genuine second push-back at the same space (different attempt or turn) as another one', () => {
+    const entries = [
+      started('G1'),
+      pb({ turn: 4, attempt: 1 }),
+      pb({ turn: 4, attempt: 2 }), // pushed back again the same turn
+      pb({ turn: 9, attempt: 1 }), // came back on a later turn
+    ];
+    expect(aggregateEngagementStats(entries, { now: NOW, isHomeIP }).pushBacks.foreign.total).toBe(3);
+  });
+
+  it('counts the same push-back once when two screens report it (TV + phone)', () => {
+    const entries = [
+      started('G1'),
+      pb({}, 1000),
+      pb({}, 900), // identical identity, second device
+    ];
+    expect(aggregateEngagementStats(entries, { now: NOW, isHomeIP }).pushBacks.foreign.total).toBe(1);
+  });
+
+  it('never dedupes an event that cannot say which attempt it was — a raw count beats hiding a real one', () => {
+    const entries = [
+      started('G1'),
+      pb({ turn: undefined, attempt: undefined }, 1000),
+      pb({ turn: undefined, attempt: undefined }, 900),
+    ];
+    expect(aggregateEngagementStats(entries, { now: NOW, isHomeIP }).pushBacks.foreign.total).toBe(2);
+  });
+
+  it('ignores a push-back missing gameId, playerId or spaceId', () => {
+    const entries = [
+      started('G1'),
+      pb({ gameId: undefined }),
+      pb({ playerId: undefined }),
+      pb({ spaceId: undefined }),
+    ];
+    const { pushBacks } = aggregateEngagementStats(entries, { now: NOW, isHomeIP });
+    expect(pushBacks.foreign.total + pushBacks.home.total + pushBacks.unknown.total).toBe(0);
+  });
+
+  it("splits by the game's own origin: home (maintainer + robot) / foreign (everyone else) / unknown (no GAME_STARTED in the log)", () => {
+    const entries = [
+      started('HOME', '192.168.1.50'),
+      started('AWAY'),
+      pb({ gameId: 'HOME' }),
+      pb({ gameId: 'AWAY' }),
+      pb({ gameId: 'AWAY', attempt: 2 }),
+      pb({ gameId: 'ORPHAN' }), // its GAME_STARTED line is gone — must NOT be quietly counted as a real player
+    ];
+    const { pushBacks } = aggregateEngagementStats(entries, { now: NOW, isHomeIP });
+    expect(pushBacks.home.total).toBe(1);
+    expect(pushBacks.foreign.total).toBe(2);
+    expect(pushBacks.unknown.total).toBe(1);
+  });
+
+  it("attributes a push-back logged BEFORE its game's GAME_STARTED line (out-of-order log)", () => {
+    const entries = [
+      pb({ gameId: 'G1' }, 9000),
+      at(1000, { action: 'GAME_STARTED', gameId: 'G1', ip: '192.168.1.50' }),
+    ];
+    const { pushBacks } = aggregateEngagementStats(entries, { now: NOW, isHomeIP });
+    expect(pushBacks.home.total).toBe(1);
+    expect(pushBacks.unknown.total).toBe(0);
+  });
+
+  it('tallies whether the player had opened the cost box first: yes / no / unknown', () => {
+    const entries = [
+      started('G1'),
+      pb({ attempt: 1, costChecked: true }),
+      pb({ attempt: 2, costChecked: true }),
+      pb({ attempt: 3, costChecked: false }),
+      pb({ attempt: 4, costChecked: null }), // what the server logs when the client did not say
+    ];
+    const [row] = aggregateEngagementStats(entries, { now: NOW, isHomeIP }).pushBacks.foreign.bySpace;
+    expect(row.count).toBe(4);
+    expect(row.costChecked).toEqual({ yes: 2, no: 1, unknown: 1 });
+  });
+
+  it("keeps a space's different day-charges apart (the data changed between games) rather than averaging them", () => {
+    const entries = [
+      started('G1'),
+      pb({ daysCharged: 50 }),
+      pb({ daysCharged: 15, attempt: 2 }),
+    ];
+    const rows = aggregateEngagementStats(entries, { now: NOW, isHomeIP }).pushBacks.foreign.bySpace;
+    expect(rows.map((r: any) => r.daysCharged).sort((a: number, b: number) => a - b)).toEqual([15, 50]);
+  });
+
+  it('records a 0-day push-back as 0, not as "unknown"', () => {
+    const entries = [
+      started('G1'),
+      pb({ spaceId: 'CON-INITIATION', daysCharged: 0 }),
+    ];
+    const [row] = aggregateEngagementStats(entries, { now: NOW, isHomeIP }).pushBacks.foreign.bySpace;
+    expect(row.daysCharged).toBe(0);
+  });
+
+  it('leaves every existing total and byOrigin figure exactly as it was', () => {
+    const entries = [started('G1'), pb({})];
+    const result = aggregateEngagementStats(entries, { now: NOW, isHomeIP });
+    expect(result.gamesStarted).toBe(1);
+    expect(result.spacesReached).toEqual([]);
+    expect(result.panelOpens).toEqual([]);
+    expect(result.byOrigin.foreign).toEqual({ gamesStarted: 1, gamesFinished: 0, gamesAbandoned: 0 });
+  });
+});
+
+describe('pushBackLogFields (what the route adds to a push_back log line)', () => {
+  it('passes clean values through', () => {
+    expect(
+      pushBackLogFields({ visitType: 'First', daysCharged: 50, turn: 4, attempt: 2, costChecked: true }),
+    ).toEqual({ visitType: 'First', daysCharged: 50, turn: 4, attempt: 2, costChecked: true });
+  });
+
+  it('keeps a 0-day charge and a false costChecked (both are real answers, not "missing")', () => {
+    const f = pushBackLogFields({ daysCharged: 0, costChecked: false });
+    expect(f.daysCharged).toBe(0);
+    expect(f.costChecked).toBe(false);
+  });
+
+  it('nulls anything that is the wrong type instead of logging it', () => {
+    expect(
+      pushBackLogFields({ visitType: 7, daysCharged: '50', turn: NaN, attempt: Infinity, costChecked: 'yes' }),
+    ).toEqual({ visitType: null, daysCharged: null, turn: null, attempt: null, costChecked: null });
+  });
+
+  it('caps a long string and clamps a runaway number', () => {
+    const f = pushBackLogFields({ visitType: 'x'.repeat(500), daysCharged: 1e12, turn: -1e12 });
+    expect(f.visitType).toHaveLength(60);
+    expect(f.daysCharged).toBe(9999);
+    expect(f.turn).toBe(-9999);
+  });
+
+  it('survives a missing body', () => {
+    expect(pushBackLogFields(undefined)).toEqual({
+      visitType: null, daysCharged: null, turn: null, attempt: null, costChecked: null,
     });
   });
 });

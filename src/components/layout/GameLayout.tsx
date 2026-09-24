@@ -48,6 +48,8 @@ import { fetchEdgeWaypoints, saveEdgeWaypoints, clearEdgeWaypoint, clearAllEdgeW
 import { fetchEdgeAnchors, saveEdgeAnchor, clearEdgeAnchor, type EdgeAnchorResult, type EdgeEnd } from '../../utils/saveEdgeAnchor';
 import type { BoxAnchor } from '../../utils/boardCommon';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
+import { calculateSpaceTimeAddTotal } from '../../utils/costPreview';
+import type { PushBackDetails } from '../player/panelTypes';
 
 interface GameLayoutProps {
   viewPlayerId?: string;
@@ -1100,10 +1102,38 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   };
 
 
-  const handleTryAgain = async () => {
+  // `_playerId` is unused (the engine acts on `currentPlayerId`); it is only here so
+  // the second argument — what the tap-and-hold control knows — lines up.
+  const handleTryAgain = async (_playerId?: string, details?: PushBackDetails) => {
     if (!currentPlayerId) return;
     try {
+      // Snapshot what this push-back IS before the engine rolls the turn back:
+      // the space/visit, the fixed days it charges (the same sum
+      // TurnService.tryAgainOnSpace applies), and which attempt it is.
+      const before = stateService.getPlayer(currentPlayerId);
+      const daysCharged = before
+        ? calculateSpaceTimeAddTotal(dataService.getSpaceEffects(before.currentSpace, before.visitType) || [])
+        : 0;
+      const turn = stateService.getGameState().globalTurnCount;
+      const attempt = stateService.getTryAgainCount(currentPlayerId) + 1;
+
       const result = await turnService.tryAgainOnSpace(currentPlayerId);
+
+      // Count only a push-back the engine actually accepted. Pseudonymous ids
+      // only, like every other engagement event (see engagementStats.js).
+      const gameId = getCurrentGameId();
+      if (result.success && before && gameId) {
+        trackPlaytestEvent('push_back', {
+          gameId,
+          playerId: currentPlayerId,
+          spaceId: before.currentSpace,
+          visitType: before.visitType,
+          daysCharged,
+          turn,
+          attempt,
+          costChecked: details?.costChecked,
+        });
+      }
 
       // If Try Again indicates turn should advance, move to next player
       if (result.success && result.shouldAdvanceTurn) {

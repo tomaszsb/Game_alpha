@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.74] - 2026-09-24
+
+### The push-back hint now says what a tap shows — and real push-backs are counted
+
+**Where this came from.** The 09-23 and 09-24 robot playtest reports both flagged "Tap to compare · press & hold to confirm" as the top confusion. The robot never sees the cost box, so that was a pointer, not proof — but the reading held up: "compare" never said *what* is compared, and neither help line said the tap shows the days. Facts established first (Manager brief 2026-09-24, re-checked here against the real CSVs): push-back ("Try Again") exists on **26 controls** and charges **0, 1, 5, 10, 15 or 50 days** (`{0: 5, 1: 3, 5: 4, 10: 6, 15: 4, 50: 4}` controls) — always the fixed sum of the space's `time/add` rows (`calculateSpaceTimeAddTotal`); dice and cards can't change that number. A tap on either side already pops the cost box and commits nothing, so the hint was describing a real feature with a word that didn't say what it did. Tom's decision (his word: "A"): **reword the hint and count real push-backs** — not an always-visible cost line, not a threshold rule.
+
+**Player-visible.** Three lines, Tom's exact wording (approved "ok" 2026-09-24):
+- The visible hint: "Tap to see the cost · press & hold to confirm" (was "Tap to compare · …").
+- The hint's "?" card, first line: "…A quick tap doesn't commit — it just shows what that button would cost you."
+- Its second line: "Not happy with this result? You can push back and try again. That costs days — tap the button first to see how many."
+- The screen-reader name of each side changed to match: "… — tap to see the cost, press and hold to confirm".
+
+`COMMIT_HELP.how` / `.why` are code-only defaults and no `UI_STRINGS.csv` row overrides either (checked in all four CSV copies **and** the live server's served file — the v3.2.73 trap did not apply). Verified in a real Chromium against the dev servers: the served hint, the served "?" card text and the aria-label all read exactly as approved.
+
+**Counting.** A new `push_back` event, fired once when the engine actually accepts a push-back (`GameLayout.handleTryAgain`, after `tryAgainOnSpace` reports success — a refused one isn't counted). It carries the space, the visit type, the days charged, which turn and attempt it was, and **whether the player had opened that side's cost box before the press that committed** (`costChecked`). `TurnCommitControl` decides that last part: a tap released early, a press that slid off the button, or Space counts as a look; the committing press's own box (it pops on pointer-down) and a pointer that merely hovers do not; the look is used up by any commit. `/api/admin/engagement-stats` now also returns `pushBacks: { home, foreign, unknown }`, each `{ total, bySpace: [{ spaceId, visitType, daysCharged, count, costChecked: { yes, no, unknown } }] }`. Same origin split as `byOrigin` (home = Tom + the nightly robot; foreign = everyone else; decided by the game's own `GAME_STARTED` ip), plus an honest `unknown` for a game whose start line is gone from the log rather than quietly counting it as a real player. Dedupe is by identity `(game, player, space, visit, turn, attempt)` — two screens reporting one push-back count once, but a genuine second push-back at the same space still counts (identity-by-space, like space-reach, would have hidden it). An event that can't say which attempt it was is never deduped. No new admin screen; existing totals and `byOrigin` are byte-for-byte unchanged, and only `push_back` log lines carry the extra fields.
+
+**Verified end to end** (dev servers, real Chromium, single-player game at Owner's Scope): a tap opened the push-back box (Time +1 day) and posted nothing; the first hold posted `costChecked: true`; a second hold with no tap first posted `costChecked: false`; both landed in `visitors.log` as `PLAYTEST_PUSH_BACK`, and the real `aggregateEngagementStats` over that log returned `home: { total: 2, … costChecked: { yes: 1, no: 1, unknown: 0 } }`.
+
+**Checked and reported, NOT changed — what does the cost box show on a 0-day push-back?** Ran the real `getTryAgainCostPreview` over the real CSVs for all 26. On the five that charge 0 (Investor Review first visit; Con-Initiation both visits; Final DOB Review both visits — their days come from a dice roll, not a fixed row) the box's **Time line is a bare "—"**, and the other lines only say what "will be re-drawn next turn". So the tap never gives a number of days there, and the new help line ("That costs days — tap the button first to see how many") is untrue for those five (true for the other 21). The "—" is accurate ("free to push back here" — already logged as a design question in TODO's Balance section) but reads as "unknown". Proposed one-line fix, waiting on Tom's ok/edit/no: the Time line says "No extra days" there. Not shipped.
+
+**Heads-up for the Jarvis (nightly robot) session — not fixed here, it's not in this repo.** `game_playtest.py:166` `TAB_SUFFIX_RE` strips the literal suffix "— tap to compare…" from each tab's aria-label to get a clean caption. Whether a tab is actionable is read from `data-actionable` (unchanged, verified) so the robot still knows what it can hold — but until that regex is widened (`tap to compare` → `tap to (?:compare|see the cost)`, and the fallback at :696), the captions it shows its model become "Push back — tap to see the cost, press and hold to confirm". Cosmetic to the harness, not a blind spot; worth fixing before the next 03:00 run after this deploys.
+
+**Also seen, deliberately not touched:** BANK-FUND-REVIEW's text says "1 day per $200K" (`SOURCE_FILES/Spaces.csv`, and the `time/add` row's description) but the row's value is a fixed `1`, so both the visit and its push-back charge exactly 1 day — logged in TODO for Tom.
+
+**Tests (+30, 3317 → 3347).** `TurnCommitControl.test.tsx`: the new wording (visible hint, aria-label, help card, `data-actionable` still structural) and every `costChecked` rule above. `engagementStats.test.ts`: counting, dedupe both ways, origin split incl. `unknown` and out-of-order log lines, yes/no/unknown, 0-day recorded as 0, existing figures unchanged, and the `pushBackLogFields` sanitizer. `E2E-01_HappyPath` now finds the tab by the new label. Typecheck ✅, build ✅. Ghost gates not re-run — presentation copy plus a read-only analytics event; no game logic, dice, movement or effects touched.
+
 ## [3.2.73] - 2026-09-22
 
 ### "Rules" → "How to play" (header button + modal title only)

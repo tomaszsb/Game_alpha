@@ -57,6 +57,7 @@ import { CostPreviewRow, toFullRowSet } from '../../utils/costPreview';
 import { HelpButton } from '../help/HelpButton';
 import { HelpCard, HelpCardProps } from '../help/HelpCard';
 import { COMMIT_HELP } from '../../constants/uiStrings';
+import type { PushBackDetails } from './panelTypes';
 
 /** How long (ms) the player must hold before a side commits. Long enough that a
  *  stray tap can't trigger it, short enough not to feel stuck. */
@@ -82,7 +83,9 @@ export interface TurnCommitControlProps {
   endTurnRows: CostPreviewRow[];
   tryAgainRows: CostPreviewRow[];
   onCommitEnd?: () => void;
-  onCommitTryAgain: () => void;
+  /** Fired on a completed push-back hold. `costChecked` says whether the player
+   *  had opened this side's cost box BEFORE that press (see `previewedRef`). */
+  onCommitTryAgain: (details: PushBackDetails) => void;
   /** Optional one-line cost summary shown under the End preview (turnCostLine). */
   endCostLine?: string;
   /** First-visit green nudge dot on the End side. */
@@ -120,6 +123,15 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
   const timerRef = useRef<number | null>(null);
   const bubbleTimerRef = useRef<number | null>(null);
   const firedRef = useRef(false);
+  // Which side is mid-press right now, so a pointer that merely hovers over and
+  // leaves a button (no press) can't count as opening its cost box.
+  const pressedRef = useRef<Side | null>(null);
+  // Sides whose cost box the player opened WITHOUT committing — a tap released
+  // early, or Space. Read once at commit time so a push-back can be recorded as
+  // "looked at the cost first" or "went straight to the hold". The press that
+  // commits does NOT count: its own box pops on pointer-down, before it means
+  // anything. Cleared on every commit, so each decision starts fresh.
+  const previewedRef = useRef<Set<Side>>(new Set());
 
   const rows = toFullRowSet(selected === 'end' ? endTurnRows : tryAgainRows);
   const actionableFor = useCallback(
@@ -158,14 +170,18 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
   const fire = useCallback(
     (side: Side) => {
       firedRef.current = true;
+      pressedRef.current = null;
+      const costChecked = previewedRef.current.has(side);
+      previewedRef.current.clear();
       if (side === 'end') onCommitEnd?.();
-      else onCommitTryAgain();
+      else onCommitTryAgain({ costChecked });
     },
     [onCommitEnd, onCommitTryAgain],
   );
 
   const startHold = useCallback(
     (side: Side) => {
+      pressedRef.current = side;
       // Selecting on press-down means the preview immediately matches what a
       // completed hold will commit — no surprise.
       setSelected(side);
@@ -186,9 +202,12 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
     (side: Side) => {
       // Released before the bar filled → treat as a tap: keep it selected
       // (already set on down), cancel the pending commit.
+      const wasPressed = pressedRef.current === side;
+      if (wasPressed) pressedRef.current = null;
       if (firedRef.current) return;
       clearTimer();
       setPressing((cur) => (cur === side ? null : cur));
+      if (wasPressed) previewedRef.current.add(side); // its cost box was shown, uncommitted
     },
     [clearTimer],
   );
@@ -198,6 +217,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
       if (e.key === ' ' || e.key === 'Spacebar') {
         e.preventDefault();
         setSelected(side); // Space = compare
+        previewedRef.current.add(side);
         revealBubble();
       } else if (e.key === 'Enter') {
         e.preventDefault();
@@ -241,15 +261,16 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
       // Structural handles for the nightly playtest robot. Whether a side can
       // actually be committed is `data-actionable`; the robot used to infer it
       // by testing the aria-label for the literal suffix "— tap to compare,
-      // press and hold to confirm", which is prose and one copy pass away from
-      // going quiet. Note that a press here is a HOLD, not a click: a synthetic
+      // press and hold to confirm" (reworded v3.2.74 to "— tap to see the
+      // cost, …"), which is prose and one copy pass away from going quiet.
+      // Note that a press here is a HOLD, not a click: a synthetic
       // click selects the side and commits nothing, by design (HOLD_MS above).
       data-testid="commit-side"
       data-side={side}
       data-actionable={actionableFor(side)}
       aria-label={
         actionableFor(side)
-          ? `${label} — tap to compare, press and hold to confirm`
+          ? `${label} — tap to see the cost, press and hold to confirm`
           : subLabel
           ? `${label} — ${subLabel}`
           : label
@@ -459,9 +480,9 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         }}
       >
         <span aria-hidden="true">👆</span>
-        Tap to compare · press &amp; hold to confirm
-        {/* Default 44px touch-target floor — same as every other "?" in the
-            panel (see HelpButton.tsx). Do not shrink it to fit this row. */}
+        Tap to see the cost · press &amp; hold to confirm
+        {/* Same compact "?" as every other one in the panel (26px since
+            v3.2.72 — see HelpButton.tsx). */}
         <HelpButton
           kind="commit"
           label="the tap-and-hold control"

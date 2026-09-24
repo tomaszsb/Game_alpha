@@ -290,6 +290,125 @@ describe('TurnCommitControl (dark-mode merged control)', () => {
       expect(card).toHaveTextContent(/press and hold/i);
       expect(card).toHaveTextContent(/push back and try again/i);
     });
+
+    // v3.2.74 (Tom-approved 2026-09-24): "compare" never said WHAT is compared.
+    // Both lines now say a tap shows the cost — and the days are the part a
+    // player can't otherwise learn before paying them.
+    it('says a tap shows the cost, and that a push-back costs days', () => {
+      setup({ isHelpOpen: true });
+      const card = screen.getByTestId('help-card');
+      expect(card).toHaveTextContent(/it just shows what that button would cost you/i);
+      expect(card).toHaveTextContent(/That costs days — tap the button first to see how many/i);
+    });
+  });
+
+  describe('wording (v3.2.74): a tap shows the COST, not a "comparison"', () => {
+    it('the visible hint says so', () => {
+      setup();
+      expect(screen.getByText('Tap to see the cost · press & hold to confirm')).toBeInTheDocument();
+      expect(screen.queryByText(/compare/i)).not.toBeInTheDocument();
+    });
+
+    it('the screen-reader name says the same', () => {
+      setup();
+      expect(
+        screen.getByRole('tab', { name: 'Lock the scope — tap to see the cost, press and hold to confirm' }),
+      ).toBeInTheDocument();
+    });
+
+    it('still exposes actionability structurally, so no caller has to read the prose', () => {
+      const { endBtn, tryBtn } = setup();
+      expect(endBtn).toHaveAttribute('data-actionable', 'true');
+      expect(tryBtn).toHaveAttribute('data-actionable', 'true');
+    });
+  });
+
+  // v3.2.74: real push-backs are counted (engagement stats). The control's part
+  // is telling its parent whether the player had opened that side's cost box
+  // BEFORE the press that committed — a tap released early, or Space. The
+  // committing press's own box (it pops on pointer-down) deliberately doesn't count.
+  describe('costChecked — did the player look at the cost before pushing back?', () => {
+    const tap = (btn: HTMLElement) =>
+      act(() => {
+        fireEvent.pointerDown(btn);
+        vi.advanceTimersByTime(100);
+        fireEvent.pointerUp(btn);
+      });
+    const hold = (btn: HTMLElement) =>
+      act(() => {
+        fireEvent.pointerDown(btn);
+        vi.advanceTimersByTime(700);
+        fireEvent.pointerUp(btn);
+      });
+
+    it('is false when the push-back is held straight away', () => {
+      const { tryBtn, onCommitTryAgain } = setup();
+      hold(tryBtn);
+      expect(onCommitTryAgain).toHaveBeenCalledWith({ costChecked: false });
+    });
+
+    it('is true after an earlier tap on the same side', () => {
+      const { tryBtn, onCommitTryAgain } = setup();
+      tap(tryBtn);
+      hold(tryBtn);
+      expect(onCommitTryAgain).toHaveBeenCalledWith({ costChecked: true });
+    });
+
+    it('does not count a look at the OTHER side', () => {
+      const { tryBtn, endBtn, onCommitTryAgain } = setup();
+      tap(endBtn);
+      hold(tryBtn);
+      expect(onCommitTryAgain).toHaveBeenCalledWith({ costChecked: false });
+    });
+
+    it('counts Space (the keyboard way to look) as a look', () => {
+      const { tryBtn, onCommitTryAgain } = setup();
+      act(() => fireEvent.keyDown(tryBtn, { key: ' ' }));
+      hold(tryBtn);
+      expect(onCommitTryAgain).toHaveBeenCalledWith({ costChecked: true });
+    });
+
+    it('does not count a pointer that only hovers over the button and leaves', () => {
+      const { tryBtn, onCommitTryAgain } = setup();
+      act(() => fireEvent.pointerLeave(tryBtn)); // no press — nothing was opened
+      hold(tryBtn);
+      expect(onCommitTryAgain).toHaveBeenCalledWith({ costChecked: false });
+    });
+
+    it('counts a press that slid off the button before it filled (its box did pop up)', () => {
+      const { tryBtn, onCommitTryAgain } = setup();
+      act(() => {
+        fireEvent.pointerDown(tryBtn);
+        vi.advanceTimersByTime(300);
+        fireEvent.pointerLeave(tryBtn);
+      });
+      hold(tryBtn);
+      expect(onCommitTryAgain).toHaveBeenCalledWith({ costChecked: true });
+    });
+
+    it('is used up by a commit — the next push-back starts fresh', () => {
+      const { tryBtn, onCommitTryAgain } = setup();
+      tap(tryBtn);
+      hold(tryBtn);
+      hold(tryBtn);
+      expect(onCommitTryAgain).toHaveBeenNthCalledWith(1, { costChecked: true });
+      expect(onCommitTryAgain).toHaveBeenNthCalledWith(2, { costChecked: false });
+    });
+
+    it('is also cleared when the OTHER side commits, so a stale look never leaks', () => {
+      const { tryBtn, endBtn, onCommitTryAgain, onCommitEnd } = setup();
+      tap(tryBtn);
+      hold(endBtn);
+      expect(onCommitEnd).toHaveBeenCalledTimes(1);
+      hold(tryBtn);
+      expect(onCommitTryAgain).toHaveBeenCalledWith({ costChecked: false });
+    });
+
+    it('is false for a keyboard Enter commit with no earlier look', () => {
+      const { tryBtn, onCommitTryAgain } = setup();
+      act(() => fireEvent.keyDown(tryBtn, { key: 'Enter' }));
+      expect(onCommitTryAgain).toHaveBeenCalledWith({ costChecked: false });
+    });
   });
 
   describe('fixed-height cost line (2026-07-14 "buttons jump" report)', () => {

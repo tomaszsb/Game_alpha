@@ -1231,7 +1231,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             endTurnRows={endTurnCostRows}
             tryAgainRows={tryAgainCostRows}
             onCommitEnd={commit.onClick}
-            onCommitTryAgain={() => onTryAgain(playerId)}
+            onCommitTryAgain={(details) => onTryAgain(playerId, details)}
             endCostLine={turnCostLine ?? undefined}
             showGreenDot={showGreenDot}
             isHelpOpen={openHelp === 'commit'}

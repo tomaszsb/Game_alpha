@@ -120,7 +120,7 @@ The Player Panel is a **single scrolling mobile-first view**, not a set of separ
 ├─────────────────────────────────┤
 │ This turn                      │  ← Action buttons, incl. Move
 ├─────────────────────────────────┤
-│ [ Try Again  |  End turn ]     │  ← Tap to compare, hold to confirm
+│ [ Try Again  |  End turn ]     │  ← Tap to see the cost, hold to confirm
 └─────────────────────────────────┘
 ```
 

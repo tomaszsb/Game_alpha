@@ -306,7 +306,7 @@ describe('E2E-01: Happy Path with New UI', () => {
     // manual effects finish. Only the ready branch carries the hold hint.
     const endTurnTab = await screen.findByRole(
       'tab',
-      { name: /Lock the scope — tap to compare/i },
+      { name: /Lock the scope — tap to see the cost/i },
       { timeout: 5000 },
     );
 

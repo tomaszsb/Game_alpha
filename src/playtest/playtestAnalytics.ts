@@ -23,7 +23,11 @@ export type PlaytestEvent =
   // funnel-tracking endpoint/pattern rather than a parallel one.
   | 'space_reached'
   | 'game_finished'
-  | 'panel_opened';
+  | 'panel_opened'
+  // A real push-back ("Try Again") — fired once, when the engine accepts it.
+  // Answers "which controls do players actually push back on, and do they
+  // look at the cost first?" (decided 2026-09-24; see engagementStats.js).
+  | 'push_back';
 
 /** Optional fields the in-game engagement events attach. Always pseudonymous
  *  (gameId/playerId), never the player's display name. */
@@ -32,6 +36,17 @@ export interface EngagementTrackingDetails {
   playerId?: string;
   spaceId?: string;
   panel?: string;
+  // push_back only. `turn` + `attempt` make one real push-back identifiable, so
+  // two screens reporting the same one are counted once at aggregation while a
+  // genuine second push-back at the same space still counts.
+  visitType?: string;
+  /** What the space charged for this push-back (fixed time-add total, in days). */
+  daysCharged?: number;
+  turn?: number;
+  attempt?: number;
+  /** Had the player opened this side's cost box (a tap or Space) BEFORE the
+   *  press that committed? Omitted when the caller can't tell. */
+  costChecked?: boolean;
 }
 
 function resolveCampaignSource(): string | null {

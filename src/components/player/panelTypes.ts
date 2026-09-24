@@ -25,10 +25,17 @@ export interface TabRequest {
   id: number;
 }
 
+/** What the tap-and-hold control tells its parent when a push-back commits. */
+export interface PushBackDetails {
+  /** The player had already opened this side's cost box (a tap or Space) before
+   *  the press that committed. */
+  costChecked: boolean;
+}
+
 export interface PlayerPanelProps {
   gameServices: IServiceContainer;
   playerId: string;
-  onTryAgain?: (playerId: string) => Promise<void>;
+  onTryAgain?: (playerId: string, details?: PushBackDetails) => Promise<void>;
   playerNotification?: string;
   onRollDice?: () => Promise<void>;
   onAutomaticFunding?: () => Promise<void>;

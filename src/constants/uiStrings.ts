@@ -98,8 +98,12 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // ACTION_TOOLTIPS.csv's `negotiation:negotiate` row, which was dead code
   // (TooltipService.getNegotiationTooltip has zero callers) and stale
   // ("costs an extra turn" — the real cost ranges 1-50+ days by space).
-  'COMMIT_HELP.how': "Press and hold either button to confirm your choice. A quick tap doesn't commit — it just switches which side you're comparing.",
-  'COMMIT_HELP.why': "Not happy with this result? You can push back and try again — it costs time, and how much depends on where you are.",
+  // v3.2.74: Tom-approved rewording (2026-09-24). "Compare" never said WHAT
+  // is compared — a tap shows the days (and the rest of the cost) that side
+  // would charge. Code-only defaults on purpose: no UI_STRINGS.csv row exists
+  // for either key, and a CSV row would win over these (the v3.2.73 trap).
+  'COMMIT_HELP.how': "Press and hold either button to confirm your choice. A quick tap doesn't commit — it just shows what that button would cost you.",
+  'COMMIT_HELP.why': "Not happy with this result? You can push back and try again. That costs days — tap the button first to see how many.",
   'DICE_BUTTON.WORK': 'Get Work Packages',
   'DICE_BUTTON.BANK': 'Apply for Bank Loans',
   'DICE_BUTTON.EXPEDITOR': 'Hire Expeditors',

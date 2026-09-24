@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.74 — The hold-and-confirm hint now says what a tap shows (September 24, 2026)
+
+- **The hint above End Turn / Try Again now reads "Tap to see the cost · press & hold to confirm."** It used to say "Tap to compare," which never said what was being compared. A quick tap on either button shows what that button would cost you, and doesn't commit anything — pressing and holding is what confirms.
+- **The "?" next to it says the same, and now says plainly that pushing back and trying again costs days** — tap the button first to see how many.
+
 ## v3.2.73 — "Rules" is now "How to play" (September 22, 2026)
 
 - **The header button that used to say "Rules" now says "How to play."** Same screen, same information for now — just a friendlier name for it.
