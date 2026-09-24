@@ -5,20 +5,20 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** September 22, 2026 (v3.2.73)
+**Last Updated:** September 24, 2026 (v3.2.75)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.73 — pending deploy.** `/health` = `b5187ba` (v3.2.72, checked 2026-09-22 ~17:40). Run `curl -sS https://game.unravelcodes.com/health` before believing this.
+**Current Version:** **3.2.75 — live.** `/health` = `71162a1` (checked 2026-09-24 ~21:36 UTC, after Tom's deploy; the live bundle and the live `SPACE_CONTENT.csv` were verified too). Run `curl -sS https://game.unravelcodes.com/health` before believing this.
 
 ## Current sprint
-**Onboarding Phase C, teaching a beginner the game,** replanned by Tom 2026-09-19: **no new tutorial or tip layer** — one help look for the whole game, voiced by one recurring mentor, reusing existing wording (four slices, full text in TODO). **Slice 1 shipped v3.2.71.** **Slice 3 mostly shipped (v3.2.72–73, 2026-09-22):** closed the top 2 confusions from the 2026-09-21 playtest report — the press-and-hold control's hint is now a real instruction plus its own "?"; the four glance boxes share one "?" explaining Money/Time/Expeditors/Scope, including "deficit"; every "?" in the game shrank from a 44px touch-target floor to 26px (Tom's direct feedback); the "Rules" header/title renamed "How to play". Only Slice 3 gap left: the 24 movement-choice tooltip rows (`TooltipService.getMovementTooltip`, zero callers today) and the RULES modal's body content (still raw space IDs, "Determine Outcome", "snapshot" — a real rewrite needing Tom's voice pass). Next: Slice 2, the mentor (Tom picks who), then polish. The evidence behind the whole plan: of 37 real outside games (robot and maintainer removed) 49% never passed their first two spaces and only 22% opened any help at all — a pointer, not proof.
+**Onboarding Phase C, teaching a beginner the game,** replanned by Tom 2026-09-19: **no new tutorial or tip layer** — one help look for the whole game, voiced by one recurring mentor, reusing existing wording (four slices, full text in TODO). **Slice 1 shipped v3.2.71; Slice 3 mostly shipped (v3.2.72–74).** This session (2026-09-24, Manager brief): the press-and-hold hint now says what a tap shows ("Tap to see the cost · press & hold to confirm", **v3.2.74**), **real push-backs are counted** (`pushBacks` in `/api/admin/engagement-stats`, split home / foreign / unknown), and **v3.2.75** made pushing back cost days at Investor Review (15), Hire a Builder (5) and Final Approval (1) — the last three places it was free (their time is a dice roll; the prices are new `try_again_days` data, Tom-approved, unplaytested). Still open in Slice 3: the 24 movement-choice tooltip rows and the RULES modal body rewrite. Next: Slice 2, the mentor (Tom picks who); Tom's "go" on putting every "?" inside its button's outline (needs his phone).
 
 ## Health
-- **Tests (v3.2.73):** `npm test` **219 files / 3317 tests green**. Ghost gates not re-run this session — both v3.2.72 and v3.2.73 are presentation-only (help text, button sizing, one label rename), no game logic/dice/movement/effects touched. Typecheck ✅, build ✅.
-- **Deploy:** ⏳ v3.2.73 built and tested, not yet deployed. v3.2.72 is live and was confirmed via `/health` mid-session. `bash deploy.sh` is Tom's, from a Windows terminal.
-- **Nightly robot:** blind at its start step since v3.2.64 (waits for "THINGS YOU CAN DO"; the header is now "This turn"). The fix is in the Jarvis repo, not here.
-- **Dashboard:** fb:93449bf2 deliberately unflipped (needs Tom's eyes on the real TV). fb:ae480630 and fb:11662ac3 (commit highlight, Lender Review) **not flipped — they need a live look.**
+- **Tests (v3.2.75):** `npm test` **220 files / 3371 tests green**. Ghost gates run this session (game logic changed): **11 files / 43 tests green**; the smart-bot's numbers are unchanged (49/50 wins, 70.1 avg turns) — proves nothing broke, not that the new prices feel fair. Typecheck ✅, build ✅.
+- **Deploy:** ✅ v3.2.75 live. (The previous status and handoff wrongly said v3.2.73 was "pending" while it was already live — caught by `/start`'s `/health` check.)
+- **Nightly robot:** its start-step fix is in the Jarvis repo, not here (status as of 2026-09-22, not re-verified). **New heads-up for that session:** `game_playtest.py` `TAB_SUFFIX_RE` strips the old "— tap to compare…" ending from tab labels; v3.2.74 reworded it, so captions carry the new ending until the regex accepts both wordings (cosmetic; `data-actionable` still works). Best fixed before the next 03:00 run.
+- **Dashboard:** fb:93449bf2 deliberately unflipped (needs Tom's eyes on the real TV). fb:ae480630 and fb:11662ac3 (commit highlight, Lender Review) **not flipped — they need a live look.** 9 of 17 open reports are not tracked in TODO/CHANGELOG — run `/start full`.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Deploy v3.2.73** and confirm live via `/health`.
+1. **Tom's "go" on the "?"-inside-buttons work** — not started; needs his eyes on a real phone, light and dark.
 2. **Slice 2, the mentor** — needs Tom to pick who; bring three candidates with a sample line each.
-3. **The playtest robot** needs its Jarvis-side fix. **Audit II leftovers** (win condition, closed card-family union) are each a dedicated session and Tom's call. **Accessibility** is research-only until Tom asks.
+3. **Read the push-back counts** once real players have produced some (`pushBacks.foreign` only) — also the first test of the v3.2.75 prices. Then the leftover Slice 3 tooltips / RULES body, and the playtest robot's Jarvis-side fixes.

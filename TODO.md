@@ -103,8 +103,9 @@
 - [ ] **Recruit 3–5 external players** for a structured UAT pass (open since April — the `/challenge` funnel + QR codes above are the remaining enablers).
 
 ## 🙋 Decisions waiting on the user
-- **One open (2026-09-24)** — the eight from 2026-09-19 were all answered (built: tooltips v3.2.69, picker v3.2.70; the rest are recorded in CHANGELOG v3.2.70). Add new ones here.
+- **Two open (2026-09-24)** — the eight from 2026-09-19 were all answered (built: tooltips v3.2.69, picker v3.2.70; the rest are recorded in CHANGELOG v3.2.70). Add new ones here.
   1. **Say "go" on the "?" placement work** — see the onboarding item "One shape for every '?'". Not started; needs your eyes on a real phone.
+  2. **Who is the mentor?** (Onboarding Slice 2 — the one recurring voice for the whole help look.) Not started. **Recommendation:** I bring 3 candidates with a sample line each, in the copy-review format (ok / edit / no); default is that the approved wording stays unchanged and the mentor only adds a face, a name and a hello.
 
 
 ### Dashboard PATCH recipe (for flips after a deploy is confirmed live)
