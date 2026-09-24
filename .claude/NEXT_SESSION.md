@@ -1,7 +1,7 @@
 # Next session starter — written 2026-09-24 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.75 — **deployed and verified live** (`/health` = `71162a1` = HEAD, 2026-09-24 ~21:36 UTC; live bundle carries the new hint; live `SPACE_CONTENT.csv` has the 5 prices). The old note that v3.2.73 was "pending" was wrong — it had been live all along; fixed here and in PROJECT_STATUS.
+- **Version:** v3.2.75 — **deployed and verified live** (`/health` = `71162a1`, 2026-09-24 ~21:36 UTC; live bundle carries the new hint; live `SPACE_CONTENT.csv` has the 5 prices). **HEAD is `421bce7` — a docs-only commit on top of `71162a1`, so `/health` ≠ HEAD does NOT mean a deploy is pending.** The old note that v3.2.73 was "pending" was wrong — it had been live all along; fixed here and in PROJECT_STATUS.
 - **Branch:** master, clean and pushed. Untracked: `idea.txt` — **READ IT, never modify or commit it** (Tom's own brief: D&D dual-function constraint + how he wants to be worked with).
 - **Last shipped (Manager brief 2026-09-24, both live):** **v3.2.74** — hint now "Tap to see the cost · press & hold to confirm" (+ both help lines, exact wording Tom approved) and **real push-backs are counted** (`pushBacks` in `/api/admin/engagement-stats`: home/foreign/unknown, deduped). **v3.2.75** — pushing back now costs days at the three places it was free (Investor Review 15, Hire a Builder 5, Final Approval 1; new `try_again_days` column). Checked against the old game folders (Tom's suggestion): no price ever existed there; the dice days are unchanged in every version.
 - **Tests:** `npm test` 220 files / 3371 green; ghost gates 11 files / 43 green (run this session; smart-bot 49/50, 70.1 turns — unchanged). Typecheck ✅ build ✅.
