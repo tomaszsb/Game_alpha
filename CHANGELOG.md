@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.78] - 2026-09-25
+
+### TV screen-size button moves to the header, with a first-use pulse (Job 3B)
+
+**Where this came from.** Manager brief 2026-09-25 (Tom, after testing on his real 4K TV): *"the resolution changer is on the bottom of the screen and may get cut off — it should be a button on top of the screen"* and *"make it super easy to change... and easy to find this button — maybe even add some flare to it on the first screen."* He approved all three parts ("ok to all 3"): move it, no forced pre-screen, and a pulse until first use.
+
+**Player-visible.** "Adjust screen size" (🔍) is now a real header button on the TV screen, sitting beside Rules / Standings / History / Back to PC / Connect Phone — no longer a small underlined link in the footer that could get cut off on some panels. It's still only offered on a TV that actually has unspent pixels to gain (`tvScaleIsAvailable()`, unchanged). On a TV that has never used it, the button pulses gently (a soft expanding ring, not a size change) until the first time it's opened — then it's remembered for that TV (`localStorage`) and never pulses again, even across a reload. The pulse respects "reduce motion": a viewer who asked their OS for less motion never sees it.
+
+**Where the "first screen" is.** TVDisplay only ever mounts once `gamePhase` leaves `SETUP` (`App.tsx`: the TV's own pre-game screen is `PlayerSetup` in TV mode) — so inside TVDisplay, `PLAY` **is** the first screen a TV shows, not `SETUP`. The pulse condition is keyed off that, not off `gamePhase === 'SETUP'`, which from inside TVDisplay would never fire at all.
+
+**Where:** `TVDisplay.tsx` (the button moved from the footer into the `logoSection` button row; the footer's now-orphaned `footerLinkButton` style removed), `utils/tvScale.ts` (new `hasUsedTvScaleButton`, `markTvScaleButtonUsed`, `shouldPulseTvScaleButton` — pure, localStorage-only, unit-testable without rendering, same pattern the file already uses for the stored scale choice).
+
+**Verified in a real headless Chromium** (dev servers, a real running game, not just a static render): at 960px — the reporter's own TV width — all six header buttons sit on one line with the player chip wrapping to its own line below, no button text clipped or broken; at the 600px floor of `tvScaleIsAvailable()`'s range the button row itself wraps onto two lines while no individual button wraps internally (row wraps, children never do — same property `fb:93449bf2` established); at 1920px wide the button correctly does not appear (no headroom to gain) and the footer no longer carries any orphaned "Adjust screen size" text. Confirmed via computed style: the button pulses (`animation-name: tvScaleButtonPulse`) before first use, and `animation-name: none` immediately after clicking it once and reloading the page — proving the per-TV memory survives a reload, not just component state. Also confirmed the pulse is suppressed under an emulated `prefers-reduced-motion: reduce`.
+
+**Tests (+39; 33 in `tvScale.test.ts` covering the new functions and 6 pulse-condition cases — never-used, used, reduced-motion, SETUP not the first screen, END not pulsed, and not offered where there's no headroom).** Typecheck ✅, lint 0 errors, build ✅, `npm test` full suite green (221 files / 3441 tests — one unrelated flake seen mid-session in `BankReviewDays.test.ts`, a randomness-dependent arrival-day check unrelated to this change, passed cleanly on re-run and on the final full-suite run).
+
+**To undo:** revert this commit alone; only `TVDisplay.tsx` and `utils/tvScale.ts` (plus its tests) are touched.
+
 ## [3.2.77] - 2026-09-25
 
 ### Version badge — colours only, no icon, no "behind", no number (Job 3C)

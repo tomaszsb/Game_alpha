@@ -12,6 +12,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   TV_SCALE_STORAGE_KEY,
+  TV_SCALE_BUTTON_USED_STORAGE_KEY,
   TV_SCALE_NATIVE,
   TV_SCALE_OPTIONS,
   getNativeLayoutWidth,
@@ -23,6 +24,9 @@ import {
   applyTvLayoutWidth,
   previewFontPx,
   applyStoredTvLayoutWidth,
+  hasUsedTvScaleButton,
+  markTvScaleButtonUsed,
+  shouldPulseTvScaleButton,
 } from '../../src/utils/tvScale';
 
 /** Stand in for a device: what `screen.width` and `devicePixelRatio` say. */
@@ -170,6 +174,60 @@ describe('applyStoredTvLayoutWidth — safe to call on every TV mount', () => {
     writeTvLayoutWidth(1280);
     expect(applyStoredTvLayoutWidth()).toBeNull();
     expect(content()).toContain('width=device-width');
+  });
+});
+
+describe('the screen-size button\'s first-use pulse (Job 3B, Tom 2026-09-25)', () => {
+  it('has never been used on a fresh TV', () => {
+    expect(hasUsedTvScaleButton()).toBe(false);
+  });
+
+  it('remembers use, per TV, across reads (localStorage)', () => {
+    markTvScaleButtonUsed();
+    expect(hasUsedTvScaleButton()).toBe(true);
+    expect(localStorage.getItem(TV_SCALE_BUTTON_USED_STORAGE_KEY)).toBe('1');
+  });
+
+  it('reads as already-used (no pulse) when storage throws, the safer default', () => {
+    const original = Storage.prototype.getItem;
+    Storage.prototype.getItem = () => { throw new Error('storage unavailable'); };
+    try {
+      expect(hasUsedTvScaleButton()).toBe(true);
+    } finally {
+      Storage.prototype.getItem = original;
+    }
+  });
+
+  describe('shouldPulseTvScaleButton', () => {
+    it('pulses on a qualifying TV\'s first PLAY screen, never used, motion allowed', () => {
+      mockDevice(960, 4);
+      expect(shouldPulseTvScaleButton({ gamePhase: 'PLAY', hasUsedButton: false, prefersReducedMotion: false })).toBe(true);
+    });
+
+    it('does not pulse once this TV has used the button', () => {
+      mockDevice(960, 4);
+      expect(shouldPulseTvScaleButton({ gamePhase: 'PLAY', hasUsedButton: true, prefersReducedMotion: false })).toBe(false);
+    });
+
+    it('does not pulse against a reduced-motion request', () => {
+      mockDevice(960, 4);
+      expect(shouldPulseTvScaleButton({ gamePhase: 'PLAY', hasUsedButton: false, prefersReducedMotion: true })).toBe(false);
+    });
+
+    it('does not pulse on SETUP — TVDisplay never mounts during SETUP, so PLAY is the real first screen', () => {
+      mockDevice(960, 4);
+      expect(shouldPulseTvScaleButton({ gamePhase: 'SETUP', hasUsedButton: false, prefersReducedMotion: false })).toBe(false);
+    });
+
+    it('does not pulse once the game has ended', () => {
+      mockDevice(960, 4);
+      expect(shouldPulseTvScaleButton({ gamePhase: 'END', hasUsedButton: false, prefersReducedMotion: false })).toBe(false);
+    });
+
+    it('does not pulse a button that is not even offered (a 1080p laptop, no headroom)', () => {
+      mockDevice(1920, 1);
+      expect(shouldPulseTvScaleButton({ gamePhase: 'PLAY', hasUsedButton: false, prefersReducedMotion: false })).toBe(false);
+    });
   });
 });
 

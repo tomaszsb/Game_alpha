@@ -19,8 +19,20 @@ import { IconCheck } from '../icons/SetupIcons';
 import { ShutdownNotice } from '../common/ShutdownNotice';
 import { HistoryFeed, HistoryFeedFilters, DEFAULT_HISTORY_FILTERS } from '../game/HistoryFeed';
 import { TvScaleCalibration } from './TvScaleCalibration';
-import { applyStoredTvLayoutWidth, tvScaleIsAvailable } from '../../utils/tvScale';
+import {
+  applyStoredTvLayoutWidth,
+  tvScaleIsAvailable,
+  hasUsedTvScaleButton,
+  markTvScaleButtonUsed,
+  shouldPulseTvScaleButton,
+} from '../../utils/tvScale';
 import { useSyncedGameState } from '../../hooks/useSyncedGameState';
+
+// Checked once at module level, same pattern as ModalBase.tsx — a viewer who
+// asked their OS for less motion never gets the screen-size button's pulse.
+const prefersReducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * TVDisplay - Dedicated display for TV/monitor in party game setup
@@ -82,6 +94,10 @@ export function TVDisplay(): JSX.Element {
   // about the cause, why going all the way to 4K would backfire, and why the
   // viewer picks rather than us guessing.
   const [showScaleCalibration, setShowScaleCalibration] = useState(false);
+  // Job 3B (Tom, 2026-09-25) — gentle pulse on the header button until this
+  // TV has opened it once. Read once at mount; markTvScaleButtonUsed() below
+  // flips it for good, so a re-render mid-session never brings the pulse back.
+  const [scaleButtonUsed, setScaleButtonUsed] = useState(() => hasUsedTvScaleButton());
   // Re-applied on mount rather than once at boot: this screen is the only one
   // the override is scoped to, and a viewer arriving straight at a TV URL has
   // not passed through anything else that would have applied it.
@@ -238,6 +254,33 @@ export function TVDisplay(): JSX.Element {
           >
             🖥️ Back to PC
           </button>
+          {/* Job 3B (Tom, 2026-09-25): "the resolution changer is on the
+              bottom of the screen and may get cut off — it should be a
+              button on top of the screen," "make it super easy to change...
+              and easy to find this button." Was a footer link (fb:93449bf2);
+              now a real header button beside the others, only offered where
+              tvScaleIsAvailable() sees headroom to gain. The gentle pulse
+              below is the "flare" Tom also asked for, on the lobby only,
+              until this TV has opened it once. */}
+          {tvScaleIsAvailable() && (
+            <button
+              onClick={() => {
+                setShowScaleCalibration(true);
+                if (!scaleButtonUsed) {
+                  markTvScaleButtonUsed();
+                  setScaleButtonUsed(true);
+                }
+              }}
+              style={{
+                ...styles.tvHeaderButton,
+                ...(shouldPulseTvScaleButton({ gamePhase, hasUsedButton: scaleButtonUsed, prefersReducedMotion })
+                  ? { animation: 'tvScaleButtonPulse 2.2s ease-in-out infinite' }
+                  : {}),
+              }}
+            >
+              🔍 Adjust screen size
+            </button>
+          )}
           {/* Mid-game phone QR — hidden during SETUP (sidebar already shows QR).
               A player whose phone died mid-game can scan and rejoin without
               stopping the host. fb:TODO-253a */}
@@ -622,22 +665,6 @@ export function TVDisplay(): JSX.Element {
           <>
             <span style={styles.footerDot}>•</span>
             <span>game.unravelcodes.com?g={gameId}</span>
-          </>
-        )}
-        {/* Lives in the footer, not the header, for two reasons: the header
-            is the thing fb:93449bf2 is about running out of room, and this is
-            a set-it-once room setting rather than something touched during
-            play. Only shown on a screen that actually has unspent pixels —
-            a laptop or a phone never sees it. */}
-        {tvScaleIsAvailable() && (
-          <>
-            <span style={styles.footerDot}>•</span>
-            <button
-              onClick={() => setShowScaleCalibration(true)}
-              style={styles.footerLinkButton}
-            >
-              Adjust screen size
-            </button>
           </>
         )}
       </footer>
@@ -1027,17 +1054,6 @@ const styles: { [key: string]: React.CSSProperties } = {
   footerDot: {
     opacity: 0.5,
   },
-  // Reads as part of the footer sentence rather than as a control, because
-  // during play it is not one — it is a thing the host sets up once.
-  footerLinkButton: {
-    background: 'none',
-    border: 'none',
-    padding: 0,
-    font: 'inherit',
-    color: 'inherit',
-    textDecoration: 'underline',
-    cursor: 'pointer',
-  },
 };
 
 // Add CSS animations
@@ -1054,6 +1070,12 @@ styleSheet.textContent = `
   @keyframes scaleIn {
     from { transform: scale(0.8); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
+  }
+  /* Job 3B first-use flare on the screen-size button — a soft expanding
+     ring rather than a size change, so it never nudges the header layout. */
+  @keyframes tvScaleButtonPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.55); }
+    50% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
   }
 `;
 if (!document.getElementById('tv-display-animations')) {

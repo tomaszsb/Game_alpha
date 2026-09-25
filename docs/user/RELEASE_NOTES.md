@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.78 — The screen-size button moved to the top (September 25, 2026)
+
+- **On the TV screen, "Adjust screen size" is now a button at the top,** next to Rules, Standings and the other buttons — not a small link at the bottom that could get cut off.
+- **The first time a TV hasn't used it yet, the button pulses gently** to help you find it. Once you've opened it, that TV remembers and stops pulsing.
+
 ## v3.2.77 — The little version badge is quieter now (September 25, 2026)
 
 - **The small version badge in the corner now just shows a colour** instead of a checkmark, a warning icon and the word "behind." Green means up to date. It still tells the full story if you hover over it.
