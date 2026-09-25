@@ -575,19 +575,41 @@ function processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup = new Map
     // Time effect
     const timeValue = (row.Time || '').trim();
     if (timeValue) {
-      const timeStr = timeValue.toLowerCase().replace(/days?/g, '').trim();
-      const timeNum = parseInt(timeStr, 10);
-      if (!isNaN(timeNum)) {
+      // "1 day per $200K" — days that grow with the loan. The pipeline used to
+      // strip the words and keep only the leading number, so BANK-FUND-REVIEW's
+      // Time column said "1 day per $200K" on the tile while every visit charged
+      // a flat 1 (found 2026-09-24). The "per how much" now rides in the row's
+      // `condition` as `per_<amount>` ("per_200k", "per_1m", "per_250000") — the
+      // vocabulary ConditionEvaluator already lets through as a calculation
+      // modifier — so the dollar figure comes from the authored words, and the
+      // engine (costPreview.ts perAmountUnit) reads it back out of the row.
+      const perMatch = timeValue.match(/^(\d+)\s*days?\s+per\s+\$\s*(\d[\d,]*(?:\.\d+)?)\s*([km])?$/i);
+      if (perMatch) {
         effects.push({
           space_name: spaceName,
           visit_type: visitType,
           effect_type: 'time',
           effect_action: 'add',
-          effect_value: timeNum,
-          condition: '',
+          effect_value: parseInt(perMatch[1], 10),
+          condition: `per_${perMatch[2].replace(/,/g, '')}${(perMatch[3] || '').toLowerCase()}`,
           description: `Spend ${timeValue}`,
           trigger_type: 'auto'
         });
+      } else {
+        const timeStr = timeValue.toLowerCase().replace(/days?/g, '').trim();
+        const timeNum = parseInt(timeStr, 10);
+        if (!isNaN(timeNum)) {
+          effects.push({
+            space_name: spaceName,
+            visit_type: visitType,
+            effect_type: 'time',
+            effect_action: 'add',
+            effect_value: timeNum,
+            condition: '',
+            description: `Spend ${timeValue}`,
+            trigger_type: 'auto'
+          });
+        }
       }
     }
 

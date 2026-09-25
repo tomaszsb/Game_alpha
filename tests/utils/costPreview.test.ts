@@ -22,6 +22,10 @@ import {
   getTryAgainCostPreview,
   calculatePushBackDays,
   calculateSpaceTimeAddTotal,
+  perAmountUnit,
+  timeRowDays,
+  hasLoanScaledTime,
+  getLoanOnTheTable,
 } from '../../src/utils/costPreview';
 import type { SpaceEffect } from '../../src/types/DataTypes';
 import type { IServiceContainer } from '../../src/types/ServiceContracts';
@@ -44,6 +48,9 @@ interface FakeOptions {
   globalActionLog?: FakeLogEntry[];
   /** The space's `try_again_days` (SPACE_CONTENT.csv). Omit = no price set. */
   pushBackDays?: number;
+  /** Total borrowed right now (TEMP state) / at the start of the turn (REAL snapshot). */
+  loanNow?: number;
+  loanAtTurnStart?: number;
 }
 
 function makeGameServices(effects: SpaceEffect[], opts: FakeOptions = {}): IServiceContainer {
@@ -67,6 +74,10 @@ function makeGameServices(effects: SpaceEffect[], opts: FakeOptions = {}): IServ
         currentSpace: space,
         visitType: visit,
         moneySources: { ownerFunding: opts.ownerFundingOffered ?? 0, bankLoans: 0, investmentDeals: 0, other: 0 },
+        loans: opts.loanNow ? [{ principal: opts.loanNow }] : [],
+      }),
+      getRealPlayerState: () => ({
+        loans: opts.loanAtTurnStart ? [{ principal: opts.loanAtTurnStart }] : [],
       }),
       getTurnOutflow: () => ({ moneySpent: opts.moneySpent ?? 0, cardsConsumed: [], lifeEventsDrawn: [] }),
       getGameState: () => ({
@@ -89,7 +100,7 @@ describe('getTryAgainCostPreview — money bucket', () => {
   it('includes a Bank Loan card draw as "will be re-drawn", excluding the fee text', () => {
     const effects: SpaceEffect[] = [
       { space_name: 'BANK-FUND-REVIEW', visit_type: 'First', effect_type: 'cards', effect_action: 'draw_B', effect_value: '1', condition: '', description: '', trigger_type: 'manual' },
-      { space_name: 'BANK-FUND-REVIEW', visit_type: 'First', effect_type: 'time', effect_action: 'add', effect_value: '1', condition: '', description: '', trigger_type: 'auto' },
+      { space_name: 'BANK-FUND-REVIEW', visit_type: 'First', effect_type: 'time', effect_action: 'add', effect_value: '1', condition: 'per_200k', description: '', trigger_type: 'auto' },
       { space_name: 'BANK-FUND-REVIEW', visit_type: 'First', effect_type: 'fee', effect_action: 'deduct', effect_value: '3%', condition: '', description: '', trigger_type: 'auto', fee_type: 'LOAN_TIERED' },
     ];
     const gs = makeGameServices(effects);
@@ -377,6 +388,141 @@ describe('push-back price (try_again_days)', () => {
     it('the End Turn side is NOT touched by the price — its dice time still reads "Varies"', () => {
       const gs = makeGameServices(diceTimeOnly, { pushBackDays: 15 });
       expect(row(getEndTurnCostPreview(gs, 'INVESTOR-FUND-REVIEW', 'First', 'p1'), 'time')).toBe('Varies');
+    });
+  });
+});
+
+// v3.2.76 (Tom, 2026-09-25): Bank Review's Time column says "1 day per $200K" but it
+// charged a flat 1 day. "It should charge what it says. Do not change the wording."
+// The pipeline now keeps the "per how much" in the row's `condition` (per_200k), so
+// the dollar figure is data; these pin the one rule everything shares — the boxes,
+// End Turn, the push-back and the panel's this-turn line.
+describe('time that follows the loan ("1 day per $200K")', () => {
+  const perLoan = (value = '1', condition = 'per_200k'): SpaceEffect => ({
+    space_name: 'BANK-FUND-REVIEW', visit_type: 'First', effect_type: 'time', effect_action: 'add',
+    effect_value: value, condition, description: 'Spend 1 day per $200K', trigger_type: 'auto',
+  });
+  const fixed = (value: string): SpaceEffect => ({ ...perLoan(value, ''), space_name: 'S' });
+
+  describe('perAmountUnit — the "per how much" is read from the data, never typed in code', () => {
+    it.each([
+      ['per_200k', 200_000],
+      ['per_1m', 1_000_000],
+      ['per_1.5m', 1_500_000],
+      ['per_250000', 250_000],
+      ['PER_200K', 200_000],
+      [' per_200k ', 200_000],
+    ])('%s -> $%i', (condition, unit) => {
+      expect(perAmountUnit(condition)).toBe(unit);
+    });
+
+    it.each([undefined, '', 'dice_roll_3', 'to_left', 'scope_gt_4m', 'per_', 'per_0k', 'per_k', 'per_200x'])(
+      'a condition that is not a per-amount one (%s) is not scaled',
+      (condition) => {
+        expect(perAmountUnit(condition as string | undefined)).toBeNull();
+      },
+    );
+  });
+
+  describe('timeRowDays', () => {
+    it('a fixed row charges its own days whatever the loan (unchanged)', () => {
+      expect(timeRowDays(fixed('5'), 0)).toBe(5);
+      expect(timeRowDays(fixed('5'), 4_000_000)).toBe(5);
+    });
+
+    it('a dice-conditional row is not a loan row', () => {
+      expect(timeRowDays(perLoan('5', 'dice_roll_3'), 4_000_000)).toBe(5);
+    });
+
+    it('charges every $200K STARTED — rounded up, never down', () => {
+      expect(timeRowDays(perLoan(), 200_000)).toBe(1);
+      expect(timeRowDays(perLoan(), 200_001)).toBe(2);
+      expect(timeRowDays(perLoan(), 500_000)).toBe(3); // 2.5 blocks
+      expect(timeRowDays(perLoan(), 1_400_000)).toBe(7);
+      expect(timeRowDays(perLoan(), 2_750_000)).toBe(14); // 13.75 blocks
+      expect(timeRowDays(perLoan(), 4_000_000)).toBe(20);
+    });
+
+    it('the row\'s own number multiplies the blocks ("2 days per $1M")', () => {
+      expect(timeRowDays(perLoan('2', 'per_1m'), 2_500_000)).toBe(6); // 3 blocks x 2 days
+    });
+
+    it('never charges less than one block — with no loan named yet it is the old flat 1', () => {
+      expect(timeRowDays(perLoan(), 0)).toBe(1);
+      expect(timeRowDays(perLoan(), undefined as unknown as number)).toBe(1);
+    });
+  });
+
+  it('hasLoanScaledTime spots a per-amount time row and nothing else', () => {
+    expect(hasLoanScaledTime([perLoan()])).toBe(true);
+    expect(hasLoanScaledTime([fixed('5')])).toBe(false);
+    expect(hasLoanScaledTime([perLoan('5', 'dice_roll_3')])).toBe(false);
+  });
+
+  describe('getLoanOnTheTable — the loan drawn THIS turn, not the pile', () => {
+    const state = (now: number[] | undefined, start: number[] | null) => ({
+      getPlayer: () => ({ loans: now?.map((principal) => ({ principal })) }),
+      getRealPlayerState: () => (start ? { loans: start.map((principal) => ({ principal })) } : null),
+    }) as never;
+
+    it('is what was borrowed since the turn began', () => {
+      expect(getLoanOnTheTable(state([1_000_000, 1_500_000], [1_000_000]), 'p1')).toBe(1_500_000);
+    });
+
+    it('is 0 before anything is drawn, even with old loans', () => {
+      expect(getLoanOnTheTable(state([1_000_000], [1_000_000]), 'p1')).toBe(0);
+    });
+
+    it('is 0 when there is no turn in progress to compare against', () => {
+      expect(getLoanOnTheTable(state([1_000_000], null), 'p1')).toBe(0);
+    });
+
+    it('is never negative, and a missing loans list is just nothing', () => {
+      expect(getLoanOnTheTable(state([], [1_000_000]), 'p1')).toBe(0);
+      expect(getLoanOnTheTable(state(undefined, []), 'p1')).toBe(0);
+    });
+  });
+
+  describe('the days the shared rule adds up to', () => {
+    it('calculateSpaceTimeAddTotal follows the loan; a fixed row beside it still adds', () => {
+      expect(calculateSpaceTimeAddTotal([perLoan()], 1_400_000)).toBe(7);
+      expect(calculateSpaceTimeAddTotal([perLoan(), fixed('2')], 1_400_000)).toBe(9);
+      expect(calculateSpaceTimeAddTotal([perLoan()])).toBe(1); // no loan yet = the minimum
+    });
+
+    it('a push-back charges the same days as the loan on the table', () => {
+      expect(calculatePushBackDays([perLoan()], {}, 2_750_000)).toBe(14);
+    });
+
+    it('an explicit push-back price still REPLACES it, whatever the loan', () => {
+      expect(calculatePushBackDays([perLoan()], { try_again_days: 3 }, 4_000_000)).toBe(3);
+    });
+  });
+
+  describe('the cost boxes', () => {
+    const bank = [perLoan()];
+
+    it('say "Varies" until the bank has named a loan — on both sides', () => {
+      const gs = makeGameServices(bank);
+      expect(row(getEndTurnCostPreview(gs, 'BANK-FUND-REVIEW', 'First', 'p1'), 'time')).toBe('Varies');
+      expect(row(getTryAgainCostPreview(gs, 'p1'), 'time')).toBe('Varies');
+    });
+
+    it('show the true days for the loan on the table — the same number on both sides', () => {
+      const gs = makeGameServices(bank, { loanNow: 1_400_000, loanAtTurnStart: 0 });
+      expect(row(getEndTurnCostPreview(gs, 'BANK-FUND-REVIEW', 'First', 'p1'), 'time')).toBe('+7 days');
+      expect(row(getTryAgainCostPreview(gs, 'p1'), 'time')).toBe('+7 days');
+    });
+
+    it('count only the new terms, not a loan from an earlier visit', () => {
+      const gs = makeGameServices(bank, { loanNow: 2_500_000, loanAtTurnStart: 1_000_000 });
+      // $1.5M drawn this turn = 8 days (7.5 rounded up); the $1.0M is history.
+      expect(row(getEndTurnCostPreview(gs, 'BANK-FUND-REVIEW', 'First', 'p1'), 'time')).toBe('+8 days');
+    });
+
+    it('an explicit push-back price is fixed even before a loan is drawn (no "Varies")', () => {
+      const gs = makeGameServices(bank, { pushBackDays: 3 });
+      expect(row(getTryAgainCostPreview(gs, 'p1'), 'time')).toBe('+3 days');
     });
   });
 });

@@ -2,6 +2,12 @@
 
 ---
 
+## v3.2.76 — The bank now takes as long as it says (September 25, 2026)
+
+- **At Bank Review, the time you spend now grows with the loan, just like the tile says: 1 day for every $200K.** Until now every visit cost a single day, whatever the bank offered. A $1.4M loan now takes 7 days, a $2.75M loan 14, and the largest offers about 20. A part of a $200K still counts as a full block, so $500K is 3 days.
+- **Only the loan the bank offers you on that visit counts,** not the loans you already took on earlier visits.
+- **The cost box tells you the real number.** Before the bank has named a loan the Time line says "Varies"; once it has, the box shows the exact days. Pushing back at Bank Review costs the same days as the loan on the table.
+
 ## v3.2.75 — Pushing back now costs days everywhere (September 24, 2026)
 
 - **At Investor Review, Hire a Builder and Final Approval, pushing back and trying again now costs days, just like everywhere else.** It used to be free at those three places — you could throw away a bad roll and roll again without losing any time, even though in real life those steps take time. Now it costs **15 days at Investor Review, 5 days at Hire a Builder, and 1 day at Final Approval.** Tap the button first to see the cost before you commit.

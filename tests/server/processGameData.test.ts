@@ -1195,3 +1195,52 @@ describe('processGameData — try_again_days (push-back price)', () => {
     expect(effects).not.toMatch(/S-D,First,time/);
   });
 });
+
+// v3.2.76 (Tom, 2026-09-25): Bank Review's Time column reads "1 day per $200K" and the
+// pipeline used to keep only the leading number, so every visit charged a flat 1 day
+// while the tile promised more. The "per how much" now rides in the row's `condition`
+// (per_200k), which the engine reads back out — so the dollar figure comes from the
+// authored words and nothing is typed into code. The words themselves stay as written.
+describe('processGameData — time that follows the loan ("N days per $X")', () => {
+  const timeLine = (space: string): string[] | undefined => {
+    const line = readEffects().find((l) => l.startsWith(`${space},First,time,`));
+    return line?.split(',');
+  };
+  const run = (space: string, time: string) => {
+    processGameData([spacesHeader, spacesLabelRow, makeSpaceRow(space, { Time: time })].join('\n'), diceRollCsv, tmpDir);
+    return timeLine(space);
+  };
+
+  it('"1 day per $200K" keeps its number and records per_200k as the condition; the words are untouched', () => {
+    const cols = run('T-PER-1', '1 day per $200K')!;
+    expect(cols[3]).toBe('add');
+    expect(cols[4]).toBe('1');
+    expect(cols[5]).toBe('per_200k');
+    expect(cols[6]).toBe('Spend 1 day per $200K');
+  });
+
+  it('reads any amount and unit from the words, not from a hard-coded 200K', () => {
+    expect(run('T-PER-2', '2 days per $1M')![5]).toBe('per_1m');
+    expect(run('T-PER-2', '2 days per $1M')![4]).toBe('2');
+    expect(run('T-PER-3', '1 day per $1.5M')![5]).toBe('per_1.5m');
+    expect(run('T-PER-4', '"3 days per $250,000"')![5]).toBe('per_250000');
+    expect(run('T-PER-4', '"3 days per $250,000"')![4]).toBe('3');
+  });
+
+  it('a plain "5 days" / "1 day" is unchanged: a fixed row with no condition', () => {
+    const five = run('T-FIX-1', '5 days')!;
+    expect(five[4]).toBe('5');
+    expect(five[5]).toBe('');
+    expect(run('T-FIX-2', '1 day')![5]).toBe('');
+  });
+
+  it('narrative text in the Time column still makes no time row (unchanged)', () => {
+    expect(run('T-TXT-1', 'and try to do it as quickly as possible.')).toBeUndefined();
+  });
+
+  it('an unreadable "per" phrase falls back to the old fixed reading, never a crash or a free space', () => {
+    const cols = run('T-BAD-1', '1 day per $')!;
+    expect(cols[4]).toBe('1');
+    expect(cols[5]).toBe('');
+  });
+});

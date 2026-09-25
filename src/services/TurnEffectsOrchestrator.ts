@@ -12,6 +12,7 @@ import { VisitType } from '../types/DataTypes';
 import { EffectFactory } from '../utils/EffectFactory';
 import { EffectContext, Effect } from '../types/EffectTypes';
 import { friendlySpaceName } from '../utils/logFormatting';
+import { getLoanOnTheTable, perAmountUnit, timeRowDays } from '../utils/costPreview';
 import { debugWarn } from '../utils/debugLog';
 
 export class TurnEffectsOrchestrator {
@@ -245,9 +246,16 @@ export class TurnEffectsOrchestrator {
 
       // Filter space effects based on conditions and only get time effects
       const conditionFilteredEffects = this.spaceArrivalProcessor.filterSpaceEffectsByCondition(spaceEffectsData, currentPlayer);
-      const timeEffects = conditionFilteredEffects.filter(effect =>
-        effect.effect_type === 'time' && effect.trigger_type !== 'manual'
-      );
+      // A time row that follows the loan ("1 day per $200K") is settled HERE into
+      // the plain number of days it comes to, so EffectFactory — which knows
+      // nothing of loans — charges exactly what the cost box showed
+      // (costPreview.timeRowDays is the one source for both).
+      const loanOnTable = getLoanOnTheTable(this.stateService, playerId);
+      const timeEffects = conditionFilteredEffects
+        .filter(effect => effect.effect_type === 'time' && effect.trigger_type !== 'manual')
+        .map(effect => perAmountUnit(effect.condition) === null
+          ? effect
+          : { ...effect, effect_value: timeRowDays(effect, loanOnTable), condition: '' });
 
       if (timeEffects.length === 0) {
         return;

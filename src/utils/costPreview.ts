@@ -26,7 +26,7 @@
  * number.
  */
 
-import { IServiceContainer } from '../types/ServiceContracts';
+import { IServiceContainer, IStateService } from '../types/ServiceContracts';
 import { SpaceContent, SpaceEffect, VisitType } from '../types/DataTypes';
 import { FormatUtils } from './FormatUtils';
 import { extractPercentage, parseFeeFromDescription, determineFeeType } from './parseUtils';
@@ -90,15 +90,71 @@ const ROW_META: Record<CostPreviewRowKey, { icon: string; label: string }> = {
 const ROW_ORDER: CostPreviewRowKey[] = ['labor', 'work', 'expediting', 'money', 'time'];
 
 /**
+ * "Per how much" for a time row whose days grow with the loan — read out of the
+ * row's own `condition` ("per_200k" = per $200,000, "per_1m", "per_250000"), which
+ * the data pipeline writes from a Time column that says "1 day per $200K"
+ * (processGameData.js). The dollar figure lives in the data, never in code, so
+ * "per $250K" is an edit to the words. Returns the unit in dollars, or null when
+ * the condition is not a per-amount one (the row is then a plain fixed cost).
+ */
+export function perAmountUnit(condition: string | undefined): number | null {
+  const m = /^per_(\d+(?:\.\d+)?)([km])?$/i.exec((condition ?? '').trim());
+  if (!m) return null;
+  const scale = m[2]?.toLowerCase() === 'k' ? 1_000 : m[2]?.toLowerCase() === 'm' ? 1_000_000 : 1;
+  const unit = parseFloat(m[1]) * scale;
+  return unit > 0 ? unit : null;
+}
+
+/**
+ * Days one `time` row charges. Fixed unless its condition scales it with the loan
+ * on the table — then N days for every $unit STARTED (rounded up: $1.4M at
+ * "1 day per $200K" is 7, $500K is 3), and never fewer than one unit, so the
+ * review takes at least a block even before a loan is named (also what the old
+ * fixed "1" charged, so nothing that has no loan yet gets cheaper).
+ */
+export function timeRowDays(effect: SpaceEffect, loanOnTable: number = 0): number {
+  const days = Number(effect.effect_value || 0);
+  const unit = perAmountUnit(effect.condition);
+  if (unit === null) return days;
+  return days * Math.max(1, Math.ceil(loanOnTable / unit));
+}
+
+/** True when this visit's time charge follows a loan (a per-amount `time` row). */
+export function hasLoanScaledTime(effects: SpaceEffect[]): boolean {
+  return effects.some(
+    e => e.effect_type === 'time' && e.effect_action === 'add' && perAmountUnit(e.condition) !== null,
+  );
+}
+
+/**
+ * The loan on the table: what the player has borrowed SINCE THIS TURN BEGAN — the
+ * bank terms drawn on this visit. Current loans minus the loans in the turn-start
+ * snapshot (REAL state), so a loan from an earlier visit is not counted twice and
+ * a push-back, which rolls the draw back, leaves nothing on the table. 0 until a
+ * loan is drawn, and 0 when there is no turn in progress to compare against.
+ */
+export function getLoanOnTheTable(
+  stateService: Pick<IStateService, 'getPlayer' | 'getRealPlayerState'>,
+  playerId: string,
+): number {
+  const total = (loans: { principal: number }[] | undefined): number =>
+    (loans ?? []).reduce((sum, loan) => sum + (loan.principal || 0), 0);
+  const turnStart = stateService.getRealPlayerState?.(playerId);
+  if (!turnStart) return 0;
+  return Math.max(0, total(stateService.getPlayer(playerId)?.loans) - total(turnStart.loans));
+}
+
+/**
  * Sum of the space's own "time add" effects for this visit type — the exact
  * same calculation TurnService.tryAgainOnSpace uses to compute its time
  * penalty (kept here as the single source so the preview can never drift
- * from what pressing the button actually does).
+ * from what pressing the button actually does). `loanOnTable` only matters to a
+ * row that scales with the loan (see timeRowDays).
  */
-export function calculateSpaceTimeAddTotal(effects: SpaceEffect[]): number {
+export function calculateSpaceTimeAddTotal(effects: SpaceEffect[], loanOnTable: number = 0): number {
   return effects
     .filter(e => e.effect_type === 'time' && e.effect_action === 'add')
-    .reduce((total, e) => total + Number(e.effect_value || 0), 0);
+    .reduce((total, e) => total + timeRowDays(e, loanOnTable), 0);
 }
 
 /**
@@ -119,9 +175,10 @@ export function calculateSpaceTimeAddTotal(effects: SpaceEffect[]): number {
 export function calculatePushBackDays(
   effects: SpaceEffect[],
   content?: Pick<SpaceContent, 'try_again_days'> | null,
+  loanOnTable: number = 0,
 ): number {
   const override = content?.try_again_days;
-  return typeof override === 'number' ? override : calculateSpaceTimeAddTotal(effects);
+  return typeof override === 'number' ? override : calculateSpaceTimeAddTotal(effects, loanOnTable);
 }
 
 /** Strict numeric parse — only trusts a value that IS a number, never a
@@ -362,8 +419,14 @@ export function getEndTurnCostPreview(
   const effects = gameServices.dataService.getSpaceEffects(spaceName, visitType) || [];
   const buckets: Partial<Record<CostPreviewRowKey, string[]>> = {};
 
-  const timeDays = calculateSpaceTimeAddTotal(effects);
-  if (timeDays !== 0) {
+  // Days that follow the loan ("1 day per $200K") read off the loan actually on
+  // the table — the same figure TurnEffectsOrchestrator charges on leaving. Until
+  // the bank has named one they can't be known, so the plain word "Varies".
+  const loanOnTable = getLoanOnTheTable(gameServices.stateService, playerId);
+  const timeDays = calculateSpaceTimeAddTotal(effects, loanOnTable);
+  if (hasLoanScaledTime(effects) && loanOnTable === 0) {
+    pushFragment(buckets, 'time', 'Varies');
+  } else if (timeDays !== 0) {
     pushFragment(buckets, 'time', `+${timeDays} day${Math.abs(timeDays) === 1 ? '' : 's'}`);
   }
 
@@ -466,11 +529,15 @@ export function getTryAgainCostPreview(
   const effects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType) || [];
   const rows: CostPreviewRow[] = [];
 
-  const timeDays = calculatePushBackDays(
-    effects,
-    gameServices.dataService.getSpaceContent(player.currentSpace, player.visitType),
-  );
-  if (timeDays !== 0) {
+  const spaceContent = gameServices.dataService.getSpaceContent(player.currentSpace, player.visitType);
+  const loanOnTable = getLoanOnTheTable(gameServices.stateService, playerId);
+  const timeDays = calculatePushBackDays(effects, spaceContent, loanOnTable);
+  // An explicit push-back price (try_again_days) is a fixed number whatever the
+  // loan; otherwise a loan-scaled row can't be priced until a loan is on the table.
+  const followsLoan = hasLoanScaledTime(effects) && typeof spaceContent?.try_again_days !== 'number';
+  if (followsLoan && loanOnTable === 0) {
+    rows.push({ key: 'time', icon: ROW_META.time.icon, label: ROW_META.time.label, value: 'Varies' });
+  } else if (timeDays !== 0) {
     rows.push({
       key: 'time',
       icon: ROW_META.time.icon,

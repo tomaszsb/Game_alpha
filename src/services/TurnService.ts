@@ -14,7 +14,7 @@ import { SpaceEffect, VisitType } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
 import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlySpaceName } from '../utils/logFormatting';
-import { calculatePushBackDays } from '../utils/costPreview';
+import { calculatePushBackDays, getLoanOnTheTable } from '../utils/costPreview';
 import { computeFilingFee } from '../utils/violationRules';
 
 export class TurnService implements ITurnService {
@@ -915,7 +915,11 @@ export class TurnService implements ITurnService {
       // drift from what pressing this button actually does — see
       // calculatePushBackDays.
       const spaceEffects = this.dataService.getSpaceEffects(currentPlayer.currentSpace, currentPlayer.visitType);
-      const timePenalty = calculatePushBackDays(spaceEffects, spaceContent);
+      // Read BEFORE the TEMP rollback below: a space whose days follow the loan
+      // ("1 day per $200K") prices the push-back off the loan drawn this turn, and
+      // that draw is exactly what the rollback throws away.
+      const loanOnTable = getLoanOnTheTable(this.stateService, playerId);
+      const timePenalty = calculatePushBackDays(spaceEffects, spaceContent, loanOnTable);
 
 
       // 5. Emit turn_discarded — LogWriter's write must precede

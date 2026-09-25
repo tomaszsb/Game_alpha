@@ -64,7 +64,10 @@ describe('push-back price (real CLEAN data)', () => {
 
   it('the controls that already had a fixed price are untouched (the price column is only used where there was none)', () => {
     // Fixed-row prices as of v3.2.74 — a sample across every tier (1 / 5 / 10 / 15 / 50).
-    expect(pushBackDays('BANK-FUND-REVIEW', 'First')).toBe(1);
+    // (Bank Review used to be the "1": since v3.2.76 its days follow the loan — see
+    // BankReviewDays.test.ts — so the "1" tier is sampled from a space whose Time is a
+    // plain "1 day".)
+    expect(pushBackDays('OWNER-SCOPE-INITIATION', 'First')).toBe(1);
     expect(pushBackDays('LEND-SCOPE-CHECK', 'First')).toBe(5);
     expect(pushBackDays('REG-DOB-PLAN-EXAM', 'First')).toBe(10);
     expect(pushBackDays('ARCH-FEE-REVIEW', 'Subsequent')).toBe(15);

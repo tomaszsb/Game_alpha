@@ -24,7 +24,7 @@ import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
 import { PlayerNumbersV2, NumbersPage } from './PlayerNumbersV2';
 import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { TurnCommitControl } from './TurnCommitControl';
-import { getEndTurnCostPreview, getTryAgainCostPreview, isManualEffectCompleted } from '../../utils/costPreview';
+import { getEndTurnCostPreview, getTryAgainCostPreview, getLoanOnTheTable, isManualEffectCompleted, perAmountUnit, timeRowDays } from '../../utils/costPreview';
 import { ACTION_ROW, COMMIT, NUMBERS, GLANCE_HELP } from '../../constants/uiStrings';
 import { setDestinationPreview } from '../../utils/destinationPreview';
 import { computeProjectFinances } from '../../utils/projectFinances';
@@ -444,10 +444,13 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // (2) time added DURING the turn (dice outcomes, negotiate penalties) via
   // the REAL-snapshot diff; (3) money from the turn cost ledger (every
   // spendMoney this turn, sticks across Try Again). Dice-conditional time rows
-  // are excluded from (1) — when they land they show up in (2).
+  // are excluded from (1) — when they land they show up in (2). A row whose days
+  // follow the loan ("1 day per $200K") is NOT dice-conditional: it is counted at
+  // the figure the loan on the table comes to (the same one End Turn charges).
+  const loanOnTable = getLoanOnTheTable(gameServices.stateService, playerId);
   const spaceVisitDays = allSpaceEffects
-    .filter((e) => e.effect_type === 'time' && e.effect_action === 'add' && e.trigger_type === 'auto' && !e.condition)
-    .reduce((s, e) => s + (parseInt(String(e.effect_value), 10) || 0), 0);
+    .filter((e) => e.effect_type === 'time' && e.effect_action === 'add' && e.trigger_type === 'auto' && (!e.condition || perAmountUnit(e.condition) !== null))
+    .reduce((s, e) => s + (timeRowDays(e, loanOnTable) || 0), 0);
   const turnOutflow = isMyTurn ? gameServices.stateService.getTurnOutflow(playerId) : null;
   const turnStartState = isMyTurn ? gameServices.stateService.getRealPlayerState(playerId) : null;
   const turnMoneySpent = turnOutflow?.moneySpent ?? 0;

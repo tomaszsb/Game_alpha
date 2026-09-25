@@ -48,7 +48,7 @@ import { fetchEdgeWaypoints, saveEdgeWaypoints, clearEdgeWaypoint, clearAllEdgeW
 import { fetchEdgeAnchors, saveEdgeAnchor, clearEdgeAnchor, type EdgeAnchorResult, type EdgeEnd } from '../../utils/saveEdgeAnchor';
 import type { BoxAnchor } from '../../utils/boardCommon';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
-import { calculatePushBackDays } from '../../utils/costPreview';
+import { calculatePushBackDays, getLoanOnTheTable } from '../../utils/costPreview';
 import type { PushBackDetails } from '../player/panelTypes';
 
 interface GameLayoutProps {
@@ -1115,6 +1115,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         ? calculatePushBackDays(
             dataService.getSpaceEffects(before.currentSpace, before.visitType) || [],
             dataService.getSpaceContent(before.currentSpace, before.visitType),
+            getLoanOnTheTable(stateService, currentPlayerId),
           )
         : 0;
       const turn = stateService.getGameState().globalTurnCount;
