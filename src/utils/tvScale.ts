@@ -66,6 +66,20 @@ export const TV_SCALE_OPTIONS: TvScaleOption[] = [
   { id: 'sm', layoutWidth: 1600, label: 'Small text', blurb: 'Most fits on screen' },
 ];
 
+/** Which TV_SCALE_OPTIONS step a layout width is, or the biggest-text step
+ *  (index 0) for a width that was never one of the offered steps at all —
+ *  the same "never asked" default a never-asked TV already gets. */
+export function indexForLayoutWidth(width: number): number {
+  const i = TV_SCALE_OPTIONS.findIndex(o => o.layoutWidth === width);
+  return i === -1 ? 0 : i;
+}
+
+/** One Bigger (-1, toward index 0 = biggest text) or Smaller (+1, toward the
+ *  last index = most fits) step, clamped to the offered range — Job 3A. */
+export function stepTvScaleIndex(index: number, delta: -1 | 1): number {
+  return Math.max(0, Math.min(TV_SCALE_OPTIONS.length - 1, index + delta));
+}
+
 /** The layout width the device reports on its own, before any override.
  *  `screen.width` rather than `innerWidth` for the same reason
  *  deviceDetection.ts uses it: it doesn't move when a viewport override,

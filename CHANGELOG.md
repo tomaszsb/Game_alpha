@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.79] - 2026-09-25
+
+### Live Bigger / Smaller / Keep this size buttons, with a ~10s snap-back (Job 3A)
+
+**Where this came from.** Manager brief 2026-09-25 (Tom, after testing on his real 4K TV): *"yes to live buttons."* The old screen-size dialog (fb:93449bf2, shipped 2026-09-01) showed four sample lines of text side by side and asked the viewer to judge which they could read — accurate, but abstract: you were comparing samples in a popup, not watching the actual game screen change size.
+
+**Player-visible.** Opening "Adjust screen size" (now a header button, Job 3B) no longer shows a picker of four samples. It shows a small floating panel — **Bigger**, **Smaller**, **Keep this size**, **Cancel** — that floats over the real screen instead of hiding it behind a dark backdrop, because the whole point is watching the real board resize as you press the buttons. Bigger and Smaller apply immediately, live, using the same four steps as before (Biggest/Big/Medium/Small text — Medium is still labelled "Recommended for most rooms," nothing about the steps themselves changed). Nothing is written to this TV's memory until **"Keep this size"** is pressed. If ~10 seconds pass with no press — recounted from the last Bigger/Smaller press, not from when the panel opened, so an active viewer is never rushed — it automatically reverts to whatever size was showing before the panel opened. Cancel does the same, immediately. **The default is unchanged: a TV that has never been asked still starts at the biggest size** — nothing here touches that mount-time behavior.
+
+**Where:** `TvScaleCalibration.tsx` (rewritten — Bigger/Smaller/Keep/Cancel replace the four-sample picker; no backdrop), `utils/tvScale.ts` (two small pure helpers, `indexForLayoutWidth` and `stepTvScaleIndex`, so the step math is unit-testable without rendering, same pattern the file already uses). The availability gating (`tvScaleIsAvailable()`) and the one-viewport-meta-tag mechanism (`applyTvLayoutWidth`) are both untouched — this only changes how a choice gets made, not who is offered it or how it's applied.
+
+**Verified in a real headless Chromium** against the dev servers with a real running game: pressing Smaller twice then Keep wrote the exact width to `localStorage` and the viewport meta tag, and **the choice survived a full page reload** (TVDisplay's existing mount-time `applyStoredTvLayoutWidth()` re-applies it, unchanged) — proving the write-only-on-Keep path end to end, not just in a unit test. Cancel reverted the real meta tag immediately, no 10s wait. At the narrowest qualifying width (600px) the panel's own button row wraps onto two lines and stays fully on screen — Keep and Cancel never get pushed off — matching the same "row wraps, children don't get cut off" property Job 3B's header relies on. **Honest limit: desktop Chromium (even headless, even with a custom viewport size) does not visually apply the viewport-meta width the way a real TV/mobile browser engine does** — this is a pre-existing, deliberate property of the whole mechanism (see `tvScale.ts`'s own comment: "a no-op on desktop browsers... exactly the safety property we want"), not something this change introduces or can work around. Confirming the actual on-screen resize needs Tom's real 4K TV.
+
+**Tests (+28: 14 rewritten in `TvScaleCalibration.test.tsx` using fake timers to prove the exact snap-back timing — including that the countdown restarts on every press rather than running out mid-adjustment — and that Keep, Cancel, and an unexpected unmount each settle it exactly once with no double-revert race).** Typecheck ✅, lint 0 errors (two real issues caught and fixed along the way: a ref read during render, an unescaped apostrophe in JSX), build ✅, `npm test` full suite green (221 files / 3447 tests — two more unrelated flakes seen mid-session, in `BankReviewDays.test.ts` and `instanceStore.test.ts`, neither touched by this change, both passed clean on re-run and on the final full-suite run).
+
+**To undo:** revert this commit alone; only `TvScaleCalibration.tsx`, `utils/tvScale.ts` and their tests are touched — Job 3B's header button and Job 3C's version badge are unaffected.
+
 ## [3.2.78] - 2026-09-25
 
 ### TV screen-size button moves to the header, with a first-use pulse (Job 3B)

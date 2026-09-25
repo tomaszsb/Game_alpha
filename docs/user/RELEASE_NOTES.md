@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.79 — Changing the TV's screen size is live now (September 25, 2026)
+
+- **Adjusting the screen size now shows you the real screen changing,** instead of asking you to compare four sample lines of text in a popup. Press Bigger or Smaller and watch the real screen resize — then press "Keep this size" once it looks right.
+- **If you don't press Keep, it goes back to how it was after about 10 seconds** — so trying a size never gets stuck.
+
 ## v3.2.78 — The screen-size button moved to the top (September 25, 2026)
 
 - **On the TV screen, "Adjust screen size" is now a button at the top,** next to Rules, Standings and the other buttons — not a small link at the bottom that could get cut off.
