@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.80] - 2026-09-25
+
+### AI-crawler / SEO basics — robots.txt, sitemap.xml, a real H1 before React mounts
+
+**Where this came from.** Tom shared an AI-readiness scan of `game.unravelcodes.com` (usegrowhero.com, score 36/100) flagging four things: a missing `robots.txt`, a missing/unlinked XML sitemap, a page missing an H1, and "thin site architecture." Checked the repo first rather than assuming the scan was right: confirmed no `robots.txt` or `sitemap.xml` existed anywhere, and confirmed the H1 finding's real cause — `PlayerSetup.tsx` does render a proper `<h1>Unravel Codes: The Game</h1>`, but only after React mounts; a crawler that fetches the raw HTML without running JavaScript (which several SEO/AI scanners do, for cost reasons) sees only the static loading shell in `index.html`, which had no heading at all.
+
+**What changed, and why each is small and safe.**
+- **`public/robots.txt`** (new) — allows all crawlers, disallows `/api/` (game-state and admin endpoints, never meant to be indexed), and points to the sitemap. Built into `dist/` and served the same way `favicon.ico`/`manifest.json` already are — confirmed via a real server request.
+- **`public/sitemap.xml`** (new) — lists the one real public URL. This app is a single-page game, not a multi-page site, so a sitemap with one `<url>` is the honest answer, not a shortcut.
+- **`index.html`** — the static loading shell's plain `<div>Loading Unravel Codes...</div>` became a real `<h1>Unravel Codes: The Game</h1>` (styled to look identical to the text it replaced — `font-size`/`font-weight: inherit`, no margin) plus a separate "Loading..." line. React's own render fully replaces `#root`'s contents once it mounts, so there is never a second, duplicate H1 visible — confirmed both in a real browser and via a raw `curl` of the server response (no JS execution), which now shows the H1 immediately.
+
+**Deliberately NOT fixed here: "thin site architecture."** The scanner's own label for it is "Harder," and it's not a bug — the site genuinely is one page by design. Growing it (blog posts, an FAQ, service pages) is a real content/writing decision, not a code change, so it's left for Tom to decide whether and what to build, rather than guessed at here.
+
+**Verified:** `npm run build` then a real running server — `curl`'d `/robots.txt` (text/plain, exact expected body), `/sitemap.xml` (application/xml, exact expected body), and `/` (raw HTML contains the H1, no browser JS involved). Typecheck ✅, lint 0 errors, build ✅, `npm test` full suite green (221 files / 3419 tests — this branch made no code changes to touch any of them; the count matches master exactly).
+
+**To undo:** revert this commit alone; only `public/robots.txt` (new), `public/sitemap.xml` (new), and `index.html` are touched.
+
 ## [3.2.76] - 2026-09-25
 
 ### Bank Review now charges what it says — 1 day per $200K of the loan on the table (Tom, words untouched)

@@ -2,6 +2,10 @@
 
 ---
 
+## v3.2.80 — Behind-the-scenes: easier for search engines to find (September 25, 2026)
+
+- **Nothing changes for you as a player.** This just helps search engines and AI tools find and understand the game's page properly.
+
 ## v3.2.76 — The bank now takes as long as it says (September 25, 2026)
 
 - **At Bank Review, the time you spend now grows with the loan, just like the tile says: 1 day for every $200K.** Until now every visit cost a single day, whatever the bank offered. A $1.4M loan now takes 7 days, a $2.75M loan 14, and the largest offers about 20. A part of a $200K still counts as a full block, so $500K is 3 days.
