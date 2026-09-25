@@ -91,7 +91,15 @@
 <body>
     <div id="root">
         <div class="loading">
-            <div>Loading Unravel Codes...</div>
+            <!-- A real H1, present in the raw HTML rather than only after
+                 React mounts — a crawler that does a plain fetch instead of
+                 running JS (several AI-crawler/SEO scanners do) otherwise
+                 sees this loading shell with no heading at all. Styled to
+                 look exactly like the plain text it replaces; React's own
+                 render replaces all of #root's contents once it mounts, so
+                 there is never a second, duplicate H1 on screen. -->
+            <h1 style="margin: 0; font-size: inherit; font-weight: inherit;">Unravel Codes: The Game</h1>
+            <div>Loading...</div>
             <!-- Hidden by default; revealed by the timeout check below if
                  loading is still stuck after 10s. Some TV browsers hang
                  indefinitely trying to run this game rather than throwing a
