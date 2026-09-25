@@ -5,20 +5,21 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** September 24, 2026 (v3.2.75)
+**Last Updated:** September 25, 2026 (v3.2.76)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.75 — live.** `/health` = `71162a1` (checked 2026-09-24 ~21:36 UTC, after Tom's deploy; the live bundle and the live `SPACE_CONTENT.csv` were verified too). Run `curl -sS https://game.unravelcodes.com/health` before believing this.
+**Current Version:** **3.2.76 — committed and pushed, PENDING DEPLOY (Tom's).** Live is v3.2.75 (`/health` = `71162a1`, checked 2026-09-25 ~17:22 UTC; HEAD was then a docs-only commit ahead of it). Run `curl -sS https://game.unravelcodes.com/health` before believing this.
 
 ## Current sprint
-**Onboarding Phase C, teaching a beginner the game,** replanned by Tom 2026-09-19: **no new tutorial or tip layer** — one help look for the whole game, voiced by one recurring mentor, reusing existing wording (four slices, full text in TODO). **Slice 1 shipped v3.2.71; Slice 3 mostly shipped (v3.2.72–74).** This session (2026-09-24, Manager brief): the press-and-hold hint now says what a tap shows ("Tap to see the cost · press & hold to confirm", **v3.2.74**), **real push-backs are counted** (`pushBacks` in `/api/admin/engagement-stats`, split home / foreign / unknown), and **v3.2.75** made pushing back cost days at Investor Review (15), Hire a Builder (5) and Final Approval (1) — the last three places it was free (their time is a dice roll; the prices are new `try_again_days` data, Tom-approved, unplaytested). Still open in Slice 3: the 24 movement-choice tooltip rows and the RULES modal body rewrite. Next: Slice 2, the mentor (Tom picks who); Tom's "go" on putting every "?" inside its button's outline (needs his phone).
+**Onboarding Phase C, teaching a beginner the game** (Tom's 2026-09-19 replan: no new tutorial layer — one help look for the whole game, one recurring mentor, existing wording reused). This session (2026-09-25, Manager brief): **v3.2.76 — Bank Review now charges "1 day per $200K"** of the loan on the table (words untouched; the data step used to throw "per $200K" away). Tom OK'd the loan→days table (median 7 days a visit, 3–20; was 1). Also brought the mentor candidates — Tom: "Loving Ruth and the handbook/spell book icon idea" (one-word confirm pending, nothing built) — and checked five findings read-only (Architect/Engineer first press, Pick Your Path, the "Expeditor" definition, the blank Owner's Money preview, the false "2 behind" version badge). Tom also decided the next batch (TV screen-size live buttons, header entry point, colour-only version badge, docs-only = up to date), **not started** — it waits on Tom/Manager because the weekly allowance is tight.
 
 ## Health
-- **Tests (v3.2.75):** `npm test` **220 files / 3371 tests green**. Ghost gates run this session (game logic changed): **11 files / 43 tests green**; the smart-bot's numbers are unchanged (49/50 wins, 70.1 avg turns) — proves nothing broke, not that the new prices feel fair. Typecheck ✅, build ✅.
-- **Deploy:** ✅ v3.2.75 live. (The previous status and handoff wrongly said v3.2.73 was "pending" while it was already live — caught by `/start`'s `/health` check.)
-- **Nightly robot:** its start-step fix is in the Jarvis repo, not here (status as of 2026-09-22, not re-verified). **New heads-up for that session:** `game_playtest.py` `TAB_SUFFIX_RE` strips the old "— tap to compare…" ending from tab labels; v3.2.74 reworded it, so captions carry the new ending until the regex accepts both wordings (cosmetic; `data-actionable` still works). Best fixed before the next 03:00 run.
-- **Dashboard:** fb:93449bf2 deliberately unflipped (needs Tom's eyes on the real TV). fb:ae480630 and fb:11662ac3 (commit highlight, Lender Review) **not flipped — they need a live look.** 9 of 17 open reports are not tracked in TODO/CHANGELOG — run `/start full`.
+- **Tests (v3.2.76):** `npm test` **221 files / 3419 tests green** (+48). Ghost gates **11 files / 43 tests green**; smart-bot **49/50 wins, 70.1 avg turns — unchanged**, all 50 seeded games play out identically (days don't steer the bot). Typecheck ✅, build ✅, lint 0 errors (4 old warnings in `GameLayout`).
+- **Deploy:** v3.2.76 waits for Tom's `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`; confirm with `/health`. Real-browser check done on dev servers: a $4M offer showed +20 days and a real hold moved Time 7 → 27.
+- **Weekly allowance (read 2026-09-25):** Pro plan, weekly meter ~71–72% used, resets Monday 2026-09-28 ~07:00 EDT; extra-usage is off and its budget is spent. Say the cost before any big step.
+- **Nightly robot:** its `TAB_SUFFIX_RE` regex in the Jarvis repo still needs to accept both "tap to compare" and "tap to see the cost" (cosmetic; not this repo).
+- **Dashboard:** fb:93449bf2 waits for Tom's eyes on the real TV; fb:ae480630 / fb:11662ac3 need a live look. 9 of 17 open reports are not tracked in TODO/CHANGELOG — run `/start full`.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Tom's "go" on the "?"-inside-buttons work** — not started; needs his eyes on a real phone, light and dark.
-2. **Slice 2, the mentor** — needs Tom to pick who; bring three candidates with a sample line each.
-3. **Read the push-back counts** once real players have produced some (`pushBacks.foreign` only) — also the first test of the v3.2.75 prices. Then the leftover Slice 3 tooltips / RULES body, and the playtest robot's Jarvis-side fixes.
+1. **Tom's answers** (TODO "Decisions waiting"): the mentor one-word confirm; TV entry point (header button + lobby pulse vs pre-screen); approve the "counts as docs" path list; Architect/Engineer first press; Pick Your Path reading; Owner's Money preview.
+2. **Job 3 — TV lobby & badge** (badge colours, header size button, live Bigger/Smaller/Keep with snap-back) — one version each; wait for the go.
+3. **Slice 2 mentor + Slice 3 leftovers** (24 movement tips also answers Pick Your Path; RULES body rewrite); "?" placement still needs Tom's "go".

@@ -1,34 +1,31 @@
-# Next session starter — written 2026-09-24 by /koniec
+# Next session starter — written 2026-09-25 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.75 — **deployed and verified live** (`/health` = `71162a1`, 2026-09-24 ~21:36 UTC; live bundle carries the new hint; live `SPACE_CONTENT.csv` has the 5 prices). **HEAD is `421bce7` — a docs-only commit on top of `71162a1`, so `/health` ≠ HEAD does NOT mean a deploy is pending.** The old note that v3.2.73 was "pending" was wrong — it had been live all along; fixed here and in PROJECT_STATUS.
-- **Branch:** master, clean and pushed. Untracked: `idea.txt` — **READ IT, never modify or commit it** (Tom's own brief: D&D dual-function constraint + how he wants to be worked with).
-- **Last shipped (Manager brief 2026-09-24, both live):** **v3.2.74** — hint now "Tap to see the cost · press & hold to confirm" (+ both help lines, exact wording Tom approved) and **real push-backs are counted** (`pushBacks` in `/api/admin/engagement-stats`: home/foreign/unknown, deduped). **v3.2.75** — pushing back now costs days at the three places it was free (Investor Review 15, Hire a Builder 5, Final Approval 1; new `try_again_days` column). Checked against the old game folders (Tom's suggestion): no price ever existed there; the dice days are unchanged in every version.
-- **Tests:** `npm test` 220 files / 3371 green; ghost gates 11 files / 43 green (run this session; smart-bot 49/50, 70.1 turns — unchanged). Typecheck ✅ build ✅.
+- **Version:** v3.2.76 — **committed and pushed, PENDING DEPLOY (Tom's).** Live is v3.2.75 (`/health` = `71162a1`, 2026-09-25 ~17:22 UTC). Check `/health` first: equal to `git rev-parse --short HEAD` ⇒ deployed; a docs-only HEAD ahead of it means nothing to deploy.
+- **Branch:** master, clean and pushed. Untracked: `idea.txt` — read it, never modify or commit it.
+- **Last shipped (Manager brief 2026-09-25):** **v3.2.76** — Bank Review now charges "1 day per $200K" of the loan drawn that visit (rounds up, min one block; median 7 days, was 1; push-back the same). The data step used to throw "per $200K" away; it now lives in the row's `condition` (`per_200k`), one rule in `costPreview.ts`. Tom OK'd the table ("Table is fine").
+- **Tests:** `npm test` 221 files / 3419 green; ghost gates 11 files / 43 green (smart-bot 49/50, 70.1 — unchanged, all 50 games identical). Typecheck ✅ build ✅ lint 0 errors.
+- **Allowance:** Tom's weekly meter was ~71–72% on 2026-09-25 (resets Mon 2026-09-28 ~07:00 EDT; extra-usage off and spent). **Say the cost first; do NOT start Job 3 until Tom or the Manager says go.**
 
 ## Top 3 open items (top 3 from this note — TODO.md is the whole backlog)
-1. **"?" inside its button's outline — Tom must say "go" first.** Facts + process are in TODO (onboarding item "One shape for every '?'"). Show him a picture of the "?" at each of the four spots at phone width and let him pick; needs his real phone, light and dark. Not started, don't fold into other work.
-2. **Slice 2, the mentor — needs Tom.** Bring 3 candidates with a sample line each (ok / edit / no). Then Slice 3's leftovers: the 24 movement-choice tooltips (`TooltipService.getMovementTooltip`, zero callers) + the RULES modal body rewrite.
-3. **Read the push-back counts once real players exist** (`pushBacks.foreign` only) — also the first test of the new prices, which are Tom-approved guesses. Where the prices live: `Spaces.csv` column `try_again_days`, then `node scripts/regen-clean-files.mjs`.
+1. **Tom's pending answers** — TODO "Decisions waiting" #1–7: "?" go; mentor one-word confirm (Ruth + handbook icon; nothing built); TV entry point (header button + lobby pulse vs pre-screen); approve the "counts as docs" list; Architect/Engineer first press ("Take your next step"); Pick Your Path reading (switch on the 24 existing movement tips, no rename); Owner's Money preview blank (hide the sentence on the preview, my pick).
+2. **Job 3, one version each, NOT started** — 3C version badge → colours only (green/yellow/orange/red, docs-only = up to date); 3B screen-size button in the TV header + lobby flare; 3A live Bigger/Smaller/Keep with ~10 s snap-back. A never-asked TV keeps starting at BIGGEST. Full facts, files and a cost guess are in TODO "📺 Active — TV lobby & version badge".
+3. **Slice 2 mentor + Slice 3 leftovers** (24 movement tips, RULES body rewrite); then read `pushBacks.foreign` once real players exist (first test of the push-back prices, now including Bank Review's per-loan days).
 
 ## Decisions waiting on the user
-- The mentor (item 2) and "go" on the "?" work (item 1). Nothing else — the 0-day push-back question was answered and built (v3.2.75).
-
-## For the manager / Jarvis session (not this repo)
-- **`game_playtest.py:166` `TAB_SUFFIX_RE`** strips the old "— tap to compare…" tab-label ending; v3.2.74 reworded it, so captions carry "— tap to see the cost, press and hold to confirm" until the regex accepts both (`tap to (?:compare|see the cost)`; also the fallback at :696). Cosmetic — `data-actionable` still drives what it holds. Fix before the next 03:00 run.
-- Not fixed, logged in TODO for Tom: Bank Review's text says "1 day per $200K" but the rule is a fixed 1 day.
+See item 1 above and TODO "Decisions waiting on the user" (seven items, each with my pick).
 
 ## Flip after deploy
-- **fb:93449bf2** — only after Tom confirms the TV reads well across a room. **fb:ae480630 / fb:11662ac3** — only after a live re-check at Lender Review. (Deploy alone doesn't satisfy these.)
+- **fb:93449bf2** — only after Tom confirms the TV reads well across a room. **fb:ae480630 / fb:11662ac3** — only after a live re-check at Lender Review. (Deploy alone doesn't satisfy these.) 9 of 17 open reports are untracked — `/start full`.
 
 ## Suggested first move
-`/start full` — 9 of 17 open feedback reports aren't tracked anywhere. Then ask Tom: go on the "?" work? and who's the mentor?
+Check `/health`; if v3.2.76 isn't live, hand Tom the deploy command. Then ask the mentor one-word confirm and walk the rest of the decisions with picks, one at a time, before any Job 3 work.
 
 ## Suggested model for next session
-Sonnet 5 — presentation/copy work with shipped precedent.
+Sonnet 5 — presentation/copy and small UI work with shipped precedent (raise effort before reaching for a bigger model).
 
 ## Reminders
 - **Anything you hand Tom to run goes into Windows PowerShell:** no `grep`; `curl` is `Invoke-WebRequest` — use `curl.exe … | Select-String -SimpleMatch "text"`, or run read-only checks yourself.
-- **Deploy is Tom's:** `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. His paste stops after "Stopping existing container" — that's normal-looking; confirm with `/health`.
-- **In Git Bash, `sed -i` (like the Edit tool) flips CRLF files to LF** — `docs/user/USER_MANUAL.md` is CRLF; use a Python byte replace and check `git diff --stat`.
-- **Verify UI in real Chromium** (`mcp__playwright__*`; `scrollIntoViewIfNeeded` before a mouse press). Say which folder AND session you're in. **`HelpButton` is 26px, not 44px** — deliberate (Tom, v3.2.72).
+- **Deploy is Tom's:** `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`; confirm with `/health`.
+- **For the Manager / Jarvis (not this repo):** `game_playtest.py:166` `TAB_SUFFIX_RE` must accept both "tap to compare" and "tap to see the cost". Brief paths that say `server/data/game-data/…` are a stale, git-ignored runtime copy — the real data source is `public/data/`.
+- **Verify UI in real Chromium** (`mcp__playwright__*`; `scrollIntoViewIfNeeded` before a mouse press); a dev teleport skips arrival effects, so play the real first turn to see arrival-time behaviour. Say which folder AND session you're in. `HelpButton` is 26px, deliberately.
