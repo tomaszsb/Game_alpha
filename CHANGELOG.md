@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.77] - 2026-09-25
+
+### Version badge — colours only, no icon, no "behind", no number (Job 3C)
+
+**Where this came from.** Manager brief 2026-09-25 (Tom, after the 3-part TV/badge job was decided): *"if it is up to date make it green, behind 1 yellow, 2 orange, more than 2 red. This way I will know but others should not notice."* The badge (setup screen, phone view, TV lobby) previously showed a checkmark-or-warning icon plus the literal word "behind" and a commit count — visible to anyone, not just Tom.
+
+**Player-visible.** The badge's version pill now shows a small colour dot instead: green when the loaded build is current, yellow at 1 commit behind master, orange at 2, red at 3 or more. No icon, no "behind" text, no visible number — the exact detail (build hash, latest master hash, commit count) still lives in the hover `title`, and the dot carries an accessible label (`role="img"` + `aria-label`, e.g. "Build status: behind the latest") so a screen reader still gets the meaning sighted players are not meant to notice.
+
+**Docs-only changes read as up to date (Tom: "docs-only should not count").** `useGitHubSyncStatus`'s existing GitHub compare call already returns a `files` list (still the same 2 calls total, unauthenticated GitHub's ~60/hr limit unchanged); if every changed file matches the approved docs allowlist — `docs/`, `.claude/`, `tests/` + `*.test.ts(x)`, `vitest.config*.ts`, and a **top-level** `*.md` (exactly what the game's own build already leaves out via `.dockerignore`) — the badge reads green regardless of commit count. `Mockups/` is deliberately excluded, matching Tom's approval. A rename only counts as docs-only when both its old and new path do. A missing or 300-file-capped (GitHub's compare API truncation point, no explicit flag) file list falls back to colouring by the raw commit count instead of guessing.
+
+**Where:** `useGitHubSyncStatus.ts` (new `isDocsOnlyChange`, `getVersionBadgeTier`, `getVersionBadgeDetail`, `getVersionBadgeAccessibleLabel`, and a `docsOnly` field on the hook's returned status), `PlayerSetup.tsx` (setup screen header, shared by the TV lobby since it renders the same header in `selectedMode === 'tv'`), `PlayerMobileView.tsx` (phone view), `PlayerSetup.styles.ts` (`versionSyncDot` + one colour per tier, `versionBehind` repurposed to red).
+
+**Tests (+13).** `useGitHubSyncStatus.test.ts`: docs-only detection (the approved allowlist, `Mockups/` and a nested non-top-level `*.md` both NOT docs, a rename counting only when both paths are docs, the empty/300-file fallback), the tier thresholds (yellow/orange/red boundaries, docs-only forcing green), the hover-detail string, and that the accessible label never leaks a number. Typecheck ✅, lint 0 errors, `npm test` full suite green (2 pre-existing failures in `tests/server/instanceContentDiff.test.ts` are unrelated — they read a git-ignored runtime data copy this fresh container never populated, confirmed identical with `git stash` before touching any of these files).
+
+**To undo:** revert this commit alone; the hook, styles and the two render sites are the only things touched.
+
 ## [3.2.76] - 2026-09-25
 
 ### Bank Review now charges what it says — 1 day per $200K of the loan on the table (Tom, words untouched)

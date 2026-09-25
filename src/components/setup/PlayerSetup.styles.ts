@@ -105,13 +105,27 @@ export const styles: { [key: string]: React.CSSProperties } = {
   versionCommit: {
     color: 'rgba(255,255,255,0.7)',
   },
+  // Version badge sync colours only (Tom, 2026-09-25): green up to date,
+  // yellow 1 commit behind, orange 2, red 3+ — no icon, no visible number,
+  // subtle enough that only Tom is meant to notice. See useGitHubSyncStatus.
+  versionSyncDot: {
+    display: 'inline-block',
+    width: '0.5em',
+    height: '0.5em',
+    borderRadius: '50%',
+    marginLeft: '0.4em',
+  },
   versionInSync: {
     color: '#22c55e',
-    fontWeight: 'bold' as const,
+  },
+  versionYellow: {
+    color: '#eab308',
+  },
+  versionOrange: {
+    color: '#f97316',
   },
   versionBehind: {
-    color: '#f59e0b',
-    fontWeight: 'bold' as const,
+    color: '#ef4444',
   },
   gameCodeBadge: {
     display: 'inline-flex',

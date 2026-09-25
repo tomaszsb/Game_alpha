@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.77 — The little version badge is quieter now (September 25, 2026)
+
+- **The small version badge in the corner now just shows a colour** instead of a checkmark, a warning icon and the word "behind." Green means up to date. It still tells the full story if you hover over it.
+- **A change to just the documentation doesn't count as "behind" anymore.**
+
 ## v3.2.76 — The bank now takes as long as it says (September 25, 2026)
 
 - **At Bank Review, the time you spend now grows with the loan, just like the tile says: 1 day for every $200K.** Until now every visit cost a single day, whatever the bank offered. A $1.4M loan now takes 7 days, a $2.75M loan 14, and the largest offers about 20. A part of a $200K still counts as a full block, so $500K is 3 days.

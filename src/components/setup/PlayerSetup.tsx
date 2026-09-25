@@ -20,7 +20,7 @@ import { ClassroomAdminPanel } from '../classroom/ClassroomAdminPanel';
 import { ClassroomBadge } from '../classroom/ClassroomBadge';
 import { BugReportsPanel } from '../editor/BugReportsPanel';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
-import { useGitHubSyncStatus } from './useGitHubSyncStatus';
+import { useGitHubSyncStatus, getVersionBadgeTier, getVersionBadgeDetail, getVersionBadgeAccessibleLabel } from './useGitHubSyncStatus';
 import { debugLog } from '../../utils/debugLog';
 import { ShareGameButton } from './ShareGameButton';
 import { PhoneScreenWarning } from './PhoneScreenWarning';
@@ -29,7 +29,7 @@ import { PlayerMobileView } from './PlayerMobileView';
 import { ModeToggle } from './ModeToggle';
 import { GameSettingsPanel } from './GameSettingsPanel';
 import { AdminToolsPanel } from './AdminToolsPanel';
-import { IconCheck, IconWarning, IconGear, IconPeople, IconPhone, IconPlay, IconClose, IconBug, IconHourglass, IconEye } from '../icons/SetupIcons';
+import { IconGear, IconPeople, IconPhone, IconPlay, IconClose, IconBug, IconHourglass, IconEye } from '../icons/SetupIcons';
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
@@ -572,22 +572,27 @@ export function PlayerSetup({
               style={styles.versionInfo}
               title={
                 appCommit
-                  ? `Build ${appCommit}${syncStatus.latestCommit ? ` · latest on master: ${syncStatus.latestCommit}` : ''}`
+                  ? `Build ${appCommit}${syncStatus.latestCommit ? ` · latest on master: ${syncStatus.latestCommit}` : ''} · ${getVersionBadgeDetail(syncStatus)}`
                   : 'Build commit hash unavailable'
               }
             >
               <span>v{appSemver}</span>
               {appCommit && <span style={styles.versionCommit}> · {appCommit}</span>}
-              {syncStatus.status === 'in-sync' && (
-                <span style={{ ...styles.versionInSync, display: 'inline-flex', alignItems: 'center', gap: '0.2em' }}>
-                  {' '}<IconCheck size="0.85em" />
-                </span>
-              )}
-              {syncStatus.status === 'out-of-sync' && (
-                <span style={{ ...styles.versionBehind, display: 'inline-flex', alignItems: 'center', gap: '0.25em' }}>
-                  {' '}<IconWarning size="0.85em" /> {syncStatus.commitsBehind ? `${syncStatus.commitsBehind} ` : ''}behind
-                </span>
-              )}
+              {(() => {
+                const tier = getVersionBadgeTier(syncStatus);
+                if (!tier) return null;
+                const tierStyle = tier === 'in-sync' ? styles.versionInSync
+                  : tier === 'yellow' ? styles.versionYellow
+                  : tier === 'orange' ? styles.versionOrange
+                  : styles.versionBehind;
+                return (
+                  <span
+                    role="img"
+                    aria-label={getVersionBadgeAccessibleLabel(syncStatus) ?? undefined}
+                    style={{ ...styles.versionSyncDot, backgroundColor: tierStyle.color }}
+                  />
+                );
+              })()}
             </div>
           )}
           <ClassroomBadge />
