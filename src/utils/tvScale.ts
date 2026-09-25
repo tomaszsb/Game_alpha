@@ -161,3 +161,48 @@ export function applyStoredTvLayoutWidth(): number | null {
   applyTvLayoutWidth(stored);
   return stored;
 }
+
+// ===================================================================
+// Screen-size button "first use" flare (Job 3B, Tom 2026-09-25) — a gentle
+// pulse on the TV lobby draws the eye to the screen-size button until it has
+// been opened once, remembered per TV so it never nags again after that.
+// ===================================================================
+
+export const TV_SCALE_BUTTON_USED_STORAGE_KEY = 'ucTvScaleButtonUsed';
+
+/** Has this TV ever opened the screen-size button? Storage failure reads as
+ *  "yes" (no pulse) rather than "no" (pulse forever) — the safer default. */
+export function hasUsedTvScaleButton(): boolean {
+  try {
+    return localStorage.getItem(TV_SCALE_BUTTON_USED_STORAGE_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+export function markTvScaleButtonUsed(): void {
+  try {
+    localStorage.setItem(TV_SCALE_BUTTON_USED_STORAGE_KEY, '1');
+  } catch {
+    /* storage unavailable — the pulse will just show again next visit */
+  }
+}
+
+/** Whether the button should pulse right now: only on the TV lobby — the
+ *  first screen TVDisplay itself shows, i.e. live PLAY, not the game-over
+ *  screen — only while the button itself is offered, only before its first
+ *  use, and never against a reduced-motion request.
+ *
+ *  Not gated on gamePhase === 'SETUP': App.tsx only ever mounts TVDisplay
+ *  once gamePhase leaves SETUP (PlayerSetup owns the TV's pre-game screen),
+ *  so from inside TVDisplay 'PLAY' IS the first screen a TV shows. */
+export function shouldPulseTvScaleButton(opts: {
+  gamePhase: string;
+  hasUsedButton: boolean;
+  prefersReducedMotion: boolean;
+}): boolean {
+  if (opts.gamePhase !== 'PLAY') return false;
+  if (opts.hasUsedButton) return false;
+  if (opts.prefersReducedMotion) return false;
+  return tvScaleIsAvailable();
+}
