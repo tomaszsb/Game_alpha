@@ -5,10 +5,10 @@ import { colors } from '../../styles/theme';
 import { AVAILABLE_COLORS, ColorOption } from './usePlayerValidation';
 import { Player } from '../../types/StateTypes';
 import { getCurrentGameId } from '../../utils/networkDetection';
-import { GitHubSyncStatus } from './useGitHubSyncStatus';
+import { GitHubSyncStatus, getVersionBadgeTier, getVersionBadgeDetail, getVersionBadgeAccessibleLabel } from './useGitHubSyncStatus';
 import { styles } from './PlayerSetup.styles';
 import { ShareIcon, useShareGameLink } from './ShareGameButton';
-import { IconCheck, IconWarning, IconBug } from '../icons/SetupIcons';
+import { IconBug } from '../icons/SetupIcons';
 import { AvatarIcon } from '../icons/AvatarIcons';
 
 interface PlayerMobileViewProps {
@@ -91,22 +91,27 @@ export function PlayerMobileView({
               style={styles.versionInfo}
               title={
                 appCommit
-                  ? `Build ${appCommit}${syncStatus.latestCommit ? ` · latest on master: ${syncStatus.latestCommit}` : ''}`
+                  ? `Build ${appCommit}${syncStatus.latestCommit ? ` · latest on master: ${syncStatus.latestCommit}` : ''} · ${getVersionBadgeDetail(syncStatus)}`
                   : 'Build commit hash unavailable'
               }
             >
               <span>v{appSemver}</span>
               {appCommit && <span style={styles.versionCommit}> · {appCommit}</span>}
-              {syncStatus.status === 'in-sync' && (
-                <span style={{ ...styles.versionInSync, display: 'inline-flex', alignItems: 'center', gap: '0.2em' }}>
-                  {' '}<IconCheck size="0.85em" />
-                </span>
-              )}
-              {syncStatus.status === 'out-of-sync' && (
-                <span style={{ ...styles.versionBehind, display: 'inline-flex', alignItems: 'center', gap: '0.25em' }}>
-                  {' '}<IconWarning size="0.85em" /> {syncStatus.commitsBehind ? `${syncStatus.commitsBehind} ` : ''}behind
-                </span>
-              )}
+              {(() => {
+                const tier = getVersionBadgeTier(syncStatus);
+                if (!tier) return null;
+                const tierStyle = tier === 'in-sync' ? styles.versionInSync
+                  : tier === 'yellow' ? styles.versionYellow
+                  : tier === 'orange' ? styles.versionOrange
+                  : styles.versionBehind;
+                return (
+                  <span
+                    role="img"
+                    aria-label={getVersionBadgeAccessibleLabel(syncStatus) ?? undefined}
+                    style={{ ...styles.versionSyncDot, backgroundColor: tierStyle.color }}
+                  />
+                );
+              })()}
             </div>
           )}
           {getCurrentGameId() && (
