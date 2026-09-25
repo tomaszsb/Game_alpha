@@ -29,6 +29,12 @@ describe('modePreference', () => {
     expect(getStoredPreferredMode()).toBe('pc');
   });
 
+  it('round-trips a stored "remote" choice', () => {
+    setStoredPreferredMode('remote');
+    expect(localStorage.getItem(KEY)).toBe('remote');
+    expect(getStoredPreferredMode()).toBe('remote');
+  });
+
   it('ignores garbage values already in storage', () => {
     localStorage.setItem(KEY, 'phone');
     expect(getStoredPreferredMode()).toBeNull();
@@ -57,16 +63,23 @@ describe('resolveInitialMode (setup-screen precedence)', () => {
   it('?mode= URL param wins over a stored preference', () => {
     expect(resolveInitialMode('pc', 'tv', smartTV)).toBe('pc');
     expect(resolveInitialMode('tv', 'pc', notSmartTV)).toBe('tv');
+    expect(resolveInitialMode('remote', 'pc', notSmartTV)).toBe('remote');
   });
 
   it('a stored preference wins over isSmartTV() when there is no URL param', () => {
     expect(resolveInitialMode(null, 'pc', smartTV)).toBe('pc');
     expect(resolveInitialMode(null, 'tv', notSmartTV)).toBe('tv');
+    expect(resolveInitialMode(null, 'remote', smartTV)).toBe('remote');
   });
 
   it('falls back to isSmartTV() when there is neither a URL param nor a stored preference', () => {
     expect(resolveInitialMode(null, null, smartTV)).toBe('tv');
     expect(resolveInitialMode(null, null, notSmartTV)).toBe('pc');
+  });
+
+  it('never auto-detects "remote" — isSmartTV() only ever falls back to tv or pc', () => {
+    expect(resolveInitialMode(null, null, smartTV)).not.toBe('remote');
+    expect(resolveInitialMode(null, null, notSmartTV)).not.toBe('remote');
   });
 
   it('ignores an unrecognized URL param and falls through to the next tier', () => {

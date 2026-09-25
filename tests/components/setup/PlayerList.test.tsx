@@ -334,3 +334,78 @@ describe('PlayerList — player-name persistence on the setup screen (TODO: "bot
     expect(onUpdatePlayer).not.toHaveBeenCalled();
   });
 });
+
+describe('PlayerList — Remote mode invite link (2026-09-25: a QR code is useless to a player who is not physically in the room)', () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const remotePlayer = createTestPlayer({ id: 'p1', shortId: 'P1', name: 'Alice' });
+
+  const renderRemote = (writeText = vi.fn().mockResolvedValue(undefined)) => {
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(
+      <PlayerList
+        players={[remotePlayer]}
+        onUpdatePlayer={vi.fn()}
+        onRemovePlayer={vi.fn()}
+        onCycleAvatar={vi.fn()}
+        canRemovePlayer={true}
+        hideQR={false}
+        qrRequired={true}
+        mode="remote"
+      />
+    );
+    return writeText;
+  };
+
+  it('shows a "Copy invite link" button for a not-yet-connected remote player', () => {
+    renderRemote();
+    expect(screen.getByRole('button', { name: 'Copy invite link' })).toBeInTheDocument();
+  });
+
+  it('does not show the copy-link button in PC or TV mode', () => {
+    render(
+      <PlayerList
+        players={[remotePlayer]}
+        onUpdatePlayer={vi.fn()}
+        onRemovePlayer={vi.fn()}
+        onCycleAvatar={vi.fn()}
+        canRemovePlayer={true}
+        hideQR={false}
+        qrRequired={true}
+        mode="tv"
+      />
+    );
+    expect(screen.queryByRole('button', { name: 'Copy invite link' })).toBeNull();
+  });
+
+  it('copies a URL carrying ?mode=remote and this player\'s shortId to the clipboard', async () => {
+    const writeText = renderRemote();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy invite link' }));
+
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    const copiedUrl = writeText.mock.calls[0][0] as string;
+    expect(copiedUrl).toContain('mode=remote');
+    expect(copiedUrl).toContain('p=P1');
+  });
+
+  it('shows "Copied!" feedback after a successful copy', async () => {
+    renderRemote();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy invite link' }));
+
+    expect(await screen.findByText('Copied!')).toBeInTheDocument();
+  });
+
+  it('uses "send them this link" wording instead of "scan to join" when required and unmet', () => {
+    renderRemote();
+    expect(screen.getByText(/Required: send them this link/)).toBeInTheDocument();
+    expect(screen.queryByText(/scan to join/)).toBeNull();
+  });
+
+  it('still shows the QR code too (harmless fallback, e.g. a video-call screen-share)', () => {
+    renderRemote();
+    expect(document.querySelector('svg')).toBeInTheDocument();
+  });
+});

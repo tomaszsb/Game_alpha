@@ -10,7 +10,7 @@ import { Player } from '../../types/StateTypes';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 import { isSmartTV, isPhoneScreen } from '../../utils/deviceDetection';
-import { getStoredPreferredMode, resolveInitialMode } from '../../utils/modePreference';
+import { getStoredPreferredMode, resolveInitialMode, PlayMode } from '../../utils/modePreference';
 import { consumeResumeHint } from '../../utils/lastGameMemory';
 import { fetchJoinInfo, buildJoinGameUrl, JoinPickerPlayer } from '../../utils/joinGameFlow';
 import { AvatarIcon } from '../icons/AvatarIcons';
@@ -128,7 +128,7 @@ export function PlayerSetup({
   //      (Tizen/webOS/Android TV/Fire TV/Chromecast/etc). A laptop-into-TV
   //      reports a desktop UA and falls through to PC — the prominent toggle
   //      is the manual fallback for that case.
-  const [selectedMode, setSelectedMode] = useState<'pc' | 'tv'>(() => {
+  const [selectedMode, setSelectedMode] = useState<PlayMode>(() => {
     const urlMode = new URLSearchParams(window.location.search).get('mode');
     return resolveInitialMode(urlMode, getStoredPreferredMode(), isSmartTV);
   });
@@ -210,7 +210,7 @@ export function PlayerSetup({
       token,
       instanceId,
       playerShortId,
-      tvMode: selectedMode === 'tv',
+      mode: selectedMode,
       isPhoneScreen: isPhoneScreen(),
       spectate,
     }));
@@ -330,7 +330,10 @@ export function PlayerSetup({
   const [isClassroomAdminOpen, setIsClassroomAdminOpen] = useState(false);
 
   // Use validation hook with services
-  const validation = usePlayerValidation(players, gameSettings, stateService, gameRulesService, selectedMode === 'tv');
+  const validation = usePlayerValidation(
+    players, gameSettings, stateService, gameRulesService,
+    selectedMode === 'tv' ? 'mobile' : selectedMode === 'remote' ? 'any' : false
+  );
 
   /**
    * Add a new player
@@ -445,17 +448,16 @@ export function PlayerSetup({
       return;
     }
 
-    // Commit the PC/TV mode choice to the URL before starting. Joining an
-    // existing game already wrote the URL; this branch handles the
-    // newly-auto-created-game path. Use history.replaceState to avoid a
+    // Commit the PC/TV/Remote mode choice to the URL before starting.
+    // Joining an existing game already wrote the URL; this branch handles
+    // the newly-auto-created-game path. Use history.replaceState to avoid a
     // reload — the rest of the start flow runs in-process.
     const urlMode = new URLSearchParams(window.location.search).get('mode');
-    const currentlyTV = urlMode === 'tv';
-    if (selectedMode === 'tv' && !currentlyTV) {
+    if (selectedMode !== 'pc' && urlMode !== selectedMode) {
       const url = new URL(window.location.href);
-      url.searchParams.set('mode', 'tv');
+      url.searchParams.set('mode', selectedMode);
       window.history.replaceState({}, '', url.toString());
-    } else if (selectedMode === 'pc' && currentlyTV) {
+    } else if (selectedMode === 'pc' && urlMode) {
       const url = new URL(window.location.href);
       url.searchParams.delete('mode');
       window.history.replaceState({}, '', url.toString());
@@ -466,6 +468,45 @@ export function PlayerSetup({
     try {
       // Filter out players with empty names for the callback
       const validPlayers = players.filter(p => p.name.trim());
+
+      // Remote mode (2026-09-25): unlike PC/TV, no device is the "shared
+      // board" — the device that just clicked Start Game is a player too,
+      // same as everyone else, so it needs its own ?p= view rather than
+      // staying on the generic host screen. By convention it's whoever's
+      // listed first (the person setting this up adds themselves first).
+      //
+      // Set BEFORE calling onStartGame, not after it resolves — this has to
+      // land before gamePhase flips to PLAY, not after, or App.tsx's very
+      // first PLAY-phase render reads the OLD url (still missing ?p=),
+      // renders the generic host screen, and nothing ever re-renders again
+      // just because history.replaceState changed the url out from under
+      // it (that call doesn't itself trigger React to re-render). Setting
+      // it here is still safe against the "?p= redirects to the SETUP
+      // waiting screen" trap: onStartGame(...) below runs its first
+      // synchronous statement (stateService.startGame, which flips
+      // gamePhase) before yielding on its own first await, so JS's own
+      // run-to-completion ordering means React never gets a chance to
+      // render the in-between "?p= set, still SETUP" state — by the time
+      // its scheduler actually flushes, both changes are already in place.
+      //
+      // history.replaceState, NOT a full reload: onStartGame only
+      // guarantees this device's own in-memory StateService reached PLAY —
+      // it does not guarantee the server has persisted that yet (the sync
+      // push is debounced 500ms, see ServerSyncService.debouncedSync). A
+      // location.assign() reload re-fetches state from the server via a
+      // fresh page load and can race that push, landing back on a stale
+      // SETUP screen. Staying in the same in-memory session has no such
+      // race — exactly how TV mode's own mode-commit already avoids a
+      // reload.
+      if (selectedMode === 'remote') {
+        const me = validPlayers[0];
+        if (me?.shortId) {
+          const url = new URL(window.location.href);
+          url.searchParams.set('p', me.shortId);
+          window.history.replaceState({}, '', url.toString());
+        }
+      }
+
       await onStartGame(validPlayers, gameSettings);
     } catch (error) {
       console.error('Error starting game:', error);
@@ -949,6 +990,21 @@ export function PlayerSetup({
                 </>
               )}
 
+              {/* Remote mode (2026-09-25): nobody's device is the shared
+                  board, so whoever is setting this up needs to know which
+                  player they'll become once the game starts — by
+                  convention, the first one listed (see handleStartGame). */}
+              {selectedMode === 'remote' && players.length > 0 && (
+                <p style={{
+                  fontSize: '0.8rem',
+                  color: colors.secondary.main,
+                  fontStyle: 'italic',
+                  margin: '0 0 0.5rem 0',
+                }}>
+                  {"You'll play as"} {players[0].name.trim() || 'the first player'} on this device — add everyone else below, then send each of them their own invite link.
+                </p>
+              )}
+
               {/* Scrollbar is forced always-visible ('scroll') only in TV mode —
                   fb:fc65c217, a TV remote can't hover to reveal an 'auto'
                   scrollbar. In PC mode 'auto' avoids showing a scrollbar/gutter
@@ -973,20 +1029,21 @@ export function PlayerSetup({
                   onCycleAvatar={handleCycleAvatar}
                   canRemovePlayer={validation.canRemovePlayer}
                   hideQR={false}
-                  qrRequired={selectedMode === 'tv'}
+                  qrRequired={selectedMode === 'tv' || selectedMode === 'remote'}
                   compact={selectedMode === 'tv'}
+                  mode={selectedMode}
                 />
               </div>
             </>
           )}
 
-          {/* TV mode: the start blocker must be VISIBLE, not a hover
+          {/* TV/Remote mode: the start blocker must be VISIBLE, not a hover
               tooltip — real players stood at the TV complaining they
               couldn't start, because nothing on screen said their phones
               hadn't scanned in yet (maintainer report 2026-07-16). Lists
               the actual stragglers by name; aria-live so it's announced
-              as phones connect. */}
-          {entryMode === 'new' && selectedMode === 'tv' && validation.waitingOnPhoneNames.length > 0 && (
+              as phones/remote players connect. */}
+          {entryMode === 'new' && (selectedMode === 'tv' || selectedMode === 'remote') && validation.waitingOnPhoneNames.length > 0 && (
             <div
               aria-live="polite"
               style={{
@@ -1003,7 +1060,7 @@ export function PlayerSetup({
                 gap: '0.4em',
               }}
             >
-              <IconPhone size="1em" /> Waiting for {validation.waitingOnPhoneNames.join(', ')} to scan their QR code — the game starts once every phone is in.
+              <IconPhone size="1em" /> Waiting for {validation.waitingOnPhoneNames.join(', ')} to {selectedMode === 'remote' ? 'open their invite link' : 'scan their QR code'} — the game starts once everyone is in.
             </div>
           )}
 
@@ -1080,8 +1137,8 @@ export function PlayerSetup({
                 {entryMode === 'new' ? (
                   isStarting ? (
                     <><IconHourglass size="1em" /> Starting…</>
-                  ) : (selectedMode === 'tv' && validation.waitingOnPhoneNames.length > 0) ? (
-                    <><IconPhone size="1em" /> Waiting for phones…</>
+                  ) : ((selectedMode === 'tv' || selectedMode === 'remote') && validation.waitingOnPhoneNames.length > 0) ? (
+                    <><IconPhone size="1em" /> Waiting for players…</>
                   ) : (
                     <><IconPlay size="1em" /> Start Game</>
                   )

@@ -8,6 +8,7 @@
 // are thin wrappers that call these and setState based on the result.
 
 import { getBackendURL } from './networkDetection';
+import { PlayMode } from './modePreference';
 
 export interface JoinPickerPlayer {
   id: string;
@@ -71,7 +72,9 @@ export interface BuildJoinUrlOptions {
   token: string;
   instanceId?: string;
   playerShortId?: string;
-  tvMode: boolean;
+  /** 'pc' clears any ?mode= param (the ambient default); 'tv'/'remote' set
+   *  it so a fresh join carries the game's chosen mode forward. */
+  mode: PlayMode;
   /** Whether the physical screen is phone-sized — gates ?p= (fb:3a5280d8):
    * picking a player on a PC/TV must not set ?p=, which GameLayout reads as
    * "show the phone-only stripped panel," wiping out the board on desktop. */
@@ -96,7 +99,7 @@ export function buildJoinGameUrl(opts: BuildJoinUrlOptions): string {
   else url.searchParams.delete('i');
   if (opts.playerShortId && opts.isPhoneScreen) url.searchParams.set('p', opts.playerShortId);
   else url.searchParams.delete('p');
-  if (opts.tvMode) url.searchParams.set('mode', 'tv');
+  if (opts.mode !== 'pc') url.searchParams.set('mode', opts.mode);
   else url.searchParams.delete('mode');
   if (opts.spectate) url.searchParams.set('spectate', '1');
   else url.searchParams.delete('spectate');

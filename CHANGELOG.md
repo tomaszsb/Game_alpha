@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.81] - 2026-09-25
+
+### Remote play mode — a real third way to play, for players in separate locations
+
+**Where this came from.** TODO's own framing, verified against the code before writing anything: *"Build the 'Remote' play mode — a real third mode for players in genuinely separate locations, distinct from both PC ('shared screen') and TV ('shared screen + phone controllers'), which both still assume one physical hub device. Join-by-code + WebSocket state sync already work from anywhere; what's genuinely missing is a mode where NO device is the 'shared board' — every connected player needs their own board view."* The "Remote" button already existed on the setup screen (v3.0.136) but was a hardcoded placeholder — tapping it just flipped its own subtitle to "Coming soon!" and did nothing else; it never touched `modePreference.ts`, never navigated, never wired into anything.
+
+**What was actually missing turned out to be smaller than it looked.** A pre-existing, board-less, panel-only phone view (`PlayerPanelWrapper`/`PlayerPanelV2`, reached via `?p=<shortId>` regardless of PC/TV mode) already worked from anywhere — join-by-code, QR/share links, and full-state WebSocket broadcast already had no location assumption baked in. The real gap was narrower: give that same per-player screen its own board too, and make sure nobody has to keep a "shared board" device open to host it.
+
+**Player-visible.** The "Remote" button on the setup screen is real now — pick it like PC or TV. Add every player's name up front, same as always; **you (whoever clicks Start) play as the first name in the list** — the screen says so plainly before you start. Every other added player gets a **"Copy invite link"** button next to their card instead of a QR code (a QR code is useless to someone who isn't in the room to scan it) — copy it and send it however you'd send anyone a link. Once everyone's opened their link and pressed Start, **nobody's phone or computer has to stay on a shared screen** — every device shows its own board (a strip across the top) with that player's own stats below it, and the board auto-follows whichever player's turn it is, live. Dragging/swiping the board now pans it (previously only available in the board editor).
+
+**How, for anyone touching this later.**
+- `PlayMode` (`modePreference.ts`) widened from `'pc' | 'tv'` to add `'remote'` — every mode-typed prop across `ModeToggle`, `PlayerSetup`, `AdminToolsPanel`, and the `?mode=` URL contract (`joinGameFlow.ts`'s `buildJoinGameUrl`, `networkDetection.ts`'s `getServerURL`) follows.
+- `usePlayerValidation`'s TV-only `requirePhones: boolean` widened to `requireJoin: false | 'mobile' | 'any'` — Remote accepts any `deviceType` (a laptop is a valid remote device, not just a phone), and **exempts the first named player** from the "must have joined" check, since that player is "this device," which can only get a `deviceType` *after* Start Game — requiring it upfront would be a deadlock nothing could ever satisfy.
+- `PlayerSetup.tsx`'s `handleStartGame`: on Start with Remote selected, sets `?p=<firstPlayer.shortId>` on **this device's own URL** via `history.replaceState` — critically, **before** calling `onStartGame`, not after it resolves. `onStartGame`'s first synchronous statement flips `gamePhase` to PLAY before it hits its own first `await`, so ordering the URL update ahead of that call (both still inside the same click handler, before anything yields) means React's batched re-render sees the new URL and PLAY phase together — never an in-between render, and never a redirect that lands back on a stale SETUP screen. (A full-page reload was tried first and rejected: the server sync is debounced 500ms, so a reload can race it and fetch back stale state — a `history.replaceState`-only approach that stays in the same in-memory session has no such race.)
+- `GameLayout.tsx`'s existing phone-only PLAY-phase branch gained a `BoardCanvas` (only when `?mode=remote`), stacked above `PlayerPanelWrapper` in a flex column — the panel keeps its own untouched, fully scrollable layout below a fixed-height board strip.
+- `BoardCanvas.tsx` gained an `allowPan` prop (default off — PC/TV behavior is byte-for-byte unchanged) enabling drag/swipe panning for this one new caller; the existing `panOnDrag={isAdmin}` mouse-drag-eats-clicks concern is a left-click-vs-click ambiguity that doesn't apply the same way to a touch tap-vs-swipe.
+
+**Verified end-to-end in a real headless Chromium** against the dev servers (not just unit tests): a host set up a 2-player Remote game, copied the second player's invite link via the real clipboard, opened it in a second phone-width (390×844) browser tab, joined, and — back on the host tab — pressed Start. Confirmed via real DOM inspection: the host's own tab (1280px wide) landed on `?mode=remote&p=<hostId>` showing its own board+panel (not the generic PC host screen — checked for the absence of the desktop layout's own marker classes), and the second tab independently rendered its own board (`.react-flow` present) and panel, both showing the same live game state, with neither ever needing to stay on a "shared" screen.
+
+**Tests (+30, one new file `usePlayerValidation.test.ts`).** Typecheck ✅, lint 0 errors, build ✅, `npm test` full suite green (222 files / 3443 tests — no game logic touched, so nothing else could regress).
+
+**To undo:** revert this commit alone; touches `modePreference.ts`, `ModeToggle.tsx`, `AdminToolsPanel.tsx`, `PlayerList.tsx`, `PlayerSetup.tsx`, `usePlayerValidation.ts`, `joinGameFlow.ts`, `networkDetection.ts`, `GameLayout.tsx`, `BoardCanvas.tsx`, and their tests — no server, schema, or WebSocket changes anywhere.
+
 ## [3.2.76] - 2026-09-25
 
 ### Bank Review now charges what it says — 1 day per $200K of the loan on the table (Tom, words untouched)

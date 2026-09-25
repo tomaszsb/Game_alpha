@@ -66,9 +66,13 @@ export function usePlayerValidation(
   gameSettings: GameSettings,
   stateService: IStateService,
   gameRulesService: IGameRulesService,
-  // v3.0.25: when true (TV mode), every player must have connected a phone
-  // (deviceType === 'mobile') before the game can start. PC mode passes false.
-  requirePhones: boolean = false
+  // v3.0.25: 'mobile' (TV mode) requires every player to have connected
+  // specifically a phone (deviceType === 'mobile') before the game can
+  // start. 'any' (Remote mode, added Job "Remote play mode" 2026-09-25)
+  // requires every player to have connected SOME device — a remote player
+  // may join from a laptop, not only a phone, so deviceType==='mobile' is
+  // too strict a check for them. false (PC mode) requires nothing.
+  requireJoin: false | 'mobile' | 'any' = false
 ) {
   
   /**
@@ -151,12 +155,21 @@ export function usePlayerValidation(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players.length, stateService]);
 
+  // Remote mode only: by convention (PlayerSetup.tsx's handleStartGame),
+  // the first named player is "this device" — the one about to click Start
+  // Game, who can only get a deviceType AFTER starting. Exempting them from
+  // the join-required check below is what makes that convention startable
+  // at all; without it, nothing could ever satisfy the check. TV mode has
+  // no such exemption — computed here (not inside validateGameStart) so
+  // waitingOnPhoneNames below can share the exact same id.
+  const remoteHostPlayerId = requireJoin === 'any' ? players.find(p => p.name.trim())?.id : undefined;
+
   /**
    * Validate if players can start the game
    */
   const validateGameStart = (): ValidationResult => {
     const validPlayers = players.filter(p => p.name.trim());
-    
+
     if (validPlayers.length === 0) {
       return {
         isValid: false,
@@ -172,16 +185,24 @@ export function usePlayerValidation(
       };
     }
 
-    // TV mode (v3.0.25): every player must have joined from a phone before
-    // the game can start. Players who haven't connected yet have no
-    // deviceType (or a non-'mobile' one). List the stragglers by name.
-    if (requirePhones) {
-      const notConnected = validPlayers.filter(p => p.deviceType !== 'mobile');
+    // TV mode (v3.0.25) / Remote mode (2026-09-25): every player must have
+    // joined from their own device before the game can start (Remote's
+    // "this device" host exempted — see remoteHostPlayerId above). Players
+    // who haven't connected yet have no deviceType (TV requires 'mobile'
+    // specifically; Remote accepts any deviceType). List the stragglers by
+    // name.
+    if (requireJoin) {
+      const notConnected = validPlayers.filter(p =>
+        p.id !== remoteHostPlayerId && (requireJoin === 'mobile' ? p.deviceType !== 'mobile' : !p.deviceType)
+      );
       if (notConnected.length > 0) {
         const names = notConnected.map(p => p.name.trim()).join(', ');
+        const how = requireJoin === 'mobile'
+          ? 'Each player scans their QR code to join.'
+          : "Each player opens their own invite link to join.";
         return {
           isValid: false,
-          errorMessage: `All players must connect their phone before starting. Waiting on: ${names}. Each player scans their QR code to join.`
+          errorMessage: `All players must join from their own device before starting. Waiting on: ${names}. ${how}`
         };
       }
     }
@@ -190,14 +211,18 @@ export function usePlayerValidation(
   };
 
   /**
-   * TV mode: names of valid players whose phone hasn't joined yet (no
-   * 'mobile' deviceType). Empty when phones aren't required or everyone's
-   * in. Same predicate as validateGameStart's phone gate — kept here so the
-   * visible "waiting for X to scan" banner (fb: real players never saw the
-   * tooltip-only reason) can't drift from what actually blocks the start.
+   * TV/Remote mode: names of valid players who haven't joined yet (no
+   * deviceType, or the wrong one for TV specifically; Remote's own host
+   * exempted, same as validateGameStart). Empty when a join isn't required
+   * or everyone's in. Same predicate as validateGameStart's join gate —
+   * kept here so the visible "waiting for X" banner (fb: real players never
+   * saw the tooltip-only reason) can't drift from what actually blocks the
+   * start.
    */
-  const waitingOnPhoneNames: string[] = requirePhones
-    ? players.filter(p => p.name.trim() && p.deviceType !== 'mobile').map(p => p.name.trim())
+  const waitingOnPhoneNames: string[] = requireJoin
+    ? players
+        .filter(p => p.name.trim() && p.id !== remoteHostPlayerId && (requireJoin === 'mobile' ? p.deviceType !== 'mobile' : !p.deviceType))
+        .map(p => p.name.trim())
     : [];
 
   /**

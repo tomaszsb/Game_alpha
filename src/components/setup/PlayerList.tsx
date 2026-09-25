@@ -1,11 +1,12 @@
 // src/components/setup/PlayerList.tsx
 
-import React from 'react';
+import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { ColorOption, AVAILABLE_COLORS } from './usePlayerValidation';
 import { getServerURL, getNetworkInfo } from '../../utils/networkDetection';
+import { PlayMode } from '../../utils/modePreference';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { IconCheck, IconWarning, IconPeople } from '../icons/SetupIcons';
 
@@ -30,6 +31,12 @@ interface PlayerListProps {
       fb: TV real-hardware feedback, 2026-07-15 (two rounds — the first
       shrink wasn't enough once the TV's real 960x540 resolution came in). */
   compact?: boolean;
+  /** Remote mode (2026-09-25): a QR code is useless for a player who isn't
+   *  physically in the room to scan one — this swaps the per-player QR for
+   *  a "Copy invite link" button (to paste into a text/chat message) and
+   *  carries ?mode=remote onto the link so their device knows to render its
+   *  own board once it joins (see GameLayout.tsx's remote board branch). */
+  mode?: PlayMode;
 }
 
 /**
@@ -44,8 +51,25 @@ export function PlayerList({
   canRemovePlayer,
   hideQR = false,
   qrRequired = false,
-  compact = false
+  compact = false,
+  mode
 }: PlayerListProps): JSX.Element {
+  // Remote mode: which player's "Copy invite link" button most recently
+  // showed "Copied!" feedback — one row at a time, same pattern as
+  // ShareGameButton's own copied-state.
+  const [copiedPlayerId, setCopiedPlayerId] = useState<string | null>(null);
+
+  const copyInviteLink = (player: Player, url: string): void => {
+    void (async () => {
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopiedPlayerId(player.id);
+        setTimeout(() => setCopiedPlayerId(prev => (prev === player.id ? null : prev)), 2000);
+      } catch {
+        /* clipboard unavailable — the link is still visible/selectable via the QR fallback below */
+      }
+    })();
+  };
 
   /**
    * Handle input focus styling
@@ -154,7 +178,7 @@ export function PlayerList({
    * Render individual player card
    */
   const renderPlayerCard = (player: Player) => {
-    const playerURL = getServerURL(player.id, player.shortId);
+    const playerURL = getServerURL(player.id, player.shortId, undefined, mode);
     const networkInfo = getNetworkInfo();
 
     const qrSize = compact ? 44 : 100;
@@ -393,6 +417,32 @@ export function PlayerList({
                     style={{ width: '100%', height: 'auto', maxWidth: `${qrSize}px` }}
                   />
                 </div>
+                {/* Remote mode (2026-09-25): a QR code is useless to a
+                    player who isn't physically in the room — the real
+                    invite mechanism is a link sent by text/chat. The QR
+                    stays too (a video-call screen-share could still use it,
+                    and it's a harmless fallback if the clipboard write
+                    below fails), but the button is the primary affordance. */}
+                {mode === 'remote' && (
+                  <button
+                    type="button"
+                    onClick={() => copyInviteLink(player, playerURL)}
+                    style={{
+                      marginTop: '0.35rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '0.3rem 0.6rem',
+                      borderRadius: '6px',
+                      border: `2px solid ${player.color || colors.primary.main}`,
+                      background: copiedPlayerId === player.id ? (player.color || colors.primary.main) : 'white',
+                      color: copiedPlayerId === player.id ? 'white' : (player.color || colors.primary.main),
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {copiedPlayerId === player.id ? <><IconCheck size="0.9em" /> Copied!</> : 'Copy invite link'}
+                  </button>
+                )}
                 {/* Compact (TV) mode drops this label entirely rather than
                     shrinking it further — compact only ever renders in TV
                     mode, where qrRequired is always true anyway (see
@@ -414,7 +464,9 @@ export function PlayerList({
                     justifyContent: 'center',
                     gap: '0.25em',
                   }}>
-                    {qrRequired ? <><IconWarning size="0.9em" /> Required: scan to join</> : 'Optional: scan for personal screen'}
+                    {mode === 'remote'
+                      ? (qrRequired ? <><IconWarning size="0.9em" /> Required: send them this link</> : 'Optional: send them this link')
+                      : (qrRequired ? <><IconWarning size="0.9em" /> Required: scan to join</> : 'Optional: scan for personal screen')}
                   </div>
                 )}
               </div>

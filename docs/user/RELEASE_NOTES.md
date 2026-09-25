@@ -2,6 +2,12 @@
 
 ---
 
+## v3.2.81 — A real way to play from different places (September 25, 2026)
+
+- **"Remote" is a real option now, not a "coming soon" button.** Pick it like PC or TV. Add everyone's name like normal — you'll play as the first name on the list. Everyone else gets their own link to open on their own phone or computer, wherever they are.
+- **Nobody has to keep one screen open for the whole table to look at.** Once everyone's joined, every device shows its own board and its own stats, at the same time, following the game live.
+- **You can now drag or swipe the board to look around**, on a Remote screen.
+
 ## v3.2.76 — The bank now takes as long as it says (September 25, 2026)
 
 - **At Bank Review, the time you spend now grows with the loan, just like the tile says: 1 day for every $200K.** Until now every visit cost a single day, whatever the bank offered. A $1.4M loan now takes 7 days, a $2.75M loan 14, and the largest offers about 20. A part of a $200K still counts as a full block, so $500K is 3 days.

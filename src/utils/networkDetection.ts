@@ -1,6 +1,7 @@
 // src/utils/networkDetection.ts
 
 import { debugLog, debugWarn } from './debugLog';
+import { PlayMode } from './modePreference';
 
 /**
  * Network detection utilities for multi-device support
@@ -32,6 +33,9 @@ export function getCurrentGameToken(): string | undefined {
  * @param playerId Optional player ID or short ID to include in URL
  * @param shortId Optional short ID to use for URL (e.g., "P1" instead of full ID)
  * @param gameId Optional game ID to include in URL (e.g., "G1")
+ * @param mode Optional play mode — 'tv'/'remote' are carried onto the link
+ *   as ?mode=; 'pc' (or omitted) carries nothing, same as today, since PC
+ *   is the ambient default a bare join link already falls back to.
  * @returns Full URL to access the app (with optional player and game parameters)
  *
  * @example
@@ -41,7 +45,7 @@ export function getCurrentGameToken(): string | undefined {
  * getServerURL("player_123", "P1", "G1")
  * // => "http://192.168.1.100:3000?g=G1&p=P1"
  */
-export function getServerURL(playerId?: string, shortId?: string, gameId?: string): string {
+export function getServerURL(playerId?: string, shortId?: string, gameId?: string, mode?: PlayMode): string {
   // Use window.location to get the actual hostname and port
   // This will be the network IP when running with `npm run dev -- --host`
   const protocol = window.location.protocol; // http: or https:
@@ -73,6 +77,10 @@ export function getServerURL(playerId?: string, shortId?: string, gameId?: strin
     params.set('p', shortId);
   } else if (playerId) {
     params.set('playerId', playerId);
+  }
+
+  if (mode && mode !== 'pc') {
+    params.set('mode', mode);
   }
 
   const queryString = params.toString();

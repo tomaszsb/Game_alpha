@@ -1021,6 +1021,17 @@ interface BoardCanvasProps {
    *  (fires in PC/desktop view, where the Chronicle and board share a
    *  screen); ignored in admin/edit mode. */
   focusRequest?: { spaceId: string; token: number } | null;
+  /** Remote mode (2026-09-25): lets a non-admin viewer drag/swipe-pan the
+   *  canvas. Off by default (PC/TV keep the existing behavior below) — a
+   *  small phone-sized board strip genuinely needs panning that the
+   *  Controls' arrow buttons alone don't comfortably give it, whereas
+   *  PC/TV's board fills most or all of the screen and centerOnCurrent/
+   *  fitView already keep it usable without one. The mousedown-eats-
+   *  click concern the isAdmin gate below exists for is a MOUSE
+   *  left-drag-vs-click ambiguity; it doesn't apply the same way to a
+   *  touch tap-vs-swipe, which React Flow already distinguishes by
+   *  movement distance. */
+  allowPan?: boolean;
 }
 
 function BoardCanvasInner({
@@ -1041,6 +1052,7 @@ function BoardCanvasInner({
   centerOnCurrent = false,
   focusRequest,
   mode: modeProp,
+  allowPan = false,
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
   const { getViewport, setViewport, fitView, setCenter } = useReactFlow();
@@ -1812,12 +1824,14 @@ function BoardCanvasInner({
         // onClick never fired (the hover-to-expand + click-to-expand bug).
         // We don't render any selection UI, so allowing selection is invisible.
         elementsSelectable={true}
-        // panOnDrag only in admin mode. During gameplay, canvas pan-on-drag
-        // would consume mousedown on tiles before our hover/click handlers
-        // could see them. Players can use the Controls (bottom-left) zoom +
-        // fit buttons to navigate; the board's fitView keeps it usable
-        // without manual panning.
-        panOnDrag={isAdmin}
+        // panOnDrag only in admin mode, or where allowPan opts a specific
+        // non-admin usage back in (Remote mode's phone board — see its own
+        // doc comment on the prop). During ordinary PC/TV gameplay, canvas
+        // pan-on-drag would consume mousedown on tiles before our
+        // hover/click handlers could see them. Those players can use the
+        // Controls (bottom-left) zoom + fit buttons to navigate; the
+        // board's fitView keeps it usable without manual panning.
+        panOnDrag={isAdmin || allowPan}
         edgesFocusable={isAdmin}
         snapToGrid={isAdmin}
         snapGrid={[10, 10]}
