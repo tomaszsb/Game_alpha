@@ -1431,6 +1431,122 @@ describe('PlayerPanelV2 — commit spine names the gate that is actually open (2
   });
 });
 
+// TODO.md "Decisions waiting on the user" #6, confirmed 2026-09-26: switch on
+// the 24 pre-authored `choice` rows in ACTION_TOOLTIPS.csv — "why go here" for
+// each destination on a Pick-Your-Path space — using the same "What's this?"
+// disclosure pattern the action rows already have. getMovementChoiceTooltip
+// (buttonFormatting.ts) and TooltipService.getMovementTooltip already existed
+// and were fully wired to the CSV; nothing called either one from the UI.
+describe('PlayerPanelV2 — destination picker explains each option (TODO #6, "Pick Your Path")', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const TOOLTIPS_CSV = readFileSync(
+    join(process.cwd(), 'public', 'data', 'CLEAN_FILES', 'ACTION_TOOLTIPS.csv'), 'utf-8');
+
+  beforeEach(async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, text: () => Promise.resolve(TOOLTIPS_CSV),
+    }) as unknown as typeof fetch;
+    await initializeTooltipService().loadTooltips();
+  });
+  afterEach(() => {
+    resetTooltipService();
+    cleanup();
+  });
+
+  const setup = () => {
+    vi.clearAllMocks();
+    services = createAllMockServices();
+    const player: any = {
+      id: 'player1', name: 'Test Player', currentSpace: 'PM-DECISION-CHECK',
+      visitType: 'First', money: 100000, timeSpent: 5, color: '#007bff',
+      hand: [], activeCards: [], activeEffects: [], loans: [],
+      dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null,
+    };
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true,
+      awaitingChoice: { type: 'MOVEMENT', options: [
+        { id: 'LEND-SCOPE-CHECK', label: 'Lender' },
+        { id: 'ARCH-INITIATION', label: 'Architect' },
+        { id: 'CHEAT-BYPASS', label: 'Shortcut' },
+      ] },
+      requiredActions: 1, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Pick Your Path', story: '' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue([]);
+    services.dataService.getMovement.mockReturnValue({ movement_type: 'choice' });
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockReturnValue(null);
+  };
+
+  const renderPanel = () =>
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+
+  it('offers a "What\'s this?" next to each destination, closed until asked', () => {
+    setup();
+    renderPanel();
+
+    // The picker is already open (the pick is the only thing left on this
+    // space) — three destinations, three disclosures, none open yet.
+    expect(screen.getAllByTestId('move-option')).toHaveLength(3);
+    expect(screen.queryByText(/Visit the lender to negotiate/i)).not.toBeInTheDocument();
+  });
+
+  it('shows that destination\'s own authored "why go here" text, not another one\'s', () => {
+    setup();
+    renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: /What's this\? Lender/i }));
+    expect(screen.getByText(/Visit the lender to negotiate scope changes tied to funding requirements/i))
+      .toBeInTheDocument();
+    // Architect's own row must not also be showing.
+    expect(screen.queryByText(/Begin or continue architectural design phase/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the grey context line alongside the why line', () => {
+    setup();
+    renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: /What's this\? Architect/i }));
+    expect(screen.getByText(/Required before engineering/i)).toBeInTheDocument();
+  });
+
+  it('closes a destination\'s card when a different one\'s "?" is opened (one open at a time)', () => {
+    setup();
+    renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: /What's this\? Lender/i }));
+    expect(screen.getByText(/Visit the lender to negotiate/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /What's this\? Architect/i }));
+    expect(screen.queryByText(/Visit the lender to negotiate/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Begin or continue architectural design phase/i)).toBeInTheDocument();
+  });
+
+  it('toggles the same destination\'s card shut on a second press', () => {
+    setup();
+    renderPanel();
+
+    const toggle = screen.getByRole('button', { name: /What's this\? Shortcut/i });
+    fireEvent.click(toggle);
+    expect(screen.getByText(/Attempt to bypass normal approval processes/i)).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    expect(screen.queryByText(/Attempt to bypass normal approval processes/i)).not.toBeInTheDocument();
+  });
+});
+
 /**
  * Teaching layer — the per-action "What's this?" disclosure (Onboarding Phase C).
  *
