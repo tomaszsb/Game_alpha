@@ -65,7 +65,7 @@ import { Player } from '../../types/DataTypes';
 import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, formatEdgeLabel, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, resolveDestinationHighlight, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX, TV_TARGET_MIN_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
-import { resolveFundingAmountToken } from '../../utils/templateInterpolation';
+import { resolveFundingAmountTokenForPreview } from '../../utils/templateInterpolation';
 // Dark/light mode coverage (TODO.md) — BoardCanvas is mounted in GameLayout
 // as a SIBLING of PlayerPanelWrapper (same PLAY-phase render, same screen,
 // same player who owns the dark-mode toggle in their own panel), so unlike
@@ -132,11 +132,13 @@ interface BoardNodeData {
   //     once the CURRENT (active-turn) player has visited it before,
   //     instead of staying frozen on the First-visit text baked into the
   //     initial node build.
-  //  2. {fundingAmount}-resolved via the same resolveFundingAmountToken()
-  //     the sidebar (PlayerPanelV2) and the dice/action modals already
-  //     use — this is what fb (playtest, HIGH) reported missing: the
-  //     board tile rendered `story` directly and so never substituted
-  //     {fundingAmount}, unlike those other two surfaces.
+  //  2. {fundingAmount}-resolved via resolveFundingAmountTokenForPreview()
+  //     — the same resolution the sidebar (PlayerPanelV2) and the dice/
+  //     action modals use, plus dropping the sentence entirely while the
+  //     amount is still unknown (a not-yet-visited funding space). This is
+  //     what fb (playtest, HIGH) reported missing: the board tile rendered
+  //     `story` directly and so never substituted {fundingAmount}, unlike
+  //     those other two surfaces.
   // Falls back to the pristine `story` (First-visit) if a Subsequent row
   // isn't authored for that space, so nothing goes blank.
   displayStory?: string;
@@ -1444,8 +1446,13 @@ function BoardCanvasInner({
     // templateInterpolation.ts at all, unlike every other surface that
     // quotes the same story text. Resolve it here, in the one place that
     // already recomputes per-player-state fields on every players/
-    // currentPlayerId change, using the SAME resolveFundingAmountToken()
-    // helper the sidebar/modals use (no parallel templating logic).
+    // currentPlayerId change, using resolveFundingAmountTokenForPreview() —
+    // the sidebar/modals' resolveFundingAmountToken(), plus one more step
+    // for this being a PREVIEW surface: TODO.md "Decisions waiting on the
+    // user" #7 (confirmed 2026-09-26), before a not-yet-visited funding
+    // space's amount is known it drops the sentence quoting it rather than
+    // showing a blank ("Here's what I'm putting in — ."). Same underlying
+    // resolution, no parallel templating logic.
     // `n.data.story` is intentionally never overwritten (see its doc
     // comment) so this always re-derives from the pristine template —
     // otherwise a first resolve to "" (no funds yet) would permanently
@@ -1477,7 +1484,7 @@ function BoardCanvasInner({
       const baseStory = content?.story ?? n.data.story;
       const actionDescription = content?.action_description ?? n.data.actionDescription;
       const displayStory = baseStory
-        ? resolveFundingAmountToken(baseStory, activePlayer || {}, fundingSource)
+        ? resolveFundingAmountTokenForPreview(baseStory, activePlayer || {}, fundingSource)
         : baseStory;
       const destinationHighlight = resolveDestinationHighlight({
         spaceId: n.id, validMoves, pickedMove, previewMove, isAdmin,

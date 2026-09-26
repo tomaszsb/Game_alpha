@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   interpolateTemplate,
   resolveFundingAmountToken,
+  resolveFundingAmountTokenForPreview,
   getCardDescriptionForPlayerCount,
 } from '../../src/utils/templateInterpolation';
 
@@ -120,6 +121,51 @@ describe('resolveFundingAmountToken', () => {
     const once = resolveFundingAmountToken(OWNER_STORY, player, 'owner');
     const twice = resolveFundingAmountToken(once, player, 'owner');
     expect(twice).toBe(once);
+  });
+});
+
+// resolveFundingAmountTokenForPreview — TODO.md "Decisions waiting on the
+// user" #7 (confirmed 2026-09-26): the board tile's hover/expand PREVIEW of
+// an as-yet-unvisited funding space used to show a blank-amount sentence
+// ("Here's what I'm putting in — . Look it over.") before the player had
+// that source's money. This drops the sentence quoting the token instead —
+// no new words, and every other sentence is untouched.
+describe('resolveFundingAmountTokenForPreview', () => {
+  const OWNER_STORY =
+    "Here's what I'm putting in — {fundingAmount}. Look it over. " +
+    "I'm not negotiating against myself — but if you've got a real reason to push back, I'll hear it.";
+  const BANK_SUBSEQUENT_STORY =
+    "You're back with us. We've already reviewed this project once for {fundingAmount} — second pass " +
+    'means a closer look and a tighter rate. Patience is shorter on this side too.';
+
+  it('drops the sentence quoting the token when nothing has been granted yet', () => {
+    expect(resolveFundingAmountTokenForPreview(OWNER_STORY, {}, 'owner')).toBe(
+      "Look it over. I'm not negotiating against myself — but if you've got a real reason to push back, I'll hear it.",
+    );
+  });
+
+  it('drops only the sentence containing the token, not the first sentence unconditionally', () => {
+    const player = { moneySources: { ownerFunding: 0, bankLoans: 0, investmentDeals: 0, other: 0 } };
+    expect(resolveFundingAmountTokenForPreview(BANK_SUBSEQUENT_STORY, player, 'bank')).toBe(
+      "You're back with us. Patience is shorter on this side too.",
+    );
+  });
+
+  it('shows the real dollar figure, untouched, once the amount is known', () => {
+    const player = { moneySources: { ownerFunding: 50000, bankLoans: 0, investmentDeals: 0, other: 0 } };
+    expect(resolveFundingAmountTokenForPreview(OWNER_STORY, player, 'owner')).toBe(
+      "Here's what I'm putting in — $50,000. Look it over. " +
+      "I'm not negotiating against myself — but if you've got a real reason to push back, I'll hear it.",
+    );
+  });
+
+  it('leaves a story with no {fundingAmount} token completely untouched', () => {
+    expect(resolveFundingAmountTokenForPreview('Plain story, no token here.', {}, 'owner'))
+      .toBe('Plain story, no token here.');
+  });
+
+  it('never blanks the whole tile if every sentence somehow quoted the token', () => {
+    expect(resolveFundingAmountTokenForPreview('Just {fundingAmount}.', {}, 'owner')).toBe('Just .');
   });
 });
 
