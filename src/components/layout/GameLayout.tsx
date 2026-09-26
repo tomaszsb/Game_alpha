@@ -540,6 +540,14 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // Use prop if provided, otherwise use state
   const effectiveViewPlayerId = viewPlayerId || viewPlayerIdFromState;
 
+  // Remote mode (2026-09-25): the only signal GameLayout has for "am I a
+  // remote player's own device" — unlike TV, which is a whole separate
+  // component (TVDisplay), Remote mode reuses this same phone-panel branch
+  // and just adds a board to it. Read once; this device's own URL carries
+  // ?mode=remote for the rest of the session once it lands here (same
+  // history-persistence TV mode already relies on).
+  const isRemoteMode = new URLSearchParams(window.location.search).get('mode') === 'remote';
+
   // Phone-view: track WebSocket connection state so we can show a
   // "Reconnecting…" banner when the phone loses the server. Only
   // relevant in phone view (effectiveViewPlayerId set). fb:TODO-216.
@@ -1225,7 +1233,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           instance covers both the mobile and desktop branches below. */}
       <ShutdownNotice />
 
-      {/* Mobile View Mode - Show only player panel */}
+      {/* Mobile View Mode - Show only player panel (Remote mode also gets a
+          board — see isRemoteMode above; TV's phone/controller view never
+          does, it's read-only-board-on-the-TV by design). */}
       {effectiveViewPlayerId && gamePhase === 'PLAY' && (
         <div
           style={{
@@ -1240,9 +1250,38 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             overflowY: 'hidden',
             overflowX: 'hidden',
             WebkitOverflowScrolling: 'touch',
-            position: 'relative'
+            position: 'relative',
+            ...(isRemoteMode ? { display: 'flex', flexDirection: 'column' as const } : {}),
           }}
         >
+          {/* Remote mode's own board — the thing no other phone view has
+              ever needed, because TV mode's board lives on the shared TV
+              and PC mode has no per-player view at all. Fixed-height strip
+              on top so the panel below (Money/Time/Actions/etc.) keeps its
+              own normal, fully scrollable layout untouched. Auto-follows
+              whoever's turn it is, same centerOnCurrent behavior TVDisplay
+              already uses — a remote player watching their phone wants to
+              see the game move, not just their own tile. */}
+          {isRemoteMode && (
+            <div style={{
+              flex: '0 0 auto',
+              height: '38vh',
+              minHeight: 200,
+              position: 'relative',
+              borderBottom: `2px solid ${colors.secondary.light}`,
+              background: colors.secondary.bg,
+            }}>
+              <BoardCanvas
+                currentPlayerId={currentPlayerId}
+                players={players}
+                isAdmin={false}
+                edgesVisible={true}
+                centerOnCurrent={true}
+                allowPan={true}
+                focusRequest={boardFocusRequest}
+              />
+            </div>
+          )}
           {/* Which classroom this game belongs to (fb:75bec2bc) — a corner
               chip so a student always knows they're on their teacher's board,
               not the public one. Hidden on the default classroom. */}
@@ -1265,6 +1304,13 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               {connectionState === 'reconnecting' ? '🔄 Reconnecting to game…' : '⚠️ Connection lost — pull down to retry'}
             </div>
           )}
+          {/* Outside Remote mode this wrapper MUST be height:100%, not unstyled:
+              PullToRefresh sizes itself height:100% and scrolls inside that,
+              so a wrapper with an auto height makes it grow to its content
+              and the container's overflow:hidden then clips the panel with no
+              way to scroll (measured in real Chromium, standards mode:
+              scroll area 1200px vs 500px, scrolls=false vs true). */}
+          <div style={isRemoteMode ? { flex: '1 1 0%', minHeight: 0, position: 'relative' } : { height: '100%' }}>
           <PullToRefresh onRefresh={handlePullToRefresh}>
             {players.find(p => p.id === effectiveViewPlayerId) ? (
               <PlayerPanelWrapper
@@ -1293,6 +1339,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               </div>
             )}
           </PullToRefresh>
+          </div>
         </div>
       )}
 

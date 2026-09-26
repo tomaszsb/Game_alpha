@@ -84,6 +84,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps): JSX.
   return (
     <div
       ref={containerRef}
+      data-testid="pull-to-refresh"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

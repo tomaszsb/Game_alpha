@@ -41,6 +41,26 @@ describe('ModeToggle', () => {
     expect(localStorage.getItem(PREFERRED_MODE_KEY)).toBe('pc');
   });
 
+  it('writes "remote" to localStorage and notifies the parent when the Remote button is tapped (built 2026-09-25 — no longer the "coming soon" placeholder)', () => {
+    const onSelectMode = vi.fn();
+    render(<ModeToggle selectedMode="pc" onSelectMode={onSelectMode} />);
+
+    screen.getByRole('button', { name: /Remote/ }).click();
+
+    expect(onSelectMode).toHaveBeenCalledWith('remote');
+    expect(localStorage.getItem(PREFERRED_MODE_KEY)).toBe('remote');
+  });
+
+  it('never shows "Coming soon!" — the Remote button is real now', () => {
+    render(<ModeToggle selectedMode="remote" onSelectMode={vi.fn()} />);
+    expect(screen.queryByText(/Coming soon/i)).toBeNull();
+  });
+
+  it('marks Remote as pressed when it is the selected mode', () => {
+    render(<ModeToggle selectedMode="remote" onSelectMode={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /Remote/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('does not throw and still notifies the parent when localStorage is unavailable', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('storage disabled');

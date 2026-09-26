@@ -2,6 +2,12 @@
 
 ---
 
+## v3.2.82 — A real way to play from different places (September 26, 2026)
+
+- **"Remote" is a real option now, not a "coming soon" button.** Pick it like PC or TV. Add everyone's name like normal — you'll play as the first name on the list. Everyone else gets their own link to open on their own phone or computer, wherever they are.
+- **Nobody has to keep one screen open for the whole table to look at.** Once everyone's joined, every device shows its own board and its own stats, at the same time, following the game live.
+- **You can now drag or swipe the board to look around**, on a Remote screen.
+
 ## v3.2.81 — Three small fixes: clearer wording, a cleaner preview, and new "why" tips (September 26, 2026)
 
 - **Revisiting the architect or engineer no longer looks like you already said yes.** When you go back to hire the architect or engineer a second time, rolling to see what happens used to show "Accept the redesign" (or "Accept the engineer's findings") before you'd even seen the result. That button now says "Take your next step" for the roll — the real "Accept…" wording still shows up right after, when you're actually confirming.

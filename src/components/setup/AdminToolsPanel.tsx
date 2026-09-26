@@ -8,10 +8,11 @@ import { TeacherClassroomPanel } from '../classroom/TeacherClassroomPanel';
 import { styles } from './PlayerSetup.styles';
 import { useAdminAuth } from './useAdminAuth';
 import { AdminGameManager } from './AdminGameManager';
+import { PlayMode } from '../../utils/modePreference';
 
 interface AdminToolsPanelProps {
   /** Needed by handleStartClassroomGame's URL mode param. */
-  selectedMode: 'pc' | 'tv';
+  selectedMode: PlayMode;
   /**
    * The one way in to your spaces. It replaced two buttons that did the same
    * job differently — "Space Data Editor" and "Classroom Setup"
@@ -77,7 +78,7 @@ export function AdminToolsPanel({
       url.searchParams.set('token', data.token);
       if (instanceId && instanceId !== 'classroom-1') url.searchParams.set('i', instanceId);
       else url.searchParams.delete('i');
-      if (selectedMode === 'tv') url.searchParams.set('mode', 'tv');
+      if (selectedMode !== 'pc') url.searchParams.set('mode', selectedMode);
       window.location.href = url.toString();
     } catch (err) {
       alert(`Could not start a game: ${err instanceof Error ? err.message : 'network error'}`);

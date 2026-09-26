@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** September 26, 2026 — v3.2.77–81 (the cloud PRs, merged as one batch): colour-only version badge, TV screen-size button in the header + live Bigger/Smaller/Keep, SEO basics, three small wording fixes. Before them, v3.2.76: Bank Review charges 1 day per $200K of the loan on the table. Full detail: CHANGELOG.
-**Status:** Beta — **v3.2.81 LIVE** (`/health` → `deaad6d`, checked 2026-09-26 ~20:18 UTC, after Tom's deploy). Re-check `/health` before believing this line.
-**Current Version:** 3.2.81. 3.2.46 was skipped in numbering and the commit that claimed it shipped as 3.2.49.
+**Last Updated:** September 26, 2026 — v3.2.82: Remote play mode (the last cloud PR, reviewed and merged; one real scroll bug found and fixed in review). Just before it, v3.2.77–81 (the other cloud PRs as one batch): colour-only version badge, TV screen-size button in the header + live Bigger/Smaller/Keep, SEO basics, three small wording fixes. Full detail: CHANGELOG.
+**Status:** Beta — **v3.2.81 LIVE** (`/health` → `deaad6d`, checked 2026-09-26 ~20:18 UTC); **v3.2.82 is committed and pushed, PENDING DEPLOY** (Tom's). Re-check `/health` before believing this line.
+**Current Version:** 3.2.82. 3.2.46 was skipped in numbering and the commit that claimed it shipped as 3.2.49.
 
 ---
 
@@ -105,7 +105,7 @@
 
 ## 📱 Active — external testing & release
 
-- [ ] **Remote play mode — cloud-built, NOT merged: [tomaszsb/Game_alpha#3](https://github.com/tomaszsb/Game_alpha/pull/3) (branch `claude/remote-play-mode`).** A third way to play, players in separate places on their own phones. Its own docs say v3.2.81, which is now taken — renumber to 3.2.82 when it lands. **Waits for Tom's real test: two real phones on different networks (one Wi-Fi, one cell).** Test plan (Tom's script) is in the description of [tomaszsb/Game_alpha#5](https://github.com/tomaszsb/Game_alpha/pull/5); "broken" looks like a phone stuck on "waiting for the host", no board strip, one phone's move not reaching the other after ~10 s, or buttons pushed off-screen. The cloud reviewer's trial merge onto the combined work had no code conflicts (only CHANGELOG / RELEASE_NOTES). **Read before merging:** `usePlayerValidation.ts` (the join gate changed from true/false to `false | 'mobile' | 'any'`; the TV path is claimed byte-identical) and one extra unstyled wrapper `<div>` in `GameLayout.tsx`'s phone branch, which every phone view now passes through. The three older cloud PRs (#1, #2, #4) were closed as superseded on 2026-09-26.
+- [ ] **Remote play mode — MERGED as v3.2.82 (was cloud PR [tomaszsb/Game_alpha#3](https://github.com/tomaszsb/Game_alpha/pull/3)); waiting on Tom's real two-phone test once deployed.** A third way to play: players in separate places, each on their own device with their own board + panel. **The test — two real phones on different networks (one Wi-Fi, one cell):** (1) on phone 1 pick "Remote — Different places", add both names, press Start — it should land on its OWN board + panel, not a waiting screen; (2) use "Copy invite link" for the second name, send it to phone 2 and open it there — it should also land on its own board + panel; (3) take a turn on phone 1 — phone 2 should show it within a few seconds with no refresh; (4) swipe the board strip at the top — it should pan without triggering a tile tap. **Broken looks like:** a phone stuck on "waiting for the host", no board strip, a move not reaching the other phone after ~10 s, or buttons pushed off-screen by the strip. **Undo:** revert the merge commit and redeploy. Review at merge found and fixed one real defect (a plain wrapper stopped the phone panel scrolling OUTSIDE Remote mode; guarded by `tests/components/layout/GameLayoutPhoneScroll.test.tsx`) — see CHANGELOG v3.2.82, which also lists one TV-visible wording change (the Start-blocked message now says "join from their own device").
 - [ ] **Recruit 3–5 external players** for a structured UAT pass (open since April — the `/challenge` funnel + QR codes above are the remaining enablers).
 
 ## 🙋 Decisions waiting on the user

@@ -114,57 +114,69 @@ describe('buildJoinGameUrl', () => {
   const base = { currentUrl: 'http://localhost/', gameId: 'G418', token: 'tok-abc' };
 
   it('does not set ?p= when picking a player on a desktop-sized screen (fb:3a5280d8)', () => {
-    const url = buildJoinGameUrl({ ...base, playerShortId: 'P1', tvMode: false, isPhoneScreen: false });
+    const url = buildJoinGameUrl({ ...base, playerShortId: 'P1', mode: 'pc', isPhoneScreen: false });
     expect(url).toContain('g=G418');
     expect(url).not.toContain('p=P1');
   });
 
   it('does not set ?p= when picking a player on a TV-sized screen, and sets ?mode=tv', () => {
-    const url = buildJoinGameUrl({ ...base, playerShortId: 'P2', tvMode: true, isPhoneScreen: false });
+    const url = buildJoinGameUrl({ ...base, playerShortId: 'P2', mode: 'tv', isPhoneScreen: false });
     expect(url).not.toContain('p=P2');
     expect(url).toContain('mode=tv');
   });
 
   it('sets ?p= when picking a player on a phone-sized screen', () => {
-    const url = buildJoinGameUrl({ ...base, playerShortId: 'P1', tvMode: false, isPhoneScreen: true });
+    const url = buildJoinGameUrl({ ...base, playerShortId: 'P1', mode: 'pc', isPhoneScreen: true });
     expect(url).toContain('p=P1');
   });
 
+  it('sets ?mode=remote and ?p= for a remote-mode player join', () => {
+    const url = buildJoinGameUrl({ ...base, playerShortId: 'P3', mode: 'remote', isPhoneScreen: true });
+    expect(url).toContain('mode=remote');
+    expect(url).toContain('p=P3');
+  });
+
   it('never sets ?p= when no playerShortId is given (spectator/"Just watching")', () => {
-    const url = buildJoinGameUrl({ ...base, tvMode: false, isPhoneScreen: true });
+    const url = buildJoinGameUrl({ ...base, mode: 'pc', isPhoneScreen: true });
     expect(url).not.toContain('p=');
   });
 
   it('omits ?token when the token is empty', () => {
-    const url = buildJoinGameUrl({ ...base, token: '', tvMode: false, isPhoneScreen: false });
+    const url = buildJoinGameUrl({ ...base, token: '', mode: 'pc', isPhoneScreen: false });
     expect(url).not.toContain('token=');
   });
 
   it('sets ?i= for a non-default classroom, omits it for the default one', () => {
-    const withClassroom = buildJoinGameUrl({ ...base, instanceId: 'classroom-7', tvMode: false, isPhoneScreen: false });
+    const withClassroom = buildJoinGameUrl({ ...base, instanceId: 'classroom-7', mode: 'pc', isPhoneScreen: false });
     expect(withClassroom).toContain('i=classroom-7');
 
-    const defaultClassroom = buildJoinGameUrl({ ...base, instanceId: 'classroom-1', tvMode: false, isPhoneScreen: false });
+    const defaultClassroom = buildJoinGameUrl({ ...base, instanceId: 'classroom-1', mode: 'pc', isPhoneScreen: false });
     expect(defaultClassroom).not.toContain('i=');
   });
 
   it('clears a stale ?mode=tv from the current URL when switching to PC', () => {
-    const url = buildJoinGameUrl({ ...base, currentUrl: 'http://localhost/?mode=tv', tvMode: false, isPhoneScreen: false });
+    const url = buildJoinGameUrl({ ...base, currentUrl: 'http://localhost/?mode=tv', mode: 'pc', isPhoneScreen: false });
     expect(url).not.toContain('mode=tv');
   });
 
+  it('clears a stale ?mode=remote from the current URL when switching to TV', () => {
+    const url = buildJoinGameUrl({ ...base, currentUrl: 'http://localhost/?mode=remote', mode: 'tv', isPhoneScreen: false });
+    expect(url).not.toContain('mode=remote');
+    expect(url).toContain('mode=tv');
+  });
+
   it('sets ?spectate=1 for "Just watching"', () => {
-    const url = buildJoinGameUrl({ ...base, tvMode: false, isPhoneScreen: false, spectate: true });
+    const url = buildJoinGameUrl({ ...base, mode: 'pc', isPhoneScreen: false, spectate: true });
     expect(url).toContain('spectate=1');
   });
 
   it('never sets ?spectate= for a specific player pick or a direct join', () => {
-    const url = buildJoinGameUrl({ ...base, playerShortId: 'P1', tvMode: false, isPhoneScreen: true });
+    const url = buildJoinGameUrl({ ...base, playerShortId: 'P1', mode: 'pc', isPhoneScreen: true });
     expect(url).not.toContain('spectate=');
   });
 
   it('clears a stale ?spectate=1 from the current URL when re-navigating without it', () => {
-    const url = buildJoinGameUrl({ ...base, currentUrl: 'http://localhost/?spectate=1', tvMode: false, isPhoneScreen: false });
+    const url = buildJoinGameUrl({ ...base, currentUrl: 'http://localhost/?spectate=1', mode: 'pc', isPhoneScreen: false });
     expect(url).not.toContain('spectate=');
   });
 });

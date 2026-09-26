@@ -1,13 +1,13 @@
 // src/components/setup/ModeToggle.tsx
 
-import React, { useState } from 'react';
+import React from 'react';
 import { colors } from '../../styles/theme';
 import { IconDesktop, IconTV, IconGlobe } from '../icons/SetupIcons';
-import { setStoredPreferredMode } from '../../utils/modePreference';
+import { setStoredPreferredMode, PlayMode } from '../../utils/modePreference';
 
 interface ModeToggleProps {
-  selectedMode: 'pc' | 'tv';
-  onSelectMode: (mode: 'pc' | 'tv') => void;
+  selectedMode: PlayMode;
+  onSelectMode: (mode: PlayMode) => void;
 }
 
 /**
@@ -26,20 +26,11 @@ interface ModeToggleProps {
  * feedback, 2026-07-15.
  */
 export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX.Element {
-  // "Remote" mode placeholder (maintainer request 2026-07-14): a third
-  // option for players in genuinely separate locations, distinct from PC
-  // (shared screen) and TV (shared screen + phone controllers) — both of
-  // today's modes still assume one physical hub device. Not built yet, so
-  // this is a visible-but-inert button; tapping it just confirms "coming
-  // soon" instead of a silent no-op, mirroring the same pattern already
-  // used for /challenge's "Watch demo" button (ComingSoonButton).
-  const [remoteModeTapped, setRemoteModeTapped] = useState(false);
-
   // Remember an explicit tap so a reload (e.g. Fire TV Silk's "Request
-  // Desktop Site" toggle) doesn't lose the player's TV choice — see
+  // Desktop Site" toggle) doesn't lose the player's mode choice — see
   // modePreference.ts. Only fires on an actual click here, never on the
   // ?mode= URL param or the isSmartTV() auto-detect fallback in PlayerSetup.
-  const handleSelectMode = (mode: 'pc' | 'tv'): void => {
+  const handleSelectMode = (mode: PlayMode): void => {
     setStoredPreferredMode(mode);
     onSelectMode(mode);
   };
@@ -113,35 +104,34 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
             Phones + TV
           </div>
         </button>
-        {/* Remote — placeholder, not built yet (see remoteModeTapped
-            above). Visually grouped with PC/TV so players discover the
-            intent even before it works; a real click still gets a
-            reaction, not a silent dead button. */}
+        {/* Remote (maintainer request 2026-07-14, built 2026-09-25): a third
+            option for players in genuinely separate locations — no shared
+            screen at all. Every player, including whoever starts the game,
+            ends up on their own device with their own board + panel. */}
         <button
           type="button"
-          onClick={() => setRemoteModeTapped(true)}
-          aria-disabled="true"
+          onClick={() => handleSelectMode('remote')}
+          aria-pressed={selectedMode === 'remote'}
           style={{
             flex: 1,
             padding: selectedMode === 'tv' ? '0.3rem 0.6rem' : '0.7rem 0.9rem',
             borderRadius: 8,
-            border: `2px dashed ${colors.secondary.border}`,
-            background: '#fafafa',
-            color: colors.text.secondary,
+            border: `2px solid ${selectedMode === 'remote' ? colors.success.main : colors.secondary.border}`,
+            background: selectedMode === 'remote' ? colors.success.main : 'white',
+            color: selectedMode === 'remote' ? 'white' : colors.text.secondary,
             fontWeight: 700,
             fontSize: '1rem',
             cursor: 'pointer',
             textAlign: 'center',
             lineHeight: 1.3,
-            opacity: 0.65,
           }}
-          title="Play with everyone in a different location — no shared screen needed. Coming soon."
+          title="Play with everyone in a different location — no shared screen needed."
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
             <IconGlobe size="1em" /> Remote
           </span>
           <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
-            {remoteModeTapped ? 'Coming soon!' : 'Different places'}
+            Different places
           </div>
         </button>
       </div>
