@@ -1,15 +1,15 @@
 # Next session starter — written 2026-09-26 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.82 — **committed and pushed, PENDING DEPLOY (Tom's).** Live was v3.2.81 (`/health` = `deaad6d`, 2026-09-26 ~20:18 UTC). **Trust `/health`, never this line:** equal to `git rev-parse --short HEAD` ⇒ deployed; a docs-only HEAD ahead of it means nothing to deploy.
+- **Version:** v3.2.82 — **deployed.** `/health` = `50fb329`, checked 2026-09-26 21:03 UTC (Tom deployed after the merge push). **Trust `/health`, never this line:** equal to `git rev-parse --short HEAD` ⇒ deployed; a docs-only HEAD ahead of it means nothing to deploy.
 - **Branch:** master, pushed. Untracked: `idea.txt` — read it, never modify or commit it.
-- **Last shipped (2026-09-26, all four cloud PRs now in):** v3.2.77–81 (Job 3 colour-dot badge + TV screen-size button + live Bigger/Smaller/Keep; SEO basics; three wording fixes) — deployed; then **v3.2.82 Remote play mode** — pending deploy. Review found and fixed one real defect: a plain wrapper around `PullToRefresh` stopped the phone panel scrolling outside Remote mode (proven in real Chromium; guarded by `tests/components/layout/GameLayoutPhoneScroll.test.tsx`).
+- **Last shipped (2026-09-26, all four cloud PRs now in):** v3.2.77–81 (Job 3 colour-dot badge + TV screen-size button + live Bigger/Smaller/Keep; SEO basics; three wording fixes) — deployed; then **v3.2.82 Remote play mode** — also deployed. Review found and fixed one real defect: a plain wrapper around `PullToRefresh` stopped the phone panel scrolling outside Remote mode (proven in real Chromium; guarded by `tests/components/layout/GameLayoutPhoneScroll.test.tsx`).
 - **Tests:** `npm test` 223 files / 3484 green; ghost gates 11 files / 43 green (smart-bot 49/50, 70.1 — identical to baseline). Typecheck ✅ build ✅. Lint not re-run.
 - **GitHub:** #5 and #3 merged; #1, #2, #4 closed as superseded; none open.
 - **Allowance:** Tom's weekly meter was ~78–80% on 2026-09-26 (resets Mon 2026-09-28 ~07:00 EDT; extra-usage off and spent). **Say the cost first.**
 
 ## Top 3 open items (top 3 from this note — TODO.md is the whole backlog)
-1. **Deploy v3.2.82, then Tom's two real-device checks** — Job 3 on the 4K TV (nobody has seen it; checklist in TODO "📺 Active"; then flip fb:93449bf2) and Remote play on two phones on different networks (script in TODO "📱 Active"). Cloud testing was headless only.
+1. **Tom's two real-device checks (everything is deployed)** — Job 3 on the 4K TV (nobody has seen it; checklist in TODO "📺 Active"; then flip fb:93449bf2) and Remote play on two phones on different networks (script in TODO "📱 Active"). Cloud testing was headless only.
 2. **Slice 2 mentor + Slice 3 leftovers** — Ruth + handbook icon is confirmed, nothing built; RULES modal body rewrite; Tom's "go" on the "?" placement work.
 3. **Read `pushBacks.foreign`** once real players exist (first test of the push-back prices).
 
@@ -20,7 +20,7 @@
 - **fb:93449bf2** — only after Tom confirms the TV reads well across a room. **fb:ae480630 / fb:11662ac3** — only after a live re-check at Lender Review. (Deploy alone doesn't satisfy these.) 9 of 17 open reports are untracked — `/start full`.
 
 ## Suggested first move
-Check `/health`; if v3.2.82 isn't live, hand Tom the deploy command. Then ask how the TV looked and how the two-phone Remote test went, before any new build.
+Check `/health` (a docs-only HEAD ahead of `50fb329` means nothing to deploy). Then ask how the TV looked and how the two-phone Remote test went, before any new build.
 
 ## Suggested model for next session
 Sonnet 5 — follow-ups from two real-device tests, small UI fixes with shipped precedent (raise effort before reaching for a bigger model).

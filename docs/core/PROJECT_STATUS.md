@@ -7,7 +7,7 @@
 
 **Last Updated:** September 26, 2026 (v3.2.82)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.82 — committed and pushed, PENDING DEPLOY (Tom's).** Live was v3.2.81 (`/health` → `deaad6d`, checked 2026-09-26 ~20:18 UTC). Trust `/health`, never this line: equal to HEAD ⇒ deployed.
+**Current Version:** **3.2.82 — LIVE.** `/health` → `50fb329`, checked 2026-09-26 21:03 UTC. Trust `/health`, never this line: equal to HEAD ⇒ deployed; a docs-only HEAD ahead of it means nothing to deploy.
 
 ## Current sprint
 **Onboarding Phase C, teaching a beginner the game** (Tom's 2026-09-19 replan: no new tutorial layer — one help look for the whole game, one recurring mentor, existing wording reused). This session (2026-09-26) brought in all the work the cloud helpers built: **v3.2.77–79 Job 3** (colour-dot version badge; TV "Adjust screen size" button in the header with a first-use pulse; live Bigger/Smaller/Keep with ~10 s snap-back), **v3.2.80** search-engine basics, **v3.2.81** three approved wording fixes — deployed — and then, at Tom's "go", **v3.2.82 Remote play mode** (a real third way to play: separate places, every device its own board + panel). Reading the Remote play diff found one real defect the cloud author and reviewer had both called harmless: a plain wrapper stopped the phone panel scrolling outside Remote mode. Proven in a real Chromium, fixed in one line, pinned by a new test that fails on the bad version.
@@ -21,6 +21,6 @@
 - **GitHub:** all four cloud PRs are handled (#5 and #3 merged, #1/#2/#4 closed as superseded); none open.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Deploy v3.2.82, then Tom's two real-device checks:** Job 3 on the 4K TV (checklist in TODO "📺 Active"; then flip fb:93449bf2) and Remote play on two phones on different networks (script in TODO "📱 Active").
+1. **Tom's two real-device checks (all deployed):** Job 3 on the 4K TV (checklist in TODO "📺 Active"; then flip fb:93449bf2) and Remote play on two phones on different networks (script in TODO "📱 Active").
 2. **Slice 2 mentor** (Ruth + handbook icon — confirmed, not built), the RULES modal body rewrite, and Tom's "go" on the "?" placement work.
 3. Read `pushBacks.foreign` once real players exist.
