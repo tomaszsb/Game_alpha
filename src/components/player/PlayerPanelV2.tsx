@@ -547,12 +547,29 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // between the two action buttons and Push back before it ever discovered
   // "Lock the scope" existed. Also fixes the "0 actions left" caption that
   // showed when the turn was gated on an unpicked destination, not on actions.
+  // Architect/Engineer redo visits (fb: TODO.md "Decisions waiting on the
+  // user" #5, confirmed 2026-09-26): on a Subsequent visit to ARCH-INITIATION
+  // / ENG-INITIATION, the space's own end_turn_label is "Accept the
+  // redesign" / "Accept the engineer's findings" — but that's the wording
+  // for the REAL commit, after the required dice roll resolves. Before that,
+  // this same label sat on the dice-roll button (this press just rolls; it
+  // accepts nothing yet), so a player could read "Accept…" and think they'd
+  // already signed off. The roll step now keeps the generic
+  // COMMIT.TAKE_YOUR_NEXT_STEP; the real "Accept…" wording is untouched on
+  // the actual commit button below (canEndTurn branch) once the roll is done.
+  const isArchEngRedo =
+    (player.currentSpace === 'ARCH-INITIATION' || player.currentSpace === 'ENG-INITIATION') &&
+    player.visitType === 'Subsequent';
   let commit: { label: string; ready: boolean; subLabel?: string; onClick?: () => void };
   if (!isMyTurn) {
     commit = { label: COMMIT.waitingFor(currentPlayerName || 'the other player'), ready: false };
   } else if (showMovementDiceButton) {
     commit = {
-      label: isRollingDice ? COMMIT.WORKING : content?.end_turn_label || COMMIT.TAKE_YOUR_NEXT_STEP,
+      label: isRollingDice
+        ? COMMIT.WORKING
+        : isArchEngRedo
+        ? COMMIT.TAKE_YOUR_NEXT_STEP
+        : content?.end_turn_label || COMMIT.TAKE_YOUR_NEXT_STEP,
       ready: true,
       onClick: handleDiceRoll,
     };

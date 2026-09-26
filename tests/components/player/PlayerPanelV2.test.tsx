@@ -643,6 +643,77 @@ describe('PlayerPanelV2 — commit control highlights once actionable, any visit
   });
 });
 
+// TODO.md "Decisions waiting on the user" #5, confirmed 2026-09-26: on a
+// Subsequent (redo) visit to ARCH-INITIATION/ENG-INITIATION, the space's own
+// end_turn_label ("Accept the redesign" / "Accept the engineer's findings")
+// is the wording for the REAL commit, which only happens after the required
+// dice roll. Before that roll, MOVEMENT.csv marks this same visit
+// movement_type=dice, so the commit spine's dice-roll button used to borrow
+// that same "Accept…" label — implying the player had already accepted
+// something they hadn't even seen yet. The roll step now shows the generic
+// "Take your next step" instead; the real "Accept…" wording is untouched
+// once the roll resolves and the button becomes the actual commit.
+describe('PlayerPanelV2 — Arch/Eng redo visit: roll step says "Take your next step", not "Accept…"', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const makePlayer = (): any => ({
+    id: 'player1', name: 'Test Player', currentSpace: 'ARCH-INITIATION',
+    visitType: 'Subsequent', money: 100000, timeSpent: 5, color: '#007bff',
+    hand: [], activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null,
+  });
+
+  const setup = (hasPlayerRolledDice: boolean, canEndTurn: boolean) => {
+    vi.clearAllMocks();
+    services = createAllMockServices();
+    const player = makePlayer();
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice, movementChoiceUnlocked: true, awaitingChoice: null,
+      requiredActions: 0, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({
+      title: 'I want another look at these drawings', story: '',
+      can_negotiate: true, end_turn_label: 'Accept the redesign', try_again_label: 'Push back on the changes',
+    });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue([]);
+    // MOVEMENT.csv: ARCH-INITIATION/Subsequent is movement_type=dice.
+    services.dataService.getMovement.mockReturnValue({ movement_type: 'dice' });
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    services.gameRulesService.canEndTurn.mockReturnValue(canEndTurn);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockReturnValue(null);
+  };
+
+  afterEach(() => cleanup());
+
+  const renderAndGetEndSide = () => {
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" onTryAgain={vi.fn()} />
+      </DictionaryProvider>,
+    );
+    return screen.getAllByTestId('commit-side').find((b) => b.getAttribute('data-side') === 'end')!;
+  };
+
+  it('before the roll: shows "Take your next step", not the redesign-accept wording', () => {
+    setup(false, false);
+    const end = renderAndGetEndSide();
+    expect(end.textContent).toMatch(/Take your next step/);
+    expect(end.textContent).not.toMatch(/Accept the redesign/);
+  });
+
+  it('after the roll: the real "Accept the redesign" wording is back', () => {
+    setup(true, true);
+    const end = renderAndGetEndSide();
+    expect(end.textContent).toMatch(/Accept the redesign/);
+  });
+});
+
 describe('PlayerPanelV2 — completed-action checkmark trace (Pile 2: fb:d2070ed1)', () => {
   let services: ReturnType<typeof createAllMockServices>;
 
