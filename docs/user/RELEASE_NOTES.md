@@ -2,6 +2,16 @@
 
 ---
 
+## v3.2.81 — Three small fixes: clearer wording, a cleaner preview, and new "why" tips (September 26, 2026)
+
+- **Revisiting the architect or engineer no longer looks like you already said yes.** When you go back to hire the architect or engineer a second time, rolling to see what happens used to show "Accept the redesign" (or "Accept the engineer's findings") before you'd even seen the result. That button now says "Take your next step" for the roll — the real "Accept…" wording still shows up right after, when you're actually confirming.
+- **The "Owner's Money" space preview no longer shows a gap where the dollar amount should be.** Before you'd actually arrived and been funded, peeking at that space showed a sentence with a blank in it. That sentence is simply left out now until the real number is there.
+- **"Pick Your Path" screens now have a "?" next to every option, explaining why you'd choose it.** Spaces where you pick your next destination (like "Pick Your Path") already had this explanation written for every choice — it just wasn't shown anywhere. Tap the "?" next to any destination to see why you'd go there before you commit.
+
+## v3.2.80 — Behind-the-scenes: easier for search engines to find (September 25, 2026)
+
+- **Nothing changes for you as a player.** This just helps search engines and AI tools find and understand the game's page properly.
+
 ## v3.2.79 — Changing the TV's screen size is live now (September 25, 2026)
 
 - **Adjusting the screen size now shows you the real screen changing,** instead of asking you to compare four sample lines of text in a popup. Press Bigger or Smaller and watch the real screen resize — then press "Keep this size" once it looks right.
@@ -16,10 +26,6 @@
 
 - **The small version badge in the corner now just shows a colour** instead of a checkmark, a warning icon and the word "behind." Green means up to date. It still tells the full story if you hover over it.
 - **A change to just the documentation doesn't count as "behind" anymore.**
-
-## v3.2.80 — Behind-the-scenes: easier for search engines to find (September 25, 2026)
-
-- **Nothing changes for you as a player.** This just helps search engines and AI tools find and understand the game's page properly.
 
 ## v3.2.76 — The bank now takes as long as it says (September 25, 2026)
 

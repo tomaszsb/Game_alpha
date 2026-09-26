@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.81] - 2026-09-26
+
+### Three small polish items, confirmed with Tom off TODO.md's "Decisions waiting on the user"
+
+**1. Arch/Eng redo visits: the roll step no longer borrows the real "Accept…" wording.** A Subsequent visit to ARCH-INITIATION/ENG-INITIATION (MOVEMENT.csv: movement_type=dice there) needs a dice roll before the turn can end. The space's own `end_turn_label` for that visit — "Accept the redesign" / "Accept the engineer's findings" — is the wording for the real commit, but PlayerPanelV2's commit spine was showing that same label on the dice-roll button too, BEFORE the roll, implying the player had already accepted a redesign or finding they hadn't seen yet. The roll step now shows the existing generic `COMMIT.TAKE_YOUR_NEXT_STEP` ("Take your next step") instead; the real "Accept…" wording is untouched once the roll resolves and the button becomes the actual commit (`canEndTurn` branch, unchanged). Scoped narrowly to these two spaces' Subsequent visit — every other dice-required space that sets its own `end_turn_label` (there are ~20) has the same underlying pattern but wasn't in scope for this pass.
+
+**2. Owner's Money preview: the blank-amount sentence is gone, not just the token.** The board tile's hover/expand PREVIEW of a not-yet-visited funding space resolves `{fundingAmount}` to `""` before the player has that source's money — most visibly "Owner's Money" (OWNER-FUND-INITIATION), which every player reaches eventually and can preview well before arrival. That left a dead gap: *"Here's what I'm putting in — . Look it over."* New `resolveFundingAmountTokenForPreview()` (`templateInterpolation.ts`) drops the whole sentence quoting the token when the amount isn't known yet, instead of leaving the gap — no new words, every other sentence untouched. Once the amount IS known it behaves exactly like the existing `resolveFundingAmountToken()`, which the sidebar (PlayerPanelV2) and the dice/action modals keep using unchanged — they're never in this blank state, since funding lands on arrival, before those surfaces render it. BoardCanvas.tsx's tile-story recompute now calls the preview variant instead.
+
+**3. Pick Your Path: the 24 existing movement-choice tooltips are finally live.** `ACTION_TOOLTIPS.csv` has 24 pre-authored `choice` rows — a "why go here" explanation for every destination a Pick-Your-Path-style space can send a player to — and the plumbing to serve them (`TooltipService.getMovementTooltip`, `buttonFormatting.getMovementChoiceTooltip`) has existed since the tooltip system was built. Nothing in the UI ever called either one, so 24 authored explanations sat unused. Each destination option in PlayerPanelV2's picker now gets the same "What's this?" sibling button the action rows above it already have, opening a HelpCard with that destination's own `tooltip_why`/`tooltip_context`. Every destination this board actually offers (11 unique spaces across the 5 real choice-movement rows in `MOVEMENT.csv`) already has an authored row — the function's generic fallback for an unauthored space exists in the code but never fires today.
+
+**Tests.** `PlayerPanelV2.test.tsx`: +2 (Arch/Eng roll-step wording, before/after the roll) +5 (destination-picker "What's this?": closed by default, shows the right destination's own text not a neighbor's, shows the grey context line, one-open-at-a-time, toggles shut). `templateInterpolation.test.ts`: +5 for `resolveFundingAmountTokenForPreview` (drops the token's sentence, drops only THAT sentence not always-the-first, shows the real figure once known, no-op on a tokenless story, never blanks a story where every sentence quotes the token). Typecheck ✅, lint 0 new warnings, full `npm test` ✅ (unchanged files elsewhere).
+
+**Integration note (2026-09-26):** shipped here as v3.2.81, not v3.2.82 as the original PR stated — folded into `integration/ready` behind Job 3 (v3.2.77–79) and the SEO fixes (v3.2.80), gaplessly renumbered so the version sequence has no hole. The Remote play mode PR (originally slated for v3.2.81) was held out of this integration and will claim v3.2.82 whenever it lands separately.
+
+## [3.2.80] - 2026-09-25
+
+### AI-crawler / SEO basics — robots.txt, sitemap.xml, a real H1 before React mounts
+
+**Where this came from.** Tom shared an AI-readiness scan of `game.unravelcodes.com` (usegrowhero.com, score 36/100) flagging four things: a missing `robots.txt`, a missing/unlinked XML sitemap, a page missing an H1, and "thin site architecture." Checked the repo first rather than assuming the scan was right: confirmed no `robots.txt` or `sitemap.xml` existed anywhere, and confirmed the H1 finding's real cause — `PlayerSetup.tsx` does render a proper `<h1>Unravel Codes: The Game</h1>`, but only after React mounts; a crawler that fetches the raw HTML without running JavaScript (which several SEO/AI scanners do, for cost reasons) sees only the static loading shell in `index.html`, which had no heading at all.
+
+**What changed, and why each is small and safe.**
+- **`public/robots.txt`** (new) — allows all crawlers, disallows `/api/` (game-state and admin endpoints, never meant to be indexed), and points to the sitemap. Built into `dist/` and served the same way `favicon.ico`/`manifest.json` already are — confirmed via a real server request.
+- **`public/sitemap.xml`** (new) — lists the one real public URL. This app is a single-page game, not a multi-page site, so a sitemap with one `<url>` is the honest answer, not a shortcut.
+- **`index.html`** — the static loading shell's plain `<div>Loading Unravel Codes...</div>` became a real `<h1>Unravel Codes: The Game</h1>` (styled to look identical to the text it replaced — `font-size`/`font-weight: inherit`, no margin) plus a separate "Loading..." line. React's own render fully replaces `#root`'s contents once it mounts, so there is never a second, duplicate H1 visible — confirmed both in a real browser and via a raw `curl` of the server response (no JS execution), which now shows the H1 immediately.
+
+**Deliberately NOT fixed here: "thin site architecture."** The scanner's own label for it is "Harder," and it's not a bug — the site genuinely is one page by design. Growing it (blog posts, an FAQ, service pages) is a real content/writing decision, not a code change, so it's left for Tom to decide whether and what to build, rather than guessed at here.
+
+**Verified:** `npm run build` then a real running server — `curl`'d `/robots.txt` (text/plain, exact expected body), `/sitemap.xml` (application/xml, exact expected body), and `/` (raw HTML contains the H1, no browser JS involved). Typecheck ✅, lint 0 errors, build ✅, `npm test` full suite green (221 files / 3419 tests — this branch made no code changes to touch any of them; the count matches master exactly).
+
+**To undo:** revert this commit alone; only `public/robots.txt` (new), `public/sitemap.xml` (new), and `index.html` are touched.
+
 ## [3.2.79] - 2026-09-25
 
 ### Live Bigger / Smaller / Keep this size buttons, with a ~10s snap-back (Job 3A)
@@ -51,23 +82,6 @@ All notable changes to this project will be documented in this file.
 **Tests (+13).** `useGitHubSyncStatus.test.ts`: docs-only detection (the approved allowlist, `Mockups/` and a nested non-top-level `*.md` both NOT docs, a rename counting only when both paths are docs, the empty/300-file fallback), the tier thresholds (yellow/orange/red boundaries, docs-only forcing green), the hover-detail string, and that the accessible label never leaks a number. Typecheck ✅, lint 0 errors, `npm test` full suite green (2 pre-existing failures in `tests/server/instanceContentDiff.test.ts` are unrelated — they read a git-ignored runtime data copy this fresh container never populated, confirmed identical with `git stash` before touching any of these files).
 
 **To undo:** revert this commit alone; the hook, styles and the two render sites are the only things touched.
-
-## [3.2.80] - 2026-09-25
-
-### AI-crawler / SEO basics — robots.txt, sitemap.xml, a real H1 before React mounts
-
-**Where this came from.** Tom shared an AI-readiness scan of `game.unravelcodes.com` (usegrowhero.com, score 36/100) flagging four things: a missing `robots.txt`, a missing/unlinked XML sitemap, a page missing an H1, and "thin site architecture." Checked the repo first rather than assuming the scan was right: confirmed no `robots.txt` or `sitemap.xml` existed anywhere, and confirmed the H1 finding's real cause — `PlayerSetup.tsx` does render a proper `<h1>Unravel Codes: The Game</h1>`, but only after React mounts; a crawler that fetches the raw HTML without running JavaScript (which several SEO/AI scanners do, for cost reasons) sees only the static loading shell in `index.html`, which had no heading at all.
-
-**What changed, and why each is small and safe.**
-- **`public/robots.txt`** (new) — allows all crawlers, disallows `/api/` (game-state and admin endpoints, never meant to be indexed), and points to the sitemap. Built into `dist/` and served the same way `favicon.ico`/`manifest.json` already are — confirmed via a real server request.
-- **`public/sitemap.xml`** (new) — lists the one real public URL. This app is a single-page game, not a multi-page site, so a sitemap with one `<url>` is the honest answer, not a shortcut.
-- **`index.html`** — the static loading shell's plain `<div>Loading Unravel Codes...</div>` became a real `<h1>Unravel Codes: The Game</h1>` (styled to look identical to the text it replaced — `font-size`/`font-weight: inherit`, no margin) plus a separate "Loading..." line. React's own render fully replaces `#root`'s contents once it mounts, so there is never a second, duplicate H1 visible — confirmed both in a real browser and via a raw `curl` of the server response (no JS execution), which now shows the H1 immediately.
-
-**Deliberately NOT fixed here: "thin site architecture."** The scanner's own label for it is "Harder," and it's not a bug — the site genuinely is one page by design. Growing it (blog posts, an FAQ, service pages) is a real content/writing decision, not a code change, so it's left for Tom to decide whether and what to build, rather than guessed at here.
-
-**Verified:** `npm run build` then a real running server — `curl`'d `/robots.txt` (text/plain, exact expected body), `/sitemap.xml` (application/xml, exact expected body), and `/` (raw HTML contains the H1, no browser JS involved). Typecheck ✅, lint 0 errors, build ✅, `npm test` full suite green (221 files / 3419 tests — this branch made no code changes to touch any of them; the count matches master exactly).
-
-**To undo:** revert this commit alone; only `public/robots.txt` (new), `public/sitemap.xml` (new), and `index.html` are touched.
 
 ## [3.2.76] - 2026-09-25
 
