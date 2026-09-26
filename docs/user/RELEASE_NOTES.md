@@ -2,6 +2,12 @@
 
 ---
 
+## v3.2.82 — Three small fixes: clearer wording, a cleaner preview, and new "why" tips (September 26, 2026)
+
+- **Revisiting the architect or engineer no longer looks like you already said yes.** When you go back to hire the architect or engineer a second time, rolling to see what happens used to show "Accept the redesign" (or "Accept the engineer's findings") before you'd even seen the result. That button now says "Take your next step" for the roll — the real "Accept…" wording still shows up right after, when you're actually confirming.
+- **The "Owner's Money" space preview no longer shows a gap where the dollar amount should be.** Before you'd actually arrived and been funded, peeking at that space showed a sentence with a blank in it. That sentence is simply left out now until the real number is there.
+- **"Pick Your Path" screens now have a "?" next to every option, explaining why you'd choose it.** Spaces where you pick your next destination (like "Pick Your Path") already had this explanation written for every choice — it just wasn't shown anywhere. Tap the "?" next to any destination to see why you'd go there before you commit.
+
 ## v3.2.76 — The bank now takes as long as it says (September 25, 2026)
 
 - **At Bank Review, the time you spend now grows with the loan, just like the tile says: 1 day for every $200K.** Until now every visit cost a single day, whatever the bank offered. A $1.4M loan now takes 7 days, a $2.75M loan 14, and the largest offers about 20. A part of a $200K still counts as a full block, so $500K is 3 days.
