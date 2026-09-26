@@ -18,7 +18,7 @@ import { PanelMode, panelPalettes } from './panelTheme';
 import { HelpButton } from '../help/HelpButton';
 import { HelpCard } from '../help/HelpCard';
 import { shortName } from '../../utils/boardCommon';
-import { formatManualEffectButton, getManualEffectTooltip } from '../../utils/buttonFormatting';
+import { formatManualEffectButton, getManualEffectTooltip, getMovementChoiceTooltip } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
 import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
 import { PlayerNumbersV2, NumbersPage } from './PlayerNumbersV2';
@@ -1136,41 +1136,80 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                     const oc = gameServices.dataService.getGameConfigBySpace(opt.id);
                     const label = oc?.display_label_override || opt.label || shortName(opt.id);
                     const isSelected = selectedDestination === opt.id;
+                    // "Why go here" — ACTION_TOOLTIPS.csv's 24 pre-authored
+                    // `choice` rows (TODO.md "Decisions waiting on the user"
+                    // #6, confirmed 2026-09-26), the same "?" pattern the
+                    // action rows above use. getMovementChoiceTooltip always
+                    // returns something (it has a generic fallback), but
+                    // every destination this board actually offers has its
+                    // own authored row, so that fallback never surfaces here.
+                    const why = getMovementChoiceTooltip(opt.id);
+                    const helpId = `move:${opt.id}`;
+                    const helpCardId = `help-card-move-${opt.id.replace(/[^A-Za-z0-9_-]/g, '-')}`;
+                    const isHelpOpenForOpt = openHelp === helpId;
                     return (
-                      <button
-                        key={opt.id}
-                        // Structural handle + the destination's own space id, so
-                        // the playtest robot can both FIND a destination and say
-                        // which one it took without parsing the label. The label
-                        // is authored copy (display_label_override) and the
-                        // leading glyph flips ➡️/✅ with selection, so neither is
-                        // safe to match on. Pickability is `disabled` /
-                        // `aria-disabled`, already set below — never the glyph,
-                        // which is identical when locked and when merely unpicked.
-                        data-testid="move-option"
-                        data-space-id={opt.id}
-                        style={!movementChoiceUnlocked ? doneSubActionRow : isSelected ? selectedSubActionBtn : subActionBtn}
-                        disabled={!movementChoiceUnlocked}
-                        aria-pressed={isSelected}
-                        aria-disabled={!movementChoiceUnlocked}
-                        title={
-                          !movementChoiceUnlocked
-                            ? 'Finish your other actions first'
-                            : isSelected
-                            ? 'Tap again to unpick — you can still change your mind'
-                            : undefined
-                        }
-                        onClick={() => movementChoiceUnlocked && handleMovementChoice(opt.id)}
-                        // Light the matching board tile while pointing at a
-                        // choice (fb:6416f76e extra, fb:71935ebb). Local only —
-                        // the picked one is already shown via moveIntent.
-                        onMouseEnter={() => movementChoiceUnlocked && setDestinationPreview(opt.id)}
-                        onMouseLeave={() => setDestinationPreview(null)}
-                        onFocus={() => movementChoiceUnlocked && setDestinationPreview(opt.id)}
-                        onBlur={() => setDestinationPreview(null)}
-                      >
-                        {!movementChoiceUnlocked ? '➡️' : isSelected ? '✅' : '➡️'} {label}
-                      </button>
+                      <div key={opt.id} style={{ marginBottom: 5 }}>
+                        <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
+                          <button
+                            // Structural handle + the destination's own space id, so
+                            // the playtest robot can both FIND a destination and say
+                            // which one it took without parsing the label. The label
+                            // is authored copy (display_label_override) and the
+                            // leading glyph flips ➡️/✅ with selection, so neither is
+                            // safe to match on. Pickability is `disabled` /
+                            // `aria-disabled`, already set below — never the glyph,
+                            // which is identical when locked and when merely unpicked.
+                            data-testid="move-option"
+                            data-space-id={opt.id}
+                            style={{
+                              ...(!movementChoiceUnlocked ? doneSubActionRow : isSelected ? selectedSubActionBtn : subActionBtn),
+                              flex: 1,
+                              width: 'auto',
+                              marginBottom: 0,
+                            }}
+                            disabled={!movementChoiceUnlocked}
+                            aria-pressed={isSelected}
+                            aria-disabled={!movementChoiceUnlocked}
+                            title={
+                              !movementChoiceUnlocked
+                                ? 'Finish your other actions first'
+                                : isSelected
+                                ? 'Tap again to unpick — you can still change your mind'
+                                : undefined
+                            }
+                            onClick={() => movementChoiceUnlocked && handleMovementChoice(opt.id)}
+                            // Light the matching board tile while pointing at a
+                            // choice (fb:6416f76e extra, fb:71935ebb). Local only —
+                            // the picked one is already shown via moveIntent.
+                            onMouseEnter={() => movementChoiceUnlocked && setDestinationPreview(opt.id)}
+                            onMouseLeave={() => setDestinationPreview(null)}
+                            onFocus={() => movementChoiceUnlocked && setDestinationPreview(opt.id)}
+                            onBlur={() => setDestinationPreview(null)}
+                          >
+                            {!movementChoiceUnlocked ? '➡️' : isSelected ? '✅' : '➡️'} {label}
+                          </button>
+                          <HelpButton
+                            kind="movement"
+                            label={label}
+                            isOpen={isHelpOpenForOpt}
+                            cardId={helpCardId}
+                            onToggle={() => toggleHelp(helpId, 'movement')}
+                            palette={p}
+                          />
+                        </div>
+                        {isHelpOpenForOpt && (
+                          <HelpCard
+                            id={helpCardId}
+                            kind="movement"
+                            palette={p}
+                            onTermClick={(term) => openWithTerm(term.id)}
+                            sections={[
+                              { text: why.tooltip },
+                              { text: why.context, muted: true },
+                            ]}
+                          />
+                        )}
+                      </div>
                     );
                   })}
                   {!movementChoiceUnlocked && (
