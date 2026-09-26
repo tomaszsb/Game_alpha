@@ -41,6 +41,43 @@ export function resolveFundingAmountToken(
 }
 
 /**
+ * Same as resolveFundingAmountToken, but for a board tile's hover/expand
+ * PREVIEW of a space the player hasn't reached yet (TODO.md "Decisions
+ * waiting on the user" #7, confirmed 2026-09-26: "Owner's Money preview
+ * shows a blank amount before arrival"). Before the player has that
+ * funding source's money, {fundingAmount} resolves to "" and the sentence
+ * quoting it reads as a dead gap — e.g. OWNER-FUND-INITIATION's "Here's
+ * what I'm putting in — . Look it over." Rather than show that gap, drop
+ * the whole sentence containing the token; the rest of the story (and any
+ * other sentence) is untouched, and no new words are introduced. Once the
+ * amount is known (sourceAmount > 0) this behaves exactly like
+ * resolveFundingAmountToken — the real figure is shown, same as today.
+ */
+export function resolveFundingAmountTokenForPreview(
+  story: string,
+  player: { moneySources?: { ownerFunding: number; bankLoans: number; investmentDeals: number; other: number } },
+  fundingSource: 'owner' | 'bank' | 'investor' | ''
+): string {
+  const moneySources = player.moneySources || { ownerFunding: 0, bankLoans: 0, investmentDeals: 0, other: 0 };
+  let fundingSourceAmount = 0;
+  if (fundingSource === 'owner') fundingSourceAmount = moneySources.ownerFunding;
+  else if (fundingSource === 'bank') fundingSourceAmount = moneySources.bankLoans;
+  else if (fundingSource === 'investor') fundingSourceAmount = moneySources.investmentDeals;
+  if (fundingSourceAmount > 0 || !story.includes('{fundingAmount}')) {
+    return resolveFundingAmountToken(story, player, fundingSource);
+  }
+  // Split on sentence boundaries (period + whitespace), keeping each
+  // sentence's own trailing period, and drop any sentence that quotes the
+  // still-unknown amount. Rejoining with a single space reconstructs the
+  // original spacing exactly, since that's what the split consumed.
+  const sentences = story.split(/(?<=\.)\s+/).filter((s) => !s.includes('{fundingAmount}'));
+  // Defensive: never blank the whole tile if every sentence somehow quoted
+  // the token — fall back to the plain interpolated (blank-amount) text.
+  if (sentences.length === 0) return interpolateTemplate(story, { fundingAmount: '' });
+  return sentences.join(' ');
+}
+
+/**
  * Solo-safe replacement text for cards whose AUTHORED description references
  * "other players" in a way that reads as nonsensical in a 1-player game.
  * Keyed by card_id. This is deliberately a small, hand-authored lookup — NOT
