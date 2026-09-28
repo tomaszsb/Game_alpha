@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.83] - 2026-09-28
+
+### A bad dice roll could end the whole game before you ever saw the price — fixed for every mandatory fee, not just the one that got reported
+
+**Where this came from.** fb:ab383e78, filed during Tom's real TV+phone test of v3.2.82: negotiating with a contractor at "Hire a Builder" (`CON-INITIATION`) ended the game as "out of money," before any payment had knowingly been made. Tom, asked directly: *"when player is rolling for quality that is like a bid. the contractor is giving a proposal. so it is not yet real money spent until the bid is accepted. so game should not end until end turn button is pressed."*
+
+**Root cause.** `EffectEngineService.ts`'s `CONTRACTOR_UPDATE` handler charged the contractor's price and called `checkBankruptcy()` **synchronously, the instant the Multiplier die resolved** — before the dice-result modal even showed, before "Sign the contractor" vs. "Push back on the price" appeared, before any Try Again could roll it back. `checkBankruptcy` ends the game immediately if money is negative. The reporter rolled once (affordable), pushed back, rolled again, and that roll's charge went negative — ending the game mid-roll, exactly matching "this was just negotiation… not supposed to end because I didn't pay anyone yet."
+
+**The fix is generic, not contractor-specific** (Tom, mid-investigation: *"look at all the spaces, maybe the function can be reused for several spaces"*) — `checkBankruptcy()` no longer fires immediately after any mandatory charge. It now fires exactly once, in `TurnService.ts`'s `endTurnWithMovement`, right before the turn actually commits:
+- `EffectEngineService.ts`'s `CONTRACTOR_UPDATE` case no longer calls `checkBankruptcy` after charging the contractor.
+- `FinancialEffectHandler.ts`'s `processMoneyChange` (every plain mandatory `RESOURCE_CHANGE` deduction — design/regulatory fees, life-event charges) no longer calls it either.
+- `ManualActionProcessor.ts`'s investment-fee charge (5% fee on new investment funding) no longer calls it.
+- `TurnService.ts`'s `endTurnWithMovement` now calls it once, right before `commitTurnTransaction`, and short-circuits (skips committing/advancing) if the game just ended — the same pattern already used for the win-condition check just above it.
+
+A provisional negative balance — one a Try Again on the same space would have undone — can no longer end the game before the player has actually committed their turn. A real, final bankruptcy still ends the game exactly the way it always did, just at the moment the turn is actually locked in rather than mid-roll.
+
+**Audited, not just patched in one place.** Checked whether ARCH-FEE-REVIEW, ENG-FEE-REVIEW, REG-DOB-FEE-REVIEW, and REG-FDNY-FEE-REVIEW shared the same shape (Tom/Manager, after the root cause was found): ARCH-FEE-REVIEW and ENG-FEE-REVIEW's dice-driven "Fees Paid" rolls already flow through the exact same `RESOURCE_CHANGE` → `processMoneyChange` path as the contractor (confirmed via `SPACE_EFFECTS.csv` and `EffectFactory.ts`'s `case 'money'`), so they're already covered — no separate fix needed. REG-DOB-FEE-REVIEW and REG-FDNY-FEE-REVIEW use an older, different mechanism (`FEE_DEDUCTION` → `applyFeeDeduction`) that checks affordability up front and simply refuses/skips an unpayable fee rather than charging into the red — it was never able to bankrupt anyone, so it was never part of this bug (a separate, pre-existing inconsistency between the two fee mechanisms, noted but not changed here).
+
+**Deliberately untouched:** `FinancialEffectHandler.checkDesignFeeCap` — the strict "design fees over 20% of scope ends the game, any phase, any time" rule (fb:3a57d5d0) — is a distinct, previously-decided maintainer rule, not the same mechanism, and still fires immediately as before.
+
+**Verified.** Typecheck ✅. Full suite: 234 files / 3528 tests green, including the long-running ghost-bot game simulations (strict 50-game run, smart-bot Try Again coverage, aggressive-negotiate coverage, full-board space coverage) — the tests most likely to notice a broken commit/bankruptcy flow, since they play complete games rather than isolated units. Updated `tests/services/FinancialEffectHandler.test.ts` (the old "ends the game when the charge leaves the player below zero" test pinned the bug; replaced with tests proving `handleResourceChange` no longer ends the game immediately, and that `checkBankruptcy` — called separately, the way `endTurnWithMovement` does — still ends it correctly) and corrected a stale comment in `tests/E2E-AllPaths.test.ts` that had documented the old mid-turn-bankruptcy behavior as intentional.
+
+**To undo:** revert this commit alone; touches `EffectEngineService.ts`, `FinancialEffectHandler.ts`, `ManualActionProcessor.ts`, `TurnService.ts`, and their tests — no data/schema changes.
+
 ## [3.2.82] - 2026-09-26
 
 ### Remote play mode — a real third way to play, for players in separate locations

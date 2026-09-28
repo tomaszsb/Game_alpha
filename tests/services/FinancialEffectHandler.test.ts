@@ -291,11 +291,12 @@ describe('FinancialEffectHandler — fee deductions reach the player ledger (202
   });
 });
 
-describe('FinancialEffectHandler — mandatory bills can bankrupt (fb:f0bdd78a / 0aae9865)', () => {
+describe('FinancialEffectHandler — mandatory bills can bankrupt, but only at turn-commit (fb:f0bdd78a / 0aae9865, deferred 2026-09-28 fb:ab383e78)', () => {
   beforeEach(() => vi.clearAllMocks());
 
   // A plain RESOURCE_CHANGE money deduction (a bill), and a player left below
-  // zero after it is charged so checkBankruptcy sees the deficit.
+  // zero after it is charged so checkBankruptcy (called separately, the way
+  // TurnService.endTurnWithMovement does at commit) sees the deficit.
   function makeBillServices(moneyAfterCharge: number) {
     const player = { id: 'p1', name: 'Player 1', currentSpace: 'REG-DOB-FEE-REVIEW', money: moneyAfterCharge } as any;
     const stateService = {
@@ -328,9 +329,15 @@ describe('FinancialEffectHandler — mandatory bills can bankrupt (fb:f0bdd78a /
     expect(resourceService.spendMoney).toHaveBeenCalledWith('p1', 2000, 'reg-fee', 'Filing fee', undefined, true);
   });
 
-  it('ends the game when the charge leaves the player below zero', () => {
+  it('does NOT end the game immediately when the charge leaves the player below zero — that balance can still be provisional (a Try Again could undo it) until the turn is actually committed', () => {
     const { handler, stateService } = makeBillServices(-500);
     handler.handleResourceChange(bill(-2000), ctx);
+    expect(stateService.endGame).not.toHaveBeenCalled();
+  });
+
+  it('checkBankruptcy, called once at turn-commit (TurnService.endTurnWithMovement), ends the game when money is negative', () => {
+    const { handler, stateService } = makeBillServices(-500);
+    handler.checkBankruptcy('p1');
     expect(stateService.endGame).toHaveBeenCalledTimes(1);
     expect(stateService.endGame).toHaveBeenCalledWith(undefined, { type: 'bankruptcy', playerId: 'p1' });
     expect(stateService.emitGameEvent).toHaveBeenCalledWith(
@@ -341,6 +348,7 @@ describe('FinancialEffectHandler — mandatory bills can bankrupt (fb:f0bdd78a /
   it('does NOT bankrupt when the charge leaves a non-negative balance', () => {
     const { handler, stateService } = makeBillServices(300);
     handler.handleResourceChange(bill(-2000), ctx);
+    handler.checkBankruptcy('p1');
     expect(stateService.endGame).not.toHaveBeenCalled();
   });
 });

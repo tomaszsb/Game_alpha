@@ -459,9 +459,19 @@ export class EffectEngineService implements IEffectEngineService {
                         costHistory
                       });
                     }
-                    // An unpayable contract ends the project — same single
-                    // bankruptcy rule the mandatory fees use.
-                    this.financialEffectHandler?.checkBankruptcy(payload.playerId);
+                    // Bankruptcy is NOT checked here on purpose (2026-09-28,
+                    // fb:ab383e78 — Tom: "it's a bid until the bid is
+                    // accepted, so the game should not end until end turn is
+                    // pressed"). Charging here still uses allowNegative, so
+                    // an unaffordable bid can push money negative — but that
+                    // balance is provisional (Push Back on this same space
+                    // discards it and re-rolls, same as every other Try
+                    // Again). Ending the game off a provisional balance,
+                    // mid-roll, before the player even sees "Sign the
+                    // contractor" vs. "Push back," ended games nobody had
+                    // agreed to lose. See TurnService.endTurnWithMovement for
+                    // the one place bankruptcy is now checked — at commit,
+                    // once, for every mandatory fee, not just this one.
                   }
                 }
               }

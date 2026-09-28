@@ -97,18 +97,28 @@ const setupGame = async () => {
 /**
  * Fail immediately, and legibly, if the run has already ended.
  *
- * A space effect can legitimately end the game mid-turn: at CHEAT-BYPASS a bad
- * dice outcome took the player from $80,000 to -$20,000, and
- * FinancialEffectHandler.checkBankruptcy ended the run (reproduce with
- * E2E_SEED=20). That is correct game behaviour on the cheat path — but these
- * tests verify ROUTING, so once the game is over they can no longer verify what
- * they claim to.
+ * A space effect can still legitimately end the game mid-turn via
+ * FinancialEffectHandler.checkDesignFeeCap (the strict 20%-of-scope design-fee
+ * rule, fb:3a57d5d0 — deliberately fires the instant the cap is crossed, "ANY
+ * phase, ANY time," unlike ordinary bankruptcy below) — but these tests verify
+ * ROUTING, so once the game is over they can no longer verify what they claim
+ * to.
  *
- * Deliberately throws rather than returning early: swallowing this would make
- * the test pass vacuously, which is worse than failing. Before this, the run
- * carried on pumping effects into a finished game (charging further fees,
- * -$20,000 → -$25,000) and surfaced several steps later as the baffling
- * "Cannot end turn outside of PLAY phase".
+ * Historical note (2026-07-28 → revised 2026-09-28, fb:ab383e78): a bad
+ * CHEAT-BYPASS dice outcome used to take the player from $80,000 to -$20,000
+ * and FinancialEffectHandler.checkBankruptcy ended the run on the spot
+ * (reproduce pre-fix with E2E_SEED=20). That was later found to be the same
+ * bug as fb:ab383e78's contractor case — a mandatory charge is allowed to go
+ * negative, but checking bankruptcy off that still-provisional balance mid
+ * effect-processing (rather than once, at turn-commit) could end a game the
+ * player hadn't actually committed to yet. checkBankruptcy is no longer
+ * called here; TurnService.endTurnWithMovement calls it once, at commit. This
+ * helper is kept for the design-fee-cap path and any future case, and
+ * deliberately throws rather than returning early: swallowing this would make
+ * the test pass vacuously, which is worse than failing. Before the original
+ * 2026-07-28 fix, the run carried on pumping effects into a finished game
+ * (charging further fees, -$20,000 → -$25,000) and surfaced several steps
+ * later as the baffling "Cannot end turn outside of PLAY phase".
  */
 const throwIfGameOver = (atSpace: string, playerId: string): void => {
   const gs = stateService.getGameState();
@@ -144,14 +154,12 @@ const playTurn = async (
   // Process manual effects
   const effects = dataService.getSpaceEffects(p.currentSpace, p.visitType);
   for (const effect of effects) {
-    // Stop the moment the game is over. A space effect can legitimately end the
-    // run mid-turn — at CHEAT-BYPASS a bad dice outcome can take the player from
-    // $80,000 to -$20,000, and FinancialEffectHandler.checkBankruptcy ends the
-    // game. Continuing to pump effects into a finished game is meaningless, and
-    // it was actively misleading: the run kept charging fees (-$20,000 →
-    // -$25,000) and the failure finally surfaced several steps later as the
-    // baffling "Cannot end turn outside of PLAY phase". Fail here instead, where
-    // the cause is still visible. (Found 2026-07-28 via E2E_SEED=20.)
+    // Stop the moment the game is over — see throwIfGameOver's doc comment for
+    // the full history (2026-07-28, revised 2026-09-28 fb:ab383e78). Continuing
+    // to pump effects into a finished game is meaningless and actively
+    // misleading: the run would keep charging fees into a game that already
+    // ended, surfacing several steps later as the baffling "Cannot end turn
+    // outside of PLAY phase". Fail here instead, where the cause is still visible.
     throwIfGameOver(expectedSpace, playerId);
 
     if (effect.trigger_type === 'manual' && effect.effect_type !== 'turn') {

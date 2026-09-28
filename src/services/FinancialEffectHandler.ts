@@ -215,13 +215,20 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
       // RESOURCE_CHANGE money deductions are engine-applied bills (fees, costs,
       // life-event charges) — mandatory, not discretionary. Charge in full even
       // if it drives cash negative (allowNegative), so an unpayable bill causes
-      // real bankruptcy via checkBankruptcy below rather than being silently
-      // dropped (fb:f0bdd78a / 0aae9865 / 40caa223).
+      // real bankruptcy rather than being silently dropped (fb:f0bdd78a /
+      // 0aae9865 / 40caa223).
+      //
+      // Bankruptcy itself is NOT checked here (2026-09-28, fb:ab383e78) — this
+      // balance can still be provisional (mid dice-roll, before a Negotiate
+      // space's Try Again has even been offered), so ending the game off it
+      // immediately could end a game the player never got a chance to react
+      // to. See TurnService.endTurnWithMovement, which checks once, at
+      // turn-commit, for every mandatory fee — the one place a bankruptcy
+      // caused by this turn is actually final.
       success = this.resourceService.spendMoney(playerId, Math.abs(amount), source, reason, undefined, true);
       if (success) {
         this.logMoneyChange(playerId, amount, reason);
         this.notifyFeeDeducted(playerId, amount, payload);
-        this.checkBankruptcy(playerId);
       }
     } else {
       success = true; // No change needed for 0 amount

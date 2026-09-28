@@ -452,6 +452,22 @@ export class TurnService implements ITurnService {
         return { nextPlayerId: winnerId }; // Winner remains current player
       }
 
+      step = 'check_bankruptcy';
+      // The one place bankruptcy is checked for real (2026-09-28, fb:ab383e78).
+      // Every mandatory-fee charge this turn (dice-driven or not) uses
+      // allowNegative and can leave money negative, but none of them end the
+      // game on the spot anymore — that used to let a single bad die (e.g.
+      // CON-INITIATION's contractor bid) end the game mid-roll, before the
+      // player had even seen the price or been offered Push Back. Checking
+      // once, here, at the moment the player actually commits their turn,
+      // means a provisional negative balance a Try Again would have undone
+      // never gets the chance to end anything early — and a real, final
+      // bankruptcy still ends the game exactly the same way it always did.
+      this.effectEngineService?.checkBankruptcy(gameState.currentPlayerId);
+      if (this.stateService.getGameState().isGameOver) {
+        return { nextPlayerId: gameState.currentPlayerId };
+      }
+
       step = 'commit_turn_transaction';
       // COMMIT the turn transaction — finalizes the log session AND folds TEMP
       // into REAL together (see commitTurnTransaction), before advancing.
