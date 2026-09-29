@@ -10,6 +10,7 @@ import { VersionBadge } from '../../../src/components/common/VersionBadge';
 describe('VersionBadge', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    window.history.pushState({}, '', '/');
     cleanup();
   });
 
@@ -31,5 +32,41 @@ describe('VersionBadge', () => {
     vi.stubGlobal('__APP_VERSION__', '');
     render(<VersionBadge />);
     expect(screen.queryByTestId('version-badge')).not.toBeInTheDocument();
+  });
+
+  // fb:4c7a3628 (2026-09-27) — a report never said which of PC/TV/Remote it
+  // happened on, and the screenshot alone couldn't tell either. Tom: "add
+  // visual indicators on bottom of page to show game type ... right next to
+  // the game version." Read from `?mode=`, the same URL contract App.tsx's
+  // isTVMode and GameLayout's isRemoteMode already key off.
+  describe('play-mode label (2026-09-28, fb:4c7a3628)', () => {
+    beforeEach(() => {
+      vi.stubGlobal('__APP_SEMVER__', '9.9.9');
+      vi.stubGlobal('__APP_VERSION__', 'abc1234');
+    });
+
+    it('shows TV for ?mode=tv', () => {
+      window.history.pushState({}, '', '/?mode=tv');
+      render(<VersionBadge />);
+      expect(screen.getByTestId('version-badge-mode')).toHaveTextContent('TV');
+    });
+
+    it('shows Remote for ?mode=remote', () => {
+      window.history.pushState({}, '', '/?mode=remote');
+      render(<VersionBadge />);
+      expect(screen.getByTestId('version-badge-mode')).toHaveTextContent('Remote');
+    });
+
+    it('defaults to PC with no ?mode= param', () => {
+      window.history.pushState({}, '', '/');
+      render(<VersionBadge />);
+      expect(screen.getByTestId('version-badge-mode')).toHaveTextContent('PC');
+    });
+
+    it('defaults to PC for an explicit ?mode=pc', () => {
+      window.history.pushState({}, '', '/?mode=pc');
+      render(<VersionBadge />);
+      expect(screen.getByTestId('version-badge-mode')).toHaveTextContent('PC');
+    });
   });
 });

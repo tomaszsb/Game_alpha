@@ -10,13 +10,33 @@
 // above the modal overlay (1000) but below the feedback button (2500), and
 // pointer-events:none so it can never intercept a click. The dark chip keeps the
 // text legible over any background (light modal or dark board alike).
+//
+// Carries the play mode too (2026-09-28, Tom — investigating fb:4c7a3628 hit a
+// dead end because the report didn't say which of PC/TV/Remote it happened on,
+// and there was no way to tell from the screenshot alone): "we can add visual
+// indicators on bottom of page to show game type so you can always get that
+// information from screenshot right next to the game version." Read directly
+// from `?mode=` — the same URL contract GameLayout's isRemoteMode and App.tsx's
+// isTVMode already key off — not from the pre-game modePreference.ts localStorage
+// pick, which reflects a past SETUP-screen choice, not what this specific device
+// is rendering right now (a TV-mode controller phone never itself becomes "TV").
 
 import React from 'react';
+import { getURLParams } from '../../utils/getAppScreen';
+
+function currentModeLabel(): 'PC' | 'TV' | 'Remote' {
+  const mode = getURLParams().get('mode');
+  if (mode === 'tv') return 'TV';
+  if (mode === 'remote') return 'Remote';
+  return 'PC';
+}
 
 export const VersionBadge: React.FC = () => {
   const semver = typeof __APP_SEMVER__ !== 'undefined' ? __APP_SEMVER__ : '';
   const commit = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '';
   if (!semver && !commit) return null;
+
+  const modeLabel = currentModeLabel();
 
   return (
     <div
@@ -42,6 +62,8 @@ export const VersionBadge: React.FC = () => {
       }}
     >
       {semver ? `v${semver}` : commit}
+      {' · '}
+      <span data-testid="version-badge-mode">{modeLabel}</span>
     </div>
   );
 };

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.84] - 2026-09-28
+
+### The always-on version badge now says which mode you're in too
+
+**Where this came from.** Investigating fb:4c7a3628 (a phone report of a missing destination picker) hit a wall: the report didn't say whether it happened on PC, TV, or Remote, and the screenshot alone couldn't tell either — there was nothing on screen naming the mode. Tom: *"we can add visual indicators on bottom of page to show game type so you can always get that information from screenshot right next to the game version."*
+
+**Player-visible.** The small `v3.2.84` chip pinned to the bottom-left of every screen (added 2026-06-25 specifically so feedback screenshots always carry the build number) now reads `v3.2.84 · PC`, `v3.2.84 · TV`, or `v3.2.84 · Remote`. Nothing else about the chip changed — same place, same size, same "stays visible over any modal" behavior.
+
+**Where:** `VersionBadge.tsx` reads the mode straight from `?mode=` in the URL — the same contract `App.tsx`'s TV-mode check and `GameLayout.tsx`'s Remote-mode check already use — rather than `modePreference.ts`'s localStorage pick, which remembers a past SETUP-screen choice and wouldn't be accurate for a TV-mode controller phone (a phone showing a controller never itself becomes "TV"). No prop wiring needed: `VersionBadge` already renders as a global sibling alongside every mode's screen (confirmed by reading `App.tsx` — the TV-mode early return only short-circuits the inner `AppContent` component, not the badge, which the outer `App` mounts unconditionally).
+
+**Verified in a real browser** (not just unit tests): started the local dev server, confirmed the chip reads `PC` on the plain setup screen, `TV` after navigating with `?mode=tv`, and `Remote` after `?mode=remote`. Tests (+4 in `VersionBadge.test.tsx`): TV, Remote, no-param defaults to PC, and an explicit `?mode=pc` also reads PC. Typecheck ✅, full suite untouched elsewhere.
+
+**To undo:** revert this commit alone; only `VersionBadge.tsx` and its test are touched.
+
 ## [3.2.83] - 2026-09-28
 
 ### A bad dice roll could end the whole game before you ever saw the price — fixed for every mandatory fee, not just the one that got reported
