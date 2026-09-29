@@ -340,6 +340,61 @@ describe('E2E Path Coverage: All Decision Points', () => {
       expect(newSpace).toBe('PM-DECISION-CHECK');
     }, 30000);
 
+    // fb:4c7a3628 (2026-09-27): "Button says to pick a location to go to.
+    // There's nowhere to choose the location." A screenshot showed the commit
+    // button correctly reading "Pick where you're going first" with NO
+    // destination picker anywhere on screen. ENG-SCOPE-CHECK is both a
+    // 'choice'-movement space (MOVEMENT.csv) AND has its own unrelated manual
+    // dice_outcome reveal on the same visit (SPACE_EFFECTS.csv: "See what the
+    // design adds", a W-card reveal, nothing to do with where to move). Every
+    // existing E2E test for this space bypasses the real picker by calling
+    // stateService.setPlayerMoveIntent directly (playTurn's `destination`
+    // option) — none of them verify gameState.awaitingChoice actually gets
+    // (and stays) populated through the real flow. This test drives it for
+    // real, without that bypass.
+    it('the destination choice created at turn start survives resolving the unrelated dice reveal (fb:4c7a3628)', async () => {
+      const playerId = await setupGame();
+
+      await playTurn(playerId, 'OWNER-SCOPE-INITIATION');
+      await playTurn(playerId, 'OWNER-FUND-INITIATION');
+      await playTurn(playerId, 'PM-DECISION-CHECK', { destination: 'ARCH-INITIATION' });
+      await playTurn(playerId, 'ARCH-INITIATION');
+      await playTurn(playerId, 'ARCH-FEE-REVIEW');
+      await playTurn(playerId, 'ARCH-SCOPE-CHECK', { destination: 'ENG-INITIATION' });
+      await playTurn(playerId, 'ENG-INITIATION');
+      await playTurn(playerId, 'ENG-FEE-REVIEW');
+
+      // Now on ENG-SCOPE-CHECK, First visit — startTurn already ran (as part
+      // of the previous playTurn's endTurnWithMovement -> nextPlayer chain),
+      // so if the real flow works, a MOVEMENT choice should already exist.
+      const player = stateService.getPlayer(playerId)!;
+      expect(player.currentSpace).toBe('ENG-SCOPE-CHECK');
+
+      const choiceBefore = stateService.getGameState().awaitingChoice;
+      expect(choiceBefore?.type).toBe('MOVEMENT');
+      expect(choiceBefore?.options.map(o => o.id).sort()).toEqual(
+        ['PM-DECISION-CHECK', 'REG-DOB-FEE-REVIEW'].sort()
+      );
+
+      // Resolve the space's own manual dice reveal ("See what the design
+      // adds") — the same action the reporter's screenshot showed as
+      // "already done this turn" while no picker was visible.
+      await settleManualEffect(
+        turnService.rollDiceWithFeedback(playerId),
+        stateService,
+        choiceService,
+      );
+      stateService.updateGameState({ hasPlayerMovedThisTurn: false });
+
+      // The movement choice must still be there, unharmed, for the picker to
+      // render from.
+      const choiceAfter = stateService.getGameState().awaitingChoice;
+      expect(choiceAfter?.type).toBe('MOVEMENT');
+      expect(choiceAfter?.options.map(o => o.id).sort()).toEqual(
+        ['PM-DECISION-CHECK', 'REG-DOB-FEE-REVIEW'].sort()
+      );
+    }, 30000);
+
   });
 
   describe('REG-DOB-TYPE-SELECT Branches', () => {
