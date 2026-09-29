@@ -2,6 +2,14 @@
 
 ---
 
+## v3.2.84 — The corner build tag now says how you're playing too (September 28, 2026)
+
+- **The small version number in the corner now also shows PC, TV, or Remote.** If you ever send feedback with a screenshot, we can tell right away which way you were playing — no more guessing from the picture alone.
+
+## v3.2.83 — A bad contractor price could end your game before you'd even seen it (September 28, 2026)
+
+- **Hiring a contractor (or agreeing to a change order) is a real quote now, not an instant bill.** Before, if the dice landed on a rough price, the game could end right then — even before the number showed up on screen or you'd had a chance to push back for a better one. Nothing is final anymore until you actually commit to it.
+
 ## v3.2.82 — A real way to play from different places (September 26, 2026)
 
 - **"Remote" is a real option now, not a "coming soon" button.** Pick it like PC or TV. Add everyone's name like normal — you'll play as the first name on the list. Everyone else gets their own link to open on their own phone or computer, wherever they are.

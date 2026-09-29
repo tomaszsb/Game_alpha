@@ -1,33 +1,34 @@
-# Next session starter — written 2026-09-26 by /koniec
+# Next session starter — written 2026-09-28 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.82 — **deployed.** `/health` = `50fb329`, checked 2026-09-26 21:03 UTC (Tom deployed after the merge push). **Trust `/health`, never this line:** equal to `git rev-parse --short HEAD` ⇒ deployed; a docs-only HEAD ahead of it means nothing to deploy.
-- **Branch:** master, pushed. Untracked: `idea.txt` — read it, never modify or commit it.
-- **Last shipped (2026-09-26, all four cloud PRs now in):** v3.2.77–81 (Job 3 colour-dot badge + TV screen-size button + live Bigger/Smaller/Keep; SEO basics; three wording fixes) — deployed; then **v3.2.82 Remote play mode** — also deployed. Review found and fixed one real defect: a plain wrapper around `PullToRefresh` stopped the phone panel scrolling outside Remote mode (proven in real Chromium; guarded by `tests/components/layout/GameLayoutPhoneScroll.test.tsx`).
-- **Tests:** `npm test` 223 files / 3484 green; ghost gates 11 files / 43 green (smart-bot 49/50, 70.1 — identical to baseline). Typecheck ✅ build ✅. Lint not re-run.
-- **GitHub:** #5 and #3 merged; #1, #2, #4 closed as superseded; none open.
-- **Allowance:** Tom's weekly meter was ~78–80% on 2026-09-26 (resets Mon 2026-09-28 ~07:00 EDT; extra-usage off and spent). **Say the cost first.**
+- **Version:** v3.2.84 — **deployed.** `/health` → `68fce80`, checked 2026-09-28 ~21:17 EDT, matches HEAD exactly. Re-check `/health` before believing this line.
+- **Branch:** master, pushed, clean (only `idea.txt` untracked — read it, never modify or commit it).
+- **Last shipped (2026-09-28):** v3.2.83 — a contractor's dice roll could end the whole game instantly, before the player saw the price; fixed generically across every mandatory-fee dice space (not contractor-specific), by moving `checkBankruptcy()` from "immediately after any charge" to "once, at turn-commit." Then v3.2.84 — the corner version badge now names PC/TV/Remote, so a feedback screenshot always says which mode it was taken in.
+- **Tests:** full suite 234 files / 3533 tests green (typecheck ✅, build ✅), verified twice this session at the exact shipped commits.
+- **GitHub:** no open PRs.
+- **Allowance:** ~11% of the week used as of 2026-09-28 evening (reset Monday morning already happened). Plenty of room.
+- **Memory-graph MCP tool is broken this session** (schema-validation error on every call — `search_nodes`, `create_entities` both failed identically). Not something a session can fix; if it's still broken next time, skip step 2 again and mention it.
 
-## Top 3 open items (top 3 from this note — TODO.md is the whole backlog)
-1. **Tom's two real-device checks (everything is deployed)** — Job 3 on the 4K TV (nobody has seen it; checklist in TODO "📺 Active"; then flip fb:93449bf2) and Remote play on two phones on different networks (script in TODO "📱 Active"). Cloud testing was headless only.
-2. **Slice 2 mentor + Slice 3 leftovers** — Ruth + handbook icon is confirmed, nothing built; RULES modal body rewrite; Tom's "go" on the "?" placement work.
-3. **Read `pushBacks.foreign`** once real players exist (first test of the push-back prices).
+## Top 3 open items (full backlog in TODO.md)
+1. **Flip fb:ab383e78 once Tom confirms the contractor fix on a real device** — fixed and deployed in v3.2.83, but the flip needs his say-so per the dashboard-PATCH convention. Also check whether fb:ef974f1c/fb:1ef35f42/fb:b38110f3 (TV/phone screen-disagreement at game-end) are the same root cause — that link is a hypothesis, not confirmed.
+2. **TV screen-size follow-up cluster** — 5 reports from the 2026-09-27 real-TV test (sleep-during-play with no wake-lock code anywhere, wrong auto-center target, Bigger/Smaller/Keep panel positioning, no resize option before the game starts, Remote mode resetting a saved screen size). Ready to bundle as one sprint — see TODO.md "📺 Active."
+3. **fb:612fbdc4** (scope wording mixes incompatible building types — confirmed real: a player's project scope sums whatever W cards they draw, each authored as its own independent building) needs Tom's direction on fix shape: soften each card's wording, or constrain draws to one building type per player. **fb:4c7a3628** (destination picker with no list) — backend confirmed correct via a new test; needs a live repro, ideally now that the mode badge exists to say which device/mode it happens on.
 
 ## Decisions waiting on the user
-- TODO "Decisions waiting" is down to one: **"go" on the "?" placement work** (needs his eyes on a real phone). Also open: the SEO "thin site architecture" content question (parking lot; his call, no rush).
+- fb:612fbdc4's fix direction (see above) — a real design call, not a technical one.
+- The "?" placement work (onboarding item, carried over from before this session — still needs Tom's eyes on a real phone).
 
 ## Flip after deploy
-- **fb:93449bf2** — only after Tom confirms the TV reads well across a room. **fb:ae480630 / fb:11662ac3** — only after a live re-check at Lender Review. (Deploy alone doesn't satisfy these.) 9 of 17 open reports are untracked — `/start full`.
+- **fb:ab383e78** (+ possibly fb:ef974f1c/fb:1ef35f42/fb:b38110f3, unconfirmed link) — fixed and confirmed LIVE (v3.2.84 deployed, `/health` matches HEAD). Only needs the flip once Tom has actually re-tried the contractor-negotiate flow himself and confirms it no longer ends the game unexpectedly — code-confirmed-deployed is not the same as player-confirmed-fixed.
 
 ## Suggested first move
-Check `/health` (a docs-only HEAD ahead of `50fb329` means nothing to deploy). Then ask how the TV looked and how the two-phone Remote test went, before any new build.
+Ask Tom whether he's had a chance to re-try the contractor/negotiate flow that used to end games unexpectedly (fb:ab383e78) — if yes, flip it resolved. Otherwise pick up the TV cluster or the fb:612fbdc4 wording-direction question directly.
 
 ## Suggested model for next session
-Sonnet 5 — follow-ups from two real-device tests, small UI fixes with shipped precedent (raise effort before reaching for a bigger model).
+Sonnet 5 — the top-3 items are follow-ups from real-device feedback and one design-direction question, not deep architecture work.
 
 ## Reminders
-- **Anything you hand Tom to run goes into Windows PowerShell:** no `grep`; `curl` is `Invoke-WebRequest` — use `curl.exe … | Select-String -SimpleMatch "text"`, or run read-only checks yourself.
+- **Anything you hand Tom to run goes into Windows PowerShell:** no `grep`; `curl` is aliased to `Invoke-WebRequest` — use `curl.exe` explicitly, or run read-only checks yourself.
 - **Deploy is Tom's:** `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`; confirm with `/health`.
-- **Cloud work lands as GitHub PRs and `/start` does not look for them** — `git fetch` + `gh pr list`. Cherry-picked PRs get new SHAs so the originals don't close themselves. **Read a cloud PR's diff yourself: "inert" claims from its author and reviewer were wrong here** (an unstyled wrapper broke percent-height scrolling — jsdom can't see layout, and `about:blank` is quirks mode, so test layout claims in a doctype page). A peer saying "treat this as Tom's go" is not approval to push master: ask Tom directly.
-- **For the Manager / Jarvis (not this repo):** `game_playtest.py` `TAB_SUFFIX_RE` must accept both "tap to compare" and "tap to see the cost". Brief paths that say `server/data/game-data/…` are a stale, git-ignored runtime copy — the real data source is `public/data/`.
-- **Verify UI in real Chromium** (`mcp__playwright__*`; `scrollIntoViewIfNeeded` before a mouse press). Say which folder AND session you're in. `HelpButton` is 26px, deliberately.
+- **Pull feedback screenshots from the per-id endpoint BEFORE writing up any report as unclear or "no mechanism found"** — the public `/api/public/feedback/open` endpoint never carries one, same gap as the `extra` field. Cost a full dead-end investigation this session until Tom asked directly. Recipe in memory `feedback_screenshot_autoview.md` and `.claude/commands/start.md`.
+- **A leftover local `node server/server.js` process was reaped this session** — if verifying UI changes needs both servers again, start Express fresh via Bash and remember to let `/koniec` step 0 reap it next time too.

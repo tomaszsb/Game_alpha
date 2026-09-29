@@ -96,6 +96,8 @@ Two consequences for the steps below:
 - When drafting a candidate bullet in 4d, base it on `whatDoing` + `whatWrong` **+ `extra`**, not the summary line alone. A one-line `whatWrong` with a long `extra` is the exact shape that gets under-scoped.
 - **"Already tracked" does not mean "already read."** An id appearing in TODO.md/CHANGELOG.md only proves someone logged the headline. If a tracked report has `extra` the TODO entry plainly doesn't reflect, say so — that is a real finding, not noise.
 
+⚠️ **This same public endpoint also never carries `screenshot` — same shape as the `extra` gap above, and it caught a session the same way (2026-09-28).** A report was triaged and investigated to "no mechanism found, needs more detail" using only `whatDoing`/`whatWrong`/`extra` text. Tom asked "there is a screenshot attached right?" — there was, fetched from the per-id endpoint (`/api/feedback/<id>.json?token=$FEEDBACK_TOKEN`, see memory `feedback-screenshot-autoview`), and it immediately showed the real mechanism text alone never surfaced. **Before writing up any report as unclear, under-detailed, or "no mechanism found" — pull its screenshot from the per-id endpoint first, not after being asked.** This applies beyond the `/start` sweep itself: any time a report is being actively investigated (not just triaged into a TODO bullet), check for a screenshot before concluding text alone is insufficient.
+
 ### 4d. Reconcile + draft
 
 Read `TODO.md`. For each fetched report:

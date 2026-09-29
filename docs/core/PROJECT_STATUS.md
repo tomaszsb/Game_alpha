@@ -5,22 +5,22 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** September 26, 2026 (v3.2.82)
+**Last Updated:** September 28, 2026 (v3.2.84)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.82 — LIVE.** `/health` → `50fb329`, checked 2026-09-26 21:03 UTC. Trust `/health`, never this line: equal to HEAD ⇒ deployed; a docs-only HEAD ahead of it means nothing to deploy.
+**Current Version:** **3.2.84 — LIVE.** `/health` → `68fce80`, checked 2026-09-28 ~21:17 EDT, matches HEAD exactly. Trust `/health`, never this line.
 
 ## Current sprint
-**Onboarding Phase C, teaching a beginner the game** (Tom's 2026-09-19 replan: no new tutorial layer — one help look for the whole game, one recurring mentor, existing wording reused). This session (2026-09-26) brought in all the work the cloud helpers built: **v3.2.77–79 Job 3** (colour-dot version badge; TV "Adjust screen size" button in the header with a first-use pulse; live Bigger/Smaller/Keep with ~10 s snap-back), **v3.2.80** search-engine basics, **v3.2.81** three approved wording fixes — deployed — and then, at Tom's "go", **v3.2.82 Remote play mode** (a real third way to play: separate places, every device its own board + panel). Reading the Remote play diff found one real defect the cloud author and reviewer had both called harmless: a plain wrapper stopped the phone panel scrolling outside Remote mode. Proven in a real Chromium, fixed in one line, pinned by a new test that fails on the bad version.
+**Real-device feedback triage, following Tom's TV+phone test of v3.2.82.** This session: a full feedback sweep (26 untracked reports triaged, Manager set the fix order), then the top-priority item — a contractor's dice roll could end the whole game instantly, before the player saw the price (fb:ab383e78). Root-caused to `checkBankruptcy()` firing synchronously mid-effect-processing; fixed generically across every mandatory-fee dice space (v3.2.83), not contractor-specific, per Tom's own "maybe the function can be reused" instinct. Also shipped v3.2.84 (Tom's idea, prompted by a fb:4c7a3628 dead end): the corner version badge now names PC/TV/Remote, so a feedback screenshot always says which mode it was taken in.
 
 ## Health
-- **Tests (v3.2.82):** `npm test` **223 files / 3484 tests green**. Ghost gates **11 files / 43 tests green**; smart-bot **49/50 wins, 70.1 avg turns — identical to baseline**. Typecheck ✅, build ✅. Lint not re-run here.
-- **Not verified by anyone yet:** Job 3 on a real 4K TV (deployed, unseen), and Remote play on two real phones on different networks (headless Chromium only, host + second tab).
-- **Weekly allowance (read 2026-09-26):** Pro plan, ~78–80% used, resets Monday 2026-09-28 ~07:00 EDT; extra-usage is off and its budget is spent. Say the cost before any big step.
+- **Tests (v3.2.84):** `npm test`-equivalent full suite **234 files / 3533 tests green**, including all four long-running ghost-bot gates (strict 50-game, smart-bot Try Again, aggressive-negotiate, full-board coverage). Typecheck ✅, build ✅. Lint not re-run this session.
+- **Deploy state:** v3.2.84 confirmed live (`/health` matches HEAD exactly).
+- **Weekly allowance (read 2026-09-28):** Pro plan, ~11% used (reset Monday 2026-09-28 already happened this morning). Plenty of headroom.
+- **Feedback backlog:** dashboard had 34 open at session start; 26 were untracked in TODO/CHANGELOG. All 26 now sorted — 4 folded into the fb:ab383e78 fix (deployed, needs a flip once Tom confirms), 1 flipped resolved already (fb:3196fe42, already fixed by v3.2.78), the rest triaged into TODO's active/parking-lot sections with clear next steps. See TODO.md for the full list.
 - **Nightly robot:** its `TAB_SUFFIX_RE` regex in the Jarvis repo still needs to accept both "tap to compare" and "tap to see the cost" (cosmetic; not this repo).
-- **Dashboard:** fb:93449bf2 waits for Tom's eyes on the real TV; fb:ae480630 / fb:11662ac3 need a live look at Lender Review. 9 of 17 open reports are not tracked in TODO/CHANGELOG — run `/start full`.
-- **GitHub:** all four cloud PRs are handled (#5 and #3 merged, #1/#2/#4 closed as superseded); none open.
+- **GitHub:** no open PRs.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Tom's two real-device checks (all deployed):** Job 3 on the 4K TV (checklist in TODO "📺 Active"; then flip fb:93449bf2) and Remote play on two phones on different networks (script in TODO "📱 Active").
-2. **Slice 2 mentor** (Ruth + handbook icon — confirmed, not built), the RULES modal body rewrite, and Tom's "go" on the "?" placement work.
-3. Read `pushBacks.foreign` once real players exist.
+1. **Flip fb:ab383e78 (+ possibly fb:ef974f1c/fb:1ef35f42/fb:b38110f3) once Tom confirms v3.2.83's fix on a real device** — the contractor-bankruptcy bug is fixed and deployed; the TV/phone-screen-disagreement reports are only a hypothesis pending confirmation.
+2. **TV screen-size follow-up cluster** (5 reports from the 2026-09-27 real-TV test: sleep-during-play, wrong auto-center, Bigger/Smaller/Keep panel positioning, no resize option pre-game, Remote resetting saved size) — ready to bundle as one sprint.
+3. **fb:4c7a3628** (destination picker with no list) — investigated deeply, backend confirmed correct via a new regression test; needs a live repro with the new mode badge to pin down further. **fb:612fbdc4** (scope wording mixes building types) — confirmed real, needs Tom's direction on which fix (soften wording vs. constrain card draws).
