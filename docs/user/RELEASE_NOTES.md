@@ -2,6 +2,10 @@
 
 ---
 
+## v3.2.88 — The "where to go next" list no longer disappears if you take your time (September 30, 2026)
+
+- **If you sat at a space for more than five minutes, the list of places to go could vanish** while the button still told you to pick one, leaving you stuck. The list now stays as long as your turn does.
+
 ## v3.2.87 — The DOB and Fire Department tags are back, and the top buttons are readable in dark mode (September 30, 2026)
 
 - **You can see your approvals again.** Once you reach the regulatory stage, your Department of Buildings and Fire Department tags always show: a ✓ when you're approved and a ✗ while you're still waiting. They're bigger and easier to spot.

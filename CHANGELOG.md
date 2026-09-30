@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.88] - 2026-09-30
+
+### The destination list could vanish after five minutes at a space — the real cause of "Pick a location" with no list
+
+**Where this came from.** fb:4c7a3628 (real TV + phone test, v3.2.82): the commit button read "Sign off on the structure — Pick where you're going first", but no destination list showed anywhere. Investigated 2026-09-28 (backend ruled correct, no repro) and parked as "watch for a repeat." The mechanism was in the code all along.
+
+**Root cause.** `ChoiceService.createChoice` started a flat **5-minute timer for every choice**. When it fired it deleted the choice, cleared `awaitingChoice` and rejected. The destination choice is created when a turn *starts*, so a player who simply sat at a space for five minutes — normal in a classroom, and exactly what a real-TV test looks like — lost the destination list. The commit button's "Pick where you're going first" comes from the map data, not from that choice, so it kept saying so: a dead end with no way to recover. `MovementService` swallowed the rejection with a comment, "Choice timed out or was cancelled - this is okay." Every earlier test was fast, which is why the E2E test of 2026-09-28 passed and no headless run could ever show it.
+
+**Fix.** A MOVEMENT choice now never times out — it lives as long as the turn does (End Turn resolves it, `cancelAllPendingChoices` clears it when the turn ends). Every other kind of choice (a card pick, a target pick) keeps a leak guard, lengthened from 5 to 30 minutes, since the same thing could drop a card modal under a slow player.
+
+**Tests.** Three new `ChoiceService` tests with fake timers: a destination choice is still waiting after an hour, can still be answered after it, and a card choice survives the old 5 minutes but drops after 30. **Verified they fail on the old code** (3 of 3) and pass on the fix.
+
+**Not proven.** The report's game had already expired, so there is no log to show the player waited over five minutes. The mechanism fits the screenshot exactly (picker gone, "Pick first" text still there) and the long-idle test setting, and the defect is real regardless — but if the same symptom appears again within five minutes of a turn starting, this was not the whole story. Also noticed, not changed: `createChoice` overwrites any existing choice with a new one (a second choice created mid-turn would replace the destination choice and, once answered, clear it). No flow is known to do that at a choice space.
+
+**To undo:** revert this commit; `ChoiceService.ts` and a comment in `MovementService.ts`.
+
 ## [3.2.87] - 2026-09-30
 
 ### Two phone complaints that were still open: the approval tags, and header buttons you couldn't read in dark mode

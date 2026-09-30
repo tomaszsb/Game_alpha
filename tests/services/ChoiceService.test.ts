@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ChoiceService } from '../../src/services/ChoiceService';
 import { IStateService } from '../../src/types/ServiceContracts';
 import { Choice } from '../../src/types/CommonTypes';
@@ -497,5 +497,64 @@ describe('ChoiceService', () => {
       expect(() => choiceService.cancelAllPendingChoices()).not.toThrow();
       expect(mockStateService.clearAwaitingChoice).not.toHaveBeenCalled();
     });
+  });
+});
+
+// fb:4c7a3628 (real TV, 2026-09-27): the commit button said "Pick where you're going first"
+// but no destination list showed anywhere. The destination choice is created when a turn
+// starts, and createChoice used to drop EVERY choice after a flat 5 minutes (clearing the
+// choice and rejecting), which MovementService swallowed ("this is okay"). A player who
+// simply sat at a space for five minutes — normal in a classroom — lost the list with no
+// way to get it back. A movement choice now lives as long as the turn does.
+describe('ChoiceService — how long a choice waits (fb:4c7a3628)', () => {
+  let choiceService: ChoiceService;
+  let mockStateService: any;
+  const MIN = 60 * 1000;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockStateService = createMockStateService();
+    mockStateService.getGameState.mockReturnValue({ players: [], gamePhase: 'PLAY', awaitingChoice: null });
+    choiceService = new ChoiceService(mockStateService);
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it('a destination choice is still waiting after an hour — it is never cleared by a timer', () => {
+    choiceService.createChoice('player1', 'MOVEMENT', 'Where to?', [
+      { id: 'A', label: 'A' },
+      { id: 'B', label: 'B' },
+    ]).catch(() => undefined);
+    vi.advanceTimersByTime(60 * MIN);
+    expect(mockStateService.clearAwaitingChoice).not.toHaveBeenCalled();
+  });
+
+  it('and can still be answered after that long', async () => {
+    const promise = choiceService.createChoice('player1', 'MOVEMENT', 'Where to?', [
+      { id: 'A', label: 'A' },
+      { id: 'B', label: 'B' },
+    ]);
+    const choice: Choice = mockStateService.setAwaitingChoice.mock.calls[0][0];
+    mockStateService.getActiveChoice?.mockReturnValue?.(choice);
+    mockStateService.getGameState.mockReturnValue({ players: [], gamePhase: 'PLAY', awaitingChoice: choice });
+    vi.advanceTimersByTime(60 * MIN);
+    expect(choiceService.resolveChoice(choice.id, 'B')).toBe(true);
+    await expect(promise).resolves.toBe('B');
+  });
+
+  it('a card choice is NOT dropped at the old 5 minutes, only after the longer guard', async () => {
+    const promise = choiceService.createChoice('player1', 'PLAYER_TARGET', 'Who?', [
+      { id: 'p2', label: 'Bob' },
+    ]);
+    const settled = vi.fn();
+    promise.then(settled, settled);
+    vi.advanceTimersByTime(6 * MIN);
+    await Promise.resolve();
+    expect(mockStateService.clearAwaitingChoice).not.toHaveBeenCalled();
+    expect(settled).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(25 * MIN);
+    await Promise.resolve();
+    expect(mockStateService.clearAwaitingChoice).toHaveBeenCalled();
+    await expect(promise).rejects.toThrow(/timed out after 30 minutes/);
   });
 });

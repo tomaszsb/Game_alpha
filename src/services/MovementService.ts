@@ -1258,7 +1258,9 @@ export class MovementService implements IMovementService {
             this.stateService.setPlayerMoveIntent(playerId, selectedDestination);
           }
         }).catch(_error => {
-          // Choice timed out or was cancelled - this is okay
+          // Cancelled (turn ended, or a newer choice replaced this one). A MOVEMENT choice
+          // no longer times out — that used to land here silently and leave the player with
+          // no destination list (fb:4c7a3628, see ChoiceService CHOICE_TIMEOUT_MS).
         });
 
         return { choiceCreated: true, reason: 'Multiple valid moves - choice presented' };

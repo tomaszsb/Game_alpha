@@ -15,6 +15,17 @@ import { GameState } from '../types/StateTypes';
  * - Generic enough to handle movement, player targeting, and other choice types
  * - Centralized choice state management
  */
+/**
+ * How long a NON-movement choice (a card pick, a target pick) waits for an answer before
+ * it is dropped. It used to be 5 minutes for EVERY choice, including the destination
+ * choice that is created when a turn starts — so a player who simply sat at a space for
+ * five minutes (normal in a classroom, and in a real-TV test) lost the destination list
+ * while the commit button still said "Pick where you're going first": a dead end with no
+ * way forward (fb:4c7a3628, real TV 2026-09-27; MovementService swallowed the rejection
+ * with "this is okay"). 30 minutes keeps the leak guard for abandoned card choices.
+ */
+const CHOICE_TIMEOUT_MS = 30 * 60 * 1000;
+
 export class ChoiceService implements IChoiceService {
   private stateService: IStateService;
   private pendingChoices: Map<string, { resolve: (value: string) => void; reject: (reason: any) => void }> = new Map();
@@ -115,14 +126,18 @@ export class ChoiceService implements IChoiceService {
     return new Promise<string>((resolve, reject) => {
       this.pendingChoices.set(choiceId, { resolve, reject });
 
-      // Set a timeout to prevent hanging indefinitely
+      // A MOVEMENT choice never times out: it is the turn's own "where to next" and lives
+      // exactly as long as the turn does — TurnService clears it when the turn ends
+      // (cancelAllPendingChoices) and resolves it on End Turn. Expiring it strands the
+      // player (see CHOICE_TIMEOUT_MS). Every other kind keeps a leak guard.
+      if (type === 'MOVEMENT') return;
       setTimeout(() => {
         if (this.pendingChoices.has(choiceId)) {
           this.pendingChoices.delete(choiceId);
           this.stateService.clearAwaitingChoice();
-          reject(new Error(`Choice ${choiceId} timed out after 5 minutes`));
+          reject(new Error(`Choice ${choiceId} timed out after ${CHOICE_TIMEOUT_MS / 60000} minutes`));
         }
-      }, 5 * 60 * 1000); // 5 minute timeout
+      }, CHOICE_TIMEOUT_MS);
     });
   }
 
