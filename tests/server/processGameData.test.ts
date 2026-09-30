@@ -1177,7 +1177,7 @@ describe('processGameData — try_again_days (push-back price)', () => {
 
   it('carries the price through to SPACE_CONTENT.csv, as its own column, and leaves blanks blank', () => {
     const { cols, rows } = contentRows([header, row('S-A', 'First', '15'), row('S-B', 'First', '')].join('\n'));
-    expect(cols[cols.length - 1]).toBe('try_again_days');
+    expect(cols).toContain('try_again_days');
     expect(rows.find((r) => r.space_name === 'S-A')!.try_again_days).toBe('15');
     expect(rows.find((r) => r.space_name === 'S-B')!.try_again_days).toBe('');
   });
@@ -1193,6 +1193,36 @@ describe('processGameData — try_again_days (push-back price)', () => {
     processGameData([header, row('S-D', 'First', '15')].join('\n'), diceRollCsv, tmpDir);
     const effects = fs.readFileSync(path.join(tmpDir, 'SPACE_EFFECTS.csv'), 'utf-8');
     expect(effects).not.toMatch(/S-D,First,time/);
+  });
+});
+
+// 2026-09-30: `try_again_fee_share` (Spaces.csv) → SPACE_CONTENT.csv. How much of a deal's
+// quoted money stays paid when the player pushes back (blank = all of it comes back; set
+// on the architect/engineer fee reviews where work was already done). Has to survive the
+// pipeline or the next regeneration silently turns every push-back into a full refund.
+describe('processGameData — try_again_fee_share (work-done push-back penalty)', () => {
+  const header = 'space_name,phase,visit_type,Title,Event,Action,Outcome,w_card,b_card,i_card,l_card,e_card,Time,Fee,space_1,space_2,space_3,space_4,space_5,Negotiate,requires_dice_roll,path,rolls,try_again_fee_share';
+  const row = (name: string, share: string) =>
+    `${name},DESIGN,First,T,E,A,,,,,,,,,NEXT,,,,,YES,No,Main,,${share}`;
+
+  const contentRows = (spacesCsv: string) => {
+    processGameData(spacesCsv, diceRollCsv, tmpDir);
+    const lines = fs.readFileSync(path.join(tmpDir, 'SPACE_CONTENT.csv'), 'utf-8').trim().split('\n');
+    const cols = lines[0].split(',');
+    return lines.slice(1).map((l) => Object.fromEntries(l.split(',').map((v, i) => [cols[i], v])));
+  };
+
+  it('carries the share through to SPACE_CONTENT.csv and leaves blanks blank', () => {
+    const rows = contentRows([header, row('S-A', '1'), row('S-B', '')].join('\n'));
+    expect(rows.find((r) => r.space_name === 'S-A')!.try_again_fee_share).toBe('1');
+    expect(rows.find((r) => r.space_name === 'S-B')!.try_again_fee_share).toBe('');
+  });
+
+  it('a Spaces.csv without the column still produces it, blank on every row', () => {
+    const legacyHeader = header.replace(',try_again_fee_share', '');
+    const legacyRow = row('S-C', '').replace(/,$/, '');
+    const rows = contentRows([legacyHeader, legacyRow].join('\n'));
+    expect(rows.find((r) => r.space_name === 'S-C')!.try_again_fee_share).toBe('');
   });
 });
 

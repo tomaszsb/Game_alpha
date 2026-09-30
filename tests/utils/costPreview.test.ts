@@ -43,6 +43,10 @@ interface FakeOptions {
   autoFunding?: boolean;
   ownerFundingOffered?: number;
   moneySpent?: number;
+  /** The part of moneySpent the player chose to spend (card played, trade). */
+  moneyDeliberate?: number;
+  /** The space's `try_again_fee_share` (SPACE_CONTENT.csv). Omit = all of a quote comes back. */
+  feeShare?: number;
   diceRoll?: string;
   globalTurnCount?: number;
   globalActionLog?: FakeLogEntry[];
@@ -63,6 +67,7 @@ function makeGameServices(effects: SpaceEffect[], opts: FakeOptions = {}): IServ
       getSpaceContent: () => ({
         can_negotiate: true,
         ...(opts.pushBackDays !== undefined ? { try_again_days: opts.pushBackDays } : {}),
+        ...(opts.feeShare !== undefined ? { try_again_fee_share: opts.feeShare } : {}),
       }),
       shouldAutoApplyFunding: () => !!opts.autoFunding,
     },
@@ -79,7 +84,7 @@ function makeGameServices(effects: SpaceEffect[], opts: FakeOptions = {}): IServ
       getRealPlayerState: () => ({
         loans: opts.loanAtTurnStart ? [{ principal: opts.loanAtTurnStart }] : [],
       }),
-      getTurnOutflow: () => ({ moneySpent: opts.moneySpent ?? 0, cardsConsumed: [], lifeEventsDrawn: [] }),
+      getTurnOutflow: () => ({ moneySpent: opts.moneySpent ?? 0, moneyDeliberate: opts.moneyDeliberate ?? 0, cardsConsumed: [], lifeEventsDrawn: [] }),
       getGameState: () => ({
         globalTurnCount,
         globalActionLog: (opts.globalActionLog ?? []).map((e) => ({
@@ -137,9 +142,28 @@ describe('getTryAgainCostPreview — money bucket', () => {
     const effects: SpaceEffect[] = [
       { space_name: 'COMBO-SPACE', visit_type: 'First', effect_type: 'cards', effect_action: 'draw_B', effect_value: '1', condition: '', description: '', trigger_type: 'manual' },
     ];
-    const gs = makeGameServices(effects, { moneySpent: 2000 });
+    // $2,000 the player chose to spend (a card played) — that always stays.
+    const gs = makeGameServices(effects, { moneySpent: 2000, moneyDeliberate: 2000 });
     const tryAgain = getTryAgainCostPreview(gs, 'p1');
     expect(row(tryAgain, 'money')).toBe('$2,000 stays spent + Will be re-drawn next turn');
+  });
+
+  // 2026-09-30: a deal's quote (loan interest, a fee) comes back on push-back unless the
+  // space says work was done (try_again_fee_share) — the box must say what the engine does.
+  it("a deal's quoted money is not shown as staying spent — it comes back", () => {
+    const effects: SpaceEffect[] = [
+      { space_name: 'COMBO-SPACE', visit_type: 'First', effect_type: 'cards', effect_action: 'draw_B', effect_value: '1', condition: '', description: '', trigger_type: 'manual' },
+    ];
+    const gs = makeGameServices(effects, { moneySpent: 65_000 });
+    expect(row(getTryAgainCostPreview(gs, 'p1'), 'money')).toBe('Will be re-drawn next turn');
+  });
+
+  it('a work-done space (try_again_fee_share) shows its share of the quote as staying spent', () => {
+    const effects: SpaceEffect[] = [
+      { space_name: 'FEE-SPACE', visit_type: 'First', effect_type: 'time', effect_action: 'add', effect_value: '50', condition: '', description: '', trigger_type: 'auto' },
+    ];
+    expect(row(getTryAgainCostPreview(makeGameServices(effects, { moneySpent: 40_000, feeShare: 1 }), 'p1'), 'money')).toBe('$40,000 stays spent');
+    expect(row(getTryAgainCostPreview(makeGameServices(effects, { moneySpent: 40_000, feeShare: 0.5 }), 'p1'), 'money')).toBe('$20,000 stays spent');
   });
 
   it('regression: Work/Expediting/Labor carry-over is unaffected by the money-bucket change', () => {

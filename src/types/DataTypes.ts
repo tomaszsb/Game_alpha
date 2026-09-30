@@ -335,6 +335,11 @@ export interface SpaceContent {
   /** Days a push-back charges here. Absent = the space's own fixed time rows
    *  (the original rule); a number REPLACES them — see calculatePushBackDays. */
   try_again_days?: number;
+  /** Share (0–1) of the money a deal quoted this attempt that still has to be
+   *  paid when the player pushes back: 0 or absent = all of it comes back (no
+   *  work was done), 1 = all of it stays (work was done). See
+   *  calculatePushBackMoneyKept. */
+  try_again_fee_share?: number;
   shake_on?: string;
   tts_field?: string;
   special_action?: string;

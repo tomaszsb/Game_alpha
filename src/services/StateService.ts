@@ -1297,7 +1297,7 @@ export class StateService implements IStateService {
    */
   public recordTurnOutflow(
     playerId: string,
-    entry: { moneySpent?: number; cardConsumed?: string; lifeEventDrawn?: string }
+    entry: { moneySpent?: number; moneyDeliberate?: number; cardConsumed?: string; lifeEventDrawn?: string }
   ): void {
     this.syncTurnStateToManager();
     this.turnStateManager.recordTurnOutflow(playerId, entry);

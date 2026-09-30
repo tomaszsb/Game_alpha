@@ -28,6 +28,7 @@
 
 import { IServiceContainer, IStateService } from '../types/ServiceContracts';
 import { SpaceContent, SpaceEffect, VisitType } from '../types/DataTypes';
+import type { TurnCostLedger } from '../types/StateTypes';
 import { FormatUtils } from './FormatUtils';
 import { extractPercentage, parseFeeFromDescription, determineFeeType } from './parseUtils';
 
@@ -179,6 +180,29 @@ export function calculatePushBackDays(
 ): number {
   const override = content?.try_again_days;
   return typeof override === 'number' ? override : calculateSpaceTimeAddTotal(effects, loanOnTable);
+}
+
+/**
+ * The money a push-back leaves paid out of this attempt's ledger.
+ *
+ * Push-back tears up the deal, so what the deal QUOTED (loan interest, an investor's
+ * fee, a contractor's price) comes back — unless work was already done for it, in
+ * which case the space sets `try_again_fee_share` (0–1) and that share of the quote
+ * stays paid. Money the player chose to spend (a card played, a trade made) always
+ * stays. A blank or out-of-range share reads as 0 / clamped, never as a surprise bill.
+ *
+ * The one source for what `TurnService.tryAgainOnSpace` deducts and what the
+ * push-back cost box shows, so the two can never disagree.
+ */
+export function calculatePushBackMoneyKept(
+  ledger: Pick<TurnCostLedger, 'moneySpent' | 'moneyDeliberate'>,
+  content?: Pick<SpaceContent, 'try_again_fee_share'> | null,
+): number {
+  const deliberate = Math.min(Math.max(ledger.moneyDeliberate ?? 0, 0), ledger.moneySpent);
+  const quoted = ledger.moneySpent - deliberate;
+  const raw = content?.try_again_fee_share;
+  const share = typeof raw === 'number' && Number.isFinite(raw) ? Math.min(Math.max(raw, 0), 1) : 0;
+  return Math.round(deliberate + quoted * share);
 }
 
 /** Strict numeric parse — only trusts a value that IS a number, never a
@@ -513,8 +537,9 @@ export function getEndTurnCostPreview(
  * "Push back" / Try Again preview — DIFFERENT numbers from End Turn:
  *   - Time: calculatePushBackDays — the space's fixed time rows, or its
  *     `try_again_days` price where one is set (also applied by tryAgainOnSpace).
- *   - Money: the real TurnCostLedger.moneySpent for this turn — stays spent,
- *     is NOT refunded (tryAgainOnSpace deducts it from REAL money).
+ *   - Money: what calculatePushBackMoneyKept says stays paid — money the player
+ *     chose to spend, plus the share of a deal's quote the space says was earned
+ *     by work already done (try_again_fee_share). The rest of the quote comes back.
  *   - Work / Expediting / Labor: whichever of those categories this space
  *     declares, relabeled — the draws get discarded (TEMP rollback) and
  *     redone on the next attempt, not kept and not refunded as cards.
@@ -552,8 +577,9 @@ export function getTryAgainCostPreview(
   // FEE text that must NEVER appear here (a fee is only charged on commit).
   const moneyFragments: string[] = [];
   const ledger = gameServices.stateService.getTurnOutflow(playerId);
-  if (ledger.moneySpent > 0) {
-    moneyFragments.push(`${FormatUtils.formatMoney(ledger.moneySpent, { compact: false })} stays spent`);
+  const moneyKept = calculatePushBackMoneyKept(ledger, spaceContent);
+  if (moneyKept > 0) {
+    moneyFragments.push(`${FormatUtils.formatMoney(moneyKept, { compact: false })} stays spent`);
   }
   // Bank Loan / Investment draws (via a `cards` row, or a `dice` row like
   // INVESTOR-FUND-REVIEW's "I cards" outcome) are inflows the space

@@ -8,6 +8,16 @@ import {
 import { ErrorNotifications } from '../utils/ErrorNotifications';
 import { debugLog, debugWarn } from '../utils/debugLog';
 
+// Money the player CHOSE to spend (playing a card, making a trade). It sticks on
+// Try Again whatever the space says — the card stays played, the trade stays made.
+// Everything else the engine charges (loan interest, fees, a contractor's price) is
+// a deal's quote and follows the space's try_again_fee_share instead.
+const DELIBERATE_SPEND_SOURCES = new Set(['card_play', 'negotiation']);
+
+function deliberateSpend(source: string | undefined, amount: number): number {
+  return source && DELIBERATE_SPEND_SOURCES.has(source) ? amount : 0;
+}
+
 /**
  * Unified Resource Management Service
  * 
@@ -96,7 +106,7 @@ export class ResourceService implements IResourceService {
       });
 
       // Workstream 2: record outflow so it sticks across Try Again
-      this.stateService.recordTurnOutflow(playerId, { moneySpent: amount });
+      this.stateService.recordTurnOutflow(playerId, { moneySpent: amount, moneyDeliberate: deliberateSpend(source, amount) });
 
       debugLog(`💸 Expenditure tracked [${playerId}]: $${amount.toLocaleString()} in ${category} category`);
       debugLog(`   Total ${category}: $${updatedExpenditures[category].toLocaleString()}`);
@@ -207,7 +217,7 @@ export class ResourceService implements IResourceService {
     });
 
     // Workstream 2: record outflow so it sticks across Try Again
-    this.stateService.recordTurnOutflow(playerId, { moneySpent: amount });
+    this.stateService.recordTurnOutflow(playerId, { moneySpent: amount, moneyDeliberate: deliberateSpend(source, amount) });
 
     // Log the transaction for debugging
     debugLog(`💸 Cost Recorded [${playerId}]: ${category} - $${amount.toLocaleString()} - ${description}`);
@@ -366,7 +376,7 @@ export class ResourceService implements IResourceService {
       // (Inflows — positive changes.money — intentionally do NOT record;
       // they should revert when the player retries.)
       if (changes.money !== undefined && changes.money < 0) {
-        this.stateService.recordTurnOutflow(playerId, { moneySpent: -changes.money });
+        this.stateService.recordTurnOutflow(playerId, { moneySpent: -changes.money, moneyDeliberate: deliberateSpend(changes.source, -changes.money) });
       }
 
       const balanceAfter = {

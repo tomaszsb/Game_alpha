@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.85] - 2026-09-30
+
+### Pushing back on a deal nobody accepted no longer keeps the money that deal quoted — and that ended a game on its own
+
+**Where this came from.** The nightly robot (game `G-DPED-BH4B`, seed 576087644) reached Bank Review with about $0, took the bank's terms ("cash now $1.7M"), pushed for a lower rate, and the game ended "The project went under" — 16 steps, nothing ever spent. Reproduced on the real engine and real data (`BankPushBackInterest.test.ts`). The manager session asked for the check; Tom made the design call.
+
+**Root cause.** A B card pays its interest up front the moment it is drawn (5–15%), and Try Again kept every money *outflow* ("outflows stick, inflows revert", v2.40, April 2026 — the `TurnCostLedger`). So the LOAN was taken back with the rest of the attempt but its INTEREST stayed paid. With less cash than that interest (e.g. $0 cash, a $1.3M card → −$65,000) Try Again left the player below zero, Try Again ends the turn, and the v3.2.83 turn-commit bankruptcy check ended the game. v3.2.83 didn't cover it: it moved *when* bankruptcy is checked, not what a push-back keeps.
+
+**Tom's rule (2026-09-30).** Pushing back tears up a deal that was never accepted — "if no work was done, yes [the money comes back]; if work was done there should be some monetary penalty." This is his original model (temporary state, committed on Next Turn, cleared on push-back except the declared penalty) with money allowed to be a penalty the way days already are.
+
+**What changed.**
+- **The bank's interest, the investor's 5% fee and the contractor's signing price now come back on a push-back.** Only the space's declared days are charged. A player with no cash can no longer be bankrupted by pushing back.
+- **New data column `try_again_fee_share`** (`Spaces.csv` → `SPACE_CONTENT.csv`, 0–1, blank = 0): the share of a deal's quote that STAYS paid on push-back. Set to **1** on the four architect/engineer fee-review rows (`ARCH-FEE-REVIEW`, `ENG-FEE-REVIEW`, First and Subsequent) — work was done there, and 1 is exactly today's behaviour, so **nothing changes at those spaces yet.** The share is Tom's to choose: editing those four cells (e.g. 0.5) is the whole job. Prorating by days was considered and dropped — a push-back already charges all of a space's days, so it would always come out to the full fee.
+- **Money the player chose to spend always stays** — a card played, a trade made (`moneyDeliberate` on the ledger, sources `card_play` / `negotiation`) — because the card stays played.
+- **One rule, shared:** `calculatePushBackMoneyKept` in `costPreview.ts` is what `TurnService.tryAgainOnSpace` deducts and what the push-back cost box's "$X stays spent" shows, so the two can't disagree (same pattern as `calculatePushBackDays`).
+
+**Not changed.** Days charged on push-back, Life Event cards (permanent — none carry money), cards already played, the End Turn side, the commit-time bankruptcy check. The design-fee 20% cap tally is untouched — **not yet checked** for how it counts an architect fee that a future share < 1 would refund (only matters once Tom sets a share below 1).
+
+**Tests.** `BankPushBackInterest.test.ts` (17): Bank Review at $0 cash (cash returns to 0, game not over, days still charged), Investor Review and Hire a Builder quotes come back, architect fee stays paid exactly as before, card-play money stays, `calculatePushBackMoneyKept` edge cases. Plus pipeline and editor-Save round-trip tests for the new column. The old "last column is try_again_days" assertion became "contains".
+
+**To undo:** revert this commit; the column is ignored by older code (unknown columns ride through).
+
 ## [3.2.84] - 2026-09-28
 
 ### The always-on version badge now says which mode you're in too

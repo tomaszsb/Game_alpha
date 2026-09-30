@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.85 — Pushing back on a deal you never accepted is free of its price now (September 30, 2026)
+
+- **If you push back on the bank, the investor, or the contractor, you no longer pay for the deal you just turned down.** Before, the bank's interest stayed taken out of your cash even though the loan itself was torn up — and if you were low on money, that alone could end your game. Now pushing back only costs the days it always did.
+- **The architect and engineer fee reviews work the way they always did** for now, because they have already done work for you.
+
 ## v3.2.84 — The corner build tag now says how you're playing too (September 28, 2026)
 
 - **The small version number in the corner now also shows PC, TV, or Remote.** If you ever send feedback with a screenshot, we can tell right away which way you were playing — no more guessing from the picture alone.

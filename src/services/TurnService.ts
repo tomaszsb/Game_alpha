@@ -14,7 +14,7 @@ import { SpaceEffect, VisitType } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
 import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlySpaceName } from '../utils/logFormatting';
-import { calculatePushBackDays, getLoanOnTheTable } from '../utils/costPreview';
+import { calculatePushBackDays, calculatePushBackMoneyKept, getLoanOnTheTable } from '../utils/costPreview';
 import { computeFilingFee } from '../utils/violationRules';
 
 export class TurnService implements ITurnService {
@@ -974,8 +974,14 @@ export class TurnService implements ITurnService {
 
       const changes: Partial<MutablePlayerState> = { timeSpent: timePenalty };
       if (realState) {
-        if (ledger.moneySpent > 0) {
-          changes.money = realState.money - ledger.moneySpent;
+        // Push-back tears up the deal: money the player chose to spend stays spent,
+        // and so does the share of the deal's quote this space says was earned by
+        // work already done (try_again_fee_share). The rest of the quote — loan
+        // interest, an investor's fee, a contractor's price — comes back with the
+        // TEMP rollback, since nothing was agreed.
+        const moneyKept = calculatePushBackMoneyKept(ledger, spaceContent);
+        if (moneyKept > 0) {
+          changes.money = realState.money - moneyKept;
         }
         // Hand = (REAL hand) − played cards + drawn L cards
         // Played cards stay consumed; L cards drawn this turn persist because

@@ -56,6 +56,18 @@ function parsePushBackDays(raw: string | undefined): number | undefined {
   return Number(trimmed);
 }
 
+/**
+ * SPACE_CONTENT.csv's `try_again_fee_share`: the share (0–1) of a deal's quoted money
+ * that stays paid on push-back. Blank / missing / not a number in range reads as
+ * undefined (= 0, all of it comes back), never a surprise bill.
+ */
+function parseFeeShare(raw: string | undefined): number | undefined {
+  const trimmed = (raw ?? '').trim();
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) return undefined;
+  const n = Number(trimmed);
+  return n >= 0 && n <= 1 ? n : undefined;
+}
+
 export class DataService implements IDataService {
   private gameConfigs: GameConfig[] = [];
   // 2026-08-02: keyed lookups for the hottest DataService reads
@@ -1324,6 +1336,7 @@ export class DataService implements IDataService {
         // an older CSV without the column, or a stray typo, must fall back to the
         // fixed-time-rows rule, never to a surprise price of 0.
         try_again_days: parsePushBackDays(get(values, 'try_again_days')),
+        try_again_fee_share: parseFeeShare(get(values, 'try_again_fee_share')),
         shake_on: get(values, 'shake_on') || '',
         tts_field: get(values, 'tts_field') || ''
       };

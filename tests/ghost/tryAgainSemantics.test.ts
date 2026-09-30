@@ -47,7 +47,9 @@ describe('Beta Try Again semantics', () => {
     const moneyBefore = stateService.getPlayer(playerId)!.money;
     expect(moneyBefore).toBe(500_000);
 
-    resourceService.spendMoney(playerId, 50_000, 'test', 'fee paid during turn');
+    // A deliberate spend (a card played): always stays. A deal's QUOTED money comes back
+    // instead (2026-09-30, see tests/regression/BankPushBackInterest.test.ts).
+    resourceService.spendMoney(playerId, 50_000, 'card_play', 'card paid for during turn');
 
     const result = await turnService.tryAgainOnSpace(playerId);
     expect(result.success).toBe(true);

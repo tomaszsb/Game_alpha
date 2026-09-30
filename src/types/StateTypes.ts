@@ -183,6 +183,12 @@ export interface TurnStateModel {
  */
 export interface TurnCostLedger {
   moneySpent: number;          // sum of money spent via spendMoney / recordCost
+  // The part of moneySpent the player chose to spend (a card they played, a trade
+  // they made). It always sticks on Try Again. The rest of moneySpent is money a
+  // DEAL quoted (loan interest, an investor's fee, a contractor's price) and only
+  // sticks to the degree the space's try_again_fee_share says — see
+  // calculatePushBackMoneyKept in costPreview.ts. Optional: older ledgers omit it.
+  moneyDeliberate?: number;
   cardsConsumed: string[];     // card IDs played by user-initiated playCard
   lifeEventsDrawn: string[];   // L card IDs drawn this turn — permanent (a law change doesn't unchange)
 }
