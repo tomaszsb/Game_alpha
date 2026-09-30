@@ -5,22 +5,22 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** September 28, 2026 (v3.2.84)
+**Last Updated:** September 30, 2026 (v3.2.89)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.84 — LIVE.** `/health` → `68fce80`, checked 2026-09-28 ~21:17 EDT, matches HEAD exactly. Trust `/health`, never this line.
+**Current Version:** **3.2.89 — pending deploy.** `/health` → `75e85d6` (= v3.2.88) at 2026-09-30 ~12:36 EDT; HEAD is `b0e3848` (code at `4f00a6b`). Trust `/health`, never this line.
 
 ## Current sprint
-**Real-device feedback triage, following Tom's TV+phone test of v3.2.82.** This session: a full feedback sweep (26 untracked reports triaged, Manager set the fix order), then the top-priority item — a contractor's dice roll could end the whole game instantly, before the player saw the price (fb:ab383e78). Root-caused to `checkBankruptcy()` firing synchronously mid-effect-processing; fixed generically across every mandatory-fee dice space (v3.2.83), not contractor-specific, per Tom's own "maybe the function can be reused" instinct. Also shipped v3.2.84 (Tom's idea, prompted by a fb:4c7a3628 dead end): the corner version badge now names PC/TV/Remote, so a feedback screenshot always says which mode it was taken in.
+**Bank-loss bug, the TV batch, two phone complaints, a lost destination list, and a security refresh — five releases in one day (v3.2.85–89).** The nightly robot went bankrupt at Bank Review by pushing back with ~$0; root cause was Try Again keeping a loan's up-front interest while taking the loan back. Tom's rule — push-back tears up a deal nobody accepted; its quote comes back, "if work was done there should be some monetary penalty" — shipped as `try_again_fee_share` (v3.2.85). Then the five real-TV reports (saved size everywhere, resize before game, popup under its button, TV wake lock, camera keeps your own space on screen — v3.2.86), the missing DOB/FDNY tags and illegible phone header buttons (v3.2.87), the destination list that vanished after 5 minutes at a space (v3.2.88), and nodemailer 10 (a high-severity advisory) + vitest 5 (v3.2.89).
 
 ## Health
-- **Tests (v3.2.84):** `npm test`-equivalent full suite **234 files / 3533 tests green**, including all four long-running ghost-bot gates (strict 50-game, smart-bot Try Again, aggressive-negotiate, full-board coverage). Typecheck ✅, build ✅. Lint not re-run this session.
-- **Deploy state:** v3.2.84 confirmed live (`/health` matches HEAD exactly).
-- **Weekly allowance (read 2026-09-28):** Pro plan, ~11% used (reset Monday 2026-09-28 already happened this morning). Plenty of headroom.
-- **Feedback backlog:** dashboard had 34 open at session start; 26 were untracked in TODO/CHANGELOG. All 26 now sorted — 4 folded into the fb:ab383e78 fix (deployed, needs a flip once Tom confirms), 1 flipped resolved already (fb:3196fe42, already fixed by v3.2.78), the rest triaged into TODO's active/parking-lot sections with clear next steps. See TODO.md for the full list.
-- **Nightly robot:** its `TAB_SUFFIX_RE` regex in the Jarvis repo still needs to accept both "tap to compare" and "tap to see the cost" (cosmetic; not this repo).
-- **GitHub:** no open PRs.
+- **Tests (v3.2.89):** `npm test` **453 files / 7065 tests green**, ghost gates **11 files / 43 tests green**, typecheck ✅, build ✅, `npm run lint` 0 errors (36 warnings). `npm audit` 0 vulnerabilities.
+- **Deploy state:** v3.2.88 live; **v3.2.89 is pending deploy** (`ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`, then `/health` should say `4f00a6b` or the docs HEAD). A first deploy attempt this session pulled the code but did not rebuild the image — re-running `deploy.sh` fixed it; read its output.
+- **Feedback dashboard:** 23 open after flipping ten fixed reports at Tom's word (several not yet seen on a real device — reopen if they disagree).
+- **Weekly allowance (read 2026-09-30 mid-session):** Pro plan, 33% used; resets 2026-10-05.
+- **Machine:** Node 24.10.0 (matches Dockerfile); the old "tests run on Node 20" note was stale.
+- **Nightly robot:** Jarvis-repo items unchanged (`TAB_SUFFIX_RE` should accept both "tap to compare" and "tap to see the cost"). Not this repo.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Flip fb:ab383e78 (+ possibly fb:ef974f1c/fb:1ef35f42/fb:b38110f3) once Tom confirms v3.2.83's fix on a real device** — the contractor-bankruptcy bug is fixed and deployed; the TV/phone-screen-disagreement reports are only a hypothesis pending confirmation.
-2. **TV screen-size follow-up cluster** (5 reports from the 2026-09-27 real-TV test: sleep-during-play, wrong auto-center, Bigger/Smaller/Keep panel positioning, no resize option pre-game, Remote resetting saved size) — ready to bundle as one sprint.
-3. **fb:4c7a3628** (destination picker with no list) — investigated deeply, backend confirmed correct via a new regression test; needs a live repro with the new mode badge to pin down further. **fb:612fbdc4** (scope wording mixes building types) — confirmed real, needs Tom's direction on which fix (soften wording vs. constrain card draws).
+1. **Deploy v3.2.89, then look on a real TV + phone.** Wake lock and auto-center are the two fixes that cannot be proven without the TV.
+2. **Decisions waiting on Tom:** the architect/engineer `try_again_fee_share` (currently 1); scope wording (fb:612fbdc4); whether action buttons should glow on later visits; the "?" placement go.
+3. **fb:ab383e78** (contractor bankruptcy) still awaits Tom re-trying the contractor flow on a real device before it is flipped.
