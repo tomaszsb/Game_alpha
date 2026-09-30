@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.86] - 2026-09-30
+
+### The TV follow-up batch: a saved screen size that sticks everywhere, a resize button before the game, a popup that opens where you pressed, a TV that stays awake, and a camera that finds your space
+
+**Where this came from.** The five reports from Tom's real-TV test of v3.2.82 (2026-09-27), bundled as one sprint per TODO. Each report's screenshot was pulled from the per-id endpoint first, as standing practice.
+
+**1. The saved screen size now applies to the whole app on that TV** (fb:8695d9d6, and the root of fb:ceb1e67c / fb:780c1c73). `applyStoredTvLayoutWidth()` only ran when `TVDisplay` mounted, so the setup screen and Remote mode always opened at the biggest size — "tapping Remote on a TV with a saved size reverts it". It now runs once at app start (`App.tsx`). Inert on any device with no headroom (laptop, phone) and on one that never pressed Keep. **Checked in a real browser** with a simulated TV screen (960px layout, 4x pixel ratio, size 1280 saved): the viewport tag read `width=1280` on both the plain setup screen and `?mode=remote`.
+
+**2. "Adjust screen size" is on the setup screen too** (fb:ceb1e67c, fb:780c1c73 — reported twice, v3.2.71 and v3.2.82). Under the PC/TV/Remote toggle, only on a device with headroom to gain. The button and its panel are one shared component now (`ScreenSizeControl`), used by the TV header and the setup screen. **Checked in a real browser.**
+
+**3. The Bigger/Smaller panel opens under the button that opened it** (fb:54b1056b: "make it show up where I press the original button"). It used to float at the bottom of the screen. It lines up with the button's left edge, is pulled back inside the screen, goes above the button if a low button leaves no room below, and re-positions on every Bigger/Smaller press (the whole page re-flows each time). **Checked in a real browser** on the setup screen.
+
+**4. The TV stays awake while a game is being played on it** (fb:e766b9c2). The TV screen only displays — every move is made on a phone — so to the TV nobody was ever active and it slept mid-game. No wake-lock mechanism existed anywhere. `utils/wakeLock.ts` asks the browser for a Screen Wake Lock while the game is in PLAY, asks again whenever the page becomes visible (the browser drops the lock whenever the page is hidden), lets go on leaving, and swallows any refusal. **NOT confirmed on a real TV.** It cannot be: a browser without the API, or an OS-level TV screensaver the browser cannot hold off, would still sleep. If that happens, the next step is the hidden-looping-video fallback.
+
+**5. The camera now keeps your own space on screen** (fb:5de29661: "it did move but not to the correct space"). Mechanism, from the report's screenshot: `computeFocusCenter` treated every tile as a compact 150x60 box, but the player's own tile is drawn much bigger (240 wide, growing downward), and at a fixed zoom a wide focus set centred on the gap between its tiles — the player's own tile ended up cut off at the screen edge. It now uses the tile's real footprint and clamps the camera so that tile is fully on screen, as near the focus set's centre as that allows. The player's own space outranks its destinations. **Reproduced with the screenshot's own numbers in a unit test; NOT seen on a real TV.**
+
+**Not changed.** Remote's bigger design question (QR pairing does not fit a multi-TV/PC shape) — still not scoped, per the report's own note.
+
+**Tests.** +33 (wake lock keeper 8; screen-size control and panel placement 7; camera clamp 6; previous suite unchanged).
+
+**To undo:** revert this commit. No data or server changes.
+
 ## [3.2.85] - 2026-09-30
 
 ### Pushing back on a deal nobody accepted no longer keeps the money that deal quoted — and that ended a game on its own

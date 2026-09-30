@@ -2,6 +2,14 @@
 
 ---
 
+## v3.2.86 — TV fixes: your screen size sticks, the popup opens where you press, and the TV stays awake (September 30, 2026)
+
+- **Your saved screen size now applies on every screen on that TV,** including the setup screen and Remote mode. Before, tapping Remote put it back to the biggest size.
+- **You can change the screen size before the game starts,** from the setup screen, instead of only once you're already in TV mode.
+- **The Bigger/Smaller box opens right under the button you pressed,** instead of at the bottom of the screen.
+- **The TV stays awake while a game is being played on it,** even though nobody touches the TV itself. (If your TV still sleeps, tell us — some TVs have a screensaver the browser can't hold off.)
+- **The board now keeps your own space in view** when it moves to follow the game.
+
 ## v3.2.85 — Pushing back on a deal you never accepted is free of its price now (September 30, 2026)
 
 - **If you push back on the bank, the investor, or the contractor, you no longer pay for the deal you just turned down.** Before, the bank's interest stayed taken out of your cash even though the loan itself was torn up — and if you were low on money, that alone could end your game. Now pushing back only costs the days it always did.

@@ -154,3 +154,61 @@ describe('computeFocusCenter (TV pan-only follow)', () => {
     expect(computeFocusCenter(nodes, ['A'], 100, 40)).toEqual({ x: 50, y: 20 });
   });
 });
+
+// fb:5de29661 (real TV, 2026-09-27): "it did move but not to the correct space".
+// The player's own tile is drawn much bigger than a compact one, and at a fixed zoom a
+// focus set wider than the screen centred on the gap between its tiles, cutting the
+// player's own tile off at the edge. The numbers below are the screenshot's: a 1152px
+// wide view at zoom ~1.73 shows only ~650 world units, and the player's own tile sat at
+// the right while its destinations were far to the left.
+describe('computeFocusCenter — the player\'s own tile stays in view (fb:5de29661)', () => {
+  const own = { id: 'OWN', position: { x: 1000, y: 200 } };
+  const farLeft = { id: 'LEFT', position: { x: 0, y: 200 } };
+  const view = { viewW: 1152, viewH: 500, zoom: 1.73 };
+  const visW = view.viewW / view.zoom;
+
+  it('uses the real footprint of a tile that is drawn bigger than a compact one', () => {
+    const c = computeFocusCenter([own], ['OWN'], undefined, undefined, { sizes: { OWN: { w: 240, h: 130 } } });
+    expect(c).toEqual({ x: 1000 + 120, y: 200 + 65 });
+  });
+
+  it('WITHOUT the clamp a wide focus set centres on the gap and the own tile is off screen', () => {
+    const c = computeFocusCenter([own, farLeft], ['OWN', 'LEFT'], undefined, undefined, { sizes: { OWN: { w: 240, h: 130 } } })!;
+    const rightEdgeOfView = c.x + visW / 2;
+    expect(rightEdgeOfView).toBeLessThan(1000 + 240); // the bug: own tile cut off
+  });
+
+  it('WITH keepVisible the own tile is fully inside the view, with a margin', () => {
+    const c = computeFocusCenter([own, farLeft], ['OWN', 'LEFT'], undefined, undefined, {
+      sizes: { OWN: { w: 240, h: 130 } },
+      keepVisible: { id: 'OWN', ...view },
+    })!;
+    expect(c.x - visW / 2).toBeLessThanOrEqual(1000);            // left edge of own tile in view
+    expect(c.x + visW / 2).toBeGreaterThanOrEqual(1000 + 240);   // right edge of own tile in view
+    expect(c.x + visW / 2 - (1000 + 240)).toBeGreaterThan(0);    // and not jammed on the edge
+  });
+
+  it('leaves the camera alone when the focus set already fits (no needless shift)', () => {
+    const near = { id: 'NEAR', position: { x: 1100, y: 250 } };
+    const plain = computeFocusCenter([own, near], ['OWN', 'NEAR'], undefined, undefined, { sizes: { OWN: { w: 240, h: 130 } } })!;
+    const kept = computeFocusCenter([own, near], ['OWN', 'NEAR'], undefined, undefined, {
+      sizes: { OWN: { w: 240, h: 130 } },
+      keepVisible: { id: 'OWN', ...view },
+    })!;
+    expect(kept).toEqual(plain);
+  });
+
+  it('a tile bigger than the view cannot be kept in it — it is centred instead of throwing', () => {
+    const c = computeFocusCenter([own], ['OWN'], undefined, undefined, {
+      sizes: { OWN: { w: 2000, h: 130 } },
+      keepVisible: { id: 'OWN', viewW: 400, viewH: 400, zoom: 1 },
+    })!;
+    expect(c.x).toBeCloseTo(1000 + 1000, 5);
+  });
+
+  it('a keepVisible id that is not in the focus set changes nothing', () => {
+    const plain = computeFocusCenter([own], ['OWN'])!;
+    const kept = computeFocusCenter([own], ['OWN'], undefined, undefined, { keepVisible: { id: 'NOPE', ...view } })!;
+    expect(kept).toEqual(plain);
+  });
+});

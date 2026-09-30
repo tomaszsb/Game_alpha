@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { colors } from '../../styles/theme';
 import {
   TV_SCALE_OPTIONS,
@@ -17,6 +17,32 @@ interface TvScaleCalibrationProps {
   onClose: () => void;
   /** Called after "Keep this size" is pressed, so the host screen can re-measure. */
   onApplied?: (layoutWidth: number) => void;
+  /** The button that opened this panel. When given, the panel opens just under it
+   *  (fb:54b1056b — "make it show up where I press the original button"); without
+   *  it the panel floats at the bottom of the screen as it always did. */
+  anchorRef?: React.RefObject<HTMLElement | null>;
+}
+
+const ANCHOR_GAP_PX = 8;
+const EDGE_MARGIN_PX = 8;
+
+/** Where the panel goes so it sits under its button and never runs off the screen:
+ *  its left edge lines up with the button's, then is pulled back inside the view.
+ *  A button low on the page (the setup screen) gets the panel ABOVE it instead
+ *  when there is no room below. Pure so it can be tested without a browser. */
+export function placePanelUnderAnchor(
+  anchor: { left: number; top: number; bottom: number },
+  panel: { width: number; height: number },
+  viewport: { width: number; height: number },
+): { top: number; left: number } {
+  const maxLeft = Math.max(EDGE_MARGIN_PX, viewport.width - panel.width - EDGE_MARGIN_PX);
+  const below = anchor.bottom + ANCHOR_GAP_PX;
+  const above = anchor.top - ANCHOR_GAP_PX - panel.height;
+  const top = below + panel.height > viewport.height && above >= EDGE_MARGIN_PX ? above : below;
+  return {
+    top: Math.round(top),
+    left: Math.round(Math.min(Math.max(anchor.left, EDGE_MARGIN_PX), maxLeft)),
+  };
 }
 
 /**
@@ -32,7 +58,7 @@ interface TvScaleCalibrationProps {
  * backdrop: the whole point is to watch the real screen while pressing the
  * buttons, so this floats over it rather than hiding it.
  */
-export function TvScaleCalibration({ onClose, onApplied }: TvScaleCalibrationProps) {
+export function TvScaleCalibration({ onClose, onApplied, anchorRef }: TvScaleCalibrationProps) {
   // The size showing before this dialog opened — what a snap-back or Cancel
   // returns to. Read once, into a plain value rather than a ref read during
   // render: useRef's own argument is only used on the very first render, so
@@ -47,6 +73,32 @@ export function TvScaleCalibration({ onClose, onApplied }: TvScaleCalibrationPro
   const settledRef = useRef(false);
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  // Anchored position. Bigger/Smaller re-lays the WHOLE page out (the viewport itself
+  // changes), so the button moves under the panel with every press — re-measure on
+  // every resize and shortly after each step, not just once on open.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const button = anchorRef?.current;
+      const panel = panelRef.current;
+      if (!button || !panel) { setPos(null); return; }
+      const r = button.getBoundingClientRect();
+      setPos(placePanelUnderAnchor(
+        { left: r.left, top: r.top, bottom: r.bottom },
+        { width: panel.offsetWidth, height: panel.offsetHeight },
+        { width: window.innerWidth, height: window.innerHeight },
+      ));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    const later = [120, 400, 900].map((ms) => window.setTimeout(measure, ms));
+    return () => {
+      window.removeEventListener('resize', measure);
+      later.forEach(window.clearTimeout);
+    };
+  }, [anchorRef, index]);
 
   const current = TV_SCALE_OPTIONS[index];
   const atBiggest = index === 0;
@@ -109,7 +161,13 @@ export function TvScaleCalibration({ onClose, onApplied }: TvScaleCalibrationPro
   }, []);
 
   return (
-    <div style={styles.panel} role="dialog" aria-modal="true" aria-label="Adjust screen size">
+    <div
+      ref={panelRef}
+      style={pos ? { ...styles.panel, ...styles.panelAnchored, top: pos.top, left: pos.left } : styles.panel}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Adjust screen size"
+    >
       <div style={styles.headerRow}>
         <span style={styles.stepLabel}>
           {current.label}
@@ -167,6 +225,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     flexDirection: 'column',
     gap: '0.6rem',
+  },
+  // Under the button that opened it (top/left are set from the measured button).
+  panelAnchored: {
+    bottom: 'auto',
+    transform: 'none',
   },
   headerRow: {
     display: 'flex',

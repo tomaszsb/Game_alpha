@@ -1057,7 +1057,7 @@ function BoardCanvasInner({
   allowPan = false,
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
-  const { getViewport, setViewport, fitView, setCenter } = useReactFlow();
+  const { getViewport, setViewport, fitView, setCenter, getNode } = useReactFlow();
   // Dark/light mode for board CHROME only (canvas fill, tile surface, generic
   // text — see BoardNode). BoardCanvas is a sibling of PlayerPanelWrapper in
   // GameLayout, not a descendant, so it can't use the usePanelMode hook —
@@ -1577,7 +1577,22 @@ function BoardCanvasInner({
         // Positions come from initialNodes (the stable CSV layout);
         // computeFocusCenter (boardCommon) holds the pure math so it's
         // unit-testable without rendering React Flow.
-        const center = computeFocusCenter(initialNodes, focusIds);
+        //
+        // fb:5de29661 (real TV, 2026-09-27): "it did move but not to the correct
+        // space". The player's own tile is drawn far bigger than a compact one,
+        // and at a fixed zoom a wide focus set centred on the gap between its
+        // tiles and left the player's own tile cut off at the screen edge. So
+        // give that tile its real footprint and keep it fully on screen.
+        const own = getNode(focusSpace);
+        const ownW = own?.measured?.width ?? BOARD_TILE_MAX_INGRID.w;
+        const ownH = own?.measured?.height ?? BOARD_TILE_MAX_INGRID.h;
+        const box = wrapperRef.current;
+        const center = computeFocusCenter(initialNodes, focusIds, undefined, undefined, {
+          sizes: { [focusSpace]: { w: ownW, h: ownH } },
+          keepVisible: box
+            ? { id: focusSpace, viewW: box.clientWidth, viewH: box.clientHeight, zoom: v.zoom }
+            : undefined,
+        });
         if (!center) return;
         setCenter(center.x, center.y, { zoom: v.zoom, duration: 350 });
         return;
@@ -1605,7 +1620,7 @@ function BoardCanvasInner({
       }
     }, 100);
     return () => window.clearTimeout(timer);
-  }, [centerOnCurrent, isAdmin, focusSpace, validMoves, fitView, setCenter, getViewport, initialNodes]);
+  }, [centerOnCurrent, isAdmin, focusSpace, validMoves, fitView, setCenter, getViewport, getNode, initialNodes]);
 
   // Chronicle click-entry-to-replay-highlight (TODO P1 change-legibility) —
   // pans to an arbitrary space on request from PlayerChronicleV2 (threaded

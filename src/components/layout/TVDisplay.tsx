@@ -18,15 +18,15 @@ import { AvatarIcon } from '../icons/AvatarIcons';
 import { IconCheck } from '../icons/SetupIcons';
 import { ShutdownNotice } from '../common/ShutdownNotice';
 import { HistoryFeed, HistoryFeedFilters, DEFAULT_HISTORY_FILTERS } from '../game/HistoryFeed';
-import { TvScaleCalibration } from './TvScaleCalibration';
+import { ScreenSizeControl } from './ScreenSizeControl';
 import {
   applyStoredTvLayoutWidth,
-  tvScaleIsAvailable,
   hasUsedTvScaleButton,
   markTvScaleButtonUsed,
   shouldPulseTvScaleButton,
 } from '../../utils/tvScale';
 import { useSyncedGameState } from '../../hooks/useSyncedGameState';
+import { useScreenWakeLock } from '../../hooks/useScreenWakeLock';
 
 // Checked once at module level, same pattern as ModalBase.tsx — a viewer who
 // asked their OS for less motion never gets the screen-size button's pulse.
@@ -54,6 +54,10 @@ export function TVDisplay(): JSX.Element {
   // (same pipeline as a dice roll or move). Defaults to light when absent so
   // existing saved games don't need migration.
   const { gamePhase, players, currentPlayerId, tvDarkMode: tvDarkModeRaw } = useSyncedGameState(stateService);
+  // fb:e766b9c2: this screen only ever DISPLAYS — every move is made on a phone — so to
+  // the TV nobody is ever touching it and it would dim and sleep mid-game. Hold it awake
+  // for as long as a game is actually being played on it.
+  useScreenWakeLock(gamePhase === 'PLAY');
   const tvDarkMode = tvDarkModeRaw ?? false;
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [showActionOverlay, setShowActionOverlay] = useState(false);
@@ -93,7 +97,6 @@ export function TVDisplay(): JSX.Element {
   // fit a lot more things on it." See utils/tvScale.ts for why that is right
   // about the cause, why going all the way to 4K would backfire, and why the
   // viewer picks rather than us guessing.
-  const [showScaleCalibration, setShowScaleCalibration] = useState(false);
   // Job 3B (Tom, 2026-09-25) — gentle pulse on the header button until this
   // TV has opened it once. Read once at mount; markTvScaleButtonUsed() below
   // flips it for good, so a re-render mid-session never brings the pulse back.
@@ -262,25 +265,20 @@ export function TVDisplay(): JSX.Element {
               tvScaleIsAvailable() sees headroom to gain. The gentle pulse
               below is the "flare" Tom also asked for, on the lobby only,
               until this TV has opened it once. */}
-          {tvScaleIsAvailable() && (
-            <button
-              onClick={() => {
-                setShowScaleCalibration(true);
-                if (!scaleButtonUsed) {
-                  markTvScaleButtonUsed();
-                  setScaleButtonUsed(true);
-                }
-              }}
-              style={{
-                ...styles.tvHeaderButton,
-                ...(shouldPulseTvScaleButton({ gamePhase, hasUsedButton: scaleButtonUsed, prefersReducedMotion })
-                  ? { animation: 'tvScaleButtonPulse 2.2s ease-in-out infinite' }
-                  : {}),
-              }}
-            >
-              🔍 Adjust screen size
-            </button>
-          )}
+          <ScreenSizeControl
+            onOpen={() => {
+              if (!scaleButtonUsed) {
+                markTvScaleButtonUsed();
+                setScaleButtonUsed(true);
+              }
+            }}
+            style={{
+              ...styles.tvHeaderButton,
+              ...(shouldPulseTvScaleButton({ gamePhase, hasUsedButton: scaleButtonUsed, prefersReducedMotion })
+                ? { animation: 'tvScaleButtonPulse 2.2s ease-in-out infinite' }
+                : {}),
+            }}
+          />
           {/* Mid-game phone QR — hidden during SETUP (sidebar already shows QR).
               A player whose phone died mid-game can scan and rejoin without
               stopping the host. fb:TODO-253a */}
@@ -669,9 +667,6 @@ export function TVDisplay(): JSX.Element {
         )}
       </footer>
 
-      {showScaleCalibration && (
-        <TvScaleCalibration onClose={() => setShowScaleCalibration(false)} />
-      )}
     </div>
   );
 }

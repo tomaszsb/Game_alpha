@@ -22,6 +22,7 @@ import { configureViolationRules } from './utils/violationRules';
 import { configureUIStrings } from './constants/uiStrings';
 import { VersionBadge } from './components/common/VersionBadge';
 import { debugWarn } from './utils/debugLog';
+import { applyStoredTvLayoutWidth } from './utils/tvScale';
 
 /**
  * LoadingScreen component displays while the application initializes
@@ -425,6 +426,14 @@ export function App(): JSX.Element {
   // everything anyway).
   const [phase, setPhase] = useState<BootstrapPhase>(getInitialBootstrapPhase);
   const [autoCreateError, setAutoCreateError] = useState<string | null>(null);
+
+  // A TV's saved screen size applies to the WHOLE app on that TV, from the first screen
+  // on. It used to be applied only when the TV display itself mounted, so the setup
+  // screen and Remote mode always opened at the biggest size: "tapping Remote on a TV
+  // with a saved size reverts it" (fb:8695d9d6), and no way to see the right size
+  // before a game starts (fb:ceb1e67c, fb:780c1c73). Inert on any device with no
+  // headroom (laptop, phone) and on a device that never pressed Keep.
+  useEffect(() => { applyStoredTvLayoutWidth(); }, []);
 
   // Verify a stored "last game" still exists before offering it as a
   // Join-by-Code prefill — a game that already auto-expired (~24-41h idle)

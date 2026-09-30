@@ -27,6 +27,7 @@ import { PhoneScreenWarning } from './PhoneScreenWarning';
 import { styles } from './PlayerSetup.styles';
 import { PlayerMobileView } from './PlayerMobileView';
 import { ModeToggle } from './ModeToggle';
+import { ScreenSizeControl } from '../layout/ScreenSizeControl';
 import { GameSettingsPanel } from './GameSettingsPanel';
 import { AdminToolsPanel } from './AdminToolsPanel';
 import { IconGear, IconPeople, IconPhone, IconPlay, IconClose, IconBug, IconHourglass, IconEye } from '../icons/SetupIcons';
@@ -955,6 +956,24 @@ export function PlayerSetup({
           </div>
 
           <ModeToggle selectedMode={selectedMode} onSelectMode={setSelectedMode} />
+
+          {/* Before a game starts there was no way to change the screen size on a TV —
+              only once already in TV mode (fb:ceb1e67c, fb:780c1c73). Shown only on a
+              device with headroom to gain (a TV); laptops and phones see nothing. */}
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '0.5rem 0' }}>
+            <ScreenSizeControl
+              style={{
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                backgroundColor: 'white',
+                color: colors.text.secondary,
+                border: `2px solid ${colors.secondary.border}`,
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            />
+          </div>
 
           {/* This "Players" section is about THIS blank game — while Join is
               selected, we have no data yet on which game the player is

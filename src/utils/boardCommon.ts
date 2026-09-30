@@ -803,29 +803,65 @@ export function writeSavedViewport(fingerprint: string, viewport: BoardViewport)
 
 /** Pan-only camera target for TV auto-focus (fb:2b5b9f2a — "zoom should not
  *  change when I move"). Returns the center of the bounding box around the
- *  focus set's TILE CENTERS (position is a tile's top-left corner, so half a
- *  compact tile is added), or null when none of the focus ids resolve to a
- *  node. Pure so the follow-camera math is unit-testable without rendering
- *  React Flow; BoardCanvas passes the result to setCenter() at the current
- *  zoom instead of re-running fitView (whose recomputed zoom swung wildly
- *  turn to turn depending on how spread out each space's destinations are). */
+ *  focus set's tiles, or null when none of the focus ids resolve to a node.
+ *  Pure so the follow-camera math is unit-testable without rendering React
+ *  Flow; BoardCanvas passes the result to setCenter() at the current zoom
+ *  instead of re-running fitView (whose recomputed zoom swung wildly turn to
+ *  turn depending on how spread out each space's destinations are).
+ *
+ *  Two things it got wrong before fb:5de29661 ("it did move but not to the
+ *  correct space", real TV, 2026-09-27):
+ *   1. It treated EVERY tile as a compact 150x60 box. The player's own tile is
+ *      drawn much bigger (currentBig, 240 wide and growing down with its text),
+ *      and a tile's position is its top-left corner, so the real centre of the
+ *      tile the player was looking for sat well right of and below where the
+ *      camera aimed. `opts.sizes` gives a tile its real footprint.
+ *   2. At a fixed zoom, a focus set wider than the screen centred on the GAP
+ *      between its tiles — the player's own tile ended up cut off at the edge.
+ *      `opts.keepVisible` clamps the camera so that tile stays fully on screen,
+ *      as near the focus set's centre as that allows. The player's own space
+ *      outranks its destinations. */
 export function computeFocusCenter(
   nodes: Array<{ id: string; position: { x: number; y: number } }>,
   focusIds: string[],
   tileW: number = BOARD_TILE_COMPACT.w,
-  tileH: number = BOARD_TILE_COMPACT.h
+  tileH: number = BOARD_TILE_COMPACT.h,
+  opts: {
+    /** Real footprint per tile id (world units); any tile not listed is compact. */
+    sizes?: Record<string, { w: number; h: number }>;
+    /** Keep this tile fully inside a view of viewW x viewH screen px at `zoom`. */
+    keepVisible?: { id: string; viewW: number; viewH: number; zoom: number };
+  } = {}
 ): { x: number; y: number } | null {
   const wanted = new Set(focusIds);
-  const pts = nodes
+  const rects = nodes
     .filter(n => wanted.has(n.id))
-    .map(n => ({ x: n.position.x + tileW / 2, y: n.position.y + tileH / 2 }));
-  if (pts.length === 0) return null;
-  const xs = pts.map(p => p.x);
-  const ys = pts.map(p => p.y);
-  return {
-    x: (Math.min(...xs) + Math.max(...xs)) / 2,
-    y: (Math.min(...ys) + Math.max(...ys)) / 2,
-  };
+    .map(n => {
+      const size = opts.sizes?.[n.id] ?? { w: tileW, h: tileH };
+      return { id: n.id, x0: n.position.x, y0: n.position.y, x1: n.position.x + size.w, y1: n.position.y + size.h };
+    });
+  if (rects.length === 0) return null;
+  const x0 = Math.min(...rects.map(r => r.x0));
+  const x1 = Math.max(...rects.map(r => r.x1));
+  const y0 = Math.min(...rects.map(r => r.y0));
+  const y1 = Math.max(...rects.map(r => r.y1));
+  let cx = (x0 + x1) / 2;
+  let cy = (y0 + y1) / 2;
+
+  const keep = opts.keepVisible;
+  const own = keep ? rects.find(r => r.id === keep.id) : undefined;
+  if (keep && own && keep.zoom > 0 && keep.viewW > 0 && keep.viewH > 0) {
+    const visW = keep.viewW / keep.zoom;
+    const visH = keep.viewH / keep.zoom;
+    // A margin of a twelfth of the view so the tile is not jammed against the edge.
+    const mx = visW / 12;
+    const my = visH / 12;
+    const clamp = (c: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(Math.max(c, lo), hi));
+    // The camera centre c must satisfy  own.x1 + m <= c + vis/2  and  own.x0 - m >= c - vis/2.
+    cx = clamp(cx, own.x1 + mx - visW / 2, own.x0 - mx + visW / 2);
+    cy = clamp(cy, own.y1 + my - visH / 2, own.y0 - my + visH / 2);
+  }
+  return { x: cx, y: cy };
 }
 
 /**
