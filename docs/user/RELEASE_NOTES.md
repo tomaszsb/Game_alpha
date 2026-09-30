@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.87 — The DOB and Fire Department tags are back, and the top buttons are readable in dark mode (September 30, 2026)
+
+- **You can see your approvals again.** Once you reach the regulatory stage, your Department of Buildings and Fire Department tags always show: a ✓ when you're approved and a ✗ while you're still waiting. They're bigger and easier to spot.
+- **The Glossary and Light/Dark buttons at the top of your phone are readable in dark mode.** They were dark text on a dark background, so they looked like they weren't there.
+
 ## v3.2.86 — TV fixes: your screen size sticks, the popup opens where you press, and the TV stays awake (September 30, 2026)
 
 - **Your saved screen size now applies on every screen on that TV,** including the setup screen and Remote mode. Before, tapping Remote put it back to the biggest size.

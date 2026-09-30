@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.87] - 2026-09-30
+
+### Two phone complaints that were still open: the approval tags, and header buttons you couldn't read in dark mode
+
+Both were next in TODO as "quick checks." Both screenshots (pulled from the per-id endpoint) showed real problems on the current build.
+
+**Approval tags (fb:b8902332, real phone v3.2.82).** "There used to be tags for approval on Department of Buildings and approval of fire department. They were supposed to show the ✗ for not and a ✓ for yes. I just do not see them." Not a regression in the sense of deleted code — the tags exist — but the redesigned panel (v3.0.82) made them tiny (11px, muted, far right) and showed them *only when a status existed*, so the ✗ state was never drawn: a player at the approvals stage saw nothing until they had something to show. Now, from the Regulatory phase on, both DOB and FDNY always show — ✓ approved, ✗ not yet (and the existing ! objection / ✗ denied marks) — at 13px with a bold mark. An approval earned earlier still shows, in any phase. Hidden in Owner/Funding/Design, where an approval means nothing yet.
+
+**Phone header buttons (fb:3fb28b09, fb:ca601c26, real phone v3.2.71).** "Not legible"; "There is no button in dark mode." The Glossary and Dark/Light buttons sit outside the panel's own themed box with `color: inherit`, so dark mode gave the page's dark default text on a dark background. Colors are now set per mode (light text in dark mode, dark text in light mode), and the buttons are 13px, not 11px. This was *not* fixed by the TV header rework (v3.2.78) as TODO guessed — that touched the TV header, not this strip.
+
+**Tests.** `PhoneFeedbackFixes.test.tsx` (8): ✗ at Regulatory, ✓/✗ mixed, stays into Construction, hidden in early phases, an early approval still shows, dark/light button colors and size. **Not checked in a real browser** (reaching the Regulatory phase by hand was not worth it for a rendering rule the test pins).
+
+**To undo:** revert this commit; two component files touched.
+
 ## [3.2.86] - 2026-09-30
 
 ### The TV follow-up batch: a saved screen size that sticks everywhere, a resize button before the game, a popup that opens where you pressed, a TV that stays awake, and a camera that finds your space

@@ -42,8 +42,14 @@ export interface PlayerPanelV2Props extends PlayerPanelProps {
 
 type ApprovalView = { label: string; dot: string; mark: string };
 
-function approvalView(status: string | undefined): ApprovalView | null {
-  if (!status || status === 'none') return null; // only when relevant
+// `showNone`: once the project is at the approvals stage (Regulatory and on), "not approved
+// yet" is itself the news — the player should see the ✗ waiting there, not an empty spot
+// (fb:b8902332, real phone 2026-09-27: "there used to be tags… a ✗ for not and a ✓ for
+// yes. I just do not see them"). Before that stage an approval is irrelevant, so stays hidden.
+function approvalView(status: string | undefined, showNone = false): ApprovalView | null {
+  if (!status || status === 'none') {
+    return showNone ? { label: 'not approved yet', dot: '#94a3b8', mark: '✗' } : null;
+  }
   switch (status) {
     case 'approved':
       return { label: 'approved', dot: '#22c55e', mark: '✓' };
@@ -218,8 +224,9 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const portraitSrc = npcInfo && npcAppearance ? getNpcImagePath(npcInfo.imageRoles[0], npcAppearance) : null;
   const phaseLabel = config?.phase || '';
 
-  const dob = approvalView(player.dobApprovalStatus);
-  const fdny = approvalView(player.fdnyApprovalStatus);
+  const atApprovalsStage = phaseLabel === 'REGULATORY' || phaseLabel === 'CONSTRUCTION' || phaseLabel === 'END';
+  const dob = approvalView(player.dobApprovalStatus, atApprovalsStage);
+  const fdny = approvalView(player.fdnyApprovalStatus, atApprovalsStage);
   // Resolved violations fade to a quiet trace (like DOB/FDNY do) rather than
   // showing forever — only 'active' needs the player's attention.
   const violation = player.violationStatus === 'active' ? violationView(player.violationStatus) : null;
@@ -868,15 +875,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         )}
         {(dob || fdny || violation) && (
           <div style={{ display: 'flex', marginTop: 8 }}>
-            <span style={{ marginLeft: 'auto', display: 'flex', gap: 9, fontSize: 11, color: p.muted }}>
+            <span style={{ marginLeft: 'auto', display: 'flex', gap: 10, fontSize: 13, color: p.muted }}>
               {dob && (
-                <span title={`DOB ${dob.label}`}>
-                  DOB <span style={{ color: dob.dot, fontWeight: 500 }}>{dob.mark}</span>
+                <span title={`DOB ${dob.label}`} data-testid="approval-tag-dob">
+                  DOB <span style={{ color: dob.dot, fontWeight: 700 }}>{dob.mark}</span>
                 </span>
               )}
               {fdny && (
-                <span title={`FDNY ${fdny.label}`}>
-                  FDNY <span style={{ color: fdny.dot, fontWeight: 500 }}>{fdny.mark}</span>
+                <span title={`FDNY ${fdny.label}`} data-testid="approval-tag-fdny">
+                  FDNY <span style={{ color: fdny.dot, fontWeight: 700 }}>{fdny.mark}</span>
                 </span>
               )}
               {violation && (

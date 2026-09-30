@@ -55,13 +55,17 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
     }
   }, [mode]);
 
+  // Colors are set for the mode, not inherited: this strip sits OUTSIDE the panel's own
+  // themed box, so `color: inherit` picked up the page's dark default text and the buttons
+  // were dark-on-dark in dark mode — "not legible", "there is no button in dark mode"
+  // (fb:3fb28b09, fb:ca601c26, real phone 2026-09-20). Larger too: 11px was a squint.
   const toggleBtn: React.CSSProperties = {
-    border: '1px solid #8d9bb0',
+    border: `1px solid ${mode === 'dark' ? '#8d9bb0' : '#64748b'}`,
     background: 'transparent',
-    color: 'inherit',
+    color: mode === 'dark' ? '#e2e8f0' : '#334155',
     borderRadius: 6,
-    padding: '2px 8px',
-    fontSize: 11,
+    padding: '4px 10px',
+    fontSize: 13,
     cursor: 'pointer',
     display: 'inline-flex',
     alignItems: 'center',
