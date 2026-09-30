@@ -1,7 +1,7 @@
 /* @vitest-pool forks */
 import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, beforeEach, beforeAll, afterEach, vi } from 'vitest';
 import { EndGameModal } from '../../../src/components/modals/EndGameModal';
 import { IStateService } from '../../../src/types/ServiceContracts';

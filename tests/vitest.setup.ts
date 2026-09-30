@@ -1,7 +1,7 @@
 // tests/vitest.setup.ts
 // Vitest setup file with performance optimizations
 
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { beforeEach, afterEach, vi } from 'vitest';
 
 // Environment detection

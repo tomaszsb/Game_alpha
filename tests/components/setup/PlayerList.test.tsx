@@ -29,7 +29,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { render, screen, within, fireEvent, cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { PlayerList } from '../../../src/components/setup/PlayerList';
 import { createTestPlayer } from '../../fixtures/testData';

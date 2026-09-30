@@ -13,7 +13,7 @@
 
 import React from 'react';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ModalBase, BACKDROP_GRACE_MS } from '../../../src/components/modals/shared/ModalBase';
 

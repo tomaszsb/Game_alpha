@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ChoiceModal } from '../../src/components/modals/ChoiceModal';
 import { GameContext } from '../../src/context/GameContext';

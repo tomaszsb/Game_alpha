@@ -16,7 +16,7 @@
 
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { App } from '../../src/App';
 

@@ -10,7 +10,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, cleanup, act } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { DictionaryPanel, EMBED_LOAD_TIMEOUT_MS } from '../../src/dictionary/components/DictionaryPanel';
 import { DictionaryProvider } from '../../src/dictionary/context/DictionaryContext';
 import { clearCache } from '../../src/dictionary/data/terms';

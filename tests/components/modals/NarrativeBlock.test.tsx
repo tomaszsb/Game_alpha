@@ -1,6 +1,6 @@
 import React from 'react';
 import { screen, cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, afterEach } from 'vitest';
 import { render } from '../../utils/test-utils';
 import { NarrativeBlock } from '../../../src/components/modals/shared/NarrativeBlock';

@@ -16,7 +16,7 @@
 
 import React from 'react';
 import { render, screen, cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PlayerPanelV2 } from '../../../src/components/player/PlayerPanelV2';
 import { PlayerPanelWrapper } from '../../../src/components/player/PlayerPanelWrapper';

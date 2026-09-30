@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.89 — A security update to the email tool and general upkeep (September 30, 2026)
+
+- **A security fix to the tool that sends reminder emails and texts.** Nothing you'd notice in the game. Reminders work the same way.
+- **Behind-the-scenes updates** to the libraries the game is built on, all tested.
+
 ## v3.2.88 — The "where to go next" list no longer disappears if you take your time (September 30, 2026)
 
 - **If you sat at a space for more than five minutes, the list of places to go could vanish** while the button still told you to pick one, leaving you stuck. The list now stays as long as your turn does.

@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { render, screen, cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, afterEach } from 'vitest';
 import { PhoneScreenWarning } from '../../../src/components/setup/PhoneScreenWarning';
 

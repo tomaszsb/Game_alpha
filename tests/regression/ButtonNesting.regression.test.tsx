@@ -15,7 +15,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { ExpandableSection } from '../../src/components/player/ExpandableSection';
 import { ActionButton } from '../../src/components/player/ActionButton';
 

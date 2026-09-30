@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ConnectionStatus } from '../../../src/components/common/ConnectionStatus';
 

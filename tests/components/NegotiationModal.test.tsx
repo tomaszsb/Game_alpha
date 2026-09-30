@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NegotiationModal } from '../../src/components/modals/NegotiationModal';
 import { GameContext } from '../../src/context/GameContext';

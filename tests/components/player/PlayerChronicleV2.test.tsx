@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PlayerChronicleV2 } from '../../../src/components/player/PlayerChronicleV2';
 import { createAllMockServices } from '../../mocks/mockServices';

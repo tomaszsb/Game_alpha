@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { CardReplacementModal } from '../../../src/components/modals/CardReplacementModal';
 import { BACKDROP_GRACE_MS } from '../../../src/components/modals/shared/ModalBase';

@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.89] - 2026-09-30
+
+### Dependency refresh: a high-severity nodemailer fix, and the vitest 5 upgrade that was wrongly marked blocked
+
+**nodemailer 9.1.1 → 10.0.13 (security).** `npm audit` flagged every nodemailer up to 10.0.8: a high-severity process-global DNS cache that reuses the TLS `servername` across transports (cross-tenant SMTP credential disclosure), two parser denial-of-service bugs, and a malformed-envelope bug. The upgrade had been deferred on 2026-09-18 because the only use — `server/mailer.js` (Reminder Hub emails, text reminders, the owner alert) — "cannot be exercised without live credentials." It is exercised now: `tests/server/mailerSmtp.test.ts` (5) drives the real mailer code through the real nodemailer SMTP client against an in-process SMTP server — reminder email (auth, addressing, subject, text + HTML), text reminder to the carrier gateway (plain text, no tracking link), owner alert, a wrong password (an error, never a silent success), and "not configured." The one breaking change in 10.0.0 is "Node 20 or newer"; the server runs 24. `npm audit`: **0 vulnerabilities.**
+
+**vitest / @vitest/coverage-v8 4.1.11 → 5.0.3, @testing-library/jest-dom 6.9.1 → 7.0.1, concurrently 9.2.0 → 10.0.5.** The TODO said vitest 5 was blocked because "the dev box runs Node 20.19.0." It runs 24.10.0 — the note was stale (and `package.json` already required Node ≥ 24). Two things had to change with it:
+- **`tests/vitest.forceExit.ts`** (the reporter `npm test` uses to force-exit past open handles): vitest 5 moved the `Reporter` type to `vitest/node` and dropped the `onFinished` hook. Left alone it would have compiled to nothing and never fired, so `npm test` could hang. Rewritten on `onTestRunEnd`; **verified** it exits 0 on a passing run and 1 on a deliberately failing one.
+- **44 test files** now import `@testing-library/jest-dom/vitest` (7.x types its matchers for vitest there; the bare import typed them for jest, so `toBeInTheDocument` stopped type-checking).
+
+**In-range updates** (`npm update`): vite 8.3.1, @xyflow/react 12.12.0, framer-motion 13.4.6, ws 8.22.0, puppeteer 25.12.0, sharp 0.35.5, tsx 4.23.15, @typescript-eslint 8.71, @types/ws.
+
+**Still held back, on purpose:** eslint 10 (`eslint-plugin-react` still has no ESLint 10 support) and typescript 7 (`@typescript-eslint` peers `<6.1.0`; pin stays `~6.0.3`).
+
+**Verified:** typecheck clean, full suite green under vitest 5 (239 files / 3,592 tests before this entry's 5 new), build clean, `npm run lint` 0 errors (36 warnings, unchanged). **Not checked in a browser** — no runtime code changed except the library versions the board and animations ride on.
+
+**To undo:** revert this commit and `npm ci`.
+
 ## [3.2.88] - 2026-09-30
 
 ### The destination list could vanish after five minutes at a space — the real cause of "Pick a location" with no list

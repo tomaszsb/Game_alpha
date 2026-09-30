@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { screen, fireEvent, cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderWithProviders } from '../utils/test-utils';
 import { CardDetailsModal } from '../../src/components/modals/CardDetailsModal';
