@@ -131,7 +131,7 @@ export function PlayerSetup({
   //      is the manual fallback for that case.
   const [selectedMode, setSelectedMode] = useState<PlayMode>(() => {
     const urlMode = new URLSearchParams(window.location.search).get('mode');
-    return resolveInitialMode(urlMode, getStoredPreferredMode(), isSmartTV);
+    return resolveInitialMode(urlMode, getStoredPreferredMode(), isSmartTV, isPhoneScreen);
   });
 
   // TV-remote scroll (fb:feedback-1783997840419-e121c34e — "Can't go back up

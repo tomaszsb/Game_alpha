@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.90] - 2026-10-01
+
+### A player's phone no longer turns into a second TV (fb:84b491f2, fb:ec243622, fb:a1260bfc, fb:dc04ea53)
+
+**What happened.** Real-TV test: Tom scanned a player's QR code on his iPhone and got the shared TV screen (corner badge "TV", "Back to PC / Connect Phone", no controller) instead of his controller. Pressing "Back to PC" fixed it.
+
+**Root cause (proven, not the stored-preference theory in the brief).** `PlayerList` builds each player's QR/link with `getServerURL(…, mode)`. Since v3.2.81 (Remote mode) that function wrote `&mode=tv` onto the link whenever the host screen was in TV mode — so every QR code on a TV carried `mode=tv`, and `App.tsx` honours `?mode=tv` over everything else. The four reports' phone URLs all end `&p=P1&mode=tv`; the one after "Back to PC" has no `mode`. The stored-choice path (`resolveInitialMode`) was not what bit here, but it had the same hole, so it is closed too.
+
+**Fix.**
+- `getServerURL` carries only `mode=remote` onto a personal link — never `tv`.
+- `App.tsx` ignores `?mode=tv` when the URL has a player link (`p=` / `playerId=`), so QR codes already printed or shared with the old shape still land on the controller.
+- A phone-sized screen no longer inherits a remembered "TV" choice (`resolveInitialMode`), and tapping TV on a phone no longer stores it (`ModeToggle`).
+
+**Same cause?** fb:dc04ea53 ("zoomed in after submitting a bug report") is the TV layout (its own zoom) running on a phone — yes. Of the 09-27 reports, fb:1ef35f42 is a TV page with `mode=tv` ("TV shows what the phone should") and fits; fb:ef974f1c's phone URL has neither `p=` nor `mode=`, so it is a different cause (a phone on the shared host view) — not proven fixed by this; fb:b38110f3 (old finished game still showing) has no mode in its URL either — separate.
+
+**Tests.** `getServerURL` never emits `mode=tv` (verified to fail on the old code), `resolveInitialMode` phone cases. Full suite 453 files / 7069 tests green, typecheck clean. **Not tried on a real phone** — needs Tom's re-scan after deploy.
+
+**To undo:** revert this commit.
+
 ## [3.2.89] - 2026-09-30
 
 ### Dependency refresh: a high-severity nodemailer fix, and the vitest 5 upgrade that was wrongly marked blocked

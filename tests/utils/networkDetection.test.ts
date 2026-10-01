@@ -133,6 +133,21 @@ describe('networkDetection', () => {
       expect(result).toBe('http://192.168.1.100:3000?g=G1&p=P1');
     });
 
+    it('never puts mode=tv on a personal player link (the phone is the controller, not the TV)', async () => {
+      (window as any).location = {
+        ...mockLocation,
+        hostname: '192.168.1.100',
+        href: 'http://192.168.1.100:3000',
+        search: ''
+      } as Location;
+
+      const { getServerURL } = await import('../../src/utils/networkDetection');
+
+      expect(getServerURL('player_123', 'P1', 'G1', 'tv')).toBe('http://192.168.1.100:3000?g=G1&p=P1');
+      expect(getServerURL('player_123', 'P1', 'G1', 'pc')).toBe('http://192.168.1.100:3000?g=G1&p=P1');
+      expect(getServerURL('player_123', 'P1', 'G1', 'remote')).toBe('http://192.168.1.100:3000?g=G1&p=P1&mode=remote');
+    });
+
     it('should include full player ID if no short ID provided', async () => {
       (window as any).location ={
         ...mockLocation,

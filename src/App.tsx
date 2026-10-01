@@ -344,7 +344,10 @@ function AppContent(): JSX.Element {
 
 
   // Check for TV mode
-  const isTVMode = urlParams.get('mode') === 'tv';
+  // A personal player link (?p= / ?playerId=) is a controller, never the
+  // shared TV — links minted before 2026-10-01 carried a stray &mode=tv.
+  const hasPlayerLink = !!(urlParams.get('p') || urlParams.get('playerId'));
+  const isTVMode = urlParams.get('mode') === 'tv' && !hasPlayerLink;
 
   // TV Display Mode - during SETUP show normal GameLayout (with PlayerSetup),
   // during PLAY/END show the TV-optimized display

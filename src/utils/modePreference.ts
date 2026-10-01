@@ -42,10 +42,12 @@ export function resolveInitialMode(
   urlMode: string | null,
   storedMode: PlayMode | null,
   isSmartTVFn: () => boolean,
+  isPhoneScreenFn: () => boolean = () => false,
 ): PlayMode {
   if (urlMode === 'tv') return 'tv';
   if (urlMode === 'pc') return 'pc';
   if (urlMode === 'remote') return 'remote';
-  if (storedMode) return storedMode;
+  // A phone is never the shared TV: a remembered 'tv' must not carry over.
+  if (storedMode && !(storedMode === 'tv' && isPhoneScreenFn())) return storedMode;
   return isSmartTVFn() ? 'tv' : 'pc';
 }

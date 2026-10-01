@@ -33,9 +33,9 @@ export function getCurrentGameToken(): string | undefined {
  * @param playerId Optional player ID or short ID to include in URL
  * @param shortId Optional short ID to use for URL (e.g., "P1" instead of full ID)
  * @param gameId Optional game ID to include in URL (e.g., "G1")
- * @param mode Optional play mode — 'tv'/'remote' are carried onto the link
- *   as ?mode=; 'pc' (or omitted) carries nothing, same as today, since PC
- *   is the ambient default a bare join link already falls back to.
+ * @param mode Optional play mode — only 'remote' is carried onto the link
+ *   as ?mode=. 'tv' and 'pc' (or omitted) carry nothing: a personal link is
+ *   opened on the player's own phone, which is never the shared TV.
  * @returns Full URL to access the app (with optional player and game parameters)
  *
  * @example
@@ -79,7 +79,10 @@ export function getServerURL(playerId?: string, shortId?: string, gameId?: strin
     params.set('playerId', playerId);
   }
 
-  if (mode && mode !== 'pc') {
+  // Only 'remote' rides on a personal link. 'tv' must NOT: the QR code is
+  // scanned by a phone, and a phone that inherits ?mode=tv runs the shared
+  // TV display instead of its controller (2026-10-01 real-TV test, v3.2.81+).
+  if (mode === 'remote') {
     params.set('mode', mode);
   }
 

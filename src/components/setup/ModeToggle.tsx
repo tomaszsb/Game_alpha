@@ -4,6 +4,7 @@ import React from 'react';
 import { colors } from '../../styles/theme';
 import { IconDesktop, IconTV, IconGlobe } from '../icons/SetupIcons';
 import { setStoredPreferredMode, PlayMode } from '../../utils/modePreference';
+import { isPhoneScreen } from '../../utils/deviceDetection';
 
 interface ModeToggleProps {
   selectedMode: PlayMode;
@@ -31,7 +32,9 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
   // modePreference.ts. Only fires on an actual click here, never on the
   // ?mode= URL param or the isSmartTV() auto-detect fallback in PlayerSetup.
   const handleSelectMode = (mode: PlayMode): void => {
-    setStoredPreferredMode(mode);
+    // Not on a phone-sized screen: a phone is never the shared TV, so a 'tv'
+    // tapped there must not be remembered for later visits.
+    if (!(mode === 'tv' && isPhoneScreen())) setStoredPreferredMode(mode);
     onSelectMode(mode);
   };
 

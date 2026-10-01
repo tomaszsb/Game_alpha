@@ -72,6 +72,15 @@ describe('resolveInitialMode (setup-screen precedence)', () => {
     expect(resolveInitialMode(null, 'remote', smartTV)).toBe('remote');
   });
 
+  it('a phone-sized screen ignores a stored "tv" but keeps other stored choices and the URL param', () => {
+    const phone = () => true;
+    expect(resolveInitialMode(null, 'tv', notSmartTV, phone)).toBe('pc');
+    expect(resolveInitialMode(null, 'remote', notSmartTV, phone)).toBe('remote');
+    expect(resolveInitialMode('tv', null, notSmartTV, phone)).toBe('tv');
+    // not a phone: the remembered TV choice still applies (Fire TV Silk case)
+    expect(resolveInitialMode(null, 'tv', notSmartTV, () => false)).toBe('tv');
+  });
+
   it('falls back to isSmartTV() when there is neither a URL param nor a stored preference', () => {
     expect(resolveInitialMode(null, null, smartTV)).toBe('tv');
     expect(resolveInitialMode(null, null, notSmartTV)).toBe('pc');
