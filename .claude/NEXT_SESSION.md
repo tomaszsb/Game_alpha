@@ -1,7 +1,7 @@
-# Next session starter — written 2026-09-30 by /koniec
+# Next session starter — written 2026-09-30 by /koniec; amended 2026-10-01 (v3.2.90 shipped + deployed)
 
 ## State at handoff
-- **Version:** v3.2.89 — **pending deploy.** `/health` → `75e85d6` (= v3.2.88) at ~12:36 EDT 2026-09-30; HEAD is the docs commit after `4f00a6b`. Re-check `/health` before believing this line. (First deploy attempt this session pulled the code but left the old container running — re-running `deploy.sh` worked; read its output.)
+- **Version:** v3.2.90 — **deployed** (`/health` = `d8a07f9`, 2026-10-01 07:21 EDT). v3.2.89 had been live since before 2026-10-01. v3.2.90 fixes the phone-becomes-TV bug: the QR link carried `&mode=tv` since v3.2.81 (fb:84b491f2, ec243622, a1260bfc, dc04ea53; likely 1ef35f42 — ef974f1c and b38110f3 are NOT the same cause). **Tom must re-scan a QR on a real phone with the TV in TV mode, then flip those four resolved.**
 - **Branch:** master, pushed, clean (only `idea.txt` untracked — read it, never modify or commit it).
 - **Last shipped (2026-09-30, five releases):** v3.2.85 push-back returns a deal's quoted money (the nightly robot's Bank Review bankruptcy; new `try_again_fee_share` column); v3.2.86 five TV fixes (saved size everywhere, resize before game, popup under its button, wake lock, camera keeps your own tile on screen); v3.2.87 DOB/FDNY ✓/✗ tags + legible phone header buttons; v3.2.88 destination list no longer vanishes after 5 min at a space; v3.2.89 nodemailer 10 (security) + vitest 5 + dependency refresh.
 - **Tests:** `npm test` 453 files / 7065 tests green; ghost 11 files / 43 tests green; typecheck ✅, build ✅, lint 0 errors, `npm audit` 0 vulnerabilities.
