@@ -24,6 +24,7 @@ import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
 import { PlayerNumbersV2, NumbersPage } from './PlayerNumbersV2';
 import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { TurnCommitControl } from './TurnCommitControl';
+import { getEndTurnWarning } from '../../utils/endTurnWarning';
 import { getEndTurnCostPreview, getTryAgainCostPreview, getLoanOnTheTable, isManualEffectCompleted, perAmountUnit, timeRowDays } from '../../utils/costPreview';
 import { ACTION_ROW, COMMIT, NUMBERS, GLANCE_HELP } from '../../constants/uiStrings';
 import { setDestinationPreview } from '../../utils/destinationPreview';
@@ -478,6 +479,19 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // getTryAgainCostPreview intentionally does NOT take completedActions — see
   // the comment at its call to getEndTurnCostPreview in costPreview.ts for why.
   const tryAgainCostRows = getTryAgainCostPreview(gameServices, playerId);
+
+  // Orange/red heads-up above End Turn: ending the turn is when a bill becomes real
+  // and when bankruptcy / the 20% design-fee cap are checked, so say so BEFORE the
+  // player presses (Tom, 2026-10-02). See utils/endTurnWarning.ts.
+  const turnLedger = gameServices.stateService.getTurnOutflow(playerId);
+  const endTurnWarning = isMyTurn && !gameState.isGameOver
+    ? getEndTurnWarning({
+        money: player.money,
+        designFees: player.expenditures?.design || 0,
+        scope: gameServices.gameRulesService.calculateProjectScope(playerId),
+        billedThisTurn: turnLedger.moneySpent - (turnLedger.moneyDeliberate ?? 0) > 0,
+      })
+    : null;
 
   // --- handlers (same service calls as the classic panel) ------------------
   const handleManualEffect = async (effectKey: string) => {
@@ -1262,6 +1276,25 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
 
       {/* Footer: negotiate + commit spine */}
       <div style={{ padding: '11px 13px' }}>
+        {endTurnWarning && (
+          <div
+            role="alert"
+            data-testid="end-turn-warning"
+            data-level={endTurnWarning.level}
+            style={{
+              background: endTurnWarning.level === 'red' ? p.badSurf : p.warnSurf,
+              color: endTurnWarning.level === 'red' ? p.bad : (mode === 'dark' ? '#fdba74' : '#9a3412'),
+              border: `1px solid ${endTurnWarning.level === 'red' ? p.badBorder : '#f59e0b'}`,
+              padding: '8px 10px',
+              borderRadius: 8,
+              fontSize: 12,
+              marginBottom: 8,
+              lineHeight: 1.35,
+            }}
+          >
+            {endTurnWarning.level === 'red' ? '⛔ ' : '⚠️ '}{endTurnWarning.message}
+          </div>
+        )}
         {endTurnError && (
           <div
             role="alert"

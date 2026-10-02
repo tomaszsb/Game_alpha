@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.91] - 2026-10-02
+
+### A design-fee quote no longer ends a game before you accept it (fb:adb1cc76)
+
+**Where this came from.** An engineer's fee quote ended a real game as "The project went under" the moment the player pressed through it (scope $5.04M, $806K already spent). Same family as the contractor/bank cases of v3.2.83/84. Tom set the rules (2026-10-02): *"fee quote only after acceptance… push back should cost very little because it is like a revision… 20% calculation should wait until end turn press, with orange and red warnings before."*
+
+**What changed (architect and engineer fee reviews).**
+- **Push-back = a revision.** The quote comes back in full; the player pays **0.5% of scope** and **5 days** instead of the 15/50-day visit. The 0.5% is the new data column `try_again_scope_pct` (Spaces.csv → SPACE_CONTENT.csv), which **replaces `try_again_fee_share`** (v3.2.85) — that column is gone, not stacked. The 5 days are `try_again_days` on the same four rows. The revision fee is **not a design fee**, so it never counts toward the 20% cap (Tom's call).
+- **The 20% design-fee cap waits for End Turn**, like bankruptcy: `checkDesignFeeCap` no longer fires at the roll; `TurnService.endTurnWithMovement` runs it (then bankruptcy) once, at the commit. A push-back throws the quote away before then.
+- **Orange / red heads-up above End Turn** (`utils/endTurnWarning.ts`, one function, one place): RED = cash below zero ("you'd be $X short") or design fees at/over 20% of scope — ending the turn ends the project; ORANGE = design fees 15–20% of scope, or cash under 5% of scope after a bill landed this turn. Both point at pushing back. The 15% / 20% lines are the ones the design-fee bar already used (now shared constants); the 5% cash line is my pick — **Tom may change it** (`LOW_CASH_PCT_OF_SCOPE`).
+- **Tracking** (earlier today, `31e8a10`): a `game_lost` event records reason, space, cash, fees, scope, turn and mode when a game ends in a loss.
+
+**Not changed.** Every other space's push-back rules; Lender Review's tap-to-see cost; Life Events; the design-fee bar's colours.
+
+**Tests.** New `FeeReviewPushBack.test.ts` (11, all four rows: quote back + 0.5% + 5 days, unaffordable quote can't bankrupt a push-back, revision fee outside the tally, cap at commit), `endTurnWarning.test.ts` (7), 3 panel tests; the old "share 1 stays" tests were rewritten to the new rule. Not tried in a real browser.
+
+**To undo:** revert this commit (the CSV column rename rides with it).
+
 ## [3.2.90] - 2026-10-01
 
 ### A player's phone no longer turns into a second TV (fb:84b491f2, fb:ec243622, fb:a1260bfc, fb:dc04ea53)

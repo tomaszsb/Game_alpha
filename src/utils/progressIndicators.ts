@@ -23,6 +23,11 @@ const YELLOW = '#ff9800';
 const ORANGE = '#ff5722';
 const RED = '#f44336';
 
+/** The design-fee game-over line and the "close to it" line (percent of project scope).
+ *  Shared with endTurnWarning so the bar's colours and the End Turn warning agree. */
+export const DESIGN_FEE_CAP_PCT = 20;
+export const DESIGN_FEE_ORANGE_PCT = 15;
+
 /**
  * Design fees as a percentage of project scope. The game caps design fees at
  * 20%: hitting 20% ends the project in any phase (strict rule, fb:3a57d5d0 /
@@ -31,10 +36,10 @@ const RED = '#f44336';
  */
 export function designFeeIndicator(ratioPct: number): ProgressIndicator {
   const pct = `${ratioPct.toFixed(1)}%`;
-  if (ratioPct >= 20) {
+  if (ratioPct >= DESIGN_FEE_CAP_PCT) {
     return { color: RED, tooltip: `Design fees: ${pct} of project scope — at or over the 20% cap. Reaching 20% ends the project, no matter which phase you're in.` };
   }
-  if (ratioPct >= 15) {
+  if (ratioPct >= DESIGN_FEE_ORANGE_PCT) {
     return { color: ORANGE, tooltip: `Design fees: ${pct} of project scope — close to the 20% cap. Watch further design spending.` };
   }
   if (ratioPct >= 10) {

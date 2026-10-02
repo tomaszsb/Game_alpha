@@ -12,9 +12,9 @@
 //
 // Tom, 2026-09-30: push-back tears up a deal nobody accepted — the money it quoted comes
 // back "if no work was done; if work was done there should be some monetary penalty". The
-// amount for the work-done spaces (architect / engineer fee reviews) is still his to set:
-// they carry try_again_fee_share = 1 (today's behaviour) until he picks, and this file
-// pins that switch too so changing one CSV cell is the whole job.
+// amount for the work-done spaces (architect / engineer fee reviews) he later set
+// (2026-10-02): the quote comes back like any other, and a push-back there charges a
+// revision fee of 0.5% of scope instead (`try_again_scope_pct`) — see FeeReviewPushBack.test.ts.
 
 import { describe, it, expect } from 'vitest';
 import { bootstrapHeadlessServices } from '../ghost/bootstrapServices';
@@ -81,28 +81,11 @@ describe('every deal nobody accepted gives its quote back on push-back', () => {
   });
 });
 
-describe('work-done spaces keep their fee (until Tom sets the share)', () => {
-  it.each([
-    ['ARCH-FEE-REVIEW', 'First'],
-    ['ARCH-FEE-REVIEW', 'Subsequent'],
-    ['ENG-FEE-REVIEW', 'First'],
-    ['ENG-FEE-REVIEW', 'Subsequent'],
-  ] as const)('%s (%s) carries try_again_fee_share = 1 in the data', async (space, visit) => {
-    const { dataService } = await atSpaceWithCash(space, 0, visit);
-    expect(dataService.getSpaceContent(space, visit)?.try_again_fee_share).toBe(1);
-  });
-
-  it('a quoted architect fee stays paid on push-back, exactly as before', async () => {
-    const s = await atSpaceWithCash('ARCH-FEE-REVIEW', 500_000);
-    s.resourceService.spendMoney(s.playerId, 40_000, 'space:ARCH-FEE-REVIEW', 'Architect fee', undefined, true);
-    await s.turnService.tryAgainOnSpace(s.playerId);
-    expect(s.money$()).toBe(460_000);
-  });
-
-  it('only the work-done spaces carry a share — every other space reads as "all of it comes back"', async () => {
+describe('only the fee-review spaces carry a revision fee', () => {
+  it('every other space reads as "no charge — the whole quote comes back"', async () => {
     const { dataService } = await atSpaceWithCash('BANK-FUND-REVIEW', 0);
     for (const space of ['BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW', 'CON-INITIATION']) {
-      expect(dataService.getSpaceContent(space, 'First')?.try_again_fee_share).toBeUndefined();
+      expect(dataService.getSpaceContent(space, 'First')?.try_again_scope_pct).toBeUndefined();
     }
   });
 });
@@ -118,20 +101,18 @@ describe('money the player chose to spend always stays', () => {
 });
 
 describe('calculatePushBackMoneyKept', () => {
-  it('no share: only deliberate spends stay', () => {
+  it('no revision fee: only deliberate spends stay', () => {
     expect(calculatePushBackMoneyKept({ moneySpent: 100, moneyDeliberate: 20 }, {})).toBe(20);
   });
-  it("share 1: everything stays (today's behaviour)", () => {
-    expect(calculatePushBackMoneyKept({ moneySpent: 100, moneyDeliberate: 20 }, { try_again_fee_share: 1 })).toBe(100);
+  it('a revision fee is a percent of scope, on top of deliberate spends', () => {
+    expect(calculatePushBackMoneyKept({ moneySpent: 100, moneyDeliberate: 20 }, { try_again_scope_pct: 0.5 }, 1_000_000)).toBe(5_020);
   });
-  it('share 0.5: half the quote plus all deliberate spends', () => {
-    expect(calculatePushBackMoneyKept({ moneySpent: 100, moneyDeliberate: 20 }, { try_again_fee_share: 0.5 })).toBe(60);
+  it('the whole quote comes back — even a big one — whatever the ledger says', () => {
+    expect(calculatePushBackMoneyKept({ moneySpent: 300_000 }, { try_again_scope_pct: 0.5 }, 1_000_000)).toBe(5_000);
   });
-  it('a ledger with no deliberate field (older save) treats it all as quote', () => {
-    expect(calculatePushBackMoneyKept({ moneySpent: 100 }, { try_again_fee_share: 0.5 })).toBe(50);
-  });
-  it('an out-of-range share is clamped, never a surprise bill', () => {
-    expect(calculatePushBackMoneyKept({ moneySpent: 100 }, { try_again_fee_share: 7 })).toBe(100);
-    expect(calculatePushBackMoneyKept({ moneySpent: 100 }, { try_again_fee_share: -1 })).toBe(0);
+  it('an out-of-range percent is clamped, never a surprise bill; no scope = no fee', () => {
+    expect(calculatePushBackMoneyKept({ moneySpent: 0 }, { try_again_scope_pct: 700 }, 100)).toBe(100);
+    expect(calculatePushBackMoneyKept({ moneySpent: 0 }, { try_again_scope_pct: -1 }, 100)).toBe(0);
+    expect(calculatePushBackMoneyKept({ moneySpent: 0 }, { try_again_scope_pct: 0.5 }, 0)).toBe(0);
   });
 });

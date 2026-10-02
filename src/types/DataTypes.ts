@@ -335,11 +335,11 @@ export interface SpaceContent {
   /** Days a push-back charges here. Absent = the space's own fixed time rows
    *  (the original rule); a number REPLACES them — see calculatePushBackDays. */
   try_again_days?: number;
-  /** Share (0–1) of the money a deal quoted this attempt that still has to be
-   *  paid when the player pushes back: 0 or absent = all of it comes back (no
-   *  work was done), 1 = all of it stays (work was done). See
-   *  calculatePushBackMoneyKept. */
-  try_again_fee_share?: number;
+  /** What a push-back charges here, as a percent of the player's project scope
+   *  (0.5 = half a percent) — a revision fee, in place of the deal's quote, which
+   *  always comes back. Absent = no charge. Not counted toward the 20% design-fee
+   *  cap. See calculatePushBackScopeFee. */
+  try_again_scope_pct?: number;
   shake_on?: string;
   tts_field?: string;
   special_action?: string;

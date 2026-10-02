@@ -1720,3 +1720,59 @@ describe('PlayerPanelV2 — "What\'s this?" action explanations (Onboarding Phas
     });
   });
 });
+
+
+describe('PlayerPanelV2 — orange/red heads-up above End Turn (2026-10-02, fb:adb1cc76)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const setup = (player: any, scope: number, isMyTurn = true) => {
+    services = createAllMockServices();
+    const full = {
+      id: 'player1', name: 'Test Player', currentSpace: 'ENG-FEE-REVIEW', visitType: 'First', timeSpent: 5,
+      color: '#007bff', hand: [], activeCards: [], activeEffects: [], loans: [], dobApprovalStatus: 'none',
+      fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null, ...player,
+    };
+    services.stateService.getPlayer.mockReturnValue(full);
+    services.stateService.getGameState.mockReturnValue({
+      players: [full], currentPlayerId: isMyTurn ? 'player1' : 'other', gamePhase: 'PLAY', isGameOver: false,
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null, requiredActions: 0,
+      completedActionCount: 0, completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.stateService.getTurnOutflow.mockReturnValue({ moneySpent: 250_000, moneyDeliberate: 0, cardsConsumed: [], lifeEventsDrawn: [] });
+    services.gameRulesService.calculateProjectScope.mockReturnValue(scope);
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Fee', story: '', can_negotiate: true });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue([]);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    return render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" onTryAgain={vi.fn()} />
+      </DictionaryProvider>,
+    );
+  };
+
+  afterEach(() => cleanup());
+
+  it('RED when the bill on the table cannot be paid', () => {
+    setup({ money: -65_000, expenditures: { design: 0 } }, 4_000_000);
+    const w = screen.getByTestId('end-turn-warning');
+    expect(w).toHaveAttribute('data-level', 'red');
+    expect(w.textContent).toContain('$65,000 short');
+  });
+
+  it('ORANGE when design fees are close to the 20% cap', () => {
+    setup({ money: 2_000_000, expenditures: { design: 640_000 } }, 4_000_000);
+    expect(screen.getByTestId('end-turn-warning')).toHaveAttribute('data-level', 'orange');
+  });
+
+  it('no warning when all is well, or when it is not your turn', () => {
+    setup({ money: 2_000_000, expenditures: { design: 0 } }, 4_000_000);
+    expect(screen.queryByTestId('end-turn-warning')).not.toBeInTheDocument();
+    cleanup();
+    setup({ money: -65_000, expenditures: { design: 0 } }, 4_000_000, false);
+    expect(screen.queryByTestId('end-turn-warning')).not.toBeInTheDocument();
+  });
+});

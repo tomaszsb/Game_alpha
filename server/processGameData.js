@@ -394,13 +394,13 @@ function processSpaceContent(spacesCsv) {
     // back. Blank = 0: the quote is torn up with the deal and all of it comes back.
     // A space where work was already done (the architect's and engineer's fee
     // reviews) sets it above 0. Deliberate spends (a card played) always stay.
-    try_again_fee_share: (row.try_again_fee_share || '').trim()
+    try_again_scope_pct: (row.try_again_scope_pct || '').trim()
   }));
 
   const fieldnames = [
     'space_name', 'visit_type', 'title', 'story', 'action_description',
     'outcome_description', 'can_negotiate', 'end_turn_label', 'try_again_label',
-    'shake_on', 'tts_field', 'try_again_days', 'try_again_fee_share'
+    'shake_on', 'tts_field', 'try_again_days', 'try_again_scope_pct'
   ];
 
   return toCsv(contents, fieldnames);

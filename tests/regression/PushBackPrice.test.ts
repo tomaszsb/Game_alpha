@@ -70,9 +70,12 @@ describe('push-back price (real CLEAN data)', () => {
     expect(pushBackDays('OWNER-SCOPE-INITIATION', 'First')).toBe(1);
     expect(pushBackDays('LEND-SCOPE-CHECK', 'First')).toBe(5);
     expect(pushBackDays('REG-DOB-PLAN-EXAM', 'First')).toBe(10);
-    expect(pushBackDays('ARCH-FEE-REVIEW', 'Subsequent')).toBe(15);
-    expect(pushBackDays('ARCH-FEE-REVIEW', 'First')).toBe(50);
+    // The architect's and engineer's fee reviews are the deliberate exception (Tom,
+    // 2026-10-02): pushing back there is a revision — a few days (5) plus a revision
+    // fee — not the full 15 / 50-day visit. See FeeReviewPushBack.test.ts.
+    const feeReviews = new Set(['ARCH-FEE-REVIEW', 'ENG-FEE-REVIEW']);
     for (const r of controls) {
+      if (feeReviews.has(r.space_name)) continue;
       const fixed = effects
         .filter((e) => e.space_name === r.space_name && e.visit_type === r.visit_type)
         .filter((e) => e.effect_type === 'time' && e.effect_action === 'add').length;

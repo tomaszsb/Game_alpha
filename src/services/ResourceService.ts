@@ -11,7 +11,7 @@ import { debugLog, debugWarn } from '../utils/debugLog';
 // Money the player CHOSE to spend (playing a card, making a trade). It sticks on
 // Try Again whatever the space says — the card stays played, the trade stays made.
 // Everything else the engine charges (loan interest, fees, a contractor's price) is
-// a deal's quote and follows the space's try_again_fee_share instead.
+// a deal's quote and comes back on a push-back (the space's try_again_scope_pct revision fee is charged instead).
 const DELIBERATE_SPEND_SOURCES = new Set(['card_play', 'negotiation']);
 
 function deliberateSpend(source: string | undefined, amount: number): number {

@@ -183,26 +183,38 @@ export function calculatePushBackDays(
 }
 
 /**
+ * The revision fee a push-back charges at this space: `try_again_scope_pct` percent
+ * of the player's project scope (the architect's and engineer's fee reviews set 0.5).
+ * Blank / out-of-range reads as 0 / clamped, never as a surprise bill. It is NOT a
+ * design fee: it does not count toward the 20% design-fee cap.
+ */
+export function calculatePushBackScopeFee(
+  content: Pick<SpaceContent, 'try_again_scope_pct'> | null | undefined,
+  scope: number,
+): number {
+  const raw = content?.try_again_scope_pct;
+  const pct = typeof raw === 'number' && Number.isFinite(raw) ? Math.min(Math.max(raw, 0), 100) : 0;
+  return scope > 0 ? Math.round((scope * pct) / 100) : 0;
+}
+
+/**
  * The money a push-back leaves paid out of this attempt's ledger.
  *
- * Push-back tears up the deal, so what the deal QUOTED (loan interest, an investor's
- * fee, a contractor's price) comes back — unless work was already done for it, in
- * which case the space sets `try_again_fee_share` (0–1) and that share of the quote
- * stays paid. Money the player chose to spend (a card played, a trade made) always
- * stays. A blank or out-of-range share reads as 0 / clamped, never as a surprise bill.
+ * Push-back tears up the deal, so EVERYTHING the deal quoted (loan interest, an
+ * investor's fee, a contractor's price, an architect's or engineer's fee) comes
+ * back — nothing was accepted. What stays: money the player chose to spend (a card
+ * played, a trade made), plus the space's revision fee (calculatePushBackScopeFee).
  *
  * The one source for what `TurnService.tryAgainOnSpace` deducts and what the
  * push-back cost box shows, so the two can never disagree.
  */
 export function calculatePushBackMoneyKept(
   ledger: Pick<TurnCostLedger, 'moneySpent' | 'moneyDeliberate'>,
-  content?: Pick<SpaceContent, 'try_again_fee_share'> | null,
+  content?: Pick<SpaceContent, 'try_again_scope_pct'> | null,
+  scope: number = 0,
 ): number {
   const deliberate = Math.min(Math.max(ledger.moneyDeliberate ?? 0, 0), ledger.moneySpent);
-  const quoted = ledger.moneySpent - deliberate;
-  const raw = content?.try_again_fee_share;
-  const share = typeof raw === 'number' && Number.isFinite(raw) ? Math.min(Math.max(raw, 0), 1) : 0;
-  return Math.round(deliberate + quoted * share);
+  return Math.round(deliberate + calculatePushBackScopeFee(content, scope));
 }
 
 /** Strict numeric parse — only trusts a value that IS a number, never a
@@ -538,8 +550,8 @@ export function getEndTurnCostPreview(
  *   - Time: calculatePushBackDays — the space's fixed time rows, or its
  *     `try_again_days` price where one is set (also applied by tryAgainOnSpace).
  *   - Money: what calculatePushBackMoneyKept says stays paid — money the player
- *     chose to spend, plus the share of a deal's quote the space says was earned
- *     by work already done (try_again_fee_share). The rest of the quote comes back.
+ *     chose to spend, plus the space's revision fee (try_again_scope_pct, a percent
+ *     of scope). Everything the deal quoted comes back.
  *   - Work / Expediting / Labor: whichever of those categories this space
  *     declares, relabeled — the draws get discarded (TEMP rollback) and
  *     redone on the next attempt, not kept and not refunded as cards.
@@ -577,7 +589,14 @@ export function getTryAgainCostPreview(
   // FEE text that must NEVER appear here (a fee is only charged on commit).
   const moneyFragments: string[] = [];
   const ledger = gameServices.stateService.getTurnOutflow(playerId);
-  const moneyKept = calculatePushBackMoneyKept(ledger, spaceContent);
+  const moneyKept = calculatePushBackMoneyKept(
+    ledger,
+    spaceContent,
+    // Scope is only needed where the space charges a revision fee.
+    typeof spaceContent?.try_again_scope_pct === 'number'
+      ? gameServices.gameRulesService.calculateProjectScope(playerId)
+      : 0,
+  );
   if (moneyKept > 0) {
     moneyFragments.push(`${FormatUtils.formatMoney(moneyKept, { compact: false })} stays spent`);
   }

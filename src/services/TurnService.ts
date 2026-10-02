@@ -463,7 +463,13 @@ export class TurnService implements ITurnService {
       // means a provisional negative balance a Try Again would have undone
       // never gets the chance to end anything early — and a real, final
       // bankruptcy still ends the game exactly the same way it always did.
-      this.effectEngineService?.checkBankruptcy(gameState.currentPlayerId);
+      // The 20% design-fee cap is checked here too (2026-10-02, Tom): a fee quote is
+      // not real money until accepted, so the cap — like bankruptcy — must wait for
+      // the commit, not fire at the roll.
+      this.effectEngineService?.checkDesignFeeCap(gameState.currentPlayerId);
+      if (!this.stateService.getGameState().isGameOver) {
+        this.effectEngineService?.checkBankruptcy(gameState.currentPlayerId);
+      }
       if (this.stateService.getGameState().isGameOver) {
         return { nextPlayerId: gameState.currentPlayerId };
       }
@@ -975,11 +981,19 @@ export class TurnService implements ITurnService {
       const changes: Partial<MutablePlayerState> = { timeSpent: timePenalty };
       if (realState) {
         // Push-back tears up the deal: money the player chose to spend stays spent,
-        // and so does the share of the deal's quote this space says was earned by
-        // work already done (try_again_fee_share). The rest of the quote — loan
-        // interest, an investor's fee, a contractor's price — comes back with the
-        // TEMP rollback, since nothing was agreed.
-        const moneyKept = calculatePushBackMoneyKept(ledger, spaceContent);
+        // plus the space's revision fee (try_again_scope_pct, a percent of scope —
+        // the architect's and engineer's fee reviews). Everything the deal quoted —
+        // loan interest, an investor's fee, a contractor's price, a design fee —
+        // comes back with the TEMP rollback, since nothing was agreed. The revision
+        // fee is NOT a design fee and is not counted toward the 20% cap.
+        const moneyKept = calculatePushBackMoneyKept(
+          ledger,
+          spaceContent,
+          // Scope is only needed where the space charges a revision fee.
+          typeof spaceContent.try_again_scope_pct === 'number'
+            ? this.gameRulesService.calculateProjectScope(playerId)
+            : 0,
+        );
         if (moneyKept > 0) {
           changes.money = realState.money - moneyKept;
         }

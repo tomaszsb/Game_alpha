@@ -110,7 +110,7 @@ function makeFeeEffect(percentageOfScope: number, feeCategory: 'architectural' |
 
 const ctx: EffectContext = { source: 'test', triggerEvent: 'manual' } as any;
 
-describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.70.4)', () => {
+describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.70.4), checked at turn-commit (2026-10-02)', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('ends game when ratio crosses 20% in DESIGN phase', () => {
@@ -122,6 +122,9 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
       spaceConfigPhase: 'DESIGN',
     });
     handler.handleResourceChange(makeFeeEffect(5), ctx);
+    // Rolling the fee never ends the game (2026-10-02): the cap is checked once, at turn-commit.
+    expect(stateService.endGame).not.toHaveBeenCalled();
+    handler.checkDesignFeeCap('p1');
     expect(stateService.endGame).toHaveBeenCalledTimes(1);
     // No winner + a reason, so EndGameModal can render the loss screen
     // (post-deploy playtest: loss endings left a blank page).
@@ -145,6 +148,9 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
       spaceConfigPhase: 'CONSTRUCTION',
     });
     handler.handleResourceChange(makeFeeEffect(5), ctx);
+    // Rolling the fee never ends the game (2026-10-02): the cap is checked once, at turn-commit.
+    expect(stateService.endGame).not.toHaveBeenCalled();
+    handler.checkDesignFeeCap('p1');
     expect(stateService.endGame).toHaveBeenCalledTimes(1);
     // Pre-v2.70.4 this branch fired addTime(+2) and a notification.
     expect((resourceService.addTime as any)).not.toHaveBeenCalled();
@@ -158,6 +164,9 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
       spaceConfigPhase: 'REGULATORY',
     });
     handler.handleResourceChange(makeFeeEffect(5), ctx);
+    // Rolling the fee never ends the game (2026-10-02): the cap is checked once, at turn-commit.
+    expect(stateService.endGame).not.toHaveBeenCalled();
+    handler.checkDesignFeeCap('p1');
     expect(stateService.endGame).toHaveBeenCalledTimes(1);
     expect((resourceService.addTime as any)).not.toHaveBeenCalled();
   });
@@ -171,6 +180,9 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
       // spaceConfigPhase omitted → dataService undefined → currentPhase = 'UNKNOWN'
     });
     handler.handleResourceChange(makeFeeEffect(5), ctx);
+    // Rolling the fee never ends the game (2026-10-02): the cap is checked once, at turn-commit.
+    expect(stateService.endGame).not.toHaveBeenCalled();
+    handler.checkDesignFeeCap('p1');
     expect(stateService.endGame).toHaveBeenCalledTimes(1);
   });
 
@@ -183,6 +195,9 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
       spaceConfigPhase: 'DESIGN',
     });
     handler.handleResourceChange(makeFeeEffect(1.5), ctx);
+    // Rolling the fee never ends the game (2026-10-02): the cap is checked once, at turn-commit.
+    expect(stateService.endGame).not.toHaveBeenCalled();
+    handler.checkDesignFeeCap('p1');
     expect(stateService.endGame).not.toHaveBeenCalled();
   });
 });

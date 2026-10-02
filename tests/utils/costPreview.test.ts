@@ -45,8 +45,10 @@ interface FakeOptions {
   moneySpent?: number;
   /** The part of moneySpent the player chose to spend (card played, trade). */
   moneyDeliberate?: number;
-  /** The space's `try_again_fee_share` (SPACE_CONTENT.csv). Omit = all of a quote comes back. */
-  feeShare?: number;
+  /** The space's `try_again_scope_pct` (SPACE_CONTENT.csv): revision fee, percent of scope. Omit = none. */
+  scopePct?: number;
+  /** The player's project scope (for scopePct). */
+  scope?: number;
   diceRoll?: string;
   globalTurnCount?: number;
   globalActionLog?: FakeLogEntry[];
@@ -67,12 +69,12 @@ function makeGameServices(effects: SpaceEffect[], opts: FakeOptions = {}): IServ
       getSpaceContent: () => ({
         can_negotiate: true,
         ...(opts.pushBackDays !== undefined ? { try_again_days: opts.pushBackDays } : {}),
-        ...(opts.feeShare !== undefined ? { try_again_fee_share: opts.feeShare } : {}),
+        ...(opts.scopePct !== undefined ? { try_again_scope_pct: opts.scopePct } : {}),
       }),
       shouldAutoApplyFunding: () => !!opts.autoFunding,
     },
     gameRulesService: {
-      calculateProjectScope: () => 0,
+      calculateProjectScope: () => opts.scope ?? 0,
     },
     stateService: {
       getPlayer: () => ({
@@ -149,7 +151,7 @@ describe('getTryAgainCostPreview — money bucket', () => {
   });
 
   // 2026-09-30: a deal's quote (loan interest, a fee) comes back on push-back unless the
-  // space says work was done (try_again_fee_share) — the box must say what the engine does.
+  // space charges a revision fee (try_again_scope_pct) — the box must say what the engine does.
   it("a deal's quoted money is not shown as staying spent — it comes back", () => {
     const effects: SpaceEffect[] = [
       { space_name: 'COMBO-SPACE', visit_type: 'First', effect_type: 'cards', effect_action: 'draw_B', effect_value: '1', condition: '', description: '', trigger_type: 'manual' },
@@ -158,12 +160,12 @@ describe('getTryAgainCostPreview — money bucket', () => {
     expect(row(getTryAgainCostPreview(gs, 'p1'), 'money')).toBe('Will be re-drawn next turn');
   });
 
-  it('a work-done space (try_again_fee_share) shows its share of the quote as staying spent', () => {
+  it('a fee-review space (try_again_scope_pct) shows its revision fee — a percent of scope — as staying spent, NOT the quote', () => {
     const effects: SpaceEffect[] = [
       { space_name: 'FEE-SPACE', visit_type: 'First', effect_type: 'time', effect_action: 'add', effect_value: '50', condition: '', description: '', trigger_type: 'auto' },
     ];
-    expect(row(getTryAgainCostPreview(makeGameServices(effects, { moneySpent: 40_000, feeShare: 1 }), 'p1'), 'money')).toBe('$40,000 stays spent');
-    expect(row(getTryAgainCostPreview(makeGameServices(effects, { moneySpent: 40_000, feeShare: 0.5 }), 'p1'), 'money')).toBe('$20,000 stays spent');
+    expect(row(getTryAgainCostPreview(makeGameServices(effects, { moneySpent: 40_000, scopePct: 0.5, scope: 4_000_000 }), 'p1'), 'money')).toBe('$20,000 stays spent');
+    expect(row(getTryAgainCostPreview(makeGameServices(effects, { moneySpent: 400_000, scopePct: 0.5, scope: 4_000_000 }), 'p1'), 'money')).toBe('$20,000 stays spent');
   });
 
   it('regression: Work/Expediting/Labor carry-over is unaffected by the money-bucket change', () => {

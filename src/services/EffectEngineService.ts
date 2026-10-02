@@ -138,6 +138,11 @@ export class EffectEngineService implements IEffectEngineService {
     this.financialEffectHandler?.checkBankruptcy(playerId);
   }
 
+  /** Passthrough to FinancialEffectHandler.checkDesignFeeCap (the 20% cap) — same reason. */
+  public checkDesignFeeCap(playerId: string): void {
+    this.financialEffectHandler?.checkDesignFeeCap(playerId);
+  }
+
   /**
    * Assert that critical setter-injected dependencies are initialized.
    * Some services (dataService) are optional and handled with null checks.

@@ -352,20 +352,20 @@ describe('csvExport', () => {
       expect(exportSpacesCSV(parseSpacesCSV(saved))).toBe(saved);
     });
 
-    // 2026-09-30: `try_again_fee_share` is the work-done push-back penalty. Same rule as
+    // 2026-09-30: `try_again_scope_pct` is the push-back revision fee (percent of scope). Same rule as
     // try_again_days: no editor field, so it must ride through a Save untouched.
-    it('an editor Save keeps the work-done push-back share (try_again_fee_share) on the right row', () => {
+    it('an editor Save keeps the push-back revision fee (try_again_scope_pct) on the right row', () => {
       const csv = [
-        'space_name,phase,visit_type,Negotiate,try_again_fee_share',
-        'ARCH-FEE-REVIEW,DESIGN,First,YES,1',
+        'space_name,phase,visit_type,Negotiate,try_again_scope_pct',
+        'ARCH-FEE-REVIEW,DESIGN,First,YES,0.5',
         'BANK-FUND-REVIEW,FUNDING,First,YES,',
       ].join('\n') + '\n';
 
       const saved = exportSpacesCSV(parseSpacesCSV(csv));
       const [header, first, second] = saved.trim().split('\n');
-      const col = header.split(',').indexOf('try_again_fee_share');
+      const col = header.split(',').indexOf('try_again_scope_pct');
       expect(col).toBeGreaterThan(-1);
-      expect(first.split(',')[col]).toBe('1');
+      expect(first.split(',')[col]).toBe('0.5');
       expect(second.split(',')[col]).toBe('');
       expect(exportSpacesCSV(parseSpacesCSV(saved))).toBe(saved);
     });

@@ -1196,12 +1196,12 @@ describe('processGameData — try_again_days (push-back price)', () => {
   });
 });
 
-// 2026-09-30: `try_again_fee_share` (Spaces.csv) → SPACE_CONTENT.csv. How much of a deal's
-// quoted money stays paid when the player pushes back (blank = all of it comes back; set
-// on the architect/engineer fee reviews where work was already done). Has to survive the
+// 2026-10-02: `try_again_scope_pct` (Spaces.csv) → SPACE_CONTENT.csv (was try_again_fee_share).
+// The revision fee a push-back charges, as a percent of scope (blank = none; set on the
+// architect/engineer fee reviews). Has to survive the
 // pipeline or the next regeneration silently turns every push-back into a full refund.
-describe('processGameData — try_again_fee_share (work-done push-back penalty)', () => {
-  const header = 'space_name,phase,visit_type,Title,Event,Action,Outcome,w_card,b_card,i_card,l_card,e_card,Time,Fee,space_1,space_2,space_3,space_4,space_5,Negotiate,requires_dice_roll,path,rolls,try_again_fee_share';
+describe('processGameData — try_again_scope_pct (push-back revision fee, percent of scope)', () => {
+  const header = 'space_name,phase,visit_type,Title,Event,Action,Outcome,w_card,b_card,i_card,l_card,e_card,Time,Fee,space_1,space_2,space_3,space_4,space_5,Negotiate,requires_dice_roll,path,rolls,try_again_scope_pct';
   const row = (name: string, share: string) =>
     `${name},DESIGN,First,T,E,A,,,,,,,,,NEXT,,,,,YES,No,Main,,${share}`;
 
@@ -1213,16 +1213,16 @@ describe('processGameData — try_again_fee_share (work-done push-back penalty)'
   };
 
   it('carries the share through to SPACE_CONTENT.csv and leaves blanks blank', () => {
-    const rows = contentRows([header, row('S-A', '1'), row('S-B', '')].join('\n'));
-    expect(rows.find((r) => r.space_name === 'S-A')!.try_again_fee_share).toBe('1');
-    expect(rows.find((r) => r.space_name === 'S-B')!.try_again_fee_share).toBe('');
+    const rows = contentRows([header, row('S-A', '0.5'), row('S-B', '')].join('\n'));
+    expect(rows.find((r) => r.space_name === 'S-A')!.try_again_scope_pct).toBe('0.5');
+    expect(rows.find((r) => r.space_name === 'S-B')!.try_again_scope_pct).toBe('');
   });
 
   it('a Spaces.csv without the column still produces it, blank on every row', () => {
-    const legacyHeader = header.replace(',try_again_fee_share', '');
+    const legacyHeader = header.replace(',try_again_scope_pct', '');
     const legacyRow = row('S-C', '').replace(/,$/, '');
     const rows = contentRows([legacyHeader, legacyRow].join('\n'));
-    expect(rows.find((r) => r.space_name === 'S-C')!.try_again_fee_share).toBe('');
+    expect(rows.find((r) => r.space_name === 'S-C')!.try_again_scope_pct).toBe('');
   });
 });
 

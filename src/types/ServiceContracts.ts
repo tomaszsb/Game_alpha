@@ -504,6 +504,8 @@ export interface IFinancialEffectHandler {
   handleFeeDeduction(effect: Effect, context: EffectContext): EffectResult;
   /** Ends the game (no winner) if the player's cash is below zero. */
   checkBankruptcy(playerId: string): void;
+  /** Ends the game (no winner) if design fees have reached 20% of project scope. */
+  checkDesignFeeCap(playerId: string): void;
 }
 
 /**
@@ -650,6 +652,9 @@ export interface IEffectEngineService {
    * dependency on FinancialEffectHandler. No-ops if no handler is wired.
    */
   checkBankruptcy(playerId: string): void;
+
+  /** Same, for the 20% design-fee cap — checked once at turn-commit, not at the roll. */
+  checkDesignFeeCap(playerId: string): void;
 }
 
 export interface ITargetingService {

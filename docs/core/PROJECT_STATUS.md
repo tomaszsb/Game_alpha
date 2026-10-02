@@ -19,5 +19,5 @@
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
 1. **Tom re-scans a TV-mode QR on a real phone**, then flip the four reports; also the real-TV check of wake lock and auto-center.
-2. **Decisions waiting on Tom:** architect/engineer `try_again_fee_share` (currently 1); scope wording (fb:612fbdc4); glow on later visits; the "?" placement go.
+2. **Decisions waiting on Tom:** scope wording is decided (blanks filled from a dice-picked project type, "added" tag + story line, explained — not built); glow/header/"?" decided, not built; the push-back fee rules are BUILT in v3.2.91 (not deployed) — Tom may still change the 5%-of-scope low-cash orange line.
 3. **fb:ef974f1c and fb:b38110f3** (09-27: phone on shared host view / old finished game showing) — not the QR cause; uninvestigated.

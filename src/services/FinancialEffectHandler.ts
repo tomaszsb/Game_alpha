@@ -299,10 +299,16 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     }
 
     this.stateService.updateTempState(playerId, updateData);
-    this.checkDesignFeeCap(playerId, payload);
+    // The 20% design-fee cap is NOT checked here any more (2026-10-02, Tom): a
+    // fee quote is not real until the player accepts it, so — like bankruptcy —
+    // the cap is checked once, at turn-commit (TurnService.endTurnWithMovement
+    // → checkDesignFeeCap). A push-back throws the quote away before then.
   }
 
-  private checkDesignFeeCap(playerId: string, _payload: ResourceChangePayload): void {
+  /** Ends the game if this player's design fees (architect + engineer) have reached
+   *  20% of their project scope. Public so TurnService can run it once, at
+   *  turn-commit, alongside checkBankruptcy. */
+  public checkDesignFeeCap(playerId: string): void {
     const updatedPlayer = this.stateService.getPlayer(playerId);
     if (!updatedPlayer) return;
 
