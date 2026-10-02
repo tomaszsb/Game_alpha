@@ -4,7 +4,7 @@
 - **Version:** v3.2.98 — **pushed, NOT deployed.** Live is still v3.2.90 (`d8a07f9`); v3.2.91–98 are all waiting on Tom's deploy. Re-check `/health` before believing this.
 - **Branch:** master, clean after the wrap-up commit (only `idea.txt` untracked — read it, never modify or commit it).
 - **Last shipped (2026-10-02, eight versions):** fee rules (quotes wait for End Turn, 0.5% + 5-day push-back, 20% cap at End Turn, orange/red warnings), a dice-picked project type with `{project}` blanks on all 176 work packages (+ NEW tag, Owner line, log/discard wording), one-colour header / glow all game / "?" inside outlines / screen-size in header, a "What is this screen?" PC/TV/Phone question (Remote never remembered), in-game Screen menu, read-only spectators, finished games no longer offered back, TV loss headline.
-- **Tests:** `npm test` 467 files / 7215 tests green; typecheck + build clean. `test:ghost` was still running at handoff — check `.claude/tmp/ghost.log` is gone (swept) so re-run `npm run test:ghost` if you need it.
+- **Tests:** `npm test` 467 files / 7215 tests green; typecheck + build clean. `test:ghost` 11 files / 43 tests green (one failure at first run — the ghost test bootstrap read the new SCOPE_WORDING.csv unconditionally; fixed to treat it as optional, like the real loader).
 
 ## Top 3 open items
 1. **Tom deploys v3.2.91–98, plays ONE real TV + phone game, then flip the reports.** Look at: fee warnings + a push-back at the engineer, NEW tag, "?" inside outlines on a real phone (light + dark), the "How are you using this screen?" question and Screen menu, a spectator link (watch-only). The exact flip list is the first item in TODO "Active".

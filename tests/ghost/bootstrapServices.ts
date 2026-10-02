@@ -58,7 +58,9 @@ class NodeDataService extends DataService {
     // falls back to auto-selecting destination_1, leaving downstream logic-only
     // destinations (REG-FDNY-PLAN-EXAM) unreachable in headless ghost runs.
     (this as any).logicQuestions = (this as any).parseLogicQuestionsCsv(read('LOGIC_QUESTIONS.csv'));
-    (this as any).parseScopeWordingCsv(read('SCOPE_WORDING.csv'));
+    // Optional, like the real loader: a hand-built data dir (the authored-insertion ghost's
+    // temp classroom) may not carry it, and a board without it simply keeps every card's own wording.
+    try { (this as any).parseScopeWordingCsv(read('SCOPE_WORDING.csv')); } catch { /* feature off */ }
     (this as any).buildSpaces();
     (this as any).loaded = true;
   }
