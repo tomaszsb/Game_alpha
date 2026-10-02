@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.90 — Scanning your QR code on the phone now gives you your controller, not the TV screen (October 1, 2026)
+
+- **Fixed: when the host screen was in TV mode, a player's phone could open the shared TV view** (with a "TV" badge and no controller) instead of their own game. Scanning your code now always opens your controller, and links that were already shared work too.
+- A phone no longer remembers "TV" as its mode.
+
 ## v3.2.89 — A security update to the email tool and general upkeep (September 30, 2026)
 
 - **A security fix to the tool that sends reminder emails and texts.** Nothing you'd notice in the game. Reminders work the same way.
