@@ -27,7 +27,11 @@ export type PlaytestEvent =
   // A real push-back ("Try Again") — fired once, when the engine accepts it.
   // Answers "which controls do players actually push back on, and do they
   // look at the cost first?" (decided 2026-09-24; see engagementStats.js).
-  | 'push_back';
+  | 'push_back'
+  // A game that ENDED IN A LOSS (bankruptcy / design-fee cap): why, where, and
+  // the numbers at that moment — so "the engineer ended my game" reports can be
+  // checked against what really happened. Decided 2026-10-02 (fb:adb1cc76).
+  | 'game_lost';
 
 /** Optional fields the in-game engagement events attach. Always pseudonymous
  *  (gameId/playerId), never the player's display name. */
@@ -47,6 +51,16 @@ export interface EngagementTrackingDetails {
   /** Had the player opened this side's cost box (a tap or Space) BEFORE the
    *  press that committed? Omitted when the caller can't tell. */
   costChecked?: boolean;
+  // game_lost only. `reason` = 'bankruptcy' | 'design_fee_cap'.
+  reason?: string;
+  /** Cash at the moment of the loss (negative for bankruptcy). */
+  money?: number;
+  /** Total architect + engineer fees paid so far. */
+  designFees?: number;
+  /** Project scope at that moment (the 20% cap's denominator). */
+  scope?: number;
+  /** Which screen mode the player was in: pc | tv | remote. */
+  mode?: string;
 }
 
 function resolveCampaignSource(): string | null {

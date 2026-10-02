@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { parseLogLine } from '../../server/visitorStats.js';
-import { aggregateEngagementStats, pushBackLogFields, ABANDON_THRESHOLD_MS } from '../../server/engagementStats.js';
+import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields, ABANDON_THRESHOLD_MS } from '../../server/engagementStats.js';
 
 const NOW = Date.parse('2026-08-02T12:00:00.000Z');
 
@@ -364,5 +364,19 @@ describe('pushBackLogFields (what the route adds to a push_back log line)', () =
     expect(pushBackLogFields(undefined)).toEqual({
       visitType: null, daysCharged: null, turn: null, attempt: null, costChecked: null,
     });
+  });
+});
+
+describe('gameLostLogFields (what the route adds to a game_lost log line)', () => {
+  it('keeps money-sized numbers, including a negative bankruptcy balance', () => {
+    expect(gameLostLogFields({ reason: 'bankruptcy', visitType: 'First', turn: 10, money: -65000, designFees: 806400, scope: 5040000, mode: 'remote' })).toEqual({
+      reason: 'bankruptcy', visitType: 'First', turn: 10, money: -65000, designFees: 806400, scope: 5040000, mode: 'remote',
+    });
+  });
+  it('drops wrong-typed fields to null instead of logging them', () => {
+    expect(gameLostLogFields({ reason: 5, money: 'lots', scope: NaN, turn: Infinity })).toEqual({
+      reason: null, visitType: null, turn: null, money: null, designFees: null, scope: null, mode: null,
+    });
+    expect(gameLostLogFields(undefined).reason).toBeNull();
   });
 });

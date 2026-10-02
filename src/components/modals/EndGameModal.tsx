@@ -49,6 +49,8 @@ export function EndGameModal(): JSX.Element {
   // an abandoned game the maintainer's stats page infers separately from a
   // GAME_STARTED with no matching finish event; see engagementStats.js).
   const hasTrackedFinishRef = useRef(false);
+  // game_lost — fires once per mount, only for a loss ending (see below).
+  const hasTrackedLossRef = useRef(false);
 
   // Subscribe to state changes to show/hide modal
   useEffect(() => {
@@ -93,7 +95,30 @@ export function EndGameModal(): JSX.Element {
 
       if (gameState.isGameOver && !gameState.winner && gameState.gameEndReason) {
         setEndReason(gameState.gameEndReason);
-        setLossPlayer(gameState.players.find(p => p.id === gameState.gameEndReason!.playerId) || null);
+        const loser = gameState.players.find(p => p.id === gameState.gameEndReason!.playerId) || null;
+        setLossPlayer(loser);
+        if (loser && !hasTrackedLossRef.current) {
+          hasTrackedLossRef.current = true;
+          const gameId = getCurrentGameId();
+          if (gameId) {
+            // The numbers at the moment of the loss, so a "the engineer ended
+            // my game" report can be checked against what really happened
+            // (fb:adb1cc76, 2026-10-02). Every device on the game fires this;
+            // gameId + playerId + turn identify one loss for de-duplication.
+            trackPlaytestEvent('game_lost', {
+              gameId,
+              playerId: loser.id,
+              spaceId: loser.currentSpace,
+              visitType: loser.visitType,
+              reason: gameState.gameEndReason.type,
+              money: loser.money,
+              designFees: loser.expenditures?.design || 0,
+              scope: gameRulesService.calculateProjectScope(loser.id),
+              turn: gameState.globalTurnCount,
+              mode: new URLSearchParams(window.location.search).get('mode') || 'pc',
+            });
+          }
+        }
       } else {
         setEndReason(null);
         setLossPlayer(null);

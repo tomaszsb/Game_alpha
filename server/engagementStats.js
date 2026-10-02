@@ -182,3 +182,20 @@ export function aggregateEngagementStats(rawEntries, options = {}) {
     pushBacks,
   };
 }
+
+// game_lost — a game that ended in bankruptcy or the 20% design-fee cap.
+// Money-sized numbers get a wide clamp (push_back's ±9999 would flatten them).
+export function gameLostLogFields(body) {
+  const b = body || {};
+  const str = (v) => (typeof v === 'string' ? v.slice(0, 60) : null);
+  const money = (v) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(-1e9, Math.min(1e9, Math.trunc(v))) : null);
+  return {
+    reason: str(b.reason),
+    visitType: str(b.visitType),
+    turn: typeof b.turn === 'number' && Number.isFinite(b.turn) ? Math.max(0, Math.min(9999, Math.trunc(b.turn))) : null,
+    money: money(b.money),
+    designFees: money(b.designFees),
+    scope: money(b.scope),
+    mode: str(b.mode),
+  };
+}
