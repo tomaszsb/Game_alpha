@@ -11,7 +11,10 @@ function wrap(entry: ActionLogEntry, cardLookup: Record<string, string> = {}) {
     dataService: {
       getCardById: (id: string) =>
         cardLookup[id] ? ({ card_id: id, card_name: cardLookup[id] } as any) : undefined,
+      getCardScopeTemplate: () => undefined,
     },
+    // LogRowDetail looks up the entry's player for their kind of project (work-package wording).
+    stateService: { getPlayer: () => ({ id: 'player1', name: 'Player 1' }) },
   } as unknown as IServiceContainer;
 
   return render(

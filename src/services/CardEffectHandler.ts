@@ -542,7 +542,7 @@ export class CardEffectHandler implements ICardEffectHandler {
     }
 
     this.loggingService.info(
-      `Drew ${count} ${friendlyName}: ${friendlyCardList(this.dataService, drawnCards)}`,
+      `Drew ${count} ${friendlyName}: ${friendlyCardList(this.dataService, drawnCards, 30, this.stateService.getPlayer(playerId)?.projectType)}`,
       details
     );
   }

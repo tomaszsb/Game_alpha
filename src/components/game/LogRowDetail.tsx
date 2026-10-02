@@ -2,6 +2,7 @@ import React from 'react';
 import { ActionLogEntry } from '../../types/StateTypes';
 import { useGameContext } from '../../context/GameContext';
 import { colors } from '../../styles/theme';
+import { getCardWordedFor } from '../../utils/scopeWording';
 
 interface LogRowDetailProps {
   entry: ActionLogEntry;
@@ -13,7 +14,9 @@ interface DetailRow {
 }
 
 export const LogRowDetail: React.FC<LogRowDetailProps> = ({ entry }) => {
-  const { dataService } = useGameContext();
+  const { dataService, stateService } = useGameContext();
+  // Work packages read as work on THIS entry's player's kind of project.
+  const entryProjectType = stateService.getPlayer(entry.playerId)?.projectType;
   const details = (entry.details ?? {}) as Record<string, unknown>;
   const rows: DetailRow[] = [];
 
@@ -44,7 +47,7 @@ export const LogRowDetail: React.FC<LogRowDetailProps> = ({ entry }) => {
     rows.push({ label: 'Card IDs', value: cardIds.join(', ') });
     // Only add the full-titles row if dataService actually resolved at least
     // one title — otherwise it duplicates the Card IDs row above.
-    const resolvedTitles = cardIds.map(id => dataService.getCardById(id)?.card_name);
+    const resolvedTitles = cardIds.map(id => getCardWordedFor(dataService, id, entryProjectType)?.card_name);
     if (resolvedTitles.some(t => t)) {
       const fullTitles = cardIds
         .map((id, i) => resolvedTitles[i] ?? id)

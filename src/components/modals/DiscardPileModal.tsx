@@ -7,7 +7,8 @@ import { CardTypeBadge, getCardTypeColors } from '../common/CardTypeBadge';
 import { colors, theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
-import { DISCARD_PILE } from '../../constants/uiStrings';
+import { DISCARD_PILE, NUMBERS } from '../../constants/uiStrings';
+import { getCardWordedFor } from '../../utils/scopeWording';
 
 interface DiscardPileModalProps {
   isOpen: boolean;
@@ -33,7 +34,9 @@ export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: Di
   for (const cardType of ['W', 'B', 'E', 'L', 'I']) {
     const cardIds = discardPiles[cardType as keyof typeof discardPiles] || [];
     for (const cardId of cardIds) {
-      const card = dataService.getCardById(cardId);
+      // The pile is shared, so a work package here can't name any one player's kind of
+      // project: its blank takes the neutral word ("the project") instead.
+      const card = getCardWordedFor(dataService, cardId, NUMBERS.GENERIC_PROJECT);
       if (card) {
         allDiscardedCards.push(card);
       }

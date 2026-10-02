@@ -144,7 +144,7 @@ export class CardService implements ICardService {
           count: preSelectedOfType.length,
           cards: preSelectedOfType,
           source: source || 'educational_mode',
-          message: `Drew ${preSelectedOfType.length} ${getCardTypeName(cardType, preSelectedOfType.length)}: ${friendlyCardList(this.dataService, preSelectedOfType)}`,
+          message: `Drew ${preSelectedOfType.length} ${getCardTypeName(cardType, preSelectedOfType.length)}: ${friendlyCardList(this.dataService, preSelectedOfType, 30, player.projectType)}`,
         });
 
         return preSelectedOfType;

@@ -86,6 +86,9 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // {projectType} arrives with its article ("a school"). Appended to the story of a space
   // that deals work packages; a reskin rewords it here.
   'SCOPE.ownerLine': 'What I want built: {projectType}.',
+  // The word a work package's blank takes where no player is in view (the shared
+  // discard pile) — so it never names a building that is some OTHER player's job.
+  'SCOPE.genericProject': 'project',
   'NUMBERS.scope.addedNote': 'The items tagged {tag} were just added to your scope. When scope grows, the design and filing fees — a percentage of scope — grow with it, and any plan approval you already had no longer covers the new work.',
   'NUMBERS.expeditors.empty': "You haven't hired anyone yet.",
   'NUMBERS.money.ongoing': 'Still costing you',
@@ -315,6 +318,7 @@ export const NUMBERS = {
   get SECTION_EXPEDITORS() { return getUIString('NUMBERS.section.expeditors'); },
   get SCOPE_NEW_TAG() { return getUIString('NUMBERS.scope.newTag'); },
   ownerLine: (projectType: string) => getUIString('SCOPE.ownerLine', { projectType }),
+  get GENERIC_PROJECT() { return getUIString('SCOPE.genericProject'); },
   scopeAddedNote: (tag: string) => getUIString('NUMBERS.scope.addedNote', { tag }),
   get EXPEDITORS_EMPTY() { return getUIString('NUMBERS.expeditors.empty'); },
   get MONEY_ONGOING() { return getUIString('NUMBERS.money.ongoing'); },

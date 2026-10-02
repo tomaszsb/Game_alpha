@@ -130,3 +130,22 @@ describe('newestScopeBaseIds — which work was just added', () => {
     expect(newestScopeBaseIds([], isScope).size).toBe(0);
   });
 });
+
+describe('the log and the shared discard pile use the same wording rule', () => {
+  it('a log line names work packages in the entry\'s player\'s own kind of project', async () => {
+    const { dataService } = await startedPlayer();
+    const { friendlyCardList } = await import('../../src/utils/logFormatting');
+    const line = friendlyCardList(dataService, ['W007_1790000000000_aaa_0'], 200, 'hospital');
+    expect(line).toBe(fillProjectBlank(dataService.getCardScopeTemplate('W007')!, 'hospital'));
+    expect(line).toContain('hospital');
+    // No project type known: the card keeps its own wording, exactly as before.
+    expect(friendlyCardList(dataService, ['W007'], 200)).toBe(dataService.getCardById('W007')!.card_name);
+  });
+
+  it('the shared discard pile takes the neutral word, never someone else\'s building', async () => {
+    const { dataService } = await startedPlayer();
+    const card = getCardWordedFor(dataService, 'W007', 'project')!;
+    expect(card.card_name).toBe(fillProjectBlank(dataService.getCardScopeTemplate('W007')!, 'project'));
+    expect(card.card_name).not.toMatch(/school|hospital|hotel|apartment|office|airport/);
+  });
+});

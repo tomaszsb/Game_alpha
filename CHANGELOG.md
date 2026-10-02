@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.95] - 2026-10-02
+
+### The activity log and the discard pile now use the same project wording (fb:612fbdc4, last piece)
+
+- **Log:** a "Drew … Work Package: …" line now names the package as work on *that player's* kind of project ("…of the hotel"), in both the live log and the post-game log. The log's expanded "Card titles (full)" row does the same.
+- **Discard pile:** it is shared, so it can't name any one player's building; a work package there takes the neutral word ("…of the project", from `UI_STRINGS` `SCOPE.genericProject`) instead of showing an old, mismatched building.
+- Entries already written by an older build keep their old text (the log stores the sentence when it is written).
+
+**Tests.** 2 more in `ScopeWording.test.ts`; full suite green.
+
+**To undo:** revert this commit.
+
 ## [3.2.94] - 2026-10-02
 
 ### The last three "?" move inside their outline; the Owner names your kind of project

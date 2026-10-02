@@ -32,6 +32,7 @@ describe('DiscardPileModal', () => {
 
     mockDataService = {
       getCardById: vi.fn((cardId: string) => mockDiscardedCards.find(card => card.card_id === cardId)),
+      getCardScopeTemplate: vi.fn(() => undefined),
     } as unknown as IDataService;
 
     mockStateService = {
