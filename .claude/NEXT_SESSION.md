@@ -1,7 +1,7 @@
 # Next session starter — written 2026-10-02 by /koniec
 
 ## State at handoff
-- **Version:** v3.2.98 — **pushed, NOT deployed.** Live is still v3.2.90 (`d8a07f9`); v3.2.91–98 are all waiting on Tom's deploy. Re-check `/health` before believing this.
+- **Version:** v3.2.98 — **DEPLOYED 2026-10-02 (~14:40 EDT)**, `/health` = `5758a0f` (deployed by me at Tom's word). Re-check `/health` before believing this.
 - **Branch:** master, clean after the wrap-up commit (only `idea.txt` untracked — read it, never modify or commit it).
 - **Last shipped (2026-10-02, eight versions):** fee rules (quotes wait for End Turn, 0.5% + 5-day push-back, 20% cap at End Turn, orange/red warnings), a dice-picked project type with `{project}` blanks on all 176 work packages (+ NEW tag, Owner line, log/discard wording), one-colour header / glow all game / "?" inside outlines / screen-size in header, a "What is this screen?" PC/TV/Phone question (Remote never remembered), in-game Screen menu, read-only spectators, finished games no longer offered back, TV loss headline.
 - **Tests:** `npm test` 467 files / 7215 tests green; typecheck + build clean. `test:ghost` 11 files / 43 tests green (one failure at first run — the ghost test bootstrap read the new SCOPE_WORDING.csv unconditionally; fixed to treat it as optional, like the real loader).

@@ -7,7 +7,7 @@
 
 **Last Updated:** October 2, 2026 (v3.2.98)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.98 — pushed, NOT deployed** (live is still v3.2.90, `d8a07f9`). Trust `/health`, never this line.
+**Current Version:** **3.2.98 — deployed** (`/health` → `5758a0f`, 2026-10-02). Trust `/health`, never this line.
 
 ## Current sprint
 **Tom's two-device test and its fallout (v3.2.91–98).** The "phone shows the TV view" bug was a remembered *Remote* switch, not a regression. That led to: design-fee quotes that wait for End Turn with 0.5% push-backs and orange/red warnings (v3.2.91); one dice-picked project type per player with `{project}` blanks on all 176 work packages, a NEW tag, log/discard wording (v3.2.92–95); one-colour header, glow all game, "?" inside every outline (v3.2.93–94); a "What is this screen?" question (PC/TV/phone) that replaces the old checkbox, with Remote never remembered (v3.2.97); an in-game Screen menu, read-only spectators, finished games no longer offered back, and an honest TV loss headline (v3.2.98).
