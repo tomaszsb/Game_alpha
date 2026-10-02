@@ -23,6 +23,9 @@ import { configureUIStrings } from './constants/uiStrings';
 import { VersionBadge } from './components/common/VersionBadge';
 import { debugWarn } from './utils/debugLog';
 import { applyStoredTvLayoutWidth } from './utils/tvScale';
+import { decideDeviceRole, roleUrl, setStoredDeviceRole, DeviceRole } from './utils/deviceRole';
+import { isPhoneScreen, isSmartTV } from './utils/deviceDetection';
+import { DeviceRolePicker } from './components/setup/DeviceRolePicker';
 
 /**
  * LoadingScreen component displays while the application initializes
@@ -423,6 +426,32 @@ function getInitialBootstrapPhase(): BootstrapPhase {
  * auto-redirect: teachers/testers open the bare URL specifically to start
  * fresh games too often for that to be safe.
  */
+/**
+ * Asks "how are you using this screen?" once when a personal player link opens on a screen
+ * the game can't be sure about, and rewrites the link for the answer (utils/deviceRole.ts).
+ * Everything else - the host, spectators, a phone scanning a QR code, a link already
+ * decided - passes straight through.
+ */
+function DeviceRoleGate({ children }: { children: React.ReactNode }): JSX.Element | null {
+  const [decision] = useState(() => decideDeviceRole(window.location.href, { isPhone: isPhoneScreen(), isSmartTv: isSmartTV() }));
+  useEffect(() => {
+    if (decision.kind === 'redirect') window.location.replace(decision.url);
+  }, [decision]);
+  if (decision.kind === 'redirect') return null;
+  if (decision.kind === 'prompt') {
+    return (
+      <DeviceRolePicker
+        suggested={decision.suggested}
+        onPick={(role: DeviceRole) => {
+          setStoredDeviceRole(role);
+          window.location.replace(roleUrl(role, window.location.href));
+        }}
+      />
+    );
+  }
+  return <>{children}</>;
+}
+
 export function App(): JSX.Element {
   // Runs the resume/auto-create decision once on mount; `useState(() =>
   // ...)` doesn't react to URL changes after that (a redirect unmounts
@@ -530,6 +559,7 @@ export function App(): JSX.Element {
           Couldn’t start a new game ({autoCreateError}). Try refreshing.
         </div>
       )}
+      <DeviceRoleGate>
       <ServiceProvider>
         <DictionaryProvider>
           <ErrorBoundary>
@@ -540,6 +570,7 @@ export function App(): JSX.Element {
           </ErrorBoundary>
         </DictionaryProvider>
       </ServiceProvider>
+      </DeviceRoleGate>
     </ErrorBoundary>
   );
 }

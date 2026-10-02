@@ -29,10 +29,18 @@ describe('modePreference', () => {
     expect(getStoredPreferredMode()).toBe('pc');
   });
 
-  it('round-trips a stored "remote" choice', () => {
+  it('never remembers "remote" - it describes one game, not a screen (2026-10-02)', () => {
     setStoredPreferredMode('remote');
-    expect(localStorage.getItem(KEY)).toBe('remote');
-    expect(getStoredPreferredMode()).toBe('remote');
+    expect(localStorage.getItem(KEY)).toBeNull();
+    expect(getStoredPreferredMode()).toBeNull();
+  });
+
+  it('picking "remote" also wipes an older remembered PC/TV, and a leftover "remote" from an old build is ignored', () => {
+    setStoredPreferredMode('tv');
+    setStoredPreferredMode('remote');
+    expect(getStoredPreferredMode()).toBeNull();
+    localStorage.setItem(KEY, 'remote');
+    expect(getStoredPreferredMode()).toBeNull();
   });
 
   it('ignores garbage values already in storage', () => {
@@ -110,17 +118,17 @@ describe('remember-how-I-play setting', () => {
   });
 
   it('turning it OFF forgets what was remembered, and nothing new is remembered', () => {
-    setStoredPreferredMode('remote');
+    setStoredPreferredMode('tv');
     setRememberMode(false);
     expect(getRememberMode()).toBe(false);
     expect(getStoredPreferredMode()).toBeNull();
-    setStoredPreferredMode('remote');
+    setStoredPreferredMode('tv');
     expect(getStoredPreferredMode()).toBeNull();
     expect(localStorage.getItem(KEY)).toBeNull();
   });
 
   it('with it off, the setup screen starts from the device auto-detect, not the old choice', () => {
-    setStoredPreferredMode('remote');
+    setStoredPreferredMode('tv');
     setRememberMode(false);
     expect(resolveInitialMode(null, getStoredPreferredMode(), () => false)).toBe('pc');
   });

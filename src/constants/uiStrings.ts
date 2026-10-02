@@ -81,6 +81,18 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // Scope page: the tag on the newest work, and the one-line explanation of why a
   // growing scope matters (Tom, 2026-10-02, fb:612fbdc4: "any time scope changes the
   // player should be notified… this is an educational game — we need to explain").
+  // "What is this screen?" - asked once when a personal link opens on a screen the game
+  // can't be sure about (utils/deviceRole.ts). Worded by what the screen SHOWS, not by
+  // a gadget name, so it also fits a tablet or a phone playing alone.
+  'DEVICE_ROLE.title': 'How are you using this screen?',
+  'DEVICE_ROLE.subtitle': 'Pick the one that fits. Your device remembers it, and you can change it in the settings (the gear).',
+  'DEVICE_ROLE.pc.label': 'PC - board and controls together',
+  'DEVICE_ROLE.pc.hint': 'This screen shows the game board and your own controls.',
+  'DEVICE_ROLE.tv.label': 'TV - just the board',
+  'DEVICE_ROLE.tv.hint': 'Everyone watches the board here. Each player uses a phone for their controls.',
+  'DEVICE_ROLE.phone.label': 'Phone - just my controls',
+  'DEVICE_ROLE.phone.hint': 'The board is on another screen. This one is only for your turn.',
+  'DEVICE_ROLE.suggested': 'Looks like this one',
   'NUMBERS.scope.newTag': 'NEW',
   // The Owner's story, once chance has picked the player's kind of project (fb:612fbdc4).
   // {projectType} arrives with its article ("a school"). Appended to the story of a space
@@ -303,6 +315,14 @@ export const COMMIT = {
   get TAKE_YOUR_NEXT_STEP() { return getUIString('COMMIT.takeYourNextStep'); },
   get ENDING() { return getUIString('COMMIT.ending'); },
   get END_TURN() { return getUIString('COMMIT.endTurn'); },
+};
+
+export const DEVICE_ROLE = {
+  get TITLE() { return getUIString('DEVICE_ROLE.title'); },
+  get SUBTITLE() { return getUIString('DEVICE_ROLE.subtitle'); },
+  get SUGGESTED() { return getUIString('DEVICE_ROLE.suggested'); },
+  label: (role: 'pc' | 'tv' | 'phone') => getUIString(`DEVICE_ROLE.${role}.label`),
+  hint: (role: 'pc' | 'tv' | 'phone') => getUIString(`DEVICE_ROLE.${role}.hint`),
 };
 
 export const NUMBERS = {

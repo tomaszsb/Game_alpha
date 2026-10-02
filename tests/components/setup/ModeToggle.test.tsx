@@ -41,14 +41,14 @@ describe('ModeToggle', () => {
     expect(localStorage.getItem(PREFERRED_MODE_KEY)).toBe('pc');
   });
 
-  it('writes "remote" to localStorage and notifies the parent when the Remote button is tapped (built 2026-09-25 — no longer the "coming soon" placeholder)', () => {
+  it('notifies the parent when Remote is tapped, but does NOT remember it (2026-10-02: Remote describes one game, not a screen)', () => {
     const onSelectMode = vi.fn();
     render(<ModeToggle selectedMode="pc" onSelectMode={onSelectMode} />);
 
     screen.getByRole('button', { name: /Remote/ }).click();
 
     expect(onSelectMode).toHaveBeenCalledWith('remote');
-    expect(localStorage.getItem(PREFERRED_MODE_KEY)).toBe('remote');
+    expect(localStorage.getItem(PREFERRED_MODE_KEY)).toBeNull();
   });
 
   it('never shows "Coming soon!" — the Remote button is real now', () => {

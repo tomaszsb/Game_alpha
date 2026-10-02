@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.97] - 2026-10-02
+
+### "What is this screen?" - hardware and game style are no longer one switch (supersedes the v3.2.96 checkbox)
+
+**Where this came from.** The setup screen had one switch, PC / TV / Remote, mixing two different things: what a SCREEN is (a PC, a TV, a phone - true every week) and how one GAME is played (together in a room, or everyone in a different place). Tom's real test: a remembered "Remote" made the TV host and the phone both show board + controls. And a player who opens a link was never asked what their screen is - the game guessed (phone-sized = controller, anything else = full view), so a TV or a PC player in a remote game got the wrong view. His words: "if I am playing on my own hardware I will want the hardware settings to stay the same".
+
+**What changed.**
+- **A player on a personal link is asked once what the screen is** (`DeviceRolePicker`, `utils/deviceRole.ts`): *PC - board and controls together*, *TV - just the board*, *Phone - just my controls*. The answer rewrites the link (`pc` = this player's board + controls, `tv` = the board only, `phone` = controls only) and carries `role=` so it never asks twice for one link.
+- **It is remembered on the device**, and applied without asking next time. A phone-sized screen on an ordinary QR link is simply a phone - no question. A phone on a *remote-game* link IS asked (it may be the player's only screen). The wording is data (`UI_STRINGS` `DEVICE_ROLE.*`).
+- **"Remote" is never remembered any more** (`modePreference.ts`): it describes one game, picked fresh each game. A leftover remembered "remote" from an old build is ignored.
+- **The settings-drawer checkbox now reads "Remember what this screen is"**: it governs the remembered role and the remembered PC/TV, shows what is remembered, and has "Forget it" for an accidental pick.
+
+**Not done.** A way to change the role from inside a running game (today: the gear on the setup screen, or open the link again after "Forget it"); the host's own screen (no personal link) is not asked; Join-by-code on a PC/TV does not ask (no personal link). Looked at in a real browser (the question appears, TV rewrites the link); **not tried on a real TV + phone**.
+
+**Tests.** `deviceRole.test.ts` (14), `DeviceSettingsPanel`, `modePreference`, `ModeToggle` updated.
+
+**To undo:** revert this commit.
+
 ## [3.2.96] - 2026-10-02
 
 ### "Remember how I play" is now a setting on each device (the sticky-Remote trap)
