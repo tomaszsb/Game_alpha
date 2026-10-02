@@ -10,7 +10,36 @@ export type PlayMode = 'pc' | 'tv' | 'remote';
 
 const PREFERRED_MODE_KEY = 'unravelcodes:preferred-mode';
 
+// Whether this device remembers the PC/TV/Remote choice at all (Tom, 2026-10-02: a
+// remembered "Remote" from an earlier game made a TV host show the board + controller
+// on every device, and nothing said why). ON by default — the Fire TV fix above needs
+// it — and turnable OFF from the settings drawer. Per device, like the choice itself.
+const REMEMBER_MODE_KEY = 'unravelcodes:remember-mode';
+
+export function getRememberMode(): boolean {
+  try {
+    return localStorage.getItem(REMEMBER_MODE_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+/** Turning it off also forgets what was remembered, so the next visit starts clean. */
+export function setRememberMode(remember: boolean): void {
+  try {
+    if (remember) {
+      localStorage.removeItem(REMEMBER_MODE_KEY);
+    } else {
+      localStorage.setItem(REMEMBER_MODE_KEY, 'off');
+      localStorage.removeItem(PREFERRED_MODE_KEY);
+    }
+  } catch {
+    /* storage unavailable — nothing to remember either way */
+  }
+}
+
 export function getStoredPreferredMode(): PlayMode | null {
+  if (!getRememberMode()) return null;
   try {
     const value = localStorage.getItem(PREFERRED_MODE_KEY);
     return value === 'pc' || value === 'tv' || value === 'remote' ? value : null;
@@ -20,6 +49,7 @@ export function getStoredPreferredMode(): PlayMode | null {
 }
 
 export function setStoredPreferredMode(mode: PlayMode): void {
+  if (!getRememberMode()) return;
   try {
     localStorage.setItem(PREFERRED_MODE_KEY, mode);
   } catch {

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.96] - 2026-10-02
+
+### "Remember how I play" is now a setting on each device (the sticky-Remote trap)
+
+**Where this came from.** Tom's real TV + phone test showed the board and controller stacked on BOTH devices: the TV host's setup screen had "Remote" highlighted, because the device remembers the last PC/TV/Remote choice (added for the Fire TV Silk-UA fix) and Remote had been picked in the 09-27 two-phone test. Remote mode by design puts the board and controller on every device, and nothing said why the toggle was there.
+
+**What changed.** The settings drawer (the gear) has a new **"This device"** section with a **"Remember how I play"** checkbox. ON by default (the Fire TV fix still works out of the box). Turning it OFF forgets the remembered choice and stops remembering new ones, so the setup screen starts from the device's own auto-detect each time; the PC/TV/Remote toggle on the setup screen still changes the mode for any game. Per device, stored in the browser (`modePreference.ts`).
+
+**Not changed / open.** Remote is still remembered when the setting is ON. Tom may want Remote never remembered (it describes one game's players, not a device); that is a one-line follow-up if he says so.
+
+**Tests.** `modePreference.test.ts` (+4), new `DeviceSettingsPanel.test.tsx` (3); looked at in a real browser.
+
+**To undo:** revert this commit.
+
 ## [3.2.95] - 2026-10-02
 
 ### The activity log and the discard pile now use the same project wording (fb:612fbdc4, last piece)

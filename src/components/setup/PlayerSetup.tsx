@@ -29,6 +29,7 @@ import { PlayerMobileView } from './PlayerMobileView';
 import { ModeToggle } from './ModeToggle';
 import { ScreenSizeControl } from '../layout/ScreenSizeControl';
 import { GameSettingsPanel } from './GameSettingsPanel';
+import { DeviceSettingsPanel } from './DeviceSettingsPanel';
 import { AdminToolsPanel } from './AdminToolsPanel';
 import { IconGear, IconPeople, IconPhone, IconPlay, IconClose, IconBug, IconHourglass, IconEye } from '../icons/SetupIcons';
 
@@ -1223,6 +1224,8 @@ export function PlayerSetup({
             onChangeGameSettings={setGameSettings}
             onOpenCardSelection={() => setShowCardSelection(true)}
           />
+
+          <DeviceSettingsPanel />
 
           <AdminToolsPanel
             selectedMode={selectedMode}

@@ -4,7 +4,7 @@
 // used to lose the TV choice because nothing remembered it across reloads.
 
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { getStoredPreferredMode, setStoredPreferredMode, resolveInitialMode } from '../../src/utils/modePreference';
+import { getStoredPreferredMode, setStoredPreferredMode, resolveInitialMode, getRememberMode, setRememberMode } from '../../src/utils/modePreference';
 
 const KEY = 'unravelcodes:preferred-mode';
 
@@ -94,5 +94,41 @@ describe('resolveInitialMode (setup-screen precedence)', () => {
   it('ignores an unrecognized URL param and falls through to the next tier', () => {
     expect(resolveInitialMode('desktop', 'tv', notSmartTV)).toBe('tv');
     expect(resolveInitialMode('desktop', null, smartTV)).toBe('tv');
+  });
+});
+
+// 2026-10-02 (Tom): a remembered "Remote" turned a TV host into a board+controller screen on
+// every device. The device can now be told not to remember at all (settings drawer → "This
+// device").
+describe('remember-how-I-play setting', () => {
+  afterEach(() => localStorage.clear());
+
+  it('is ON by default — the Fire TV fix still works out of the box', () => {
+    expect(getRememberMode()).toBe(true);
+    setStoredPreferredMode('tv');
+    expect(getStoredPreferredMode()).toBe('tv');
+  });
+
+  it('turning it OFF forgets what was remembered, and nothing new is remembered', () => {
+    setStoredPreferredMode('remote');
+    setRememberMode(false);
+    expect(getRememberMode()).toBe(false);
+    expect(getStoredPreferredMode()).toBeNull();
+    setStoredPreferredMode('remote');
+    expect(getStoredPreferredMode()).toBeNull();
+    expect(localStorage.getItem(KEY)).toBeNull();
+  });
+
+  it('with it off, the setup screen starts from the device auto-detect, not the old choice', () => {
+    setStoredPreferredMode('remote');
+    setRememberMode(false);
+    expect(resolveInitialMode(null, getStoredPreferredMode(), () => false)).toBe('pc');
+  });
+
+  it('turning it back ON remembers again', () => {
+    setRememberMode(false);
+    setRememberMode(true);
+    setStoredPreferredMode('tv');
+    expect(getStoredPreferredMode()).toBe('tv');
   });
 });
