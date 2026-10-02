@@ -5,19 +5,19 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** October 1, 2026 (v3.2.90)
+**Last Updated:** October 2, 2026 (v3.2.98)
 **Current Phase:** Beta — live in production
-**Current Version:** **3.2.90 — deployed.** `/health` → `d8a07f9` (2026-10-01 07:21 EDT). Trust `/health`, never this line.
+**Current Version:** **3.2.98 — pushed, NOT deployed** (live is still v3.2.90, `d8a07f9`). Trust `/health`, never this line.
 
 ## Current sprint
-**Real-TV test follow-up.** Tom's iPhone scanned a player QR and ran the TV screen. Root cause: since v3.2.81 the TV-mode QR links carried `&mode=tv`, which the app honours over the controller. v3.2.90: only `mode=remote` rides a personal link, the app ignores `mode=tv` on a link with a player, and a phone never inherits/stores a TV choice. Earlier this week: push-back money model, TV batch, DOB/FDNY tags, destination-list fix, nodemailer 10 + vitest 5 (v3.2.85–89).
+**Tom's two-device test and its fallout (v3.2.91–98).** The "phone shows the TV view" bug was a remembered *Remote* switch, not a regression. That led to: design-fee quotes that wait for End Turn with 0.5% push-backs and orange/red warnings (v3.2.91); one dice-picked project type per player with `{project}` blanks on all 176 work packages, a NEW tag, log/discard wording (v3.2.92–95); one-colour header, glow all game, "?" inside every outline (v3.2.93–94); a "What is this screen?" question (PC/TV/phone) that replaces the old checkbox, with Remote never remembered (v3.2.97); an in-game Screen menu, read-only spectators, finished games no longer offered back, and an honest TV loss headline (v3.2.98).
 
 ## Health
-- **Tests (v3.2.90):** `npm test` 453 files / 7069 tests green, typecheck ✅, build ✅. ghost gates 11 files / 43 tests green.
-- **Feedback dashboard:** ~27 open; the four phone-became-TV reports are fixed but unflipped until Tom re-scans on a phone.
+- **Tests (v3.2.98):** `npm test` 467 files / 7215 tests green, typecheck + build clean. `test:ghost` run at wrap-up (see NEXT_SESSION).
+- **Feedback dashboard:** ~27 open; several fixed-but-unflipped until Tom plays a real TV + phone game (list in NEXT_SESSION).
 - **Machine:** Node 24.10.0 (matches Dockerfile).
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Tom re-scans a TV-mode QR on a real phone**, then flip the four reports; also the real-TV check of wake lock and auto-center.
-2. **Decisions waiting on Tom:** scope wording is decided (blanks filled from a dice-picked project type, "added" tag + story line, explained — not built); glow/header/"?" decided, not built; the push-back fee rules are BUILT in v3.2.91 (not deployed) — Tom may still change the 5%-of-scope low-cash orange line.
-3. **fb:ef974f1c and fb:b38110f3** (09-27: phone on shared host view / old finished game showing) — not the QR cause; uninvestigated.
+1. **Deploy v3.2.91–98 and play one real TV + phone game** (Tom's deploy command), then flip the reports.
+2. **Tom to read the 176 reworded work packages** (SCOPE_WORDING.csv) for awkward sentences.
+3. **Decisions:** is there a real class + date for the 30-student scenario; per-device board/panel layout for remote players; spectator pass on the board's own clicks.

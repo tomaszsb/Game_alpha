@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.98] - 2026-10-02
+
+### Screen type from inside a game; spectators can only watch; a finished game is no longer offered back; the TV tells the truth when a game is lost; one flaky test explained
+
+- **Change what this screen is, from inside the game.** The header's old "TV" toggle is now a **Screen** menu (PC / TV / Phone, current one ticked). A screen with no personal link (the host) is offered PC and TV only. Picking remembers it (unless remembering is off) and reloads the link for that role. The TV's "Back to PC" button now also remembers "PC".
+- **Spectators can only watch** (found while checking the 30-student-class plan). A `?spectate=1` viewer in a *running* game got the shared view, where the current player's panel treated them as the player whose turn it was - they could press that player's buttons. Spectator panels are now read-only (`readOnly` on the player panel: never "my turn", no glow, no live controls). **Not checked:** other things a spectator could still touch (the board's own clicks); needs a pass before a real class.
+- **A finished game is no longer offered back** (fb:b38110f3, fb:ef974f1c - the same screen in two reports). A bare-URL visit checks the last game this browser played and offers "Join - which one are you?" for it; it did not look at whether that game had ENDED. It now skips a game in phase END (`isResumableGame`).
+- **The TV no longer says "<first player> Wins!" for every ending** (fb:ef974f1c's other half: "the TV says Sunday wins... but I lost"). The shared screen now says what happened: a win names the winner; a loss reads "The project went under" / "The design budget sank the project" with the player's name (`utils/endGameLoss.ts`, also used by the end-of-game popup).
+- **The occasional `BankReviewDays` failure was the test, not the game.** Life events take days off as well as add them (Positive Press -3, High-Profile Client -4...), so a whole End Turn netted 2 or 5 days in about 1 run in 12. The test's floor is now 7 days minus the biggest credit in the data; 40 runs in a row pass.
+
+**Tests.** `ScreenTypeMenu` (6), `endGameLoss` (5), `isResumableGame` (2), a spectator panel test, `deviceRole` host case.
+
+**To undo:** revert this commit.
+
 ## [3.2.97] - 2026-10-02
 
 ### "What is this screen?" - hardware and game style are no longer one switch (supersedes the v3.2.96 checkbox)

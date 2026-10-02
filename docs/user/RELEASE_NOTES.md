@@ -2,6 +2,46 @@
 
 ---
 
+## v3.2.98 — Change your screen type mid-game, spectators can only watch, and the TV tells the truth when a game is lost (October 2, 2026)
+
+- **New "Screen" menu at the top:** tell the game whether this screen is a PC, a TV, or a phone, any time during a game.
+- **Spectators can now only watch.** Before, someone watching a running game could press buttons for the player whose turn it was.
+- **A finished game is no longer offered back** when you start a new one.
+- **The TV no longer says "<name> Wins!" when the game was actually lost.** It now says what happened, such as "The project went under."
+
+## v3.2.97 — The game now asks "How are you using this screen?" (October 2, 2026)
+
+- **When you open a player link on a computer or TV, the game asks once:** PC (board and controls together), TV (just the board), or Phone (just my controls). It remembers your answer for next time, and you can change it in the settings (the gear) or from the new Screen menu.
+- **"Remote" is no longer remembered between games.** It's something you choose for each game, since it describes where the players are, not what your screen is.
+
+## v3.2.96 — Superseded by v3.2.97 (a settings checkbox that v3.2.97 reworked)
+
+## v3.2.95 — The activity log and discard pile use your kind of project (October 2, 2026)
+
+- **Work packages in the log now read as work on your project** ("...of the hotel"). The shared discard pile uses a neutral word instead of someone else's building.
+
+## v3.2.94 — Every "?" now sits inside its outline, and the Owner names your project (October 2, 2026)
+
+- **The "?" help buttons are inside the box they explain** on the number boxes, the places-to-go list, and the tap-and-hold control.
+- **The Owner now tells you what kind of project you were handed** ("What I want built: a hotel").
+
+## v3.2.93 — A calmer top bar, glow all game, and a "NEW" tag on added scope (October 2, 2026)
+
+- **All the buttons along the top are one colour,** so they no longer look like they match the board.
+- **The glow on active buttons now lasts the whole game,** not just your first visit to a space.
+- **Screen size moved to the top of the setup screen,** next to the settings gear (still only shown on a TV).
+- **Newly added work gets a "NEW" tag** on your Scope page, with a one-line note on why more scope means bigger fees.
+
+## v3.2.92 — Every work package now matches your kind of project (October 2, 2026)
+
+- **No more school, airport and brewery in one scope.** You are handed one kind of project (school, hospital, hotel, apartment building, office building or airport terminal) the first time you draw work packages, and all the work reads as work on that one project. Pushing back at that space re-rolls it.
+
+## v3.2.91 — A design-fee quote no longer ends your game before you accept it (October 2, 2026)
+
+- **A quote from the architect or engineer is not real money until you end your turn.** Pushing back is now a small revision: half a percent of your scope and 5 days, not the full fee.
+- **The 20% design-fee game-over now waits until you end your turn,** like running out of money.
+- **Orange and red warnings appear above End Turn** when the bill can't be paid or design fees are close to the 20% limit, so you can decide before you commit.
+
 ## v3.2.90 — Scanning your QR code on the phone now gives you your controller, not the TV screen (October 1, 2026)
 
 - **Fixed: when the host screen was in TV mode, a player's phone could open the shared TV view** (with a "TV" badge and no controller) instead of their own game. Scanning your code now always opens your controller, and links that were already shared work too.
