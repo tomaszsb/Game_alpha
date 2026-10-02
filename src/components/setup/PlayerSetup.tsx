@@ -645,6 +645,26 @@ export function PlayerSetup({
             </div>
           )}
           {getCurrentGameId() && <ShareGameButton />}
+          {/* Screen size lives up here with the settings gear, not mid-page (Tom,
+              2026-10-02, fb:a0cecb6a: "settings are usually in the top right"). Shown
+              only on a device with headroom to gain (a TV); laptops and phones see
+              nothing. Before a game starts there was no way to resize at all
+              (fb:ceb1e67c, fb:780c1c73). */}
+          <ScreenSizeControl
+            label="🔍 Screen size"
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              color: 'white',
+              border: '1px solid rgba(255,255,255,0.35)',
+              borderRadius: 8,
+              height: 36,
+              boxSizing: 'border-box',
+              padding: '0 0.75rem',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          />
           {/* Gear icon — opens the right-column drawer (Game Settings, Admin
               Tools). Visible in both PC and TV mode in v3.0.16+; the mode
               toggle only forks the in-game UI, not the setup screen.
@@ -956,24 +976,6 @@ export function PlayerSetup({
           </div>
 
           <ModeToggle selectedMode={selectedMode} onSelectMode={setSelectedMode} />
-
-          {/* Before a game starts there was no way to change the screen size on a TV —
-              only once already in TV mode (fb:ceb1e67c, fb:780c1c73). Shown only on a
-              device with headroom to gain (a TV); laptops and phones see nothing. */}
-          <div style={{ display: 'flex', justifyContent: 'center', margin: '0.5rem 0' }}>
-            <ScreenSizeControl
-              style={{
-                padding: '0.5rem 1rem',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                backgroundColor: 'white',
-                color: colors.text.secondary,
-                border: `2px solid ${colors.secondary.border}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-              }}
-            />
-          </div>
 
           {/* This "Players" section is about THIS blank game — while Join is
               selected, we have no data yet on which game the player is

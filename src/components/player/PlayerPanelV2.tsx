@@ -639,11 +639,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // tracks commit.ready alone — it lights up the instant there is something
   // to press, on any visit, and goes dark again once the turn ends.
   const showGreenDot = isMyTurn && commit.ready;
-  // First-visit nudge: the action buttons themselves glow so a new player's eye
-  // lands on what to press (fb:e84e4d11 — expected the green hint ON the action
-  // buttons, not only the commit spine). Same green as the commit dot. Once an
-  // action is used it drops to a ✓ trace and stops glowing.
-  const firstVisitHint = isMyTurn && player.visitType === 'First';
+  // The action buttons themselves glow so a player's eye lands on what to press
+  // (fb:e84e4d11 — expected the green hint ON the action buttons, not only the
+  // commit spine). Same green as the commit dot. Once an action is used it drops to
+  // a ✓ trace and stops glowing.
+  // Tom, 2026-10-02 (fb:ae480630, fb:11662ac3, fb:95624c8e): "glow should be on every
+  // active button for the entirety of the game" — it used to stop after a first
+  // visit, so revisits and later spaces went dark. The name is kept so the code
+  // below reads as before; it is now simply "is it my turn".
+  const firstVisitHint = isMyTurn;
 
   // Money runway cue (fb:0aae9865) — a running-out-of-money signal so students
   // manage cash before a bill bankrupts them (bills now go through in full and
@@ -1051,7 +1055,16 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             const isOpen = openHelp === helpId;
             return (
               <div key={a.effectKey}>
-                <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
+                {/* One shared outline round the action AND its "?" (Tom, 2026-10-02:
+                    "? should be within each area, not outside"). HelpButton must stay a
+                    SIBLING of the button, never a child (a glossary link inside a button
+                    swallows the press; buttons can't nest), so "inside" is one outline
+                    with the two side by side. */}
+                <div style={{
+                  display: 'flex', alignItems: 'stretch', gap: 4, boxSizing: 'border-box',
+                  background: p.surf, border: `1px solid ${p.borderStrong}`, borderRadius: 9,
+                  marginBottom: 7, paddingRight: 6,
+                }}>
                   <button
                     // Structural handle for the playtest robot. It finds real
                     // actions two ways, and v3.2.54 broke the second: the
@@ -1066,7 +1079,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                     data-testid="action-button"
                     data-effect-key={a.effectKey}
                     className={firstVisitHint ? 'uc-hint-glow' : undefined}
-                    style={{ ...actionBtn, flex: 1, width: 'auto' }}
+                    style={{ ...actionBtn, flex: 1, width: 'auto', background: 'transparent', border: 'none', marginBottom: 0 }}
                     disabled={a.isDiceEffect && isRollingDice}
                     onClick={() =>
                       a.isDiceEffect && onRollDice ? handleDiceRoll() : handleManualEffect(a.effectKey)
@@ -1093,6 +1106,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                     cardId={helpCardId}
                     onToggle={() => toggleHelp(helpId, 'action')}
                     palette={p}
+                    style={{ alignSelf: 'center' }}
                   />
                 </div>
                 {isOpen && (

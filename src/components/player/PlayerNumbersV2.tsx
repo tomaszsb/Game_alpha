@@ -22,7 +22,7 @@ import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { NUMBERS } from '../../constants/uiStrings';
 import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
 import { colors } from '../../styles/theme';
-import { getCardWordedFor } from '../../utils/scopeWording';
+import { getCardWordedFor, newestScopeBaseIds } from '../../utils/scopeWording';
 
 /** Which page of the numbers is open — one per tappable glance box
  *  (fb:adad1561, Tom 2026-09-17). Time opens History, not a page here. */
@@ -163,8 +163,16 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
   // Total scope); tapping it drills into the soft costs the owner's price folds
   // in — design, city filings, a safety buffer — and the package's full cost.
   // That's why the money you must raise runs ahead of the bare scope.
+  // The newest work added to the scope gets a tag (and the note below says why it
+  // matters) — nothing on screen used to show what had just been added (fb:612fbdc4).
+  const newScopeIds = newestScopeBaseIds(
+    [...player.hand, ...(player.activeCards || []).map((ac) => ac.cardId)],
+    (id) => gameServices.dataService.isProjectScopeCard(id),
+  );
+  const someScopeIsOlder = fin.workPackages.some((w) => !newScopeIds.has(w.id));
   const packageRow = (w: WorkPackage, key: string) => {
     const isOpen = expanded.has(w.id);
+    const isNew = newScopeIds.has(w.id) && someScopeIsOlder;
     return (
       <div key={key} style={{ marginBottom: 4 }}>
         <button
@@ -186,7 +194,20 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
           }}
         >
           <span aria-hidden style={{ width: 18, textAlign: 'center' }}>🏗️</span>
-          <span style={{ flex: 1 }}>{w.name}</span>
+          <span style={{ flex: 1 }}>
+            {w.name}
+            {isNew && (
+              <span
+                data-testid="scope-new-tag"
+                style={{
+                  marginLeft: 6, padding: '1px 6px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                  background: p.accent, color: '#fff', verticalAlign: 'middle',
+                }}
+              >
+                {NUMBERS.SCOPE_NEW_TAG}
+              </span>
+            )}
+          </span>
           <span style={{ fontWeight: 600 }}>{fmt(w.cost)}</span>
           <span aria-hidden style={{ color: p.muted, fontSize: 11, width: 12, textAlign: 'center' }}>
             {isOpen ? '▾' : '▸'}
@@ -343,6 +364,11 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
               {/* Grouped by trade (DOB work type) so the scope reads the way it's
                   actually filed — General Construction / Plumbing / Sprinklers / …
                   (fb:222cd521). Each trade carries its own scope subtotal. */}
+              {scopeOpen && newScopeIds.size > 0 && someScopeIsOlder && (
+                <p data-testid="scope-added-note" style={{ fontSize: 11, color: p.muted, margin: '4px 2px 6px', lineHeight: 1.4 }}>
+                  {NUMBERS.scopeAddedNote(NUMBERS.SCOPE_NEW_TAG)}
+                </p>
+              )}
               {scopeOpen &&
                 fin.scopeByTrade.map((g) => (
                   <div key={g.trade} style={{ marginBottom: 2 }}>

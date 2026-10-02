@@ -15,6 +15,10 @@ import { computeProjectFinances } from '../../utils/projectFinances';
 import { IconMoon, IconSun, IconClipboard, IconNotepad, IconEye, IconBookOpen } from '../icons/SetupIcons';
 import { usePanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
 
+// One colour for every header button (Tom, 2026-10-02): players read the old per-button
+// colours as meaning something about the board's colours.
+const HEADER_BUTTON_BG = '#475569';
+
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
   players: Player[];
@@ -464,18 +468,18 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         </div>
         {!hideButtons && <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           {[
-            { onClick: onOpenRulesModal, icon: <IconClipboard size="1em" />, label: 'How to play', bg: colors.purple.main, active: isRulesOpen },
-            { onClick: onToggleGameLog, icon: <IconNotepad size="1em" />, label: 'Log', bg: colors.primary.main, active: isGameLogOpen },
-            ...(onOpenDisplaySettings ? [{ onClick: onOpenDisplaySettings, icon: <IconEye size="1em" />, label: 'View', bg: colors.success.main, active: isDisplaySettingsOpen }] : []),
-            ...(onToggleGlossary ? [{ onClick: onToggleGlossary, icon: <IconBookOpen size="1em" />, label: 'Glossary', bg: '#ff9800', active: isGlossaryOpen }] : []),
+            { onClick: onOpenRulesModal, icon: <IconClipboard size="1em" />, label: 'How to play', bg: HEADER_BUTTON_BG, active: isRulesOpen },
+            { onClick: onToggleGameLog, icon: <IconNotepad size="1em" />, label: 'Log', bg: HEADER_BUTTON_BG, active: isGameLogOpen },
+            ...(onOpenDisplaySettings ? [{ onClick: onOpenDisplaySettings, icon: <IconEye size="1em" />, label: 'View', bg: HEADER_BUTTON_BG, active: isDisplaySettingsOpen }] : []),
+            ...(onToggleGlossary ? [{ onClick: onToggleGlossary, icon: <IconBookOpen size="1em" />, label: 'Glossary', bg: HEADER_BUTTON_BG, active: isGlossaryOpen }] : []),
             // Remote control for the shared TV screen's theme (GameState.tvDarkMode).
             // Only rendered for admin/teacher (GameLayout gates the props); a
             // regular player never sees this button. Harmless no-op if no TV
             // is currently connected to this game.
             // This device's light/dark (moved here from above the player card,
             // fb:b6963218 extra). Hidden on the TV, which follows the shared TV theme.
-            { onClick: toggleMode, icon: dark ? <IconSun size="1em" /> : <IconMoon size="1em" />, label: dark ? 'Light' : 'Dark', bg: '#475569', active: false, title: 'Light / dark mode' },
-            ...(onToggleTVDarkMode ? [{ onClick: onToggleTVDarkMode, icon: <IconMoon size="1em" />, label: 'TV theme', bg: '#607d8b', active: tvDarkMode, title: 'Switch the shared TV screen between light and dark' }] : []),
+            { onClick: toggleMode, icon: dark ? <IconSun size="1em" /> : <IconMoon size="1em" />, label: dark ? 'Light' : 'Dark', bg: HEADER_BUTTON_BG, active: false, title: 'Light / dark mode' },
+            ...(onToggleTVDarkMode ? [{ onClick: onToggleTVDarkMode, icon: <IconMoon size="1em" />, label: 'TV theme', bg: HEADER_BUTTON_BG, active: tvDarkMode, title: 'Switch the shared TV screen between light and dark' }] : []),
           ].map((btn, i) => (
             <button key={i} onClick={btn.onClick} title={(btn as { title?: string }).title} style={{
               padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
@@ -500,7 +504,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             window.location.href = url.toString();
           }} style={{
             padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-            backgroundColor: '#9c27b0', color: colors.white,
+            backgroundColor: HEADER_BUTTON_BG, color: colors.white,
             border: `1px solid ${colors.white}`, borderRadius: '6px',
             cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
             alignItems: 'center', gap: '2px'
@@ -510,7 +514,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           </button>
           <button onClick={toggleFullscreen} style={{
             padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-            backgroundColor: isFullscreen ? '#e65100' : '#1565c0', color: colors.white,
+            backgroundColor: HEADER_BUTTON_BG, color: colors.white,
             border: `1px solid ${colors.white}`, borderRadius: '6px',
             cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
             alignItems: 'center', gap: '2px'
@@ -521,7 +525,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           {onToggleCollapsed && (
             <button onClick={onToggleCollapsed} style={{
               padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-              backgroundColor: '#ff5722', color: colors.white,
+              backgroundColor: HEADER_BUTTON_BG, color: colors.white,
               border: `1px solid ${colors.white}`, borderRadius: '6px',
               cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
               alignItems: 'center', gap: '2px'

@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.93] - 2026-10-02
+
+### Tom's UI list: one-colour header, glow all game, "?" inside the row, screen size in the header, "NEW" on added scope
+
+Context: reviewers called the UI "clinically sterile and user unfriendly" and read the header's different button colours as meaning something about the board's colours. The big look-and-feel rework is later; these are the stopgaps Tom decided on 2026-10-02.
+
+- **Header buttons are one colour** (`ProjectProgress.tsx`, `HEADER_BUTTON_BG` slate): How to play, Log, View, Glossary, Dark/Light, TV, Full, collapse. "Open" is still shown by the dot/glow, not by colour.
+- **Glow on every active button, all game** (fb:ae480630, fb:11662ac3, fb:95624c8e): the pulsing ring used to stop after a first visit to a space; it now shows on any turn.
+- **"?" inside the row's outline (action rows):** each action and its "?" now share one outline. `HelpButton` stays a *sibling* of the button (a "?" inside a button swallows presses and buttons cannot nest), so "inside" means one outline, side by side. **Not yet moved:** the destination rows, the glance-boxes "?", and the commit-control hint "?" — the TODO asked for Tom to see pictures at phone width first.
+- **"Screen size" moved to the setup header**, beside the settings gear (was mid-page; fb:a0cecb6a). Still only shown on a device with room to grow (a TV).
+- **Scope: "NEW" tag + a one-line explanation** (fb:612fbdc4 part 2). The most recently added work packages carry a NEW tag on the Scope page, and a note says why it matters: fees are a percentage of scope, and an earlier plan approval no longer covers new work. The tag text and note come from `UI_STRINGS` (`NUMBERS.scope.newTag`, `NUMBERS.scope.addedNote`) so a reskin can reword them. "Newest" is read from the time stamped in each drawn card's id — no new saved state.
+
+**Not done:** the activity log and discard pile still show a card's original wording (they don't know whose job it is); the Owner's story doesn't yet name the project type; not checked on a real phone or TV.
+
+**Tests.** `ScopeWording.test.ts` (+3 for the NEW tag); component suites green. 
+
+**To undo:** revert this commit.
+
 ## [3.2.92] - 2026-10-02
 
 ### Every work package now reads as work on YOUR kind of project (fb:612fbdc4, part 1)

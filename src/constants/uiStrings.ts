@@ -78,6 +78,11 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'NUMBERS.section.money': 'Money',
   'NUMBERS.section.scope': 'Scope',
   'NUMBERS.section.expeditors': 'Expeditors',
+  // Scope page: the tag on the newest work, and the one-line explanation of why a
+  // growing scope matters (Tom, 2026-10-02, fb:612fbdc4: "any time scope changes the
+  // player should be notified… this is an educational game — we need to explain").
+  'NUMBERS.scope.newTag': 'NEW',
+  'NUMBERS.scope.addedNote': 'The items tagged {tag} were just added to your scope. When scope grows, the design and filing fees — a percentage of scope — grow with it, and any plan approval you already had no longer covers the new work.',
   'NUMBERS.expeditors.empty': "You haven't hired anyone yet.",
   'NUMBERS.money.ongoing': 'Still costing you',
   // v3.2.72, Onboarding Phase C Slice 3 (2026-09-22 playtest report, #2
@@ -304,6 +309,8 @@ export const NUMBERS = {
   get SECTION_MONEY() { return getUIString('NUMBERS.section.money'); },
   get SECTION_SCOPE() { return getUIString('NUMBERS.section.scope'); },
   get SECTION_EXPEDITORS() { return getUIString('NUMBERS.section.expeditors'); },
+  get SCOPE_NEW_TAG() { return getUIString('NUMBERS.scope.newTag'); },
+  scopeAddedNote: (tag: string) => getUIString('NUMBERS.scope.addedNote', { tag }),
   get EXPEDITORS_EMPTY() { return getUIString('NUMBERS.expeditors.empty'); },
   get MONEY_ONGOING() { return getUIString('NUMBERS.money.ongoing'); },
 };

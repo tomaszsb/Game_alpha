@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { bootstrapHeadlessServices } from '../ghost/bootstrapServices';
-import { fillProjectBlank, getCardWordedFor, withIndefiniteArticle } from '../../src/utils/scopeWording';
+import { fillProjectBlank, getCardWordedFor, newestScopeBaseIds, withIndefiniteArticle } from '../../src/utils/scopeWording';
 
 async function startedPlayer() {
   const s: any = await bootstrapHeadlessServices();
@@ -114,5 +114,19 @@ describe('getCardWordedFor', () => {
   it('a/an for the story line', () => {
     expect(withIndefiniteArticle('school')).toBe('a school');
     expect(withIndefiniteArticle('airport terminal')).toBe('an airport terminal');
+  });
+});
+
+describe('newestScopeBaseIds — which work was just added', () => {
+  const isScope = (id: string) => id.startsWith('W');
+  it('tags the last batch drawn, not the earlier ones', () => {
+    const held = ['W001_1790000000000_aaa_0', 'W002_1790000000500_bbb_1', 'W003_1790009000000_ccc_0', 'W004_1790009000100_ddd_1', 'E001_1790009000200_eee_0'];
+    expect([...newestScopeBaseIds(held, isScope)].sort()).toEqual(['W003', 'W004']);
+  });
+  it('a preset starting hand (no time in the id) never counts as new', () => {
+    expect(newestScopeBaseIds(['W001', 'W002'], isScope).size).toBe(0);
+  });
+  it('nothing held, nothing new', () => {
+    expect(newestScopeBaseIds([], isScope).size).toBe(0);
   });
 });
