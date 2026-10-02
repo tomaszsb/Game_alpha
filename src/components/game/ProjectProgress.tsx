@@ -14,6 +14,7 @@ import { friendlySpaceName } from '../../utils/logFormatting';
 import { computeProjectFinances } from '../../utils/projectFinances';
 import { IconMoon, IconSun, IconClipboard, IconNotepad, IconEye, IconBookOpen } from '../icons/SetupIcons';
 import { usePanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
+import { ScreenTypeMenu } from './ScreenTypeMenu';
 
 // One colour for every header button (Tom, 2026-10-02): players read the old per-button
 // colours as meaning something about the board's colours.
@@ -494,24 +495,16 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
               <ActiveDot show={btn.active} />
             </button>
           ))}
-          <button onClick={() => {
-            const url = new URL(window.location.href);
-            if (url.searchParams.get('mode') === 'tv') {
-              url.searchParams.delete('mode');
-            } else {
-              url.searchParams.set('mode', 'tv');
-            }
-            window.location.href = url.toString();
-          }} style={{
-            padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-            backgroundColor: HEADER_BUTTON_BG, color: colors.white,
-            border: `1px solid ${colors.white}`, borderRadius: '6px',
-            cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
-            alignItems: 'center', gap: '2px'
-          }}>
-            <span>📺</span>
-            <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>TV</span>
-          </button>
+          <ScreenTypeMenu
+            showLabel={window.innerWidth >= 768}
+            buttonStyle={{
+              padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
+              backgroundColor: HEADER_BUTTON_BG, color: colors.white,
+              border: `1px solid ${colors.white}`, borderRadius: '6px',
+              cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
+              alignItems: 'center', gap: '2px'
+            }}
+          />
           <button onClick={toggleFullscreen} style={{
             padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
             backgroundColor: HEADER_BUTTON_BG, color: colors.white,

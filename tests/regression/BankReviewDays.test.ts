@@ -101,8 +101,16 @@ describe('Bank Review charges "1 day per $200K" (real engine, real data)', () =>
     draw(s, 1_400_000);
     const before = s.stateService.getPlayer(s.playerId)!.timeSpent;
     await s.turnService.endTurnWithMovement(true);
-    // (>= : arriving at the next space can add days of its own, at random.)
-    expect(s.stateService.getPlayer(s.playerId)!.timeSpent - before).toBeGreaterThanOrEqual(7);
+    // Arriving at the next space can draw a random life event, and those move days BOTH
+    // ways: most add days, but some take days OFF (e.g. "Positive Press" -3, "High-Profile
+    // Client" -4). The old ">= 7" assumed they only add, and failed about 1 run in 12 with a
+    // net 2 or 5 (7 days charged, minus a 5- or 2-day life-event credit). So the floor is the
+    // bank's 7 days less the biggest credit any life event can give - read from the data.
+    const biggestCredit = Math.max(
+      0,
+      ...s.dataService.getCards().filter((c: any) => c.card_type === 'L').map((c: any) => -Number(c.tick_modifier || 0)),
+    );
+    expect(s.stateService.getPlayer(s.playerId)!.timeSpent - before).toBeGreaterThanOrEqual(7 - biggestCredit);
     expect(s.stateService.getPlayer(s.playerId)!.currentSpace).toBe('PM-DECISION-CHECK');
   });
 

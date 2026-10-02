@@ -32,6 +32,7 @@ export interface PlayerPanelWrapperProps extends PlayerPanelProps {
 export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
   gameServices,
   playerId,
+  readOnly,
   onTryAgain,
   playerNotification,
   onRollDice,
@@ -102,6 +103,7 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
       <PlayerPanelV2
         gameServices={gameServices}
         playerId={playerId}
+        readOnly={readOnly}
         mode={mode}
         onTryAgain={onTryAgain}
         playerNotification={playerNotification}

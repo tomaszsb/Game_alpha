@@ -14,6 +14,7 @@ import { shortName } from '../../utils/boardCommon';
 import { PostGameLogViewer } from '../game/PostGameLogViewer';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
+import { lossTitle } from '../../utils/endGameLoss';
 
 interface EndGamePenaltyView {
   dobMissing: boolean;
@@ -221,12 +222,12 @@ export function EndGameModal(): JSX.Element {
   const lossName = lossPlayer?.name || 'The team';
   const lossCopy = endReason && (endReason.type === 'bankruptcy'
     ? {
-        title: 'The project went under',
+        title: lossTitle(endReason),
         body: `${lossName} ran out of money — a bill came due with nothing left to pay it. In this business, that's the end of the road.`,
         lesson: `Next time: raise funding before the bills come due — "Still to raise" in My numbers shows how far ahead of the project's costs you are.`,
       }
     : {
-        title: 'The design budget sank the project',
+        title: lossTitle(endReason),
         body: `${lossName}'s design fees passed 20% of the project's scope — more than the owner was ever going to carry. The project is over.`,
         lesson: `Next time: keep design fees under a fifth of the scope — settle the design early instead of paying for round after round of revisions.`,
       });

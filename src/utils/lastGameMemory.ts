@@ -34,6 +34,13 @@ export function setStoredLastGame(gameId: string, token?: string): void {
   }
 }
 
+/** Is a remembered game still one to go back to? A FINISHED game (phase END) is not - a bare-URL
+ *  visit used to offer "Join - which one are you?" for the game that had just ended
+ *  (fb:b38110f3, fb:ef974f1c). */
+export function isResumableGame(info: { gamePhase?: string }): boolean {
+  return info.gamePhase !== 'END';
+}
+
 export function clearStoredLastGame(): void {
   try {
     localStorage.removeItem(LAST_GAME_KEY);

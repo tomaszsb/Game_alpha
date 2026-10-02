@@ -35,6 +35,9 @@ export interface PushBackDetails {
 export interface PlayerPanelProps {
   gameServices: IServiceContainer;
   playerId: string;
+  /** A spectator's view: shows everything, but nothing on it can be pressed - the panel never
+   *  treats it as anyone's turn to act (a class of watchers must not be able to move a player). */
+  readOnly?: boolean;
   onTryAgain?: (playerId: string, details?: PushBackDetails) => Promise<void>;
   playerNotification?: string;
   onRollDice?: () => Promise<void>;

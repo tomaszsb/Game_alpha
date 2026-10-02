@@ -19,6 +19,8 @@ import { IconCheck } from '../icons/SetupIcons';
 import { ShutdownNotice } from '../common/ShutdownNotice';
 import { HistoryFeed, HistoryFeedFilters, DEFAULT_HISTORY_FILTERS } from '../game/HistoryFeed';
 import { ScreenSizeControl } from './ScreenSizeControl';
+import { roleUrl, setStoredDeviceRole } from '../../utils/deviceRole';
+import { getGameOverHeadline } from '../../utils/endGameLoss';
 import {
   applyStoredTvLayoutWidth,
   hasUsedTvScaleButton,
@@ -249,9 +251,10 @@ export function TVDisplay(): JSX.Element {
           )}
           <button
             onClick={() => {
-              const url = new URL(window.location.href);
-              url.searchParams.delete('mode');
-              window.location.href = url.toString();
+              // "Back to PC" says what this screen is, so remember that (a screen
+              // that was a TV is not one any more).
+              setStoredDeviceRole('pc');
+              window.location.href = roleUrl('pc', window.location.href);
             }}
             style={styles.tvHeaderButton}
           >
@@ -428,18 +431,24 @@ export function TVDisplay(): JSX.Element {
               </p>
             </div>
           ) : (
-            <div style={styles.gameOverMessage}>
-              {players.length > 0 && (
-                <>
-                  <span style={{ display: 'inline-flex' }}>
-                    <AvatarIcon avatar={players[0].avatar} size="4rem" />
-                  </span>
-                  <h2 style={styles.winnerText}>
-                    {players[0].name} Wins!
-                  </h2>
-                </>
-              )}
-            </div>
+            (() => {
+              // Say what actually happened: a win names the winner; a loss names the
+              // ending ("The project went under") - it used to say "<first player> Wins!"
+              // for every ending (fb:ef974f1c).
+              const headline = getGameOverHeadline(stateService.getGameState(), players);
+              const who = players.find((pl) => pl.id === headline.playerId) ?? (headline.kind === 'win' ? players[0] : undefined);
+              return (
+                <div style={styles.gameOverMessage} data-testid="tv-game-over">
+                  {who && (
+                    <span style={{ display: 'inline-flex' }}>
+                      <AvatarIcon avatar={who.avatar} size="4rem" />
+                    </span>
+                  )}
+                  <h2 style={styles.winnerText}>{headline.title}</h2>
+                  {headline.detail && <p style={styles.setupSubtitle}>{headline.detail}</p>}
+                </div>
+              );
+            })()
           )}
         </div>
 

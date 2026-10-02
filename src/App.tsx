@@ -9,7 +9,7 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { colors } from './styles/theme';
 import { getAppScreen, getURLParams } from './utils/getAppScreen';
 import { getCurrentGameId, getCurrentGameToken, getBackendURL } from './utils/networkDetection';
-import { getStoredLastGame, setStoredLastGame, clearStoredLastGame, stashResumeHint } from './utils/lastGameMemory';
+import { getStoredLastGame, setStoredLastGame, clearStoredLastGame, stashResumeHint, isResumableGame } from './utils/lastGameMemory';
 import { detectDeviceType } from './utils/deviceDetection';
 import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dictionary';
 import { getTooltipService } from './services/TooltipService';
@@ -487,8 +487,14 @@ export function App(): JSX.Element {
           setPhase('auto-creating');
           return;
         }
-        const data: { token?: string } = await response.json();
-        stashResumeHint(stored.gameId, data.token || stored.token);
+        const data: { token?: string; gamePhase?: string } = await response.json();
+        // A finished game is not a game to go back to (fb:b38110f3, fb:ef974f1c: a new game's
+        // setup screen offered "Join - which one are you?" for the game that had just ended).
+        if (isResumableGame(data)) {
+          stashResumeHint(stored.gameId, data.token || stored.token);
+        } else {
+          clearStoredLastGame();
+        }
         setPhase('auto-creating');
       } catch {
         // Server unreachable — fall through to the normal auto-create path

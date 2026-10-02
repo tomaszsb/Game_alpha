@@ -1437,6 +1437,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                         <PlayerPanelWrapper
                           gameServices={gameServices}
                           playerId={player.id}
+                          readOnly={isSpectating}
                           onTryAgain={handleTryAgain}
                           playerNotification={approvalRevokeNotice[player.id] || playerNotifications[player.id]}
                           onRollDice={handleRollDice}

@@ -63,7 +63,10 @@ export function roleUrl(role: DeviceRole, href: string): string {
     p.delete('playerId');
     p.set('mode', 'tv');
   } else if (role === 'pc') {
-    p.set('mode', 'remote');
+    // With a personal link: this player's board + controls (the Remote layout). Without one
+    // (the host's own screen) there is nobody to lock to, so it is the plain full view.
+    if (p.get('p') || p.get('playerId')) p.set('mode', 'remote');
+    else p.delete('mode');
   } else {
     p.delete('mode');
   }

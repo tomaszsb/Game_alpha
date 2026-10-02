@@ -81,6 +81,7 @@ function violationView(status: string | undefined): ApprovalView | null {
 export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   gameServices,
   playerId,
+  readOnly,
   mode,
   onTryAgain,
   playerNotification,
@@ -176,7 +177,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   if (!player) return null;
 
   const gameState = gameServices.stateService.getGameState();
-  const isMyTurn = gameState.currentPlayerId === playerId;
+  // A spectator's panel (readOnly) is never anyone's turn to act: no glow, no live buttons.
+  const isMyTurn = gameState.currentPlayerId === playerId && !readOnly;
   const currentPlayerName = gameState.players.find((pl) => pl.id === gameState.currentPlayerId)?.name || '';
 
   const content = gameServices.dataService.getSpaceContent(player.currentSpace, player.visitType);

@@ -1725,7 +1725,7 @@ describe('PlayerPanelV2 — "What\'s this?" action explanations (Onboarding Phas
 describe('PlayerPanelV2 — orange/red heads-up above End Turn (2026-10-02, fb:adb1cc76)', () => {
   let services: ReturnType<typeof createAllMockServices>;
 
-  const setup = (player: any, scope: number, isMyTurn = true) => {
+  const setup = (player: any, scope: number, isMyTurn = true, readOnly = false) => {
     services = createAllMockServices();
     const full = {
       id: 'player1', name: 'Test Player', currentSpace: 'ENG-FEE-REVIEW', visitType: 'First', timeSpent: 5,
@@ -1749,7 +1749,7 @@ describe('PlayerPanelV2 — orange/red heads-up above End Turn (2026-10-02, fb:a
     services.gameRulesService.canEndTurn.mockReturnValue(false);
     return render(
       <DictionaryProvider>
-        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" onTryAgain={vi.fn()} />
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" onTryAgain={vi.fn()} readOnly={readOnly} />
       </DictionaryProvider>,
     );
   };
@@ -1766,6 +1766,12 @@ describe('PlayerPanelV2 — orange/red heads-up above End Turn (2026-10-02, fb:a
   it('ORANGE when design fees are close to the 20% cap', () => {
     setup({ money: 2_000_000, expenditures: { design: 640_000 } }, 4_000_000);
     expect(screen.getByTestId('end-turn-warning')).toHaveAttribute('data-level', 'orange');
+  });
+
+  it('a spectator (readOnly) is never "the player whose turn it is" - the live turn controls are not theirs', () => {
+    setup({ money: -65_000, expenditures: { design: 0 } }, 4_000_000, true, true);
+    expect(screen.queryByTestId('end-turn-warning')).not.toBeInTheDocument();
+    expect(document.querySelector('.uc-hint-glow')).toBeNull();
   });
 
   it('no warning when all is well, or when it is not your turn', () => {

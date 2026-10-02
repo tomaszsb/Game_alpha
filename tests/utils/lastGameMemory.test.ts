@@ -4,7 +4,7 @@
 // a bookmark to the root domain used to silently start a brand-new game.
 
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { getStoredLastGame, setStoredLastGame, clearStoredLastGame, stashResumeHint, consumeResumeHint } from '../../src/utils/lastGameMemory';
+import { getStoredLastGame, setStoredLastGame, clearStoredLastGame, stashResumeHint, consumeResumeHint, isResumableGame } from '../../src/utils/lastGameMemory';
 
 const KEY = 'unravelcodes:last-game';
 const HINT_KEY = 'unravelcodes:resume-hint';
@@ -114,5 +114,16 @@ describe('resume hint (sessionStorage one-shot handoff)', () => {
     });
     expect(() => consumeResumeHint()).not.toThrow();
     expect(consumeResumeHint()).toBeNull();
+  });
+});
+
+describe('isResumableGame (2026-10-02)', () => {
+  it('a game still being set up or played can be resumed', () => {
+    expect(isResumableGame({ gamePhase: 'SETUP' })).toBe(true);
+    expect(isResumableGame({ gamePhase: 'PLAY' })).toBe(true);
+    expect(isResumableGame({})).toBe(true);
+  });
+  it('a FINISHED game is not offered back (fb:b38110f3, fb:ef974f1c)', () => {
+    expect(isResumableGame({ gamePhase: 'END' })).toBe(false);
   });
 });
