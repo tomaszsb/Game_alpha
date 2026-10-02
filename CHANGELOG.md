@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.94] - 2026-10-02
+
+### The last three "?" move inside their outline; the Owner names your kind of project
+
+- **"?" inside the outline, everywhere now:** the destination rows (each destination and its "?" share one outline that follows the row's state: plain, picked, locked), the four number boxes (one outline round the boxes and their "?"), and the commit control (the "Tap to see the cost · press & hold" hint, its "?" and the Push back / Lock buttons share one outline). As before the "?" stays a *sibling* of any button, never inside one. Looked at in a real browser; **Tom should still look at a real phone, light and dark** (the TODO asked for that before this was called done).
+- **The Owner's story names the project** (fb:612fbdc4): once chance has picked a player's kind of project, the space that deals work packages adds "What I want built: a hotel." The sentence is data (`UI_STRINGS` `SCOPE.ownerLine`), the space is found from its own "W Cards" dice row — no space id in code.
+
+**Still open:** the activity log and discard pile show a card's original wording; Tom to read the 176 reworded cards.
+
+**Tests.** 2 panel tests for the Owner line; player-panel suites green.
+
+**To undo:** revert this commit.
+
 ## [3.2.93] - 2026-10-02
 
 ### Tom's UI list: one-colour header, glow all game, "?" inside the row, screen size in the header, "NEW" on added scope

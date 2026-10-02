@@ -465,7 +465,19 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
           `can_negotiate` space in the game, so this is the first time ANY
           player meets a hold-to-confirm control — the 2026-09-21 playtest
           report's #1 confusion, 24 trips, the biggest in the report. Same
-          words, just load-bearing now instead of a whisper. */}
+          words, just load-bearing now instead of a whisper.
+          The hint, its "?" and the two buttons now share ONE outline (Tom, 2026-10-02:
+          "? should be within each area, not outside"). The "?" is still a sibling of
+          the buttons, never inside one — a press on it must not start a hold. */}
+      <div
+        data-testid="commit-outline"
+        style={{
+          borderRadius: 11,
+          overflow: 'hidden',
+          border: `1px solid ${p.borderStrong}`,
+          background: p.surf,
+        }}
+      >
       <div
         style={{
           display: 'flex',
@@ -476,7 +488,8 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
           fontWeight: 600,
           color: p.text,
           textAlign: 'center',
-          margin: '0 0 5px',
+          margin: 0,
+          padding: '5px 8px',
         }}
       >
         <span aria-hidden="true">👆</span>
@@ -512,14 +525,14 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         aria-label="Choose and confirm your move"
         style={{
           display: 'flex',
-          borderRadius: 11,
           overflow: 'hidden',
-          border: `1px solid ${p.borderStrong}`,
+          borderTop: `1px solid ${p.borderStrong}`,
           background: p.surf,
         }}
       >
         {renderSide('tryAgain', tryAgainLabel, false)}
         {renderSide('end', endLabel, true, endActionable ? undefined : endSubLabel)}
+      </div>
       </div>
     </div>
   );

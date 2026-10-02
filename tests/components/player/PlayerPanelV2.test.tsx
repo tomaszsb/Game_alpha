@@ -1776,3 +1776,50 @@ describe('PlayerPanelV2 — orange/red heads-up above End Turn (2026-10-02, fb:a
     expect(screen.queryByTestId('end-turn-warning')).not.toBeInTheDocument();
   });
 });
+
+
+describe('PlayerPanelV2 — the Owner names the kind of project once chance has picked it (fb:612fbdc4)', () => {
+  const setup = (player: any, effects: any[]) => {
+    const services: any = createAllMockServices();
+    const full = {
+      id: 'player1', name: 'Test Player', currentSpace: 'OWNER-SCOPE-INITIATION', visitType: 'First', timeSpent: 0,
+      money: 0, color: '#007bff', hand: [], activeCards: [], activeEffects: [], loans: [], dobApprovalStatus: 'none',
+      fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null, ...player,
+    };
+    services.stateService.getPlayer.mockReturnValue(full);
+    services.stateService.getGameState.mockReturnValue({
+      players: [full], currentPlayerId: 'player1', gamePhase: 'PLAY', isGameOver: false, hasPlayerRolledDice: false,
+      movementChoiceUnlocked: true, awaitingChoice: null, requiredActions: 0, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.stateService.getTurnOutflow.mockReturnValue({ moneySpent: 0, moneyDeliberate: 0, cardsConsumed: [], lifeEventsDrawn: [] });
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'The owner', story: 'Sit down. Let me walk you through it.' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'OWNER' });
+    services.dataService.getSpaceEffects.mockReturnValue(effects);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    return render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+  };
+  const workDice = [{ effect_type: 'dice', effect_action: 'dice_outcome', effect_value: 'W Cards' }];
+
+  afterEach(() => cleanup());
+
+  it('adds the Owner line, with its article, once a kind is picked', () => {
+    setup({ projectType: 'airport terminal' }, workDice);
+    expect(screen.getByText(/What I want built: an airport terminal\./)).toBeInTheDocument();
+  });
+
+  it('says nothing before the pick, or on a space that deals no work packages', () => {
+    setup({}, workDice);
+    expect(screen.queryByText(/What I want built/)).not.toBeInTheDocument();
+    cleanup();
+    setup({ projectType: 'school' }, []);
+    expect(screen.queryByText(/What I want built/)).not.toBeInTheDocument();
+  });
+});

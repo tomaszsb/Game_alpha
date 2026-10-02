@@ -82,6 +82,10 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // growing scope matters (Tom, 2026-10-02, fb:612fbdc4: "any time scope changes the
   // player should be notified… this is an educational game — we need to explain").
   'NUMBERS.scope.newTag': 'NEW',
+  // The Owner's story, once chance has picked the player's kind of project (fb:612fbdc4).
+  // {projectType} arrives with its article ("a school"). Appended to the story of a space
+  // that deals work packages; a reskin rewords it here.
+  'SCOPE.ownerLine': 'What I want built: {projectType}.',
   'NUMBERS.scope.addedNote': 'The items tagged {tag} were just added to your scope. When scope grows, the design and filing fees — a percentage of scope — grow with it, and any plan approval you already had no longer covers the new work.',
   'NUMBERS.expeditors.empty': "You haven't hired anyone yet.",
   'NUMBERS.money.ongoing': 'Still costing you',
@@ -310,6 +314,7 @@ export const NUMBERS = {
   get SECTION_SCOPE() { return getUIString('NUMBERS.section.scope'); },
   get SECTION_EXPEDITORS() { return getUIString('NUMBERS.section.expeditors'); },
   get SCOPE_NEW_TAG() { return getUIString('NUMBERS.scope.newTag'); },
+  ownerLine: (projectType: string) => getUIString('SCOPE.ownerLine', { projectType }),
   scopeAddedNote: (tag: string) => getUIString('NUMBERS.scope.addedNote', { tag }),
   get EXPEDITORS_EMPTY() { return getUIString('NUMBERS.expeditors.empty'); },
   get MONEY_ONGOING() { return getUIString('NUMBERS.money.ongoing'); },

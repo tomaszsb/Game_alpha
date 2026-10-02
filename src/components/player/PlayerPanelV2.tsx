@@ -36,7 +36,7 @@ import { getNpcCharacterInfo, getNpcImagePath } from '../../constants/characters
 import { ActionButton } from './ActionButton';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
-import { getCardWordedFor } from '../../utils/scopeWording';
+import { getCardWordedFor, withIndefiniteArticle } from '../../utils/scopeWording';
 
 export interface PlayerPanelV2Props extends PlayerPanelProps {
   mode: PanelMode;
@@ -214,7 +214,16 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   else if (fundingSource === 'bank') fundingSourceAmount = moneySources.bankLoans;
   else if (fundingSource === 'investor') fundingSourceAmount = moneySources.investmentDeals;
   const fundingAmount = fundingSourceAmount > 0 ? `$${fundingSourceAmount.toLocaleString()}` : '';
-  const renderedStory = content?.story ? interpolateTemplate(content.story, { fundingAmount }) : '';
+  // Once chance has picked this player's kind of project, the space that deals the work
+  // packages says so in the Owner's own words (data: UI_STRINGS SCOPE.ownerLine).
+  const dealsWorkPackages = (gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType) || [])
+    .some((e) => e.effect_type === 'dice' && /^w\s*cards?$/i.test(String(e.effect_value ?? '').trim()));
+  const ownerLine = dealsWorkPackages && player.projectType
+    ? NUMBERS.ownerLine(withIndefiniteArticle(player.projectType))
+    : '';
+  const renderedStory = content?.story
+    ? `${interpolateTemplate(content.story, { fundingAmount })}${ownerLine ? ` ${ownerLine}` : ''}`
+    : '';
 
   // Who's speaking — restores the classic panel's NPC identity cue (this
   // panel never had it). PM-voiced spaces (fb:7065e8df) resolve to
@@ -838,6 +847,9 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           explanation anywhere — checked live against the glossary API,
           0 of 274 terms. */}
       <div style={pad}>
+        {/* The four number boxes and their "?" share one outline (Tom, 2026-10-02: "?
+            should be within each area, not outside"). */}
+        <div style={{ border: `1px solid ${p.border}`, borderRadius: 11, padding: '4px 7px 7px', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
           <HelpButton
             kind="glance"
@@ -877,6 +889,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             <span style={glanceValue}>{fin.workPackages.length > 0 ? fin.workPackages.length : NUMBERS.NONE}</span>
             {fin.scopeTotal > 0 && <span style={glanceSub}>{FormatUtils.formatMoney(fin.scopeTotal)}</span>}
           </button>
+        </div>
         </div>
         {openHelp === 'glance' && (
           <HelpCard
@@ -1183,9 +1196,16 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                     const helpId = `move:${opt.id}`;
                     const helpCardId = `help-card-move-${opt.id.replace(/[^A-Za-z0-9_-]/g, '-')}`;
                     const isHelpOpenForOpt = openHelp === helpId;
+                    // One outline round the destination AND its "?" (Tom, 2026-10-02) — the
+                    // row wears the look the button used to have; the button inside is bare.
+                    const rowLook = !movementChoiceUnlocked ? doneSubActionRow : isSelected ? selectedSubActionBtn : subActionBtn;
                     return (
                       <div key={opt.id} style={{ marginBottom: 5 }}>
-                        <div style={{ display: 'flex', alignItems: 'stretch', gap: 6 }}>
+                        <div style={{
+                          display: 'flex', alignItems: 'stretch', gap: 4, boxSizing: 'border-box',
+                          background: rowLook.background, border: rowLook.border, borderRadius: rowLook.borderRadius,
+                          paddingRight: 6,
+                        }}>
                           <button
                             // Structural handle + the destination's own space id, so
                             // the playtest robot can both FIND a destination and say
@@ -1198,10 +1218,12 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                             data-testid="move-option"
                             data-space-id={opt.id}
                             style={{
-                              ...(!movementChoiceUnlocked ? doneSubActionRow : isSelected ? selectedSubActionBtn : subActionBtn),
+                              ...rowLook,
                               flex: 1,
                               width: 'auto',
                               marginBottom: 0,
+                              background: 'transparent',
+                              border: 'none',
                             }}
                             disabled={!movementChoiceUnlocked}
                             aria-pressed={isSelected}
@@ -1231,6 +1253,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                             cardId={helpCardId}
                             onToggle={() => toggleHelp(helpId, 'movement')}
                             palette={p}
+                            style={{ alignSelf: 'center' }}
                           />
                         </div>
                         {isHelpOpenForOpt && (
