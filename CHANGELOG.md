@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.92] - 2026-10-02
+
+### Every work package now reads as work on YOUR kind of project (fb:612fbdc4, part 1)
+
+**Where this came from.** Tom's own game showed a school, an airport and a brewery in one scope, because each of the 176 work packages named its own building. His design: chance picks one kind of project for each player, and every work package has a blank that the pick fills in.
+
+**What changed.**
+- **A dice-style pick, once per player.** The first time a player draws work packages (at the Owner's scope space), chance hands them a kind of project — school, hospital, hotel, apartment building, office building or airport terminal. It is stored on the player (`projectType`) through TEMP state, so **a push-back throws the pick away with the work packages it dealt** and the next offer rolls again.
+- **Every work package has a `{project}` blank.** All 176 were reworded into a work item "for the {project}" (new data file `SCOPE_WORDING.csv`: `project_type` rows = the kinds, `card_template` rows = the wording). Costs and work types are unchanged. This is a **first-pass wording for Tom to read** — a few specialised items (a helipad, a clean room) were generalised to fit any building.
+- **Where it shows:** the dice-result popup, the Scope page and the card-detail view. **Not yet filled in:** the activity log and the discard pile, which still show a card's original wording (they don't know whose job it is).
+- **Data, not code:** the kinds and every sentence come from `SCOPE_WORDING.csv`, so a reskin supplies its own words ("castle", "dungeon"). With no file, or no template for a card, or no pick, cards keep their original wording — boards that don't use it are unchanged (tested with a non-construction type).
+
+**Fixed on the way.** A push-back now also restores `projectType` in `discardTempState` (the restore list had no slot for it).
+
+**Still to do (part 2, Tom decided):** tell the player when their scope changes — a story line + an "added" tag + an explanation (this is an educational game); say the project type in the Owner's story.
+
+**Tests.** `ScopeWording.test.ts` (11: all 176 templates have the blank, read cleanly for every kind, the pick stays put, push-back reverts it, feature-off, instance ids, a "castle"), `DataService` loader test. Checked in a real browser: Scope page and dice popup read "Energy-efficient retrofit of the hotel".
+
+**To undo:** revert this commit; the data file is ignored by older code.
+
 ## [3.2.91] - 2026-10-02
 
 ### A design-fee quote no longer ends a game before you accept it (fb:adb1cc76)

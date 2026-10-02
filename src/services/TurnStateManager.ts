@@ -99,7 +99,8 @@ export class TurnStateManager {
       violationTier: player.violationTier,
       violationDeadlineDay: player.violationDeadlineDay,
       violationPenaltyBase: player.violationPenaltyBase,
-      violationAccrualCheckpoint: player.violationAccrualCheckpoint
+      violationAccrualCheckpoint: player.violationAccrualCheckpoint,
+      projectType: player.projectType
     };
   }
 
@@ -141,7 +142,8 @@ export class TurnStateManager {
       violationTier: state.violationTier,
       violationDeadlineDay: state.violationDeadlineDay,
       violationPenaltyBase: state.violationPenaltyBase,
-      violationAccrualCheckpoint: state.violationAccrualCheckpoint
+      violationAccrualCheckpoint: state.violationAccrualCheckpoint,
+      projectType: state.projectType
     };
   }
 

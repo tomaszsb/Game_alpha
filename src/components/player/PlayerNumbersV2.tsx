@@ -22,6 +22,7 @@ import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { NUMBERS } from '../../constants/uiStrings';
 import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
 import { colors } from '../../styles/theme';
+import { getCardWordedFor } from '../../utils/scopeWording';
 
 /** Which page of the numbers is open — one per tappable glance box
  *  (fb:adad1561, Tom 2026-09-17). Time opens History, not a page here. */
@@ -80,7 +81,7 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
   // One canonical finances computation (shared with any other new-view surface
   // via projectFinances) — scope, spent-vs-budget per area, funding gap. Mirrors
   // the old ledger's math so the numbers can't disagree during the migration.
-  const fin = computeProjectFinances(player, (id) => gameServices.dataService.getCardById(id));
+  const fin = computeProjectFinances(player, (id) => getCardWordedFor(gameServices.dataService, id, player.projectType));
 
   const fmt = (n: number) => FormatUtils.formatMoney(n);
 

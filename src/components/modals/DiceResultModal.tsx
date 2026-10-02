@@ -18,6 +18,7 @@ import { getStoredPanelMode, panelPalettes } from '../player/panelTheme';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { getCardTypeName } from '../../utils/cardTypeNames';
 import { OUTCOME_CARDS } from '../../constants/uiStrings';
+import { getCardWordedFor } from '../../utils/scopeWording';
 
 // Re-export for convenience
 export type DiceRollResult = TurnEffectResult;
@@ -50,6 +51,8 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
   // Again won't refund it). fb:0c523a17 / fb:b413cc2e.
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   const currentPlayerId = gameServices.stateService.getGameState().currentPlayerId;
+  // The roller's kind of project, so a work package they just drew reads as work on THEIR job.
+  const rollerProjectType = currentPlayerId ? gameServices.stateService.getPlayer(currentPlayerId)?.projectType : undefined;
 
   // Read once at render — this modal is short-lived. (Classic panel's
   // BeforeAfterBlock branch was removed 2026-07-14 along with the classic
@@ -177,7 +180,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
     // Get card details if card IDs are available
     const toCardDetails = (ids: string[] | undefined) =>
       (effect.type === 'cards' && ids ? ids : []).map(cardId => {
-        const card = dataService.getCardById(cardId);
+        const card = getCardWordedFor(dataService, cardId, rollerProjectType);
         return {
           id: cardId,
           name: card ? card.card_name : cardId,
@@ -564,7 +567,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
         effects={result.effects}
         mode={panelMode}
         resolveCard={(id) => {
-          const c = dataService.getCardById(id);
+          const c = getCardWordedFor(dataService, id, rollerProjectType);
           return c ? { name: c.card_name, type: c.card_type } : null;
         }}
       />
@@ -592,7 +595,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
     <PlayerCardDetailV2
       isOpen={detailCardId !== null}
       onClose={() => setDetailCardId(null)}
-      card={detailCardId ? dataService.getCardById(detailCardId) ?? null : null}
+      card={detailCardId ? getCardWordedFor(dataService, detailCardId, rollerProjectType) ?? null : null}
       playerId={currentPlayerId || ''}
       gameServices={gameServices}
       mode={panelMode}

@@ -522,6 +522,8 @@ export interface Player {
   violationDeadlineDay?: number;
   violationPenaltyBase?: number;
   violationAccrualCheckpoint?: number;
+  /** The kind of project this player was handed (bare noun, SCOPE_WORDING.csv), if any. */
+  projectType?: string;
 }
 
 export type ApprovalStatus = 'none' | 'minor-objection' | 'approved' | 'denied';

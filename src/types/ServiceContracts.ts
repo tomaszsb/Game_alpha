@@ -152,6 +152,10 @@ export interface IDataService {
   getCardTypeLabels(): import('./DataTypes').CardTypeLabel[];
   getCharacterRows(): import('./DataTypes').CharacterCsvRow[];
   getViolationRuleRows(): import('./DataTypes').ViolationRuleCsvRow[];
+  /** SCOPE_WORDING.csv — project types a dice throw can pick (bare nouns); empty = feature off. */
+  getScopeProjectTypes(): string[];
+  /** SCOPE_WORDING.csv — a work package's wording with a `{project}` blank, by base card id. */
+  getCardScopeTemplate(baseCardId: string): string | undefined;
   getUIStringRows(): import('./DataTypes').UIStringCsvRow[];
   getMinWCardsToLeave(spaceName: string): number;
   getFeeCalculationMethod(spaceName: string): 'flat' | 'percentage_of_scope';

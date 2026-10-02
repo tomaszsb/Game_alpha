@@ -1409,6 +1409,8 @@ export class StateService implements IStateService {
         fdnyApprovedDestinations: realState.state.fdnyApprovedDestinations
           ? [...realState.state.fdnyApprovedDestinations]
           : undefined,
+        // The kind of project is picked with the work packages, so it goes with them.
+        projectType: realState.state.projectType,
       });
       this.updateActionCounts();
     }

@@ -1,0 +1,183 @@
+kind,key,text
+project_type,school,school
+project_type,hospital,hospital
+project_type,hotel,hotel
+project_type,apartment_building,apartment building
+project_type,office_building,office building
+project_type,airport_terminal,airport terminal
+card_template,W001,Lobby renovation and security upgrade for the {project}
+card_template,W002,Conversion of unused attic space into usable rooms in the {project}
+card_template,W003,Installation of a green wall and rooftop garden for the {project}
+card_template,W004,Restoration of ornate plasterwork and historic finishes in the {project}
+card_template,W005,Construction of a new emergency-access addition to the {project}
+card_template,W006,Adaptive reuse of an adjoining warehouse as new space for the {project}
+card_template,W007,Energy-efficient retrofit of the {project}
+card_template,W008,Expansion of the {project} with a new public wing
+card_template,W009,Conversion of an old strip of retail space into new space for the {project}
+card_template,W010,Restoration of fire-damaged areas of the {project}
+card_template,W011,Construction of a rooftop amenity space for the {project}
+card_template,W012,Renovation of an industrial space into a restaurant for the {project}
+card_template,W013,Accessibility upgrades throughout the {project}
+card_template,W014,Conversion of a former classroom wing into new space for the {project}
+card_template,W015,Facade restoration of the {project}
+card_template,W016,Construction of a new visitor center for the {project}
+card_template,W017,Renovation of the main entrance for improved flow of people through the {project}
+card_template,W018,Conversion of a big open floor into an indoor vertical farm at the {project}
+card_template,W019,Seismic retrofit and renovation of the {project}
+card_template,W020,Construction of a new performing arts hall for the {project}
+card_template,W021,Renovation of the {project} into boutique-quality accommodation
+card_template,W022,Construction of a new on-site fire station and training facility for the {project}
+card_template,W023,Installation of a gray water recycling system for the {project}
+card_template,W024,Replacement of lead service lines serving the {project}
+card_template,W025,New cryogenic piping system for a research laboratory in the {project}
+card_template,W026,Installation of a solar thermal hot water system for the {project}
+card_template,W027,Upgrade of plumbing fixtures to low-flow models throughout the {project}
+card_template,W028,Installation of a rainwater harvesting system for the {project}
+card_template,W029,Replacement of the corroded plumbing stack in the {project}
+card_template,W030,New medical gas system for the {project}
+card_template,W031,Installation of a greywater system for landscape irrigation at the {project}
+card_template,W032,Upgrade of the storm drainage system for the {project}
+card_template,W033,New plumbing system for a food preparation kitchen in the {project}
+card_template,W034,Installation of a water treatment system for the {project}
+card_template,W035,Replacement of aging sewer lines serving the {project}
+card_template,W036,New plumbing for green building features with composting toilets at the {project}
+card_template,W037,Installation of a snowmelt system for the entrance plaza of the {project}
+card_template,W038,Upgrade of the plumbing systems in the {project}
+card_template,W039,Installation of a geothermal heating and cooling system for the {project}
+card_template,W040,Retrofit of the existing HVAC system with UV air purification in the {project}
+card_template,W041,New clean room HVAC system for a specialized area of the {project}
+card_template,W042,Installation of a heat recovery ventilation system in the {project}
+card_template,W043,Upgrade to a variable refrigerant flow (VRF) system in the {project}
+card_template,W044,Installation of a district heating connection for the {project}
+card_template,W045,"New HVAC system for the data room of the {project}, with hot aisle containment"
+card_template,W046,Upgrade of the mechanical systems in the {project} for improved acoustics
+card_template,W047,Installation of an energy-efficient HVAC system in the {project}
+card_template,W048,New mechanical systems for a clean room facility within the {project}
+card_template,W049,Retrofit of the chiller plant for improved energy efficiency at the {project}
+card_template,W050,Installation of a water mist fire suppression system in the data room of the {project}
+card_template,W051,Upgrade of the sprinkler system to accommodate a new mezzanine in the {project}
+card_template,W052,Installation of a foam sprinkler system in the service hangar of the {project}
+card_template,W053,Retrofit of the {project} with a new NFPA 13R sprinkler system
+card_template,W054,Installation of a specialized sprinkler system for the art storage room of the {project}
+card_template,W055,New sprinkler system for the renovated {project}
+card_template,W056,Upgrade of the sprinkler system in the {project} to meet current codes
+card_template,W057,Installation of a pre-action sprinkler system in the exhibit hall of the {project}
+card_template,W058,New sprinkler system for the high-pile storage area of the {project}
+card_template,W059,Retrofit of the sprinkler system in the parking garage of the {project}
+card_template,W060,Seismic retrofit of the unreinforced masonry walls of the {project}
+card_template,W061,Installation of a tuned mass damper in the {project}
+card_template,W062,Structural reinforcement for a rooftop helipad on the {project}
+card_template,W063,Carbon fiber reinforcement of concrete beams in the {project}
+card_template,W064,Foundation stabilization using helical piers for the settling {project}
+card_template,W065,Structural modifications to accommodate a new atrium in the {project}
+card_template,W066,Strengthening of the access bridge structure for increased load capacity at the {project}
+card_template,W067,Installation of moment frames for an open floor plan in the {project}
+card_template,W068,Installation of a branded construction fence with public art for the {project}
+card_template,W069,Noise-reducing acoustic fence around the construction site of the {project}
+card_template,W070,Temporary fence with integrated security cameras around the {project}
+card_template,W071,Installation of a living green construction fence around the {project}
+card_template,W072,Modular reusable fencing system for the multi-phase construction of the {project}
+card_template,W073,Wind-resistant fencing around the construction of the {project}
+card_template,W074,Custom-designed construction fence around the {project}
+card_template,W075,Installation of a sidewalk shed with solar-powered lighting for the {project}
+card_template,W076,Heavy-duty sidewalk shed for the demolition work at the {project}
+card_template,W077,Sidewalk shed with heat tracing for winter construction at the {project}
+card_template,W078,Custom-designed sidewalk shed that keeps the {project} visible during construction
+card_template,W079,Sidewalk shed with an integrated public art installation at the {project}
+card_template,W080,High-capacity sidewalk shed for the facade restoration of the {project}
+card_template,W081,Installation of a suspended scaffold system for maintenance of the {project}
+card_template,W082,Multi-point suspended scaffold for window replacement at the {project}
+card_template,W083,Cantilever scaffold system for the overhanging structure of the {project}
+card_template,W084,Interior scaffold system for ceiling restoration inside the {project}
+card_template,W085,Scaffold system with debris netting for facade cleaning of the {project}
+card_template,W086,Installation of 5G small cell antennas on the {project}
+card_template,W087,Upgrade of the broadcast antenna on the {project}
+card_template,W088,New rooftop cellular antenna array on the {project}
+card_template,W089,Installation of long-range Wi-Fi antennas at the {project}
+card_template,W090,Replacement of the coal-fired boiler at the {project} with a high-efficiency natural gas system
+card_template,W091,Installation of a biomass boiler for the {project}
+card_template,W092,Upgrade of the industrial boiler at the {project} to meet new emissions standards
+card_template,W093,Installation of condensing boilers for the {project}
+card_template,W094,Design and installation of a large digital sign for the {project}
+card_template,W095,Custom neon sign creation for the {project}
+card_template,W096,Installation of a wayfinding signage system for the {project}
+card_template,W097,Large-scale solar array installation for the {project}
+card_template,W098,Integrated solar roof tiles for the {project}
+card_template,W099,Installation of a new standpipe system in the {project}
+card_template,W100,Installation of hydraulic shores for deep excavation support at the {project}
+card_template,W101,Creation of an ADA-compliant curb cut with tactile warning surface at the {project}
+card_template,W102,Site preparation and terracing for the {project}
+card_template,W103,Demolition of an obsolete building on the site of the {project}
+card_template,W104,Installation of a secant pile wall for below-grade parking at the {project}
+card_template,W105,Construction of a mat foundation for a new wind turbine at the {project}
+card_template,W106,Conversion of a former industrial loft into co-working space for the {project}
+card_template,W107,Installation of an FM-200 fire suppression system in the server room of the {project}
+card_template,W108,Surgical demolition of the interior for adaptive reuse of the {project}
+card_template,W109,Installation of a biodiesel fuel storage and dispensing system for the vehicles of the {project}
+card_template,W110,Implementation of smart grid technology for the {project}
+card_template,W111,Setup of a gantry crane system for precast concrete installation at the {project}
+card_template,W112,Installation of an automated waste sorting and recycling chute system in the {project}
+card_template,W113,Installation of a wildlife exclusion fence around the {project}
+card_template,W114,Creation of an artificial wetland for stormwater management at the {project}
+card_template,W115,Installation of acoustic movable partitions in the {project}
+card_template,W116,Design and installation of an interactive LED marquee for the {project}
+card_template,W117,Implementation of a permeable paving system around the {project}
+card_template,W118,Net-zero energy certification upgrades for the {project}
+card_template,W119,Installation of an automated material handling system in the {project}
+card_template,W120,Implementation of a voice evacuation system in the {project}
+card_template,W121,Comprehensive life safety upgrade package for the {project}
+card_template,W122,Installation of an energy-efficient lighting system in the {project}
+card_template,W123,Setup of a temporary ice skating rink with associated structures at the {project}
+card_template,W124,Installation of a destination dispatch elevator system in the {project}
+card_template,W125,Conversion of an abandoned factory into a multi-use hall for the {project}
+card_template,W126,Installation of a cogeneration system for heat and power at the {project}
+card_template,W127,Renovation of the nearby transit station for improved accessibility to the {project}
+card_template,W128,Construction of a green roof on the {project}
+card_template,W129,Conversion of a parking garage into an urban farming facility at the {project}
+card_template,W130,Restoration of the historic features of the {project}
+card_template,W131,Net-zero energy upgrade of the {project}
+card_template,W132,Renovation of the assembly hall of the {project} for improved visitor experience
+card_template,W133,Adaptive reuse of a power plant building as an art gallery for the {project}
+card_template,W134,Construction of a wildlife crossing bridge near the {project}
+card_template,W135,Renovation of the arrival terminal of the {project} for increased capacity
+card_template,W136,Construction of modular affordable housing for the staff of the {project}
+card_template,W137,Retrofit of the {project} for post-pandemic workplace design
+card_template,W138,Renovation of a former post office into a food hall for the {project}
+card_template,W139,Construction of a disaster-resistant community center for the {project}
+card_template,W140,Adaptive reuse of a grain silo into a climbing facility at the {project}
+card_template,W141,Renovation of a historic train station into guest accommodation for the {project}
+card_template,W142,Construction of a floating pedestrian bridge in the park beside the {project}
+card_template,W143,Conversion of a big box store into a fulfillment center for the {project}
+card_template,W144,Renovation of a former church into a community arts center for the {project}
+card_template,W145,Construction of an eco-friendly car wash facility at the {project}
+card_template,W146,Adaptive reuse of shipping containers as a retail pop-up village at the {project}
+card_template,W147,Renovation of the exhibits at the {project} for improved visitor welfare
+card_template,W148,Installation of a water reclamation system for the car wash facility at the {project}
+card_template,W149,New plumbing systems for a floating home community beside the {project}
+card_template,W150,Installation of a vacuum waste collection system for the {project}
+card_template,W151,Upgrade of plumbing fixtures in the stadium seating of the {project} for water conservation
+card_template,W152,New hot water distribution system for the {project}
+card_template,W153,Installation of a radiant floor heating system in the {project}
+card_template,W154,Replacement of aging water mains serving the {project}
+card_template,W155,Installation of a displacement ventilation system in the lecture hall of the {project}
+card_template,W156,New HVAC system with thermal energy storage for the {project}
+card_template,W157,Installation of a radiant cooling system in the {project}
+card_template,W158,Upgrade of the mechanical systems in the secure areas of the {project}
+card_template,W159,New HVAC system for an indoor vertical farming facility at the {project}
+card_template,W160,Installation of a deluge sprinkler system in the maintenance hangar of the {project}
+card_template,W161,New sprinkler system for the high-ceiling atrium of the {project}
+card_template,W162,Upgrade of the sprinkler system in the historic library of the {project}
+card_template,W163,Installation of a dry pipe sprinkler system in the cold storage area of the {project}
+card_template,W164,New sprinkler system for the multi-story car park of the {project}
+card_template,W165,Structural reinforcement of the retaining structure for increased water capacity at the {project}
+card_template,W166,Installation of a base isolation system for earthquake protection of the {project}
+card_template,W167,Structural modifications to support a green roof on the {project}
+card_template,W168,Installation of a digital display construction fence for public information about the {project}
+card_template,W169,Blast-resistant temporary fencing for the demolition work at the {project}
+card_template,W170,Sidewalk shed with integrated public seating and planters at the {project}
+card_template,W171,Temporary work platforms for tower restoration at the {project}
+card_template,W172,Installation of an emergency communication antenna system for first responders at the {project}
+card_template,W173,Installation of a dual-fuel boiler system for increased resilience at the {project}
+card_template,W174,Creation of kinetic facade signage for the {project}
+card_template,W175,"Installation of a solar canopy over the parking lot of the {project}, with EV charging stations"
+card_template,W176,Upgrade of the standpipe system in the {project} to support higher pressure requirements

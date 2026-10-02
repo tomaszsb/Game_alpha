@@ -43,6 +43,11 @@ large,500000,180,0.10,0.20,2000`;
 const mockUIStringsCsv = `key,template
 DICE_BUTTON.WORK,Get Work Packages`;
 
+const mockScopeWordingCsv = `kind,key,text
+project_type,school,school
+project_type,airport_terminal,airport terminal
+card_template,W001,"Lobby renovation, and security upgrade for the {project}"`;
+
 const urlMap: { [key: string]: string } = {
   '/data/CLEAN_FILES/GAME_CONFIG.csv': mockGameConfigCsv,
   '/data/CLEAN_FILES/MOVEMENT.csv': mockMovementCsv,
@@ -55,6 +60,7 @@ const urlMap: { [key: string]: string } = {
   '/data/CLEAN_FILES/CHARACTERS.csv': mockCharactersCsv,
   '/data/CLEAN_FILES/VIOLATION_RULES.csv': mockViolationRulesCsv,
   '/data/CLEAN_FILES/UI_STRINGS.csv': mockUIStringsCsv,
+  '/data/CLEAN_FILES/SCOPE_WORDING.csv': mockScopeWordingCsv,
 };
 
 global.fetch = vi.fn().mockImplementation((url: string) => {
@@ -104,8 +110,9 @@ describe('DataService', () => {
     // 13 CLEAN_FILES CSVs (incl. LOGIC_QUESTIONS.csv + PATH_CHOICE_RULES.csv
     // added in v2.57.0, CARD_TYPES.csv added 2026-07-16, CHARACTERS.csv added
     // 2026-08-09, VIOLATION_RULES.csv + UI_STRINGS.csv added 2026-08-14 for
-    // the CSV-portability lift) + 1 SOURCE_FILES/ModalConfig.csv = 14 fetches.
-    expect(global.fetch).toHaveBeenCalledTimes(14);
+    // the CSV-portability lift, SCOPE_WORDING.csv added 2026-10-02) + 1
+    // SOURCE_FILES/ModalConfig.csv = 15 fetches.
+    expect(global.fetch).toHaveBeenCalledTimes(15);
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CARDS_EXPANDED\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/SOURCE_FILES\/ModalConfig\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/PATH_CHOICE_RULES\.csv/));
@@ -114,6 +121,13 @@ describe('DataService', () => {
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/VIOLATION_RULES\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/UI_STRINGS\.csv/));
     expect(dataService.isLoaded()).toBe(true);
+  });
+
+  it('should parse SCOPE_WORDING.csv into project types and card templates (quoted commas kept)', async () => {
+    await dataService.loadData();
+    expect(dataService.getScopeProjectTypes()).toEqual(['school', 'airport terminal']);
+    expect(dataService.getCardScopeTemplate('W001')).toBe('Lobby renovation, and security upgrade for the {project}');
+    expect(dataService.getCardScopeTemplate('W999')).toBeUndefined();
   });
 
   it('should parse CHARACTERS.csv rows via getCharacterRows', async () => {

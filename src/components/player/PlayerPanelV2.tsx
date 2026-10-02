@@ -36,6 +36,7 @@ import { getNpcCharacterInfo, getNpcImagePath } from '../../constants/characters
 import { ActionButton } from './ActionButton';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
+import { getCardWordedFor } from '../../utils/scopeWording';
 
 export interface PlayerPanelV2Props extends PlayerPanelProps {
   mode: PanelMode;
@@ -656,7 +657,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // numbers" ledger keeps the fuller "Still to raise" row). Green only when
   // cash is healthy AND the project is fully funded. Same
   // computeProjectFinances as "My numbers", so the two can't disagree.
-  const fin = computeProjectFinances(player, (id) => gameServices.dataService.getCardById(id));
+  const fin = computeProjectFinances(player, (id) => getCardWordedFor(gameServices.dataService, id, player.projectType));
   const moneyCue: { color: string; word?: string } =
     player.money < 0
       ? { color: '#dc2626', word: 'in the red' }
@@ -1442,7 +1443,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       <PlayerCardDetailV2
         isOpen={detailCardId !== null}
         onClose={() => setDetailCardId(null)}
-        card={detailCardId ? gameServices.dataService.getCardById(detailCardId) ?? null : null}
+        card={detailCardId ? getCardWordedFor(gameServices.dataService, detailCardId, player.projectType) ?? null : null}
         playerId={playerId}
         gameServices={gameServices}
         mode={mode}

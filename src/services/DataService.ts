@@ -114,6 +114,10 @@ export class DataService implements IDataService {
   private characterRows: CharacterCsvRow[] = [];
   // 2026-08-14: CSV-portability lift, reskin item 2 — reskin hook for the Homeowner Violation tier/fee-rate numbers.
   private violationRuleRows: ViolationRuleCsvRow[] = [];
+  // SCOPE_WORDING.csv: the project types a dice throw can pick, and each work
+  // package's wording with a {project} blank. Optional — see loadScopeWording.
+  private scopeProjectTypes: string[] = [];
+  private cardScopeTemplates: Map<string, string> = new Map();
   // 2026-08-14: CSV-portability lift — reskin hook for button/notification text vocabulary.
   private uiStringRows: UIStringCsvRow[] = [];
   private loaded = false;
@@ -144,6 +148,7 @@ export class DataService implements IDataService {
           this.loadCardTypeLabels(),
           this.loadCharacters(),
           this.loadViolationRules(),
+          this.loadScopeWording(),
           this.loadUIStrings()
         ]);
 
@@ -198,6 +203,7 @@ export class DataService implements IDataService {
       this.loadCardTypeLabels(),
       this.loadCharacters(),
       this.loadViolationRules(),
+      this.loadScopeWording(),
       this.loadUIStrings()
     ]);
     this.buildSpaces();
@@ -983,6 +989,54 @@ export class DataService implements IDataService {
         };
       })
       .filter(r => r.tier);
+  }
+
+  /**
+   * 2026-10-02 (Tom, fb:612fbdc4): load SCOPE_WORDING.csv — `kind,key,text` rows.
+   * `project_type` rows are the kinds of project a dice throw can pick (text = the
+   * bare noun: "school"); `card_template` rows are a work package's wording with a
+   * `{project}` blank ("Facade restoration of the {project}"). Optional — a missing
+   * file leaves both empty, and every card keeps its own original wording (so a
+   * reskin or authored board that doesn't use it is untouched).
+   */
+  private async loadScopeWording(): Promise<void> {
+    this.scopeProjectTypes = [];
+    this.cardScopeTemplates = new Map();
+    try {
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/SCOPE_WORDING.csv?_=' + Date.now());
+      if (!response.ok) return;
+      this.parseScopeWordingCsv(await response.text());
+    } catch {
+      this.scopeProjectTypes = [];
+      this.cardScopeTemplates = new Map();
+    }
+  }
+
+  private parseScopeWordingCsv(csvText: string): void {
+    this.scopeProjectTypes = [];
+    this.cardScopeTemplates = new Map();
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return;
+    const get = this.csvFieldReader(lines[0]);
+    for (const line of lines.slice(1)) {
+      const values = this.parseCsvLine(line);
+      const kind = (get(values, 'kind') || '').trim();
+      const key = (get(values, 'key') || '').trim();
+      const text = (get(values, 'text') || '').trim();
+      if (!kind || !key || !text) continue;
+      if (kind === 'project_type') this.scopeProjectTypes.push(text);
+      else if (kind === 'card_template') this.cardScopeTemplates.set(key, text);
+    }
+  }
+
+  /** The project types a dice throw can pick (bare nouns), in file order. Empty = feature off. */
+  getScopeProjectTypes(): string[] {
+    return [...this.scopeProjectTypes];
+  }
+
+  /** A work package's wording with a `{project}` blank, by BASE card id (W001), or undefined. */
+  getCardScopeTemplate(baseCardId: string): string | undefined {
+    return this.cardScopeTemplates.get(baseCardId);
   }
 
   /**

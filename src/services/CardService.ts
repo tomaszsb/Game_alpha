@@ -101,6 +101,11 @@ export class CardService implements ICardService {
 
     const gameState = this.stateService.getGameState();
 
+    // The first time a player draws work packages, chance hands them a KIND of project
+    // (school, hospital, …) so every package reads as work on the same job. Data-driven
+    // (SCOPE_WORDING.csv); no types listed = feature off, cards keep their own wording.
+    if (cardType === 'W') this.assignProjectTypeIfNeeded(player);
+
     // Educational mode: On starting space, give pre-selected cards instead of drawing from deck
     // Workstream 6 #1: starting-space check lifted from literal to data flag (is_starting_space).
     const isEducationalMode = gameState.startingMode === 'EDUCATIONAL';
@@ -288,6 +293,19 @@ export class CardService implements ICardService {
     }
 
     return drawnCards;
+  }
+
+  /**
+   * Picks this player's project type at random, once. Goes through TEMP state, so a
+   * push-back at the space that dealt the work packages throws the pick away with them
+   * (the next offer rolls again).
+   */
+  private assignProjectTypeIfNeeded(player: { id: string; projectType?: string }): void {
+    if (player.projectType) return;
+    const types = this.dataService.getScopeProjectTypes?.() ?? [];
+    if (types.length === 0) return;
+    const projectType = types[Math.floor(Math.random() * types.length)];
+    this.stateService.updateTempState(player.id, { projectType });
   }
 
   /**

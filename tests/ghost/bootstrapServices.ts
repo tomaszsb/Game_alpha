@@ -58,6 +58,7 @@ class NodeDataService extends DataService {
     // falls back to auto-selecting destination_1, leaving downstream logic-only
     // destinations (REG-FDNY-PLAN-EXAM) unreachable in headless ghost runs.
     (this as any).logicQuestions = (this as any).parseLogicQuestionsCsv(read('LOGIC_QUESTIONS.csv'));
+    (this as any).parseScopeWordingCsv(read('SCOPE_WORDING.csv'));
     (this as any).buildSpaces();
     (this as any).loaded = true;
   }

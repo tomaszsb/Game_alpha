@@ -117,6 +117,11 @@ export interface MutablePlayerState {
   violationDeadlineDay?: number;
   violationPenaltyBase?: number;
   violationAccrualCheckpoint?: number;
+
+  // What KIND of project this player was handed (a bare noun from SCOPE_WORDING.csv,
+  // e.g. "school"), picked by chance the first time they draw work packages. Set via
+  // updateTempState so a push-back at that space throws the pick away with the cards.
+  projectType?: string;
 }
 
 /**
@@ -459,6 +464,7 @@ export interface PlayerUpdateData {
   costHistory?: import('./DataTypes').CostEntry[];
   costs?: import('./DataTypes').CostBreakdown;
   moveIntent?: string | null;
+  projectType?: string;
   fundingHistory?: import('./DataTypes').FundingEntry[];
   // Workstream 6 #4 + Phase 6.2: widened to Record<string, string> to match DataTypes.Player.
   pathChoiceMemory?: Record<string, string>;
