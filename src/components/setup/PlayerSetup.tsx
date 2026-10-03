@@ -12,7 +12,7 @@ import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 import { isSmartTV, isPhoneScreen } from '../../utils/deviceDetection';
 import { getStoredPreferredMode, resolveInitialMode, PlayMode } from '../../utils/modePreference';
 import { consumeResumeHint } from '../../utils/lastGameMemory';
-import { fetchJoinInfo, buildJoinGameUrl, JoinPickerPlayer } from '../../utils/joinGameFlow';
+import { fetchJoinInfo, buildJoinGameUrl, JoinPickerPlayer, orderPickerPlayers, isRememberedPlayer } from '../../utils/joinGameFlow';
 import { AvatarIcon } from '../icons/AvatarIcons';
 import { SpaceDeckScreen } from '../classroom/SpaceDeckScreen';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
@@ -800,7 +800,7 @@ export function PlayerSetup({
                       Game {joinPicker.gameId} already has players. Which one are you?
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      {joinPicker.players.map(p => (
+                      {orderPickerPlayers(joinPicker.players, resumeHint?.gameId === joinPicker.gameId ? resumeHint.playerShortId : undefined).map((p, i) => (
                         <button
                           key={p.id}
                           type="button"
@@ -833,7 +833,7 @@ export function PlayerSetup({
                             }}
                           />
                           {p.avatar && <span style={{ display: 'inline-flex' }}><AvatarIcon avatar={p.avatar} size="1.1rem" /></span>}
-                          <span>{p.name}</span>
+                          <span>{i === 0 && isRememberedPlayer(joinPicker.players, resumeHint?.gameId === joinPicker.gameId ? resumeHint.playerShortId : undefined, p) ? `Resume as ${p.name}` : p.name}</span>
                           {p.connected && (
                             <span
                               style={{

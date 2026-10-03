@@ -12,6 +12,13 @@ const LAST_GAME_KEY = 'unravelcodes:last-game';
 interface StoredLastGame {
   gameId: string;
   token?: string;
+  /** shortId of the player this browser was in that game ("Resume as <name>"). Verified against the
+   *  game's join-info roster before it is ever used - a stale one is simply ignored. */
+  playerShortId?: string;
+}
+
+function readShortId(v: unknown): string | undefined {
+  return typeof v === 'string' && v ? v : undefined;
 }
 
 export function getStoredLastGame(): StoredLastGame | null {
@@ -20,15 +27,22 @@ export function getStoredLastGame(): StoredLastGame | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoredLastGame>;
     if (typeof parsed.gameId !== 'string' || !parsed.gameId) return null;
-    return { gameId: parsed.gameId, token: typeof parsed.token === 'string' ? parsed.token : undefined };
+    return {
+      gameId: parsed.gameId,
+      token: typeof parsed.token === 'string' ? parsed.token : undefined,
+      playerShortId: readShortId(parsed.playerShortId),
+    };
   } catch {
     return null;
   }
 }
 
-export function setStoredLastGame(gameId: string, token?: string): void {
+/** `playerShortId` = the player this browser is in this game (the ?p= link). Omitted on a PC/TV/spectator
+ *  visit: the player already remembered for the SAME game is kept, a different game drops it. */
+export function setStoredLastGame(gameId: string, token?: string, playerShortId?: string): void {
   try {
-    localStorage.setItem(LAST_GAME_KEY, JSON.stringify({ gameId, token }));
+    const kept = playerShortId ?? (getStoredLastGame()?.gameId === gameId ? getStoredLastGame()?.playerShortId : undefined);
+    localStorage.setItem(LAST_GAME_KEY, JSON.stringify({ gameId, token, playerShortId: kept }));
   } catch {
     /* private mode / disabled storage — resume prompt just won't offer next time */
   }
@@ -61,9 +75,9 @@ export function clearStoredLastGame(): void {
 // doesn't keep re-prefilling the same code.
 const RESUME_HINT_KEY = 'unravelcodes:resume-hint';
 
-export function stashResumeHint(gameId: string, token?: string): void {
+export function stashResumeHint(gameId: string, token?: string, playerShortId?: string): void {
   try {
-    sessionStorage.setItem(RESUME_HINT_KEY, JSON.stringify({ gameId, token }));
+    sessionStorage.setItem(RESUME_HINT_KEY, JSON.stringify({ gameId, token, playerShortId }));
   } catch {
     /* private mode / disabled storage — Join-by-Code just won't be prefilled */
   }
@@ -76,7 +90,11 @@ export function consumeResumeHint(): StoredLastGame | null {
     sessionStorage.removeItem(RESUME_HINT_KEY);
     const parsed = JSON.parse(raw) as Partial<StoredLastGame>;
     if (typeof parsed.gameId !== 'string' || !parsed.gameId) return null;
-    return { gameId: parsed.gameId, token: typeof parsed.token === 'string' ? parsed.token : undefined };
+    return {
+      gameId: parsed.gameId,
+      token: typeof parsed.token === 'string' ? parsed.token : undefined,
+      playerShortId: readShortId(parsed.playerShortId),
+    };
   } catch {
     return null;
   }

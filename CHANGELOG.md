@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.99] - 2026-10-03
+
+### "Resume as <name>" - a returning phone gets its own seat back in one tap
+
+- This browser now remembers WHICH player it was (the `?p=` link), not just which game (`lastGameMemory.ts`, `playerShortId`). It is kept across PC/TV re-visits of the same game and dropped when the saved game is a different one.
+- On the bare-URL "Join - which one are you?" picker, that player is listed first as **"Resume as <name>"**; everyone else stays listed below. Only shown if the player is still in the game's roster; a gone player, no memory, or an expired/finished game leaves the picker exactly as before.
+- Still a choice, never an auto-redirect. A personal link (`p=`) is still a controller and a phone never takes a TV choice (v3.2.90 rule untouched; the tap uses the same pick path).
+- Brief: Manager handout 2026-10-01 (game-rejoin-resume-as-name). **Not tried on a real phone.**
+
+**Tests.** `resumeAsPlayer` (3), `lastGameMemory` (+5).
+
+**To undo:** revert this commit.
+
 ## [3.2.98] - 2026-10-02
 
 ### Screen type from inside a game; spectators can only watch; a finished game is no longer offered back; the TV tells the truth when a game is lost; one flaky test explained

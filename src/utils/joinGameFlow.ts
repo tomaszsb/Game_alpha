@@ -105,3 +105,19 @@ export function buildJoinGameUrl(opts: BuildJoinUrlOptions): string {
   else url.searchParams.delete('spectate');
   return url.toString();
 }
+
+/** The player this phone remembers, if - and only if - the game's roster still has them. */
+export function isRememberedPlayer(
+  players: JoinPickerPlayer[],
+  rememberedShortId: string | undefined,
+  candidate: JoinPickerPlayer,
+): boolean {
+  return !!rememberedShortId && candidate.shortId === rememberedShortId && players.some(p => p.shortId === rememberedShortId);
+}
+
+/** Picker order: the remembered player first ("Resume as <name>"), everyone else in the game's order.
+ *  A remembered player who is no longer in the game changes nothing. */
+export function orderPickerPlayers(players: JoinPickerPlayer[], rememberedShortId: string | undefined): JoinPickerPlayer[] {
+  const mine = players.find(p => isRememberedPlayer(players, rememberedShortId, p));
+  return mine ? [mine, ...players.filter(p => p !== mine)] : players;
+}

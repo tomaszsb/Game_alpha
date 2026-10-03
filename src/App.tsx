@@ -491,7 +491,7 @@ export function App(): JSX.Element {
         // A finished game is not a game to go back to (fb:b38110f3, fb:ef974f1c: a new game's
         // setup screen offered "Join - which one are you?" for the game that had just ended).
         if (isResumableGame(data)) {
-          stashResumeHint(stored.gameId, data.token || stored.token);
+          stashResumeHint(stored.gameId, data.token || stored.token, stored.playerShortId);
         } else {
           clearStoredLastGame();
         }
@@ -543,7 +543,7 @@ export function App(): JSX.Element {
   useEffect(() => {
     if (phase !== 'done') return;
     const gameId = getCurrentGameId();
-    if (gameId) setStoredLastGame(gameId, getCurrentGameToken());
+    if (gameId) setStoredLastGame(gameId, getCurrentGameToken(), new URLSearchParams(window.location.search).get('p') || undefined);
   }, [phase]);
 
   if (phase === 'checking-resume' || phase === 'auto-creating') {

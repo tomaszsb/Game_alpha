@@ -21,12 +21,12 @@ describe('lastGameMemory', () => {
 
   it('round-trips a gameId with a token', () => {
     setStoredLastGame('G-ABCD-1234', 'tok123');
-    expect(getStoredLastGame()).toEqual({ gameId: 'G-ABCD-1234', token: 'tok123' });
+    expect(getStoredLastGame()).toEqual({ gameId: 'G-ABCD-1234', token: 'tok123', playerShortId: undefined });
   });
 
   it('round-trips a gameId with no token', () => {
     setStoredLastGame('G-ABCD-1234');
-    expect(getStoredLastGame()).toEqual({ gameId: 'G-ABCD-1234', token: undefined });
+    expect(getStoredLastGame()).toEqual({ gameId: 'G-ABCD-1234', token: undefined, playerShortId: undefined });
   });
 
   it('clearStoredLastGame removes the record', () => {
@@ -81,14 +81,14 @@ describe('resume hint (sessionStorage one-shot handoff)', () => {
   it('round-trips a gameId with a token, then clears it (one-shot)', () => {
     stashResumeHint('G-ABCD-1234', 'tok123');
     expect(sessionStorage.getItem(HINT_KEY)).not.toBeNull();
-    expect(consumeResumeHint()).toEqual({ gameId: 'G-ABCD-1234', token: 'tok123' });
+    expect(consumeResumeHint()).toEqual({ gameId: 'G-ABCD-1234', token: 'tok123', playerShortId: undefined });
     expect(sessionStorage.getItem(HINT_KEY)).toBeNull();
     expect(consumeResumeHint()).toBeNull();
   });
 
   it('round-trips a gameId with no token', () => {
     stashResumeHint('G-ABCD-1234');
-    expect(consumeResumeHint()).toEqual({ gameId: 'G-ABCD-1234', token: undefined });
+    expect(consumeResumeHint()).toEqual({ gameId: 'G-ABCD-1234', token: undefined, playerShortId: undefined });
   });
 
   it('ignores malformed JSON already in storage', () => {
@@ -125,5 +125,30 @@ describe('isResumableGame (2026-10-02)', () => {
   });
   it('a FINISHED game is not offered back (fb:b38110f3, fb:ef974f1c)', () => {
     expect(isResumableGame({ gamePhase: 'END' })).toBe(false);
+  });
+
+  describe('remembered player ("Resume as <name>")', () => {
+    it('remembers which player this browser was', () => {
+      setStoredLastGame('G1', 't', 'ab12');
+      expect(getStoredLastGame()?.playerShortId).toBe('ab12');
+    });
+    it('keeps the player when a PC/TV visit to the SAME game re-saves it', () => {
+      setStoredLastGame('G1', 't', 'ab12');
+      setStoredLastGame('G1', 't');
+      expect(getStoredLastGame()?.playerShortId).toBe('ab12');
+    });
+    it('drops the player when the saved game is a different one', () => {
+      setStoredLastGame('G1', 't', 'ab12');
+      setStoredLastGame('G2', 't');
+      expect(getStoredLastGame()?.playerShortId).toBeUndefined();
+    });
+    it('carries the player through the resume hint', () => {
+      stashResumeHint('G1', 't', 'ab12');
+      expect(consumeResumeHint()?.playerShortId).toBe('ab12');
+    });
+    it('no remembered player (old record) reads as undefined', () => {
+      localStorage.setItem(KEY, JSON.stringify({ gameId: 'G1', token: 't' }));
+      expect(getStoredLastGame()?.playerShortId).toBeUndefined();
+    });
   });
 });
