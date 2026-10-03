@@ -2,6 +2,11 @@
 
 ---
 
+## v3.2.99 — "Resume as <name>": a phone that drops gets its own seat back in one tap (October 3, 2026)
+
+- **Your phone remembers which player you were.** If you close the tab and open the game's plain web address again, the "which one are you?" list shows **"Resume as <your name>"** at the top. One tap puts you back on your own controller.
+- **It is still your choice** - nothing jumps you into a game on its own, and if you were not in that game any more (or it ended), the list looks the way it always did.
+
 ## v3.2.98 — Change your screen type mid-game, spectators can only watch, and the TV tells the truth when a game is lost (October 2, 2026)
 
 - **New "Screen" menu at the top:** tell the game whether this screen is a PC, a TV, or a phone, any time during a game.
