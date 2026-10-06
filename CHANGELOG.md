@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.3.4] - 2026-10-06
+
+### A classroom whose board is already broken can still save the fix (Manager request)
+
+**Not deployed; the deploy waits for the Manager's go (it ships Job 1's change to the loss rate too).**
+
+- The board check added in v3.3.1 refused EVERY save on a classroom whose board was already broken, including the save that would repair it. It now compares the board this save would produce with the board as saved right now (`boardCheck.compareBoardReports`): a save is refused only if it adds a NEW problem. Problems that were already there do not block it; they come back in the save's report as warnings that say exactly what is still broken ("Still broken (was already): ..."). If the old board cannot be checked, every problem counts as new (strict). Cost: a second trial build, only when the new board has problems.
+- Tests: `compareBoardReports` (3). Not checked live: building an already-broken classroom now needs a hand-written config, since every normal route refuses to make one.
+
+**To undo:** revert this commit.
+
 ## [3.3.3] - 2026-10-06
 
 ### One CSV reader; the editor stops dropping new dice/modal columns; schemas for the other two editor files (Job 2b, step 2)

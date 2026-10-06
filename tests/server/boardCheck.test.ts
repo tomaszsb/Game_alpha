@@ -123,3 +123,29 @@ describe('trial bake (what the save routes run before saving)', () => {
     expect(debris).toEqual([]);
   });
 });
+
+import { compareBoardReports } from '../../server/boardCheck.js';
+
+describe('compareBoardReports (a save is refused only if it makes the board worse)', () => {
+  const e = (code: string, space: string) => ({ code, space, message: `${space} ${code}` });
+
+  it('a save that fixes some problems and adds none is allowed, and the rest are named', () => {
+    const before = { errors: [e('NO_EXIT', 'A-ONE'), e('NO_EXIT', 'B-TWO')] };
+    const after = { errors: [e('NO_EXIT', 'B-TWO')] };
+    const r = compareBoardReports(before, after);
+    expect(r.newErrors).toEqual([]);
+    expect(r.remainingErrors).toEqual([e('NO_EXIT', 'B-TWO')]);
+  });
+
+  it('a save that adds a problem is refused even if the board was already broken', () => {
+    const before = { errors: [e('NO_EXIT', 'B-TWO')] };
+    const after = { errors: [e('NO_EXIT', 'B-TWO'), e('UNKNOWN_DESTINATION', 'C-THREE')] };
+    const r = compareBoardReports(before, after);
+    expect(r.newErrors).toEqual([e('UNKNOWN_DESTINATION', 'C-THREE')]);
+  });
+
+  it('when the old board could not be checked, every problem counts as new (strict)', () => {
+    const after = { errors: [e('NO_EXIT', 'B-TWO')] };
+    expect(compareBoardReports(null, after).newErrors).toHaveLength(1);
+  });
+});

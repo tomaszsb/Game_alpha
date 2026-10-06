@@ -53,6 +53,7 @@ import {
 import { diffSubmittedContent, restrictChangesToWording, findBadWordingNumbers } from './instanceContentDiff.js';
 import { validateConfig } from './instanceValidation.js';
 import { buildCatalog } from './instanceCatalog.js';
+import { compareBoardReports } from './boardCheck.js';
 import { parseCsvWithHeaders } from './processGameData.js';
 import {
   bakeInstance,
@@ -1364,15 +1365,40 @@ function handleInstanceMutation(req, res, mutate) {
       trial: true,
     });
     if (!trialBake.boardReport.ok) {
-      const boardReport = {
-        ...report,
-        ok: false,
-        errors: [
-          ...report.errors,
-          ...trialBake.boardReport.errors.map(e => ({ ...e, code: `BOARD_${e.code}` })),
-        ],
-      };
-      return res.status(422).json({ success: false, report: boardReport, ...result });
+      // Refuse only a save that makes the board WORSE. A classroom whose board is
+      // already broken (an old bad save, a stock change) must still be able to take
+      // the save that fixes it, so compare with the board as saved right now.
+      let before = null;
+      try {
+        const current = loadInstance(instancesRoot, req.params.id);
+        const t = bakeInstance({
+          stockDataDir: writableDataDir,
+          instancesRoot,
+          config: current,
+          stockVersion: computeStockVersion(writableDataDir),
+          trial: true,
+        });
+        before = t.boardReport;
+      } catch {
+        before = null; // can't tell what was broken before: be strict
+      }
+      const { newErrors, remainingErrors } = compareBoardReports(before, trialBake.boardReport);
+      if (newErrors.length > 0) {
+        const boardReport = {
+          ...report,
+          ok: false,
+          errors: [...report.errors, ...newErrors.map(e => ({ ...e, code: `BOARD_${e.code}` }))],
+          warnings: [
+            ...report.warnings,
+            ...remainingErrors.map(e => ({ ...e, code: `BOARD_STILL_BROKEN_${e.code}` })),
+          ],
+        };
+        return res.status(422).json({ success: false, report: boardReport, ...result });
+      }
+      // Nothing new is wrong: save it, and say exactly what is still broken.
+      for (const e of remainingErrors) {
+        report.warnings.push({ ...e, code: `BOARD_STILL_BROKEN_${e.code}`, message: `Still broken (was already): ${e.message}` });
+      }
     }
     step = 'save';
     saveInstance(instancesRoot, config);
