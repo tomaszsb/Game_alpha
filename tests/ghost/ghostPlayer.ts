@@ -63,7 +63,14 @@ export interface GhostGameResult {
   // soft-locks") so it counts as a HARD failure: the win-floor's slack would
   // otherwise absorb it as a normal loss, which is how the Prof Cert loop
   // shipped through a green gate (v3.0.79).
-  reason: 'WIN' | 'TURN_CAP' | 'LOOP' | 'EXCEPTION' | 'INVARIANT_VIOLATION';
+  // FINISHED = the player reached the end of the project. LOST = the game ended
+  // with no winner (bankruptcy or the 20% design-fee cap; `lossReason` says which,
+  // `finalSpace` says where). Both are clean ends (success: true) — a LOST game is
+  // the game working, not a bot failure — but only FINISHED counts as a win. (Before
+  // 2026-10-06 every ended game was reported as 'WIN', so "50/50 wins" included
+  // bankruptcies and fee-cap losses.)
+  reason: 'FINISHED' | 'LOST' | 'TURN_CAP' | 'LOOP' | 'EXCEPTION' | 'INVARIANT_VIOLATION';
+  lossReason?: 'bankruptcy' | 'design_fee_cap';
   error?: string;
   trail: string[];
 }
@@ -292,13 +299,16 @@ export async function playOneGame(
       if (options.verbose) console.log(`T${turn} @ ${p.currentSpace} (${p.visitType})`);
       visitCounts.set(p.currentSpace, (visitCounts.get(p.currentSpace) ?? 0) + 1);
 
-      // Check win condition
-      if (stateService.getGameState().isGameOver) {
+      // Check whether the game ended: finished the project, or lost it
+      const endState = stateService.getGameState();
+      if (endState.isGameOver) {
+        const lossReason = endState.gameEndReason?.type;
         return {
           success: true,
           turns: turn,
           finalSpace: p.currentSpace,
-          reason: 'WIN',
+          reason: lossReason ? 'LOST' : 'FINISHED',
+          ...(lossReason ? { lossReason } : {}),
           trail,
         };
       }
@@ -592,13 +602,19 @@ export async function runGhostBatch(
   options: GhostGameOptions & { baseSeed?: number; perGameTimeoutMs?: number; progressLabel?: string } = {}
 ): Promise<{
   total: number;
+  /** Games that reached the end of the project (reason FINISHED). */
   wins: number;
+  /** Games that ended with no winner (reason LOST), and by what/where. */
+  lost: number;
+  lostBy: Record<string, number>;
   failures: GhostGameResult[];
   avgTurns: number;
   longGames: number;
 }> {
   const failures: GhostGameResult[] = [];
   let wins = 0;
+  let lost = 0;
+  const lostBy: Record<string, number> = {};
   let totalTurns = 0;
   let longGames = 0;
   const LONG_GAME_THRESHOLD = 60;
@@ -629,7 +645,13 @@ export async function runGhostBatch(
       }
       totalTurns += Math.max(0, result.turns);
       if (result.success) {
-        wins++;
+        if (result.reason === 'LOST') {
+          lost++;
+          const key = `${result.lossReason ?? 'unknown'}@${result.finalSpace ?? '?'}`;
+          lostBy[key] = (lostBy[key] ?? 0) + 1;
+        } else {
+          wins++;
+        }
         if (result.turns > LONG_GAME_THRESHOLD) {
           longGames++;
           console.warn(`⚠️ Long game #${i + 1}: ${result.turns} turns (possible loop). Final space: ${result.finalSpace}`);
@@ -650,6 +672,8 @@ export async function runGhostBatch(
   return {
     total: gameCount,
     wins,
+    lost,
+    lostBy,
     failures,
     avgTurns: totalTurns / gameCount,
     longGames,

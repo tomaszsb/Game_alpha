@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.3.0] - 2026-10-06
+
+### Change orders are not design fees; the test suite stops running everything twice; the ghost bot tells wins from losses
+
+From the Manager brief 2026-10-05, Job 1. **Not deployed yet; held for the Manager's go.**
+
+- **A change order (Hire a Builder, return visit) no longer counts toward the 20% design-fee limit** (Tom, 2026-10-04: "fees are not part of 20%"). `FinancialEffectHandler.trackDesignExpenditure` booked every percentage-of-scope fee into `expenditures.design`, the tally the cap reads; `feeCategory: 'construction'` now goes to `expenditures.construction`. Architect and engineer fees still count. The money-log reason now says "Change order" for them. The dice number in that reason string only goes to the internal transaction log (nothing in the UI reads it), so no die number reaches players. Bot measurement on a scratch copy before porting: games reaching Finish 84 -> 152 of 226, fee-limit losses 78 -> 3. The end-turn warning and the loss-screen text already say "design fees" and now mean exactly that.
+- **`npm test` ran almost every test twice.** The root `include` in `vitest.config.dev.ts` leaked into the `e2e-heavy` project. Root include is now empty. Real size: **231 files / 3,567 tests, ~130 s** (was reported as 469 / 7,231, ~659 s). Note for the flaky-E2E story in TODO: the heavy files now run with a quieter machine; one green run proves nothing.
+- **Ghost bot: FINISHED vs LOST.** `tests/ghost/ghostPlayer.ts` called every ended game `WIN`, so bankruptcies and fee-cap losses counted as wins ("50/50 wins"). Results are now `FINISHED` or `LOST` (with `lossReason`: bankruptcy / design_fee_cap, and the space); batches report `wins` (finished only), `lost`, and `lostBy`. Re-baselined on the new rules: strict 35 finished / 15 lost, smart-bot 43 / 5 (+2 slow), negotiate-coverage 43; 0 hard failures. Floors set to 30 (strict) and 38 (smart-bot). **Finding:** 13 of strict's 15 losses are bankruptcy at CON-ISSUES.
+- **73 repeat tests removed:** `tests/isolated/*` (3 files, tested their own copies of functions), `playerPanelVisibility` (tested a copy of GameLayout code), `E2E-Lightweight` (+ its orphaned mocks), `E2E-04_EdgeCases` (a placeholder), `SpaceProgressionRegression` (computed its own answer), 7 exact duplicates in `GameLogRegression`, 2 type-only checks in `P1_AutomaticFunding_Fix`, 3 mock-only checks in `ActionSequenceRegression`. Before deleting `SpaceProgressionRegression`, a real test was written: Try Again (`discardTempState`) reverts money/time but keeps `visitedSpaces` and `visitType` (`StateService-tryAgainVisitHistory`). `package.json` (`test:isolated` removed) and the two shell scripts no longer point at deleted files.
+- **Player limit 4 everywhere:** the "game data not loaded" fallback in `StateService.canStartGame` was 6; now 4.
+- **Playtest-robot hooks (no visible wording changed):** `data-testid="current-player-turn"` (+ `data-player-name`) on the current player's turn chip, in both the expanded and the collapsed progress bar; `data-testid="player-progress-card"` with `data-player-name` and `data-finished` (true when the player is on an ending space, read from the data) on each player's card. No trophy hook yet (Job 3).
+
+**Tests.** `ChangeOrderNotDesignFee` (4), `StateService-tryAgainVisitHistory` (1), +1 player-limit, +2 ProjectProgress hooks.
+
+**To undo:** revert this commit.
+
 ## [3.2.99] - 2026-10-03
 
 ### "Resume as <name>" - a returning phone gets its own seat back in one tap

@@ -701,7 +701,7 @@ describe('StateService', () => {
     });
 
     it('should use fallback logic in canStartGame when DataService not loaded', () => {
-      // Add players within fallback range (1-6)
+      // Add players within fallback range (1-4)
       stateServiceWithUnloadedData.addPlayer('Alice');
       stateServiceWithUnloadedData.addPlayer('Bob');
       
@@ -712,14 +712,21 @@ describe('StateService', () => {
     });
 
     it('should use fallback logic when too many players for hardcoded limits', () => {
-      // Add 7 players (exceeds hardcoded max of 6)
+      // Add 7 players (exceeds hardcoded max of 4)
       for (let i = 1; i <= 7; i++) {
         stateServiceWithUnloadedData.addPlayer(`Player${i}`);
       }
       
       const canStart = stateServiceWithUnloadedData.canStartGame();
       
-      expect(canStart).toBe(false); // Should fail hardcoded limit of max 6 players
+      expect(canStart).toBe(false); // Should fail hardcoded limit of max 4 players
+    });
+
+    it('fallback player limit is 4 (matches the game data and the setup screen)', () => {
+      for (let i = 1; i <= 4; i++) stateServiceWithUnloadedData.addPlayer(`Player${i}`);
+      expect(stateServiceWithUnloadedData.canStartGame()).toBe(true);
+      stateServiceWithUnloadedData.addPlayer('Player5');
+      expect(stateServiceWithUnloadedData.canStartGame()).toBe(false);
     });
 
     it('should use fallback starting space when DataService not available', () => {

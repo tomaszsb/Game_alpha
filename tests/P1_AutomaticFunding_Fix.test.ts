@@ -260,30 +260,4 @@ describe('P1-CRITICAL: Automatic Funding Card Bug Fix', () => {
       );
     });
   });
-
-  describe('Method interface and contract verification', () => {
-    it('should exist on CardService and match expected signature', () => {
-      // Verify method exists and has correct signature
-      expect(typeof cardService.drawAndApplyCard).toBe('function');
-      expect(cardService.drawAndApplyCard.length).toBe(4); // 4 parameters expected
-
-      // Verify it returns the expected shape
-      const mockCard = { card_id: 'TEST001', card_name: 'Test Card', card_type: 'B', loan_amount: '500000' };
-      mockDataService.getCardById.mockReturnValue(mockCard);
-      vi.spyOn(cardService, 'drawCards').mockReturnValue(['TEST001']);
-
-      const result = cardService.drawAndApplyCard('player1', 'B', 'test', 'test reason');
-      
-      expect(result).toHaveProperty('drawnCardId');
-      expect(result).toHaveProperty('success');
-      expect(typeof result.success).toBe('boolean');
-    });
-
-    it('should be present in ICardService interface', () => {
-      // This test ensures the method is properly added to the interface
-      // If the interface doesn't have the method, TypeScript compilation would fail
-      const cardServiceAsInterface = cardService as any;
-      expect(typeof cardServiceAsInterface.drawAndApplyCard).toBe('function');
-    });
-  });
 });

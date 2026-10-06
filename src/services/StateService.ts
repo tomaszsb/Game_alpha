@@ -942,7 +942,8 @@ export class StateService implements IStateService {
       }
     }
 
-    return this.currentState.players.length >= 1 && this.currentState.players.length <= 6;
+    // Fallback when game data has not loaded: the data and the setup screen say 4.
+    return this.currentState.players.length >= 1 && this.currentState.players.length <= 4;
   }
 
   // Initialization methods

@@ -90,8 +90,9 @@ describe('Ghost Player coverage', () => {
     gameOutcomes.slice(0, 10).forEach((g, i) =>
       console.log(`  #${i + 1} ${g.reason} turns=${g.turns} uniqueSpaces=${g.uniqueSpaces}`)
     );
-    const wins = gameOutcomes.filter((g) => g.success).length;
-    console.log(`\nBatch: ${wins}/${gameOutcomes.length} wins`);
+    const wins = gameOutcomes.filter((g) => g.reason === 'FINISHED').length;
+    const lost = gameOutcomes.filter((g) => g.reason === 'LOST').length;
+    console.log(`\nBatch: ${wins}/${gameOutcomes.length} finished, ${lost} lost`);
     console.log('=====================================\n');
 
     // Write the report to a file (vitest buffers stdout)
@@ -115,7 +116,7 @@ describe('Ghost Player coverage', () => {
         (g, i) => `  #${i + 1} ${g.reason} turns=${g.turns} uniqueSpaces=${g.uniqueSpaces}`
       ),
       '',
-      `Batch: ${wins}/${gameOutcomes.length} wins`,
+      `Batch: ${wins}/${gameOutcomes.length} finished, ${lost} lost`,
     ].join('\n');
     writeFileSync(join(process.cwd(), 'ghost-coverage.txt'), report);
 

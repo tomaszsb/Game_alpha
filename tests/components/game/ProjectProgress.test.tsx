@@ -384,4 +384,46 @@ describe('ProjectProgress', () => {
     const timelineLabels = screen.getAllByText((content) => content.includes('⏱️'));
     expect(timelineLabels).toHaveLength(2);
   });
+
+  // Stable hooks for the playtest robot (Manager brief 2026-10-06): the visible
+  // wording is untouched; these ids are what the robot finds controls by.
+  it('exposes stable test ids for whose turn it is and for finished players', () => {
+    const finisher = { ...mockPlayers[0], id: 'player2', name: 'Bob', currentSpace: 'FINISH' };
+    (mockDataService.getGameConfigBySpace as any).mockImplementation((spaceName: string) =>
+      spaceName === 'FINISH'
+        ? { space_name: 'FINISH', phase: 'FINISH', is_ending_space: true }
+        : { space_name: spaceName, phase: 'CONSTRUCTION', is_ending_space: false });
+    render(
+      <ProjectProgress
+        players={[mockPlayers[0], finisher]}
+        currentPlayerId="player1"
+        dataService={mockDataService}
+        gameRulesService={mockGameRulesService}
+        onToggleGameLog={mockOnToggleGameLog}
+        onOpenRulesModal={mockOnOpenRulesModal}
+      />
+    );
+    // Expanded view: the current-player chip carries the id.
+    expect(screen.getByTestId('current-player-turn').getAttribute('data-player-name')).toBe('Alice');
+    const cards = screen.getAllByTestId('player-progress-card');
+    expect(cards.map(c => [c.getAttribute('data-player-name'), c.getAttribute('data-finished')]))
+      .toEqual([['Alice', 'false'], ['Bob', 'true']]);
+  });
+
+  it('puts the same test id on the Turn line of the collapsed bar', () => {
+    render(
+      <ProjectProgress
+        players={mockPlayers}
+        currentPlayerId="player1"
+        dataService={mockDataService}
+        gameRulesService={mockGameRulesService}
+        onToggleGameLog={mockOnToggleGameLog}
+        onOpenRulesModal={mockOnOpenRulesModal}
+        collapsed
+      />
+    );
+    const turn = screen.getByTestId('current-player-turn');
+    expect(turn.getAttribute('data-player-name')).toBe('Alice');
+    expect(turn).toHaveTextContent('Alice’s Turn');
+  });
 });

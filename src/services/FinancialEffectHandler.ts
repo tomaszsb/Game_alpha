@@ -258,9 +258,13 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     const updateData: Partial<Player> = {};
 
     if (player.expenditures) {
+      // A change order (feeCategory 'construction') is construction money, not a
+      // design fee (Tom, 2026-10-04: "fees are not part of 20%") — only architect
+      // and engineer fees feed the tally the 20% cap reads.
+      const bucket = payload.feeCategory === 'construction' ? 'construction' : 'design';
       updateData.expenditures = {
         ...player.expenditures,
-        design: (player.expenditures.design || 0) + feeAmount
+        [bucket]: (player.expenditures[bucket] || 0) + feeAmount
       };
     }
 

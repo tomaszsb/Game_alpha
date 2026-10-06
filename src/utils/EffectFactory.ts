@@ -749,7 +749,7 @@ export class EffectFactory {
               percentageOfScope: percentage,
               feeCategory,
               source,
-              reason: `Design fee: ${rollEffect} of project scope (rolled ${diceRoll})`
+              reason: `${feeCategory === 'construction' ? 'Change order' : 'Design fee'}: ${rollEffect} of project scope (rolled ${diceRoll})`
             }
           });
         } else {

@@ -82,12 +82,12 @@ describe('Ghost Player', () => {
       detectLoops: true,
       progressLabel: 'smart-bot',
     });
-    console.log(`[ghost try-again smart baseSeed=100001] ${batch.wins}/${batch.total} wins, avgTurns=${batch.avgTurns.toFixed(1)}`);
+    console.log(`[ghost try-again smart baseSeed=100001] ${batch.wins}/${batch.total} finished, ${batch.lost} lost ${JSON.stringify(batch.lostBy)}, avgTurns=${batch.avgTurns.toFixed(1)}`);
 
     const hardFailures = batch.failures.filter(isHardFailure);
 
     const summary =
-      `\n[try-again smart-bot] ${batch.failures.length}/${batch.total} failures (${hardFailures.length} hard), ${batch.wins} wins, avgTurns=${batch.avgTurns.toFixed(1)}\n` +
+      `\n[try-again smart-bot] ${batch.failures.length}/${batch.total} failures (${hardFailures.length} hard), ${batch.wins} finished, ${batch.lost} lost ${JSON.stringify(batch.lostBy)}, avgTurns=${batch.avgTurns.toFixed(1)}\n` +
       batch.failures
         .slice(0, 8)
         .map((f: GhostGameResult, i: number) => {
@@ -100,6 +100,8 @@ describe('Ghost Player', () => {
       test: 'smart-bot',
       baseSeed: 100001,
       wins: batch.wins,
+      lost: batch.lost,
+      lostBy: batch.lostBy,
       total: batch.total,
       avgTurns: Number(batch.avgTurns.toFixed(1)),
       longGames: batch.longGames,
@@ -119,6 +121,10 @@ describe('Ghost Player', () => {
     // detectLoops:true means a 300-turn exact-cycle non-finish would now count as a
     // hard LOOP failure; 0 today confirms rational play never soft-locks. Each run is
     // appended to .claude/ghost-history.jsonl.
-    expect(batch.wins, summary).toBeGreaterThanOrEqual(43);
+    // RE-BASELINED 2026-10-06: `wins` counts only games that reach FINISH now (a
+    // bankruptcy or fee-cap loss used to count too, hence the old 50/50). Measured
+    // after the change-order fee fix: 43 finished, 5 lost, 2 slow (turn cap), 0 hard failures. Floor 38
+    // keeps headroom (the run is deterministic, but balance edits shift it).
+    expect(batch.wins, summary).toBeGreaterThanOrEqual(38);
   }, 2_700_000);
 });

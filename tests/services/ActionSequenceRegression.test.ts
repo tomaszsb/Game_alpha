@@ -224,36 +224,6 @@ describe('Action Sequence Regression Tests', () => {
     });
   });
 
-  describe('CRITICAL: MovementService No Longer Logs Space Entry', () => {
-    it('should NOT log space entry from MovementService.endMove', async () => {
-      // Mock the async endMove method
-      const mockEndMove = vi.spyOn(movementService, 'endMove').mockResolvedValue(mockGameState);
-
-      // Call endMove (MovementService should not log space entry anymore)
-      await movementService.endMove('player1');
-
-      // CRITICAL: MovementService should NOT log space entry anymore
-      const spaceEntryLogs = capturedLogs.filter(log => log.type === 'space_entry');
-      expect(spaceEntryLogs).toHaveLength(0);
-
-      // Movement method should still be called
-      expect(mockEndMove).toHaveBeenCalledWith('player1');
-    });
-
-    it('should only handle movement logic without logging', async () => {
-      // Mock movement method
-      const mockMovePlayer = vi.spyOn(movementService, 'movePlayer').mockResolvedValue(mockGameState);
-
-      await movementService.movePlayer('player1', 'DESTINATION-SPACE');
-
-      // CRITICAL: No logging should occur in MovementService
-      expect(capturedLogs).toHaveLength(0);
-
-      // But movement logic should still execute
-      expect(mockMovePlayer).toHaveBeenCalledWith('player1', 'DESTINATION-SPACE');
-    });
-  });
-
   describe('CRITICAL: Integration - Full Turn Flow Sequence', () => {
     it('should demonstrate the complete correct action sequence', async () => {
       // Mock all dependencies for full flow
@@ -305,28 +275,6 @@ describe('Action Sequence Regression Tests', () => {
   });
 
   describe('CRITICAL: Edge Cases and Error Prevention', () => {
-    it('should handle multiple space entries correctly (no duplicates from MovementService)', async () => {
-      // Ensure we don't accidentally create duplicate space entry logs
-
-      // MovementService should not log anything
-      const mockMovePlayer = vi.spyOn(movementService, 'movePlayer').mockResolvedValue(mockGameState);
-      await movementService.movePlayer('player1', 'SOME-SPACE');
-
-      // Should still be 0 logs from MovementService
-      expect(capturedLogs).toHaveLength(0);
-
-      // Only TurnService should create space entry logs
-      loggingService.info('TestPlayer entered space: SOME-SPACE (First visit)', {
-        playerId: 'player1',
-        action: 'space_entry',
-        spaceName: 'SOME-SPACE'
-      });
-
-      // Should now have exactly 1 space entry log
-      const spaceEntryLogs = capturedLogs.filter(log => log.type === 'space_entry');
-      expect(spaceEntryLogs).toHaveLength(1);
-    });
-
     it('should handle different visit types in space entry logs', () => {
       // Test both First and Subsequent visit types
       loggingService.info('TestPlayer entered space: SPACE-A (First visit)', {

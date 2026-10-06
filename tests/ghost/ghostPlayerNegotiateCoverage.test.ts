@@ -45,12 +45,12 @@ describe('Ghost Player', () => {
       // ≥20 deliberately.
       perGameTimeoutMs: 60000,
     });
-    console.log(`[ghost negotiate-coverage baseSeed=100001] ${batch.wins}/${batch.total} wins, avgTurns=${batch.avgTurns.toFixed(1)}`);
+    console.log(`[ghost negotiate-coverage baseSeed=100001] ${batch.wins}/${batch.total} finished, ${batch.lost} lost ${JSON.stringify(batch.lostBy)}, avgTurns=${batch.avgTurns.toFixed(1)}`);
 
     const hardFailures = batch.failures.filter(isHardFailure);
 
     const summary =
-      `\n[negotiate-coverage] ${batch.failures.length}/${batch.total} failures (${hardFailures.length} hard), ${batch.wins} wins, avgTurns=${batch.avgTurns.toFixed(1)}\n` +
+      `\n[negotiate-coverage] ${batch.failures.length}/${batch.total} failures (${hardFailures.length} hard), ${batch.wins} finished, ${batch.lost} lost ${JSON.stringify(batch.lostBy)}, avgTurns=${batch.avgTurns.toFixed(1)}\n` +
       batch.failures
         .slice(0, 8)
         .map((f: GhostGameResult, i: number) => {

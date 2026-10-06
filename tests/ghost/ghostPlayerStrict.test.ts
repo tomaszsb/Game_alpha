@@ -88,12 +88,12 @@ describe('Ghost Player', () => {
       // now, not less. Revisit consciously if wanted, not as a side effect.
       perGameTimeoutMs: 60000,
     });
-    console.log(`[ghost strict baseSeed=1] ${batch.wins}/${batch.total} wins, avgTurns=${batch.avgTurns.toFixed(1)}`);
+    console.log(`[ghost strict baseSeed=1] ${batch.wins}/${batch.total} finished, ${batch.lost} lost ${JSON.stringify(batch.lostBy)}, avgTurns=${batch.avgTurns.toFixed(1)}`);
 
     const hardFailures = batch.failures.filter(isHardFailure);
 
     const summary =
-      `\n${batch.failures.length}/${batch.total} failures (${hardFailures.length} hard), ${batch.wins} wins, avgTurns=${batch.avgTurns.toFixed(1)}\n` +
+      `\n${batch.failures.length}/${batch.total} failures (${hardFailures.length} hard), ${batch.wins} finished, ${batch.lost} lost ${JSON.stringify(batch.lostBy)}, avgTurns=${batch.avgTurns.toFixed(1)}\n` +
       batch.failures
         .slice(0, 8)
         .map((f: GhostGameResult, i: number) => {
@@ -122,7 +122,12 @@ describe('Ghost Player', () => {
     // "measured − small buffer" (~45-47) — leaves real headroom below the
     // current 50/50 so normal future balance drift doesn't flake the gate,
     // while still meaningfully raising the bar from the old 72% (36/50).
-    expect(batch.wins, summary).toBeGreaterThanOrEqual(38);
+    // RE-BASELINED 2026-10-06: `wins` now counts only games that reach FINISH
+    // (before, a bankruptcy or a fee-cap loss was also counted as a "win", which is
+    // why this read 50/50). Measured with change orders no longer counted as design
+    // fees (v3.3.0): 35 finished, 15 lost (13 of them bankruptcy at CON-ISSUES), 0
+    // hard failures. Floor 30 leaves headroom; it is a minimum, not a target.
+    expect(batch.wins, summary).toBeGreaterThanOrEqual(30);
     // Timeout raised 900000 → 1800000 (2026-06-14): 50 games at the current
     // game length need ~15-20 min (the sibling negotiate-coverage run takes
     // ~17 min), so the old 15-min budget timed out before reaching the

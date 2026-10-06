@@ -163,7 +163,7 @@ describe('Ghost over a baked classroom with an authored insertion', () => {
     const hard = results.filter(isHardFailure);
     expect(hard, hard.map(r => `${r.reason}: ${r.error}`).join('\n')).toEqual([]);
     // And the authored splice didn't make the board unwinnable.
-    expect(results.some(r => r.reason === 'WIN')).toBe(true);
+    expect(results.some(r => r.reason === 'FINISHED')).toBe(true);
   }, 180000);
 
   it('catches an authored dice space that cycles back on itself as a LOOP (the safety net has teeth)', async () => {

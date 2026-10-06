@@ -72,23 +72,16 @@ run_batch "utilities" \
     "tests/utils/actionLogFormatting.test.ts" \
     "tests/utils/buttonFormatting.test.ts"
 
-# Batch 7: Isolated Tests
-run_batch "isolated" \
-    "tests/isolated/gameLogic.test.ts" \
-    "tests/isolated/utils.test.ts"
-
 # Batch 8: E2E Tests
 run_batch "e2e-tests" \
     "tests/E2E-05_MultiPlayerEffects.test.ts" \
-    "tests/E2E-01_HappyPath.test.ts" \
-    "tests/E2E-04_EdgeCases.test.ts"
+    "tests/E2E-01_HappyPath.test.ts"
 
 # Batch 9: Integration Tests
 run_batch "integration-tests" \
     "tests/E012-integration.test.ts" \
     "tests/E066-reroll-integration.test.ts" \
-    "tests/E066-simple.test.ts" \
-    "tests/E2E-Lightweight.test.ts"
+    "tests/E066-simple.test.ts"
 
 # Batch 10: Component Tests (smaller batches)
 run_batch "core-components" \

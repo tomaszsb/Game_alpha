@@ -58,6 +58,7 @@ describe('LOOP detection (detectSpaceLoop / isHardFailure)', () => {
     expect(isHardFailure({ ...base, reason: 'EXCEPTION' })).toBe(true);
     expect(isHardFailure({ ...base, reason: 'INVARIANT_VIOLATION' })).toBe(true);
     expect(isHardFailure({ ...base, reason: 'TURN_CAP' })).toBe(false);
-    expect(isHardFailure({ ...base, reason: 'WIN', success: true })).toBe(false);
+    expect(isHardFailure({ ...base, reason: 'FINISHED', success: true })).toBe(false);
+    expect(isHardFailure({ ...base, reason: 'LOST', success: true })).toBe(false);
   });
 });

@@ -23,7 +23,7 @@ export interface EndTurnWarning {
 export interface EndTurnWarningInput {
   /** Cash right now, including this turn's provisional bills (can be negative). */
   money: number;
-  /** Architect + engineer (+ change-order) fees paid so far, including this turn's. */
+  /** Architect + engineer fees paid so far, including this turn's (change orders are NOT design fees). */
   designFees: number;
   /** The player's current project scope. */
   scope: number;

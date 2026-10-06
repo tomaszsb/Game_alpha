@@ -214,7 +214,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           📊 {overallProgress.leadingPhase}
         </span>
         {currentPlayer && (
-          <span style={{ fontSize: '0.8rem', color: dark ? dp.muted : colors.secondary.dark }}>
+          <span data-testid="current-player-turn" data-player-name={currentPlayer.name} style={{ fontSize: '0.8rem', color: dark ? dp.muted : colors.secondary.dark }}>
             ▶ {currentPlayer.name}’s Turn
           </span>
         )}
@@ -592,7 +592,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           {players.length} {players.length === 1 ? 'Player' : 'Players'}
         </div>
         {currentPlayer && (
-          <div style={{
+          <div data-testid="current-player-turn" data-player-name={currentPlayer.name} style={{
             background: dark ? dp.goodSurf : colors.success.bg,
             color: dark ? dp.good : colors.text.success,
             padding: '1px 6px',
@@ -641,7 +641,13 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             const designFeeColor = designFee.color;
 
             return (
-              <div key={player.id} style={playerItemStyle}>
+              <div
+                key={player.id}
+                style={playerItemStyle}
+                data-testid="player-progress-card"
+                data-player-name={player.name}
+                data-finished={String(dataService.getGameConfigBySpace(player.currentSpace)?.is_ending_space === true)}
+              >
                 <div style={{ ...playerNameStyle, display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <PlayerAvatar avatar={player.avatar} color={player.color} size={20} title={player.name} /> {player.name}
                 </div>

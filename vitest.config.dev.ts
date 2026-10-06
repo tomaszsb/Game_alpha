@@ -72,10 +72,12 @@ export default defineConfig({
     // Use jsdom for all tests (component tests need it, service tests work with it)
     environment: 'jsdom',
 
-    include: [
-      'tests/**/*.test.ts',
-      'tests/**/*.test.tsx'
-    ],
+    // Root include is deliberately EMPTY (2026-10-06). Projects do not inherit
+    // `include`, but a non-empty root include was leaking into the e2e-heavy
+    // project, so that project ran the WHOLE suite serially on top of its 3 heavy
+    // files — every test ran twice (about 236 files / 3,632 tests, not the 469 /
+    // 7,231 `npm test` printed; 659 s vs 172 s). Each project lists its own files.
+    include: [],
     exclude: [
       'tests/**/*.lightweight.test.ts',  // Exclude Jest-specific optimized tests
       'tests/**/*.optimized.test.ts',    // Exclude Jest-specific optimized tests

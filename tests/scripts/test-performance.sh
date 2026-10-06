@@ -45,15 +45,6 @@ echo ""
 # Test our lightweight service tests
 run_test_category "Lightweight ResourceService" "tests/services/ResourceService.optimized.test.ts" 60
 
-# Test our isolated utility tests  
-run_test_category "Isolated Utils" "tests/isolated/utils.test.ts" 30
-
-# Test our isolated game logic
-run_test_category "Isolated Game Logic" "tests/isolated/gameLogic.test.ts" 30
-
-# Test our lightweight E2E
-run_test_category "Lightweight E2E" "tests/E2E-Lightweight.test.ts" 60
-
 echo "📈 Performance Summary:"
 echo "======================"
 echo "Target: Individual test files should complete in 5-30 seconds"
