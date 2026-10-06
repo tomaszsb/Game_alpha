@@ -452,6 +452,37 @@ describe('Phase 4a bake: teacher-authored insertions', () => {
     expect(JSON.parse(readResolved('validation-report.json')).ok).toBe(true);
   });
 
+  // R1 (editor review 2026-10-05): a teacher pressing Enter in the story box wrote a
+  // multi-line quoted field; the old server parser cut rows at every line break, so
+  // the authored row lost its exit and every game got stuck on the new space while
+  // the save check said OK.
+  it('keeps the exit of an authored space whose story has a line break', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    const id = addInsertion(config, {
+      from: 'BETA-MIDDLE',
+      to: 'GAMMA-FORK',
+      displayName: 'Two Line Story',
+      story: 'First line.\nSecond line, with a comma.',
+      time: '3',
+    });
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion: computeStockVersion(stockDir) });
+
+    const rows = parseCsvWithHeaders(readResolved('SOURCE_FILES/Spaces.csv'));
+    const first = rows.find(r => r.space_name === id && r.visit_type === 'First')!;
+    expect(first.Event).toBe('First line.\nSecond line, with a comma.');
+    expect(first.space_1).toBe('GAMMA-FORK');
+    expect(first.Time).toBe('3');
+    // No junk rows made from the second line of the story.
+    expect(rows.filter(r => r.space_name.startsWith('Second line'))).toHaveLength(0);
+
+    const movement = parseCsvWithHeaders(readResolved('CLEAN_FILES/MOVEMENT.csv'));
+    const authMove = movement.find(r => r.space_name === id && r.visit_type === 'First')!;
+    expect(authMove.movement_type).toBe('fixed');
+    expect(authMove.destination_1).toBe('GAMMA-FORK');
+    expect(movement.filter(r => r.space_name.startsWith('Second line'))).toHaveLength(0);
+  });
+
   it('auto-places the authored tile at the spliced edge midpoint when no position is given', () => {
     setupPhase2Stock();
     const config = createInstance(instancesRoot, { id: 'classroom-1' });

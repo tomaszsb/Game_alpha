@@ -774,7 +774,7 @@ export class DataService implements IDataService {
   }
 
   private parseCardTypeLabelsCsv(csvText: string): CardTypeLabel[] {
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     if (lines.length < 2) return [];
     const get = this.csvFieldReader(lines[0]);
     const header = this.parseCsvLine(lines[0]).map(h => h.trim());
@@ -922,7 +922,7 @@ export class DataService implements IDataService {
   }
 
   private parseCharactersCsv(csvText: string): CharacterCsvRow[] {
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     if (lines.length < 2) return [];
     const get = this.csvFieldReader(lines[0]);
     return lines.slice(1)
@@ -973,7 +973,7 @@ export class DataService implements IDataService {
   }
 
   private parseViolationRulesCsv(csvText: string): ViolationRuleCsvRow[] {
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     if (lines.length < 2) return [];
     const get = this.csvFieldReader(lines[0]);
     return lines.slice(1)
@@ -1015,7 +1015,7 @@ export class DataService implements IDataService {
   private parseScopeWordingCsv(csvText: string): void {
     this.scopeProjectTypes = [];
     this.cardScopeTemplates = new Map();
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     if (lines.length < 2) return;
     const get = this.csvFieldReader(lines[0]);
     for (const line of lines.slice(1)) {
@@ -1069,7 +1069,7 @@ export class DataService implements IDataService {
   }
 
   private parseUIStringsCsv(csvText: string): UIStringCsvRow[] {
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     if (lines.length < 2) return [];
     const get = this.csvFieldReader(lines[0]);
     return lines.slice(1)
@@ -1095,7 +1095,7 @@ export class DataService implements IDataService {
   }
 
   private parsePathChoiceRulesCsv(csvText: string): PathChoiceRule[] {
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     if (lines.length < 2) return [];
     const get = this.csvFieldReader(lines[0]);
     return lines.slice(1)
@@ -1133,7 +1133,7 @@ export class DataService implements IDataService {
 
   // CSV parsing methods
   private parseGameConfigCsv(csvText: string): GameConfig[] {
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     const get = this.csvFieldReader(lines[0]);
     // B1: a board without this column would silently stop every automatic
     // review roll — say so instead of failing quietly.
@@ -1232,7 +1232,7 @@ export class DataService implements IDataService {
   }
 
   private parseMovementCsv(csvText: string): Movement[] {
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     const get = this.csvFieldReader(lines[0]);
 
     return lines.slice(1).map(line => {
@@ -1256,7 +1256,7 @@ export class DataService implements IDataService {
   }
 
   private parseDiceOutcomesCsv(csvText: string): DiceOutcome[] {
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     const get = this.csvFieldReader(lines[0]);
 
     return lines.slice(1).map(line => {
@@ -1275,7 +1275,7 @@ export class DataService implements IDataService {
   }
 
   private parseSpaceEffectsCsv(csvText: string): SpaceEffect[] {
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
 
     // Header-name indexing (not fixed column position) — mirrors the
     // header.indexOf(name) approach csvExport.ts uses for Spaces.csv /
@@ -1342,7 +1342,7 @@ export class DataService implements IDataService {
   }
 
   private parseDiceEffectsCsv(csvText: string): DiceEffect[] {
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     const get = this.csvFieldReader(lines[0]);
 
     return lines.slice(1).map(line => {
@@ -1368,7 +1368,7 @@ export class DataService implements IDataService {
   }
 
   private parseSpaceContentCsv(csvText: string): SpaceContent[] {
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     const get = this.csvFieldReader(lines[0]);
 
     return lines.slice(1).map(line => {
@@ -1422,7 +1422,7 @@ export class DataService implements IDataService {
    */
   private parseLogicQuestionsCsv(csvText: string): LogicQuestion[] {
     if (!csvText) return [];
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     if (lines.length < 2) return [];
 
     const get = this.csvFieldReader(lines[0]);
@@ -1449,7 +1449,7 @@ export class DataService implements IDataService {
   private parseModalConfigCsv(csvText: string): Map<string, ModalConfigOverrides> {
     const map = new Map<string, ModalConfigOverrides>();
     if (!csvText) return map;
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     if (lines.length < 2) return map;
     const get = this.csvFieldReader(lines[0]);
     for (let i = 1; i < lines.length; i++) {
@@ -1474,12 +1474,14 @@ export class DataService implements IDataService {
     const result: string[] = [];
     let current = '';
     let inQuotes = false;
-    
+
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
-      
+
       if (char === '"') {
-        inQuotes = !inQuotes;
+        // "" inside quotes is one literal quote (the server's toCsv writes it so)
+        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+        else inQuotes = !inQuotes;
       } else if (char === ',' && !inQuotes) {
         result.push(current.trim());
         current = '';
@@ -1487,9 +1489,36 @@ export class DataService implements IDataService {
         current += char;
       }
     }
-    
+
     result.push(current.trim());
     return result;
+  }
+
+  /**
+   * Split CSV text into records, one string per record, cutting at line breaks
+   * OUTSIDE quotes only. A story a teacher typed with Enter in it is a quoted field
+   * holding a line break; cutting at every line break (what the loaders did before
+   * 2026-10-06) tore its row in two and left the new space with no exit. Each
+   * returned string goes through parseCsvLine as before. Trailing CR is dropped
+   * (parseCsvLine trims cells anyway). An unclosed quote falls back to the plain
+   * line-by-line split so one stray quote cannot swallow the rest of a file.
+   */
+  private splitCsvRecords(csvText: string): string[] {
+    const text = csvText.trim();
+    const records: string[] = [];
+    let start = 0;
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === '"') inQuotes = !inQuotes;
+      else if (char === '\n' && !inQuotes) {
+        records.push(text.slice(start, i));
+        start = i + 1;
+      }
+    }
+    if (inQuotes) return text.split('\n');
+    records.push(text.slice(start));
+    return records;
   }
 
   /**
@@ -1536,7 +1565,7 @@ export class DataService implements IDataService {
       'discard_e_or_delay', 'notice_of_violation_flat', 'notice_of_violation_daily',
     ]);
 
-    const lines = csvText.trim().split('\n');
+    const lines = this.splitCsvRecords(csvText);
     if (lines.length < 2) {
       throw new Error('CARDS_EXPANDED.csv must have at least a header row and one data row');
     }

@@ -93,7 +93,10 @@ beforeAll(() => {
     from: 'OWNER-SCOPE-INITIATION',
     to: 'OWNER-FUND-INITIATION',
     displayName: 'Pre-Filing Orientation',
-    story: 'A quick orientation before funding.',
+    // Two lines, with a comma: a teacher pressing Enter in the story box. This used to
+    // cut the baked row short, leave the space with no exit and trap every game on it
+    // (editor review 2026-10-05, R1) while the save check said OK.
+    story: 'A quick orientation before funding.\nSecond line, with a comma.',
     time: '1',
     fee: '1000',
     cardDraw: { type: 'E', count: 1 },

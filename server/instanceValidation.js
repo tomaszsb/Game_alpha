@@ -297,9 +297,21 @@ export function validateInsertions({ config, names, rowsByName, off, diceDests =
         where({ code: 'INSERT_BAD_FEE_PERCENT', message: `Insertion "${id}": a percentage fee must be more than 0 and at most 100` });
       }
     }
+
+    // Days and flat fee are read by the pipeline with parseInt, so "one week" or
+    // "$5k" would silently charge nothing (editor review R4). Whole numbers only.
+    if (ins.time != null && ins.time !== '' && !WHOLE_NUMBER.test(String(ins.time).trim())) {
+      where({ code: 'INSERT_BAD_TIME', message: `Insertion "${id}": days must be a whole number like 3` });
+    }
+    if (ins.fee != null && ins.fee !== '' && !WHOLE_NUMBER.test(String(ins.fee).trim())) {
+      where({ code: 'INSERT_BAD_FEE', message: `Insertion "${id}": a flat fee must be a whole number of dollars like 5000 (use the percentage box for a percentage)` });
+    }
   }
   return errors;
 }
+
+/** Digits only, no sign, decimal point, words or symbols. */
+const WHOLE_NUMBER = /^\d{1,9}$/;
 
 /** Card decks an authored space may deal from, and a sane upper bound. */
 const CARD_DECKS = new Set(['W', 'B', 'I', 'L', 'E']);

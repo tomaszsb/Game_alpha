@@ -31,19 +31,62 @@ export function parseCsvLine(line) {
 }
 
 /**
+ * Split CSV text into records of trimmed fields, honouring quoted fields: a line
+ * break (or a comma) inside quotes stays inside the field, and "" inside quotes is
+ * one literal quote. (The old reader cut the text at EVERY line break, so a story
+ * typed with Enter in a teacher's textarea lost the rest of its row: the new space
+ * got no exit and games got stuck on it, while the save check still said OK.)
+ *
+ * Fields are trimmed, as before. A lone CR outside quotes stays in the field and is
+ * trimmed away (DiceRoll Info.csv has a stray one in every row). If the text ends
+ * while still inside quotes the file is malformed; fall back to the legacy
+ * line-by-line split so a stray quote can't swallow the rest of a stock file.
+ * @param {string} csvText
+ * @returns {string[][]}
+ */
+export function parseCsvRecords(csvText) {
+  const text = csvText.replace(/^\uFEFF/, '').trim();
+  if (!text) return [];
+  const records = [];
+  let fields = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '"') {
+      if (inQuotes && text[i + 1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      fields.push(current.trim());
+      current = '';
+    } else if (char === '\n' && !inQuotes) {
+      fields.push(current.trim());
+      records.push(fields);
+      fields = [];
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  if (inQuotes) {
+    return text.split('\n').map(l => parseCsvLine(l.replace(/\r$/, '')));
+  }
+  fields.push(current.trim());
+  records.push(fields);
+  return records;
+}
+
+/**
  * @param {string} csvText
  * @returns {Array<Object<string, string>>}
  */
 export function parseCsvWithHeaders(csvText) {
-  // Remove BOM if present
-  const text = csvText.replace(/^\uFEFF/, '');
-  const lines = text.trim().split('\n').map(l => l.replace(/\r$/, ''));
-  if (lines.length < 2) return [];
+  const records = parseCsvRecords(csvText);
+  if (records.length < 2) return [];
 
-  const headers = parseCsvLine(lines[0]);
-  return lines.slice(1)
-    .map(line => {
-      const values = parseCsvLine(line);
+  const headers = records[0];
+  return records.slice(1)
+    .map(values => {
       const row = {};
       headers.forEach((h, i) => { row[h] = values[i] || ''; });
       return row;
@@ -240,6 +283,13 @@ function processGameConfig(spacesCsv) {
     const pathType = row.path || '';
     // Workstream 6 #1: read is_starting_space from source.
     const isStarting = (row.is_starting_space || '').trim() === 'Yes';
+    // The ending space is data too (2026-10-06): the `is_ending_space` column. Only
+    // a Spaces.csv that has no such column at all (an older stock or fixture) falls
+    // back to the old name, 'FINISH'. A teacher can't switch it off: spaceProtection
+    // reads the same column.
+    const isEnding = 'is_ending_space' in row
+      ? (row.is_ending_space || '').trim() === 'Yes'
+      : spaceName === 'FINISH';
     // Workstream 6 #5+#6: read resume-mechanic flags from source.
     // is_resume_hub: this space is where players check in from side quests
     //   (was hardcoded to PM-DECISION-CHECK in MovementService).
@@ -326,7 +376,7 @@ function processGameConfig(spacesCsv) {
       phase,
       path_type: pathType,
       is_starting_space: isStarting ? 'Yes' : 'No',
-      is_ending_space: spaceName === 'FINISH' ? 'Yes' : 'No',
+      is_ending_space: isEnding ? 'Yes' : 'No',
       min_players: '1',
       max_players: '4',
       requires_dice_roll: row.requires_dice_roll || 'Yes',

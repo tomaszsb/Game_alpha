@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { diffSubmittedContent, restrictChangesToWording, TEACHER_EDITABLE_COLUMNS } from '../../server/instanceContentDiff.js';
+import { diffSubmittedContent, restrictChangesToWording, findBadWordingNumbers, TEACHER_EDITABLE_COLUMNS } from '../../server/instanceContentDiff.js';
 import {
   parseSpacesCSV,
   exportSpacesCSV,
@@ -414,5 +414,37 @@ describe('restrictChangesToWording', () => {
     expect([...TEACHER_EDITABLE_COLUMNS]).toEqual(
       ['Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee']
     );
+  });
+});
+
+// R4 (editor review 2026-10-05): Time and Fee are read as numbers, and a fee with a
+// "%" or "dice" changes the rule the space runs. A teacher's edit must be plain.
+describe('findBadWordingNumbers', () => {
+  const row = (extra: Record<string, string>) => ({ space_name: 'BETA-MIDDLE', visit_type: 'First', ...extra });
+  const bad = (extra: Record<string, string>) =>
+    findBadWordingNumbers({ changed: [{ slot: 'BETA-MIDDLE', rows: [row(extra)] }], stockSpacesCsv: STOCK_SPACES });
+
+  it('accepts plain days and dollars, and blank', () => {
+    expect(bad({ Time: '5', Fee: '5000' })).toEqual([]);
+    expect(bad({ Time: '5 days', Fee: '$5,000' })).toEqual([]);
+    expect(bad({ Time: '', Fee: '' })).toEqual([]);
+  });
+
+  it('refuses words, percentages and decimals a teacher might type', () => {
+    expect(bad({ Time: 'one week' }).map(p => p.column)).toEqual(['Time']);
+    expect(bad({ Fee: '2%' }).map(p => p.column)).toEqual(['Fee']);
+    expect(bad({ Fee: 'based on dice roll' }).map(p => p.column)).toEqual(['Fee']);
+    expect(bad({ Time: '2.5' }).map(p => p.column)).toEqual(['Time']);
+    expect(bad({ Time: '-3' }).map(p => p.column)).toEqual(['Time']);
+  });
+
+  it('leaves a value the board already holds alone, even if it is prose', () => {
+    const baseline = STOCK_SPACES.replace('BETA-MIDDLE,SETUP,First,Middle,Mid.,Go,Done,2,50', 'BETA-MIDDLE,SETUP,First,Middle,Mid.,Go,Done,1 day per $200K,50');
+    const out = findBadWordingNumbers({
+      changed: [{ slot: 'BETA-MIDDLE', rows: [row({ Time: '1 day per $200K', Fee: '50' })] }],
+      baselineSpacesCsv: baseline,
+      stockSpacesCsv: STOCK_SPACES,
+    });
+    expect(out).toEqual([]);
   });
 });

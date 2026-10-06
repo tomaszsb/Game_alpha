@@ -19,6 +19,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { processGameData, parseCsvLine, parseCsvWithHeaders, toCsv } from './processGameData.js';
+import { checkBoard } from './boardCheck.js';
 import { validateConfig, inactiveSpaces } from './instanceValidation.js';
 import { assertValidInstanceId } from './instanceStore.js';
 
@@ -707,11 +708,19 @@ export function sweepBakeDebris(instancesRoot, id) {
  * Bake one classroom: write a complete resolved set into resolved.new-*,
  * then swap it into place. Throws on any failure — the active resolved/
  * dir is only replaced after the new one is fully written.
+ *
+ * `trial: true` (2026-10-06) builds the whole board into the scratch dir, runs the
+ * board check (boardCheck.checkBoard: can players still get from start to finish?)
+ * on the BUILT files, deletes the scratch dir and returns `{ trial: true,
+ * boardReport }` instead of a stamp. Nothing is swapped in. The save routes call it
+ * before they save, so a teacher edit that would produce an unwinnable board is
+ * refused with the reason instead of being saved.
  * @param {{ stockDataDir: string, instancesRoot: string,
- *   config: import('./instanceStore.js').InstanceConfig, stockVersion: string }} args
- * @returns {BakeStamp}
+ *   config: import('./instanceStore.js').InstanceConfig, stockVersion: string,
+ *   trial?: boolean }} args
+ * @returns {BakeStamp | { trial: true, boardReport: ReturnType<typeof checkBoard> }}
  */
-export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion }) {
+export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion, trial = false }) {
   const id = config.meta.id;
   sweepBakeDebris(instancesRoot, id);
 
@@ -842,6 +851,21 @@ export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion
         const appended = appendAuthoredDiceOutcomes(fs.readFileSync(outcomesPath, 'utf-8'), authoredDiceRows);
         fs.writeFileSync(outcomesPath, appended, 'utf-8');
       }
+    }
+
+    if (trial) {
+      const readClean = f => {
+        const fp = path.join(newCleanDir, f);
+        return fs.existsSync(fp) ? fs.readFileSync(fp, 'utf-8') : '';
+      };
+      const boardReport = checkBoard({
+        gameConfigCsv: readClean('GAME_CONFIG.csv'),
+        movementCsv: readClean('MOVEMENT.csv'),
+        diceOutcomesCsv: readClean('DICE_OUTCOMES.csv'),
+        logicQuestionsCsv: readClean('LOGIC_QUESTIONS.csv'),
+      });
+      fs.rmSync(newDir, { recursive: true, force: true });
+      return { trial: true, boardReport };
     }
 
     // 3. Validation report (the catalog UI's data source), stamp, swap.

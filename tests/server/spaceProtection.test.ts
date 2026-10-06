@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { computeProtection, SEMANTIC_ANCHORS } from '../../server/spaceProtection.js';
+import { validateConfig } from '../../server/instanceValidation.js';
 
 const HEADER =
   'space_name,visit_type,Title,space_1,is_starting_space,is_ending_space,is_resume_hub,path_choice_memory_key,is_path_choice_lock_point';
@@ -98,5 +99,36 @@ describe('SEMANTIC_ANCHORS audit (keeps the list honest)', () => {
       `Engine code references board spaces not in SEMANTIC_ANCHORS: ${uncovered.join(', ')} — ` +
       'add them to server/spaceProtection.js (or graduate the feature via a ghost-batch gate first)'
     ).toEqual([]);
+  });
+});
+
+// R2 (editor review 2026-10-05): FINISH could be switched off from the teacher's
+// deck, because Spaces.csv had no is_ending_space column (the pipeline hardcoded the
+// name) so protection never saw it. After that no game could be won. The ending
+// space is now a column in the data, and protection reads it.
+describe('the ending space is protected from the real stock data', () => {
+  const root = path.resolve(__dirname, '../..');
+  const stockSpacesCsv = fs.readFileSync(path.join(root, 'public/data/SOURCE_FILES/Spaces.csv'), 'utf-8');
+
+  it('protects every space the stock marks as the ending space, as structural', () => {
+    const protection = computeProtection({ stockSpacesCsv });
+    expect(protection.get('FINISH')).toMatchObject({ tier: 'structural', reason: 'ending space' });
+  });
+
+  it('refuses to switch FINISH off (and offers it as no detour)', () => {
+    const report = validateConfig({
+      config: { meta: { id: 'classroom-1' }, configVersion: 1, slots: { FINISH: { used: false } }, teacherCopies: {}, detours: {} },
+      stockSpacesCsv,
+    });
+    expect(report.ok).toBe(false);
+    expect(report.errors.some((e: any) => e.code === 'PROTECTED_SPACE' && e.space === 'FINISH')).toBe(true);
+  });
+
+  it('the pipeline marks the same space as the ending space in GAME_CONFIG', () => {
+    const gameConfig = fs.readFileSync(path.join(root, 'public/data/CLEAN_FILES/GAME_CONFIG.csv'), 'utf-8');
+    const rows = gameConfig.trim().split('\n').map(l => l.split(','));
+    const col = rows[0].indexOf('is_ending_space');
+    const enders = rows.slice(1).filter(r => r[col] === 'Yes').map(r => r[0]);
+    expect(enders).toEqual(['FINISH']);
   });
 });

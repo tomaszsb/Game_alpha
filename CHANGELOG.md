@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.3.1] - 2026-10-06
+
+### Teacher-safety fixes for "add a space" (Job 2a): the Enter-key trap, the Finish square, a check of the built board, plain-number Time and Fee
+
+From the Manager brief 2026-10-05 and the editor review (`E:/Documents/People/AI/Manager/evaluations/2026-10-04..05 editor-review (2026-10-05-editor-review.md)`, R1-R5, R8). **Not deployed; held for the Manager's go.** Nothing here changes how the live board plays or is won; it changes what a teacher's save can do.
+
+- **R1, the Enter-key trap (was critical).** A story typed with Enter in it is a quoted CSV field containing a line break. The server's reader (`processGameData.parseCsvWithHeaders`) and the game's loader (`DataService`, 15 parsers) both cut the file at EVERY line break, so the row lost its tail: a new space got no exit, a wording save blanked Action/Outcome/Time, an admin save blanked destinations, and the save check said OK. Both now cut only at line breaks outside quotes, and read `""` as one quote. A file that ends inside an open quote falls back to the old line-by-line reading, so one stray quote cannot swallow a stock file. Stock data bakes byte-for-byte as before (`pipelineFaithful` green). Proof: the ghost bot's benign-authored-space fixture now has a two-line story (it failed 4/4 with the old readers, passes now); live-checked on the local server.
+- **R2, the Finish square could be switched off.** `Spaces.csv` had no `is_ending_space` column (the pipeline hardcoded the name `FINISH`), so protection never saw it. The column now exists (`Yes` on FINISH), the pipeline reads it (the name is only a fallback for a Spaces.csv with no such column at all), and `spaceProtection` protects it as structural. Live-checked: switching FINISH off returns `PROTECTED_SPACE`.
+- **R5, the save checked the settings, not the board.** New `server/boardCheck.js` + a "trial bake" (`bakeInstance({ trial: true })`): before any teacher edit is saved, the server builds the board it would produce into scratch, checks it (a start and an ending space exist; every reachable space has a way out; every arrow leads to a real space; every dice roll has all 6 outcomes; an ending is reachable from the start) and refuses the save with the reason if not. Nothing is saved or swapped in on a refusal. Cost: one extra build per save (about half a second in the live check). An off-board space nobody can reach (the quick-play guide) only warns. **Caveat:** a classroom whose board is ALREADY broken will refuse every graph-changing save, including the one that would fix it, until its board is repaired by another route.
+- **R4, Time and Fee are checked as numbers.** A teacher's wording edit to Time/Fee must be blank or a plain whole number ("5", "5 days", "5000", "$5,000"); a value the board already holds is never blocked. An authored space's days and flat fee must be whole numbers. "One week" or "2%" used to save and then silently charge nothing, or change the rule the space runs. The admin's payload is not checked (he writes the prose values like "1 day per $200K").
+- **R8, the 57 stray carriage returns in `DiceRoll Info.csv`** (one in every row, which made Excel split every row in two) are gone.
+- **Left for later (not fixed here):** R3 half-done splices out of `REG-FDNY-FEE-REVIEW` (LOGIC cells are free text; runtime routing still works); R7 the old editor's dead "Add space" button and the logic builder that edits arrows, not questions; `TooltipService`'s own CSV reader (curated file, no teacher input); the data-integrity test still reads CSV with `split(',')`.
+
+**Tests.** `csvParser` (8), `boardCheck` (9), spaceProtection (+3, real stock), instanceResolver (+1), DataService (+1), instanceValidation (+1), instanceContentDiff (+3); ghost: authoredInsertion now two-line.
+
+**To undo:** revert this commit.
+
 ## [3.3.0] - 2026-10-06
 
 ### Change orders are not design fees; the test suite stops running everything twice; the ghost bot tells wins from losses

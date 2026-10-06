@@ -687,6 +687,27 @@ START,SETUP,Main,Yes,No,1,4,Yes,Yes,No,2,percentage_of_scope,Filing Fee,Yes,"W,B
       expect(cfg!.npc_speaker).toBe('Owner');
     });
 
+    // R1 (editor review 2026-10-05): a story typed with Enter is a quoted field with a
+    // line break in it. The loaders cut the file at every line break, so the row was
+    // torn in two and the next row was misread.
+    it('parseSpaceContentCsv: a quoted story with a line break stays one row and does not disturb the next', async () => {
+      const svc = await loadWith({
+        '/data/CLEAN_FILES/SPACE_CONTENT.csv': `space_name,visit_type,title,story,action_description,outcome_description
+AUTH-1,First,Review,"First line.
+Second line, with a comma and ""quotes"".",Do it,Done
+NEXT,First,Next,Plain story,Go,Went`,
+      });
+      const authored = svc.getSpaceContent('AUTH-1', 'First');
+      expect(authored).toBeDefined();
+      expect(authored!.story).toBe(`First line.
+Second line, with a comma and "quotes".`);
+      expect(authored!.action_description).toBe('Do it');
+      expect(authored!.outcome_description).toBe('Done');
+      const next = svc.getSpaceContent('NEXT', 'First');
+      expect(next!.story).toBe('Plain story');
+      expect(next!.action_description).toBe('Go');
+    });
+
     it('parseSpaceContentCsv: a missing can_negotiate column yields false instead of throwing', async () => {
       // Positional code read values[6].toUpperCase() with no guard, so a row
       // shorter than 7 cells threw. Name lookup can legitimately return

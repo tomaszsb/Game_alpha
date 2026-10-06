@@ -297,6 +297,18 @@ describe('validateConfig — insertions (Phase 4a)', () => {
     expect(report.errors.filter(e => e.code.startsWith('INSERT_'))).toEqual([]);
   });
 
+  it('rejects days and a flat fee that are not whole numbers (the pipeline would silently charge nothing)', () => {
+    const run = (over: Record<string, unknown>) => validateConfig({
+      config: makeConfig({ insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'BETA-MIDDLE', to: 'GAMMA-FORK', ...over }) } }),
+      stockSpacesCsv: STOCK,
+    }).errors.map(e => e.code);
+    expect(run({ time: '3', fee: '5000' })).toEqual([]);
+    expect(run({ time: 'one week' })).toContain('INSERT_BAD_TIME');
+    expect(run({ time: '2.5' })).toContain('INSERT_BAD_TIME');
+    expect(run({ fee: '$5k' })).toContain('INSERT_BAD_FEE');
+    expect(run({ fee: '2%' })).toContain('INSERT_BAD_FEE');
+  });
+
   it('rejects a self-edge (from === to)', () => {
     const config = makeConfig({
       insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'BETA-MIDDLE', to: 'BETA-MIDDLE' }) },

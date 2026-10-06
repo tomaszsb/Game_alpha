@@ -193,6 +193,48 @@ export const TEACHER_EDITABLE_COLUMNS = Object.freeze([
 ]);
 
 /**
+ * Time and Fee are read by the pipeline as numbers (parseInt), and a fee with a "%"
+ * or the words "dice"/"roll" changes the RULE the space runs, not just its
+ * wording. So a teacher's edit to either must be blank or a plain whole number
+ * (days: "5" or "5 days"). A value the baseline already holds is left alone, so
+ * the stock's own words ("1 day per $200K") never block an unrelated save.
+ * (Editor review 2026-10-05, R4.) The admin's payload is not checked: he owns the
+ * structure and writes those prose values himself.
+ *
+ * @param {{ changed: Array<{ slot: string, rows: Array<Object<string, string>> }>,
+ *   baselineSpacesCsv?: string|null, stockSpacesCsv: string }} args
+ * @returns {Array<{ slot: string, column: 'Time'|'Fee', value: string, message: string }>}
+ */
+export function findBadWordingNumbers({ changed, baselineSpacesCsv, stockSpacesCsv }) {
+  const base = baselineSpacesCsv ? rowsBySpace(baselineSpacesCsv) : rowsBySpace(stockSpacesCsv);
+  const rules = {
+    Time: { ok: /^\d{1,3}(\s*days?)?$/i, say: 'days as a whole number, like 5' },
+    Fee: { ok: /^\$?\d[\d,]{0,11}$/, say: 'a whole number of dollars, like 5000' },
+  };
+  const problems = [];
+  for (const change of changed || []) {
+    const baselineRows = base.get(change.slot) || [];
+    for (const row of change.rows || []) {
+      const baseRow = baselineRows.find(b => String(b.visit_type || '') === String(row.visit_type || ''));
+      for (const column of ['Time', 'Fee']) {
+        if (!(column in row)) continue;
+        const value = String(row[column] ?? '').trim();
+        if (value === '' || value === String(baseRow?.[column] ?? '').trim()) continue;
+        if (!rules[column].ok.test(value)) {
+          problems.push({
+            slot: change.slot,
+            column,
+            value,
+            message: `${change.slot}: ${column} must be ${rules[column].say} (got "${value}").`,
+          });
+        }
+      }
+    }
+  }
+  return problems;
+}
+
+/**
  * Cut a set of submitted changes down to what a teacher is allowed to make.
  *
  * Each change comes back rebuilt from the BASELINE row — the board this

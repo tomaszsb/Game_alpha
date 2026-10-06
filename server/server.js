@@ -50,11 +50,12 @@ import {
   findCardForSlot,
   updateCardContent,
 } from './instanceStore.js';
-import { diffSubmittedContent, restrictChangesToWording } from './instanceContentDiff.js';
+import { diffSubmittedContent, restrictChangesToWording, findBadWordingNumbers } from './instanceContentDiff.js';
 import { validateConfig } from './instanceValidation.js';
 import { buildCatalog } from './instanceCatalog.js';
 import { parseCsvWithHeaders } from './processGameData.js';
 import {
+  bakeInstance,
   computeStockVersion,
   ensureFreshBake,
   readBakeStamp,
@@ -1350,6 +1351,29 @@ function handleInstanceMutation(req, res, mutate) {
     if (!report.ok) {
       return res.status(422).json({ success: false, report, ...result });
     }
+    // Build the board this edit would produce (into scratch, nothing swapped in) and
+    // check players can still get from start to finish. The settings check above
+    // cannot see this: it passed a new space with no exit and a board with FINISH
+    // switched off (editor review R1/R2/R5). Refused edits are never saved.
+    step = 'board_check';
+    const trialBake = bakeInstance({
+      stockDataDir: writableDataDir,
+      instancesRoot,
+      config,
+      stockVersion: computeStockVersion(writableDataDir),
+      trial: true,
+    });
+    if (!trialBake.boardReport.ok) {
+      const boardReport = {
+        ...report,
+        ok: false,
+        errors: [
+          ...report.errors,
+          ...trialBake.boardReport.errors.map(e => ({ ...e, code: `BOARD_${e.code}` })),
+        ],
+      };
+      return res.status(422).json({ success: false, report: boardReport, ...result });
+    }
     step = 'save';
     saveInstance(instancesRoot, config);
     step = 'bake';
@@ -1617,6 +1641,16 @@ app.post('/api/instances/:id/content', (req, res) => {
     // only changed structure has already collapsed to nothing here and mints
     // no card at all. The admin's payload is used as posted — he owns the
     // structure.
+    if (!admin.ok) {
+      const numberProblems = findBadWordingNumbers({ changed: diff.changed, baselineSpacesCsv, stockSpacesCsv });
+      if (numberProblems.length > 0) {
+        return res.status(422).json({
+          success: false,
+          error: numberProblems.map(p => p.message).join(' '),
+          problems: numberProblems,
+        });
+      }
+    }
     const changes = admin.ok
       ? diff.changed
       : restrictChangesToWording({
