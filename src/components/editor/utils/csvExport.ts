@@ -12,6 +12,7 @@
  */
 
 import { SpaceRow, DiceRollRow, ModalConfigRow } from '../types/EditorTypes';
+import { parseCsvLine as parseCsvLineCore, splitCsvRecords as splitCsvRecordsCore } from '../../../utils/csvCore.js';
 
 export const SPACES_KNOWN_HEADERS = [
   'space_name', 'phase', 'visit_type', 'Title', 'Event', 'Action', 'Outcome',
@@ -27,6 +28,34 @@ export const SPACES_KNOWN_HEADERS = [
 
 const SPACES_KNOWN_SET = new Set<string>(SPACES_KNOWN_HEADERS);
 
+const DICE_KNOWN_HEADERS = ['space_name', 'die_roll', 'visit_type', '1', '2', '3', '4', '5', '6', 'button_label', 'roll_group'] as const;
+const DICE_KNOWN_SET = new Set<string>(DICE_KNOWN_HEADERS);
+const MODAL_KNOWN_HEADERS = ['space_name', 'visit_type', 'effect_action', 'modal_title', 'modal_description', 'modal_button_label', 'modal_summary', 'dice_value'] as const;
+const MODAL_KNOWN_SET = new Set<string>(MODAL_KNOWN_HEADERS);
+
+/** The cells of one parsed row whose header the editor does not know, or undefined when there are none. */
+function extraColumns(headers: string[], cols: string[], known: Set<string>): Record<string, string> | undefined {
+  const extra: Record<string, string> = {};
+  for (let h = 0; h < headers.length; h++) {
+    const header = headers[h];
+    if (!header || known.has(header)) continue;
+    extra[header] = cols[h] ?? '';
+  }
+  return Object.keys(extra).length > 0 ? extra : undefined;
+}
+
+/** Every extra header across all rows, in the order first seen. */
+function unionExtraHeaders(rows: Array<{ _extraColumns?: Record<string, string> }>): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const row of rows) {
+    for (const key of Object.keys(row._extraColumns ?? {})) {
+      if (!seen.has(key)) { seen.add(key); out.push(key); }
+    }
+  }
+  return out;
+}
+
 function escapeCSV(value: string): string {
   if (!value) return '';
   if (value.includes(',') || value.includes('\n') || value.includes('"')) {
@@ -35,95 +64,10 @@ function escapeCSV(value: string): string {
   return value;
 }
 
-/**
- * Split CSV text into records (rows), respecting quoted newlines.
- *
- * The naive `csvText.split('\n')` corrupts any quoted field that contains
- * a literal newline — common when an authored Action/Event/Outcome has a
- * hard line break between sentences. Result: the first half becomes an
- * unterminated quote, the second half becomes a phantom row with no
- * space_name and gets silently dropped. v2.66.0 drag-to-save would have
- * compounded this since the drag handler writes via the same exporter.
- *
- * This walker tracks `inQuotes` across newlines, so a `\n` inside a
- * quoted field stays attached to the current record. Escaped `""` inside
- * a quoted field is passed through to `parseCSVLine`, which handles it.
- */
-function splitCSVRecords(csvText: string): string[] {
-  const records: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < csvText.length; i++) {
-    const ch = csvText[i];
-
-    if (ch === '"') {
-      // Inside a quoted field, `""` is an escaped quote — preserve both
-      // chars and skip the second so it doesn't flip inQuotes back off.
-      if (inQuotes && csvText[i + 1] === '"') {
-        current += '""';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-        current += ch;
-      }
-      continue;
-    }
-
-    if (ch === '\n' && !inQuotes) {
-      if (current.trim().length > 0) records.push(current);
-      current = '';
-      continue;
-    }
-
-    // Drop a bare `\r` that precedes a record-terminating `\n` (\r\n
-    // line endings). Inside a quoted field it's preserved with the rest.
-    if (ch === '\r' && !inQuotes && csvText[i + 1] === '\n') {
-      continue;
-    }
-
-    current += ch;
-  }
-
-  if (current.trim().length > 0) records.push(current);
-  return records;
-}
-
-/**
- * Parse a single CSV line, handling quoted fields with commas and escaped quotes.
- * Receives one record-string from `splitCSVRecords` — quoted newlines inside
- * the record are preserved verbatim in the returned field values.
- */
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inQuotes) {
-      if (ch === '"' && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else if (ch === '"') {
-        inQuotes = false;
-      } else {
-        current += ch;
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === ',') {
-        result.push(current);
-        current = '';
-      } else {
-        current += ch;
-      }
-    }
-  }
-  result.push(current);
-  return result;
-}
+// One CSV reader for the server, the game's loader and the editor: src/utils/csvCore.js.
+// The editor reads fields UNtrimmed so a save writes back exactly what it read.
+const splitCSVRecords = splitCsvRecordsCore;
+const parseCSVLine = (line: string): string[] => parseCsvLineCore(line, { trim: false });
 
 /**
  * Parse Spaces.csv text into SpaceRow[]. Header-aware: unknown columns are
@@ -293,7 +237,8 @@ export function parseDiceRollCSV(csvText: string): DiceRollRow[] {
       roll_5: cols[idx('5')] ?? '',
       roll_6: cols[idx('6')] ?? '',
       button_label: cols[idx('button_label')] ?? '',
-      roll_group: cols[idx('roll_group')] ?? ''
+      roll_group: cols[idx('roll_group')] ?? '',
+      _extraColumns: extraColumns(headers, cols, DICE_KNOWN_SET)
     });
   }
   return rows;
@@ -303,7 +248,8 @@ export function parseDiceRollCSV(csvText: string): DiceRollRow[] {
  * Export DiceRollRow array to DiceRoll Info.csv format
  */
 export function exportDiceRollCSV(diceRolls: DiceRollRow[]): string {
-  const headers = ['space_name', 'die_roll', 'visit_type', '1', '2', '3', '4', '5', '6', 'button_label', 'roll_group'];
+  const extraHeaders = unionExtraHeaders(diceRolls);
+  const headers = [...DICE_KNOWN_HEADERS, ...extraHeaders];
 
   const rows = diceRolls.map(roll => [
     escapeCSV(roll.space_name),
@@ -316,7 +262,8 @@ export function exportDiceRollCSV(diceRolls: DiceRollRow[]): string {
     escapeCSV(roll.roll_5),
     escapeCSV(roll.roll_6),
     escapeCSV(roll.button_label),
-    escapeCSV(roll.roll_group || '')
+    escapeCSV(roll.roll_group || ''),
+    ...extraHeaders.map(h => escapeCSV(roll._extraColumns?.[h] ?? ''))
   ].join(','));
 
   return [headers.join(','), ...rows].join('\n') + '\n';
@@ -326,7 +273,8 @@ export function exportDiceRollCSV(diceRolls: DiceRollRow[]): string {
  * Export ModalConfigRow array to ModalConfig.csv format
  */
 export function exportModalConfigCSV(modalConfigs: ModalConfigRow[]): string {
-  const headers = ['space_name', 'visit_type', 'effect_action', 'modal_title', 'modal_description', 'modal_button_label', 'modal_summary', 'dice_value'];
+  const extraHeaders = unionExtraHeaders(modalConfigs);
+  const headers = [...MODAL_KNOWN_HEADERS, ...extraHeaders];
 
   const rows = modalConfigs.map(row => [
     escapeCSV(row.space_name),
@@ -336,7 +284,8 @@ export function exportModalConfigCSV(modalConfigs: ModalConfigRow[]): string {
     escapeCSV(row.modal_description),
     escapeCSV(row.modal_button_label),
     escapeCSV(row.modal_summary),
-    escapeCSV(row.dice_value || '')
+    escapeCSV(row.dice_value || ''),
+    ...extraHeaders.map(h => escapeCSV(row._extraColumns?.[h] ?? ''))
   ].join(','));
 
   return [headers.join(','), ...rows].join('\n') + '\n';
@@ -349,19 +298,28 @@ export function parseModalConfigCSV(csvText: string): ModalConfigRow[] {
   const lines = splitCSVRecords(csvText.trim());
   if (lines.length < 2) return [];
 
+  // Header-aware (it was positional, so a column added anywhere but the end shifted
+  // every field after it). A missing column reads as blank.
+  const headers = parseCSVLine(lines[0]).map(h => h.replace(/^\uFEFF/, '').trim());
+  const col = (cols: string[], name: string): string => {
+    const i = headers.indexOf(name);
+    return i >= 0 ? (cols[i] ?? '') : '';
+  };
+
   const rows: ModalConfigRow[] = [];
   for (let i = 1; i < lines.length; i++) {
     const cols = parseCSVLine(lines[i]);
-    if (!cols[0]) continue;
+    if (!col(cols, 'space_name')) continue;
     rows.push({
-      space_name: cols[0] || '',
-      visit_type: (cols[1] as 'First' | 'Subsequent') || 'First',
-      effect_action: cols[2] || '',
-      modal_title: cols[3] || '',
-      modal_description: cols[4] || '',
-      modal_button_label: cols[5] || '',
-      modal_summary: cols[6] || '',
-      dice_value: cols[7] || ''
+      space_name: col(cols, 'space_name'),
+      visit_type: (col(cols, 'visit_type') as 'First' | 'Subsequent') || 'First',
+      effect_action: col(cols, 'effect_action'),
+      modal_title: col(cols, 'modal_title'),
+      modal_description: col(cols, 'modal_description'),
+      modal_button_label: col(cols, 'modal_button_label'),
+      modal_summary: col(cols, 'modal_summary'),
+      dice_value: col(cols, 'dice_value'),
+      _extraColumns: extraColumns(headers, cols, MODAL_KNOWN_SET)
     });
   }
   return rows;

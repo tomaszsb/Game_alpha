@@ -381,7 +381,7 @@ export function DiceRollEditor({
                     <div key={num} style={styles.rollCell}>
                       <span style={styles.dieNumber}>{num}</span>
                       <SmartRollInput
-                        value={roll[`roll_${num}` as keyof DiceRollRow] || ''}
+                        value={(roll[`roll_${num}` as keyof DiceRollRow] as string | undefined) || ''}
                         dieRoll={roll.die_roll}
                         allSpaceNames={allSpaceNames}
                         onChange={(v) => onUpdateDiceRoll(globalIndex, `roll_${num}` as keyof DiceRollRow, v)}

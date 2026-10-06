@@ -48,3 +48,29 @@ describe('parseCsvWithHeaders', () => {
     expect(parseCsvRecords('  \n ')).toEqual([]);
   });
 });
+
+// The ONE reader (src/utils/csvCore.js) that the server, DataService and the editor share.
+import { splitCsvRecords, parseCsvLine } from '../../src/utils/csvCore.js';
+
+describe('csvCore (shared by server, game loader and editor)', () => {
+  it('splitCsvRecords cuts at line breaks outside quotes only and drops blank records', () => {
+    expect(splitCsvRecords('a,b\n"x\ny",z\n\n   \nlast,row\n')).toEqual(['a,b', '"x\ny",z', 'last,row']);
+  });
+
+  it('splitCsvRecords drops the CR of a CRLF but keeps one inside quotes', () => {
+    expect(splitCsvRecords('a,b\r\n"x\r\ny",z\r\n')).toEqual(['a,b', '"x\r\ny",z']);
+  });
+
+  it('parseCsvLine trims by default (the game data) and not when asked (the editor writes back what it read)', () => {
+    expect(parseCsvLine(' a , "b c" ')).toEqual(['a', 'b c']);
+    expect(parseCsvLine(' a , "b c" ', { trim: false })).toEqual([' a ', ' b c ']);
+  });
+
+  it('parseCsvLine decodes "" and keeps commas and line breaks inside quotes', () => {
+    expect(parseCsvLine('"he said ""go"", then\nleft",2')).toEqual(['he said "go", then\nleft', '2']);
+  });
+
+  it('an unclosed quote falls back to line-by-line, so one stray quote cannot swallow the file', () => {
+    expect(splitCsvRecords('a,"oops\nb,c\nd,e\n')).toEqual(['a,"oops', 'b,c', 'd,e']);
+  });
+});

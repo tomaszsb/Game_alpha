@@ -142,7 +142,7 @@ export function InlineDiceRollEditor({
                 <label htmlFor={`${rowId}-die-${num}`} style={s.dieNum}>{num}</label>
                 <SmartRollInput
                   id={`${rowId}-die-${num}`}
-                  value={roll[`roll_${num}` as keyof DiceRollRow] || ''}
+                  value={(roll[`roll_${num}` as keyof DiceRollRow] as string | undefined) || ''}
                   dieRoll={roll.die_roll}
                   allSpaceNames={allSpaceNames}
                   onChange={(v) => onUpdateDiceRoll(idx, `roll_${num}` as keyof DiceRollRow, v)}

@@ -1,0 +1,19 @@
+{
+ "name": "DiceRollInfo",
+ "title": "DiceRoll Info.csv",
+ "description": "The dice rolls of each space: one row per kind of roll per visit, with what each of the six faces does. The game, the editor and the safety checks read this description, so a new column is declared once, here. Keys starting x- are this project's own hints.",
+ "primaryKey": ["space_name", "visit_type", "die_roll", "roll_group"],
+ "fields": [
+  { "name": "space_name", "type": "string", "title": "Space name", "description": "The space this roll belongs to.", "x-role": "identity", "x-editable-by": "admin", "x-ref": "Spaces.space_name" },
+  { "name": "die_roll", "type": "string", "title": "What the roll decides", "description": "The kind of roll, such as Next Step (where the player goes), W Cards, Fees Paid. Read from the data; new kinds need no code change in the file itself.", "x-role": "behaviour", "x-editable-by": "admin" },
+  { "name": "visit_type", "type": "string", "title": "Visit", "description": "First visit or return visit.", "constraints": { "enum": ["First", "Subsequent"] }, "x-role": "identity", "x-editable-by": "admin" },
+  { "name": "1", "type": "string", "title": "Face 1", "description": "What happens on a 1: a space to go to, or an effect such as Draw 1.", "x-role": "behaviour", "x-editable-by": "admin" },
+  { "name": "2", "type": "string", "title": "Face 2", "description": "What happens on a 2.", "x-role": "behaviour", "x-editable-by": "admin" },
+  { "name": "3", "type": "string", "title": "Face 3", "description": "What happens on a 3.", "x-role": "behaviour", "x-editable-by": "admin" },
+  { "name": "4", "type": "string", "title": "Face 4", "description": "What happens on a 4.", "x-role": "behaviour", "x-editable-by": "admin" },
+  { "name": "5", "type": "string", "title": "Face 5", "description": "What happens on a 5.", "x-role": "behaviour", "x-editable-by": "admin" },
+  { "name": "6", "type": "string", "title": "Face 6", "description": "What happens on a 6.", "x-role": "behaviour", "x-editable-by": "admin" },
+  { "name": "button_label", "type": "string", "title": "Roll button wording", "description": "What the roll button says.", "x-role": "labels", "x-editable-by": "admin" },
+  { "name": "roll_group", "type": "string", "title": "Roll group", "description": "Effects with the same group name share one roll. Blank means they all share one roll.", "x-role": "behaviour", "x-editable-by": "admin" }
+ ]
+}

@@ -4,77 +4,16 @@
 
 import fs from 'fs';
 import path from 'path';
+import { parseCsvRecords } from '../src/utils/csvCore.js';
 
 // ===== CSV UTILITIES =====
 // Exported for reuse by the instance layer (instanceResolver/migrateInstance):
 // same parse/emit semantics everywhere, so baked files and migration diffs
 // can never disagree with the generator about CSV shape.
 
-export function parseCsvLine(line) {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
-
-/**
- * Split CSV text into records of trimmed fields, honouring quoted fields: a line
- * break (or a comma) inside quotes stays inside the field, and "" inside quotes is
- * one literal quote. (The old reader cut the text at EVERY line break, so a story
- * typed with Enter in a teacher's textarea lost the rest of its row: the new space
- * got no exit and games got stuck on it, while the save check still said OK.)
- *
- * Fields are trimmed, as before. A lone CR outside quotes stays in the field and is
- * trimmed away (DiceRoll Info.csv has a stray one in every row). If the text ends
- * while still inside quotes the file is malformed; fall back to the legacy
- * line-by-line split so a stray quote can't swallow the rest of a stock file.
- * @param {string} csvText
- * @returns {string[][]}
- */
-export function parseCsvRecords(csvText) {
-  const text = csvText.replace(/^\uFEFF/, '').trim();
-  if (!text) return [];
-  const records = [];
-  let fields = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    if (char === '"') {
-      if (inQuotes && text[i + 1] === '"') { current += '"'; i++; }
-      else inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      fields.push(current.trim());
-      current = '';
-    } else if (char === '\n' && !inQuotes) {
-      fields.push(current.trim());
-      records.push(fields);
-      fields = [];
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  if (inQuotes) {
-    return text.split('\n').map(l => parseCsvLine(l.replace(/\r$/, '')));
-  }
-  fields.push(current.trim());
-  records.push(fields);
-  return records;
-}
+// One CSV reader for the server, the game's loader and the editor: src/utils/csvCore.js.
+// (Re-exported here because the instance layer has always imported them from this file.)
+export { parseCsvLine, parseCsvRecords } from '../src/utils/csvCore.js';
 
 /**
  * @param {string} csvText

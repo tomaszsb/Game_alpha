@@ -3,7 +3,9 @@ import {
   exportSpacesCSV,
   exportDiceRollCSV,
   parseSpacesCSV,
-  parseDiceRollCSV
+  parseDiceRollCSV,
+  parseModalConfigCSV,
+  exportModalConfigCSV
 } from '../../../src/components/editor/utils/csvExport';
 import { SpaceRow, DiceRollRow } from '../../../src/components/editor/types/EditorTypes';
 
@@ -525,5 +527,57 @@ describe('csvExport', () => {
       expect(parsed.length).toBe(1);
       expect(parsed[0].Event).toBe('He said "go".\nThen he left.');
     });
+  });
+});
+
+// Job 2b: the DiceRoll Info and ModalConfig round trips used to know their columns by
+// name or by POSITION, so a column added to either file was silently dropped (dice) or
+// shifted every field after it (modal) by the editor's next save. The Spaces.csv version
+// of this cost every save 16 columns for three weeks in 2026. Now all three pass unknown
+// columns straight through.
+describe('DiceRoll Info and ModalConfig keep columns the editor does not know', () => {
+  it('dice: an added column survives parse -> export, wherever it sits in the header', () => {
+    const csv = 'space_name,die_roll,visit_type,1,2,3,4,5,6,zz_new,button_label,roll_group\nA-SPACE,Next Step,First,X,X,X,Y,Y,Y,keepme,Go,\n';
+    const rows = parseDiceRollCSV(csv);
+    expect(rows[0].button_label).toBe('Go');
+    expect(rows[0]._extraColumns).toEqual({ zz_new: 'keepme' });
+    const out = parseDiceRollCSV(exportDiceRollCSV(rows));
+    expect(out[0]._extraColumns?.zz_new).toBe('keepme');
+    expect(out[0].button_label).toBe('Go');
+    expect(out[0].roll_4).toBe('Y');
+  });
+
+  it('modal: reads by header name, so a column added in the middle shifts nothing, and keeps it', () => {
+    const csv = 'space_name,visit_type,zz_new,effect_action,modal_title,modal_description,modal_button_label,modal_summary,dice_value\nA-SPACE,First,keepme,draw_W,Title,Desc,Button,Summary,3\n';
+    const rows = parseModalConfigCSV(csv);
+    expect(rows[0]).toMatchObject({
+      space_name: 'A-SPACE', visit_type: 'First', effect_action: 'draw_W', modal_title: 'Title',
+      modal_description: 'Desc', modal_button_label: 'Button', modal_summary: 'Summary', dice_value: '3',
+    });
+    expect(rows[0]._extraColumns).toEqual({ zz_new: 'keepme' });
+    const out = parseModalConfigCSV(exportModalConfigCSV(rows));
+    expect(out[0]._extraColumns?.zz_new).toBe('keepme');
+    expect(out[0].modal_title).toBe('Title');
+  });
+
+  it('a file with only the known columns exports exactly the known columns (nothing extra appears)', () => {
+    const dice = exportDiceRollCSV(parseDiceRollCSV('space_name,die_roll,visit_type,1,2,3,4,5,6,button_label,roll_group\nA-SPACE,Next Step,First,X,X,X,Y,Y,Y,Go,\n'));
+    expect(dice.split('\n')[0]).toBe('space_name,die_roll,visit_type,1,2,3,4,5,6,button_label,roll_group');
+    const modal = exportModalConfigCSV(parseModalConfigCSV('space_name,visit_type,effect_action,modal_title,modal_description,modal_button_label,modal_summary,dice_value\nA-SPACE,First,draw_W,T,D,B,S,\n'));
+    expect(modal.split('\n')[0]).toBe('space_name,visit_type,effect_action,modal_title,modal_description,modal_button_label,modal_summary,dice_value');
+  });
+
+  it('the real shipped files round-trip with no change in meaning', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const dir = path.join(process.cwd(), 'public/data/SOURCE_FILES');
+    const diceText = fs.readFileSync(path.join(dir, 'DiceRoll Info.csv'), 'utf-8');
+    const dice = parseDiceRollCSV(diceText);
+    expect(dice.length).toBeGreaterThan(20);
+    expect(parseDiceRollCSV(exportDiceRollCSV(dice))).toEqual(dice);
+    const modalText = fs.readFileSync(path.join(dir, 'ModalConfig.csv'), 'utf-8');
+    const modal = parseModalConfigCSV(modalText);
+    expect(modal.length).toBeGreaterThan(0);
+    expect(parseModalConfigCSV(exportModalConfigCSV(modal))).toEqual(modal);
   });
 });

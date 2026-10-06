@@ -83,3 +83,40 @@ describe('Spaces.schema.json describes Spaces.csv exactly', () => {
     }
   });
 });
+
+// The other two files the editor round-trips.
+describe.each([
+  ['DiceRoll Info.csv', 'DiceRollInfo.schema.json'],
+  ['ModalConfig.csv', 'ModalConfig.schema.json'],
+])('%s is described exactly by %s', (csvFile, schemaFile) => {
+  const text = fs.readFileSync(path.join(dir, csvFile), 'utf-8');
+  const s = JSON.parse(fs.readFileSync(path.join(dir, schemaFile), 'utf-8'));
+  const records = parseCsvRecords(text);
+  const cols: string[] = records[0];
+
+  it('every column has a schema entry and every schema entry is a column', () => {
+    const names = s.fields.map((f: any) => f.name);
+    expect(cols.filter(c => !names.includes(c))).toEqual([]);
+    expect(names.filter((n: string) => !cols.includes(n))).toEqual([]);
+  });
+
+  it('every stock value is one the schema allows', () => {
+    const problems: string[] = [];
+    for (const row of parseCsvWithHeaders(text)) {
+      for (const f of s.fields) {
+        const allowed: string[] | undefined = f.constraints?.enum;
+        const v = String(row[f.name] ?? '').trim();
+        if (allowed && !allowed.includes(v)) problems.push(`${row.space_name}: ${f.name}="${v}"`);
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
+  it('every field names a role, who may edit it and a label', () => {
+    for (const f of s.fields) {
+      expect(f['x-role'], f.name).toBeTruthy();
+      expect(['admin', 'teacher', 'none'], f.name).toContain(f['x-editable-by']);
+      expect(f.title, f.name).toBeTruthy();
+    }
+  });
+});

@@ -66,6 +66,11 @@ export interface DiceRollRow {
   roll_6: string;
   button_label: string;  // Custom button label (e.g., "Roll for Scope Worktypes")
   roll_group: string;    // Group name — effects with same roll_group share one dice roll; blank = all share one roll
+  // Opaque pass-through for DiceRoll Info.csv columns the editor does not know. Read
+  // by header name, written back unchanged, so a column added to the file is never
+  // silently dropped by a save (the Spaces.csv version of this cost every save 16
+  // columns for three weeks in 2026).
+  _extraColumns?: Record<string, string>;
 }
 
 /**
@@ -81,6 +86,8 @@ export interface ModalConfigRow {
   modal_button_label: string;  // Override "Continue" / "Make Choice" button
   modal_summary: string;       // Override summary text
   dice_value: string;          // Phase 4: optional dice value filter ('1'..'6' or empty for generic)
+  // Same pass-through as DiceRollRow: columns the editor does not know survive a save.
+  _extraColumns?: Record<string, string>;
 }
 
 /**

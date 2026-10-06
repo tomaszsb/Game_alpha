@@ -1,0 +1,16 @@
+{
+ "name": "ModalConfig",
+ "title": "ModalConfig.csv",
+ "description": "Per-space wording for the pop-ups players see after an action. One row per space, visit and action. The game, the editor and the safety checks read this description, so a new column is declared once, here. Keys starting x- are this project's own hints.",
+ "primaryKey": ["space_name", "visit_type", "effect_action", "dice_value"],
+ "fields": [
+  { "name": "space_name", "type": "string", "title": "Space name", "description": "The space this pop-up wording belongs to.", "x-role": "identity", "x-editable-by": "admin", "x-ref": "Spaces.space_name" },
+  { "name": "visit_type", "type": "string", "title": "Visit", "description": "First visit or return visit.", "constraints": { "enum": ["First", "Subsequent"] }, "x-role": "identity", "x-editable-by": "admin" },
+  { "name": "effect_action", "type": "string", "title": "Which pop-up", "description": "The action the pop-up follows, like draw_W, return_e, add (time), deduct (fee), dice, choice, negotiate, end_game.", "x-role": "identity", "x-editable-by": "admin" },
+  { "name": "modal_title", "type": "string", "title": "Title", "description": "Replaces the pop-up's heading.", "x-role": "content", "x-editable-by": "admin" },
+  { "name": "modal_description", "type": "string", "title": "Description", "description": "Replaces the pop-up's description. Can use {count}, {cardType} and {amount}.", "x-role": "content", "x-editable-by": "admin", "x-multiline": true },
+  { "name": "modal_button_label", "type": "string", "title": "Button wording", "description": "Replaces the Continue / Make Choice button.", "x-role": "labels", "x-editable-by": "admin" },
+  { "name": "modal_summary", "type": "string", "title": "Summary", "description": "Replaces the summary line.", "x-role": "content", "x-editable-by": "admin", "x-multiline": true },
+  { "name": "dice_value", "type": "string", "title": "Only for this roll", "description": "A die face (1 to 6) this wording applies to, or blank for every roll.", "constraints": { "enum": ["", "1", "2", "3", "4", "5", "6"] }, "x-role": "behaviour", "x-editable-by": "admin" }
+ ]
+}

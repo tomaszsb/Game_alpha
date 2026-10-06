@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.3.3] - 2026-10-06
+
+### One CSV reader; the editor stops dropping new dice/modal columns; schemas for the other two editor files (Job 2b, step 2)
+
+**Not deployed; held for the Manager's go.** Players see nothing different.
+
+- **One CSV reader (`src/utils/csvCore.js`).** The server (`processGameData`), the game's loader (`DataService`) and the editor (`csvExport`) each had their own copy of the quote-aware splitter (the v3.3.1 fix had to be made twice). They now share one implementation: a record ends at a line break outside quotes, `""` is one quote, CRLF is handled, and a file that ends inside an open quote falls back to line-by-line. The editor reads untrimmed (`trim: false`) so its save writes back exactly what it read; the game data is read trimmed as before. Plain JavaScript so the Node server can import it from `src/` (the Docker image copies `src/`; checked live). The baked board is byte-identical (`pipelineFaithful` green). Still separate, no teacher input reaches them: `TooltipService`, the glossary reader (`dictionary/data/terms.ts`), and the data-integrity test's `split(',')`.
+- **DiceRoll Info and ModalConfig no longer lose columns.** The editor's round trip for these two files knew its columns by name (dice) or by POSITION (modal): a column added to the dice file was silently dropped by the next save, and one added in the middle of the modal file shifted every field after it. Both now read by header name and pass unknown columns straight through (`_extraColumns`), like Spaces.csv has since May 2026 (when a forgotten column cost every save 16 columns for three weeks). Tested with the real shipped files.
+- **`DiceRollInfo.schema.json` and `ModalConfig.schema.json`** next to `Spaces.schema.json`, with the same coverage test (every column has an entry and the other way round; every stock value is allowed).
+- **Decision, with reason:** the list of what a TEACHER may edit stays in server code (`instanceContentDiff`), not read from the schema file. It is a security allowlist ("a teacher can reword, never rewire"); letting a data file widen it would put routing behind a text edit. The schema describes the same list and a test pins the two to agree, so they cannot drift quietly. The teacher-added-space builder (`instanceResolver`) already blanks every column and sets only a small named set, so a new behaviour column is blank by default; the schema's `x-authored` hints document what it sets, but the code was left alone (nothing to gain, something to break).
+
+**Tests.** `csvCore` (5), csvExport dice/modal (4), `schemaCoverage` (+6).
+
+**To undo:** revert this commit.
+
 ## [3.3.2] - 2026-10-06
 
 ### One description of what a space can hold, and a "More settings" section that shows every setting (Job 2b, step 1)

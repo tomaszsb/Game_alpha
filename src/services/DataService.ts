@@ -1,3 +1,4 @@
+import { parseCsvLine as parseCsvLineCore, splitCsvRecords as splitCsvRecordsCore } from '../utils/csvCore.js';
 import { IDataService } from '../types/ServiceContracts';
 import {
   GameConfig,
@@ -1470,55 +1471,19 @@ export class DataService implements IDataService {
     return map;
   }
 
+  // One CSV reader for the server, the game's loader and the editor: src/utils/csvCore.js.
   private parseCsvLine(line: string): string[] {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-
-      if (char === '"') {
-        // "" inside quotes is one literal quote (the server's toCsv writes it so)
-        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
-        else inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-
-    result.push(current.trim());
-    return result;
+    return parseCsvLineCore(line);
   }
 
   /**
    * Split CSV text into records, one string per record, cutting at line breaks
-   * OUTSIDE quotes only. A story a teacher typed with Enter in it is a quoted field
-   * holding a line break; cutting at every line break (what the loaders did before
-   * 2026-10-06) tore its row in two and left the new space with no exit. Each
-   * returned string goes through parseCsvLine as before. Trailing CR is dropped
-   * (parseCsvLine trims cells anyway). An unclosed quote falls back to the plain
-   * line-by-line split so one stray quote cannot swallow the rest of a file.
+   * OUTSIDE quotes only (a story typed with Enter in it is a quoted field holding a
+   * line break; cutting at every line break tore its row in two and left a teacher's
+   * new space with no exit). Each returned string goes through parseCsvLine.
    */
   private splitCsvRecords(csvText: string): string[] {
-    const text = csvText.trim();
-    const records: string[] = [];
-    let start = 0;
-    let inQuotes = false;
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      if (char === '"') inQuotes = !inQuotes;
-      else if (char === '\n' && !inQuotes) {
-        records.push(text.slice(start, i));
-        start = i + 1;
-      }
-    }
-    if (inQuotes) return text.split('\n');
-    records.push(text.slice(start));
-    return records;
+    return splitCsvRecordsCore(csvText.trim());
   }
 
   /**
