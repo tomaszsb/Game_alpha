@@ -438,6 +438,8 @@ export function SpaceDeckScreen({ onClose, instanceId = 'classroom-1' }: SpaceDe
                     modalConfigData={editor.modalConfigData}
                     onVisitTypeChange={setVisitType}
                     onFieldChange={editor.handleFieldChange}
+                    extraSchema={editor.schema}
+                    onExtraColumnChange={editor.handleExtraColumnChange}
                     displayLabelOverride={
                       editor.spaceFirst?._extraColumns?.display_label_override
                       ?? editor.spaceSubsequent?._extraColumns?.display_label_override

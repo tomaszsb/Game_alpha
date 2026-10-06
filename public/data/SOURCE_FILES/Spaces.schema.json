@@ -1,0 +1,756 @@
+{
+ "name": "Spaces",
+ "title": "Spaces.csv",
+ "description": "What a space can hold. One row per space per visit type. The game, the editor, the classroom tools and the safety checks all read this file, so a new setting is declared once, here. Keys starting x- are this project's own hints (who may edit a field, which editor group it belongs in, what a teacher-added space gets).",
+ "primaryKey": [
+  "space_name",
+  "visit_type"
+ ],
+ "x-notes": {
+  "x-role": "identity | content | effects | routing | behaviour | labels | layout",
+  "x-editable-by": "admin | teacher | none (none = edited somewhere else)",
+  "x-placed": "true when the hand-built editor form already shows this field; every other field appears under More settings",
+  "x-authored": "what a teacher-added space gets: {value} a fixed value, {copy: neighbour} the space it is spliced after, {copy: displayName} the teacher's chosen name. Absent = blank.",
+  "x-enum-ignore-case": "Yes, YES and yes all count as the same value"
+ },
+ "fields": [
+  {
+   "name": "space_name",
+   "type": "string",
+   "title": "Space name",
+   "description": "The space's id. The game finds the space by this exact name.",
+   "x-role": "identity",
+   "x-group": "Identity",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "phase",
+   "type": "string",
+   "title": "Phase",
+   "description": "Which stretch of the project this space belongs to (read from the data, not a fixed list).",
+   "x-role": "identity",
+   "x-group": "Identity",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "visit_type",
+   "type": "string",
+   "title": "Visit",
+   "description": "Each space has a First-visit row and a Subsequent (return visit) row.",
+   "constraints": {
+    "enum": [
+     "First",
+     "Subsequent"
+    ]
+   },
+   "x-role": "identity",
+   "x-group": "Identity",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "Title",
+   "type": "string",
+   "title": "Title",
+   "description": "The space's title.",
+   "x-role": "content",
+   "x-group": "What players read",
+   "x-editable-by": "teacher",
+   "x-placed": true
+  },
+  {
+   "name": "Event",
+   "type": "string",
+   "title": "Story",
+   "description": "What the space says to the player.",
+   "x-role": "content",
+   "x-group": "What players read",
+   "x-editable-by": "teacher",
+   "x-placed": true,
+   "x-multiline": true
+  },
+  {
+   "name": "Action",
+   "type": "string",
+   "title": "Action",
+   "description": "What the player is asked to do.",
+   "x-role": "content",
+   "x-group": "What players read",
+   "x-editable-by": "teacher",
+   "x-placed": true,
+   "x-multiline": true
+  },
+  {
+   "name": "Outcome",
+   "type": "string",
+   "title": "Outcome",
+   "description": "What happens when they do it.",
+   "x-role": "content",
+   "x-group": "What players read",
+   "x-editable-by": "teacher",
+   "x-placed": true,
+   "x-multiline": true
+  },
+  {
+   "name": "w_card",
+   "type": "string",
+   "title": "W card effect",
+   "description": "Cards of the W family dealt or returned here, written like \"Draw 1\".",
+   "x-role": "effects",
+   "x-group": "Cards",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "b_card",
+   "type": "string",
+   "title": "B card effect",
+   "description": "Cards of the B family dealt or returned here, written like \"Draw 1\".",
+   "x-role": "effects",
+   "x-group": "Cards",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "i_card",
+   "type": "string",
+   "title": "I card effect",
+   "description": "Cards of the I family dealt or returned here, written like \"Draw 1\".",
+   "x-role": "effects",
+   "x-group": "Cards",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "l_card",
+   "type": "string",
+   "title": "L card effect",
+   "description": "Cards of the L family dealt or returned here, written like \"Draw 1\".",
+   "x-role": "effects",
+   "x-group": "Cards",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "e_card",
+   "type": "string",
+   "title": "E card effect",
+   "description": "Cards of the E family dealt or returned here, written like \"Draw 1\".",
+   "x-role": "effects",
+   "x-group": "Cards",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "Time",
+   "type": "string",
+   "title": "Time",
+   "description": "Days this space costs, like \"5 days\" (teachers: a whole number).",
+   "x-role": "effects",
+   "x-group": "Time and money",
+   "x-editable-by": "teacher",
+   "x-placed": true
+  },
+  {
+   "name": "Fee",
+   "type": "string",
+   "title": "Fee",
+   "description": "Money this space charges. A plain number is dollars; a \"%\" makes it a percentage (teachers: a whole number).",
+   "x-role": "effects",
+   "x-group": "Time and money",
+   "x-editable-by": "teacher",
+   "x-placed": true
+  },
+  {
+   "name": "space_1",
+   "type": "string",
+   "title": "Destination 1",
+   "description": "A space players can go to next (or, on a branching space, a note about the choice).",
+   "x-role": "routing",
+   "x-group": "Where it leads",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-ref": "Spaces.space_name"
+  },
+  {
+   "name": "space_2",
+   "type": "string",
+   "title": "Destination 2",
+   "description": "A space players can go to next (or, on a branching space, a note about the choice).",
+   "x-role": "routing",
+   "x-group": "Where it leads",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-ref": "Spaces.space_name"
+  },
+  {
+   "name": "space_3",
+   "type": "string",
+   "title": "Destination 3",
+   "description": "A space players can go to next (or, on a branching space, a note about the choice).",
+   "x-role": "routing",
+   "x-group": "Where it leads",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-ref": "Spaces.space_name"
+  },
+  {
+   "name": "space_4",
+   "type": "string",
+   "title": "Destination 4",
+   "description": "A space players can go to next (or, on a branching space, a note about the choice).",
+   "x-role": "routing",
+   "x-group": "Where it leads",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-ref": "Spaces.space_name"
+  },
+  {
+   "name": "space_5",
+   "type": "string",
+   "title": "Destination 5",
+   "description": "A space players can go to next (or, on a branching space, a note about the choice).",
+   "x-role": "routing",
+   "x-group": "Where it leads",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-ref": "Spaces.space_name"
+  },
+  {
+   "name": "Negotiate",
+   "type": "string",
+   "title": "Can push back",
+   "description": "YES if the player may push back / ask for another pass here.",
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "requires_dice_roll",
+   "type": "string",
+   "title": "Rolls dice",
+   "description": "Whether players roll dice on this space.",
+   "constraints": {
+    "enum": [
+     "",
+     "Yes",
+     "No",
+     "YES",
+     "NO"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-enum-ignore-case": true
+  },
+  {
+   "name": "path",
+   "type": "string",
+   "title": "Path type",
+   "description": "The lane this space sits on (Main, LOGIC, Side quest...).",
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "rolls",
+   "type": "string",
+   "title": "Number of rolls",
+   "description": "How many dice rolls this space asks for.",
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "end_turn_label",
+   "type": "string",
+   "title": "End-turn button",
+   "description": "Wording of the button that ends the turn here.",
+   "x-role": "labels",
+   "x-group": "Button wording",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "try_again_label",
+   "type": "string",
+   "title": "Push-back button",
+   "description": "Wording of the push-back / try-again button here.",
+   "x-role": "labels",
+   "x-group": "Button wording",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "w_card_label",
+   "type": "string",
+   "title": "W card button",
+   "description": "Wording of the W-card action button here.",
+   "x-role": "labels",
+   "x-group": "Button wording",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "b_card_label",
+   "type": "string",
+   "title": "B card button",
+   "description": "Wording of the B-card action button here.",
+   "x-role": "labels",
+   "x-group": "Button wording",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "i_card_label",
+   "type": "string",
+   "title": "I card button",
+   "description": "Wording of the I-card action button here.",
+   "x-role": "labels",
+   "x-group": "Button wording",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "l_card_label",
+   "type": "string",
+   "title": "L card button",
+   "description": "Wording of the L-card action button here.",
+   "x-role": "labels",
+   "x-group": "Button wording",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "e_card_label",
+   "type": "string",
+   "title": "E card button",
+   "description": "Wording of the E-card action button here.",
+   "x-role": "labels",
+   "x-group": "Button wording",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "shake_on",
+   "type": "string",
+   "title": "Pop-up shakes",
+   "description": "When the pop-up shakes: never, on bad news, or always.",
+   "constraints": {
+    "enum": [
+     "",
+     "negative",
+     "always"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "Pop-up behaviour",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "tts_field",
+   "type": "string",
+   "title": "Read aloud",
+   "description": "Which text is read aloud on this space.",
+   "constraints": {
+    "enum": [
+     "",
+     "story",
+     "action",
+     "outcome",
+     "summary"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "Pop-up behaviour",
+   "x-editable-by": "admin",
+   "x-placed": true
+  },
+  {
+   "name": "w_card_narrative",
+   "type": "string",
+   "title": "W card story",
+   "description": "What the narrator says in the W-card pop-up here.",
+   "x-role": "content",
+   "x-group": "Pop-up behaviour",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-multiline": true
+  },
+  {
+   "name": "b_card_narrative",
+   "type": "string",
+   "title": "B card story",
+   "description": "What the narrator says in the B-card pop-up here.",
+   "x-role": "content",
+   "x-group": "Pop-up behaviour",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-multiline": true
+  },
+  {
+   "name": "i_card_narrative",
+   "type": "string",
+   "title": "I card story",
+   "description": "What the narrator says in the I-card pop-up here.",
+   "x-role": "content",
+   "x-group": "Pop-up behaviour",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-multiline": true
+  },
+  {
+   "name": "l_card_narrative",
+   "type": "string",
+   "title": "L card story",
+   "description": "What the narrator says in the L-card pop-up here.",
+   "x-role": "content",
+   "x-group": "Pop-up behaviour",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-multiline": true
+  },
+  {
+   "name": "e_card_narrative",
+   "type": "string",
+   "title": "E card story",
+   "description": "What the narrator says in the E-card pop-up here.",
+   "x-role": "content",
+   "x-group": "Pop-up behaviour",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-multiline": true
+  },
+  {
+   "name": "is_starting_space",
+   "type": "string",
+   "title": "Starting space",
+   "description": "Players begin the game here.",
+   "constraints": {
+    "enum": [
+     "",
+     "Yes",
+     "No"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin",
+   "x-enum-ignore-case": true,
+   "x-authored": {
+    "value": "No"
+   }
+  },
+  {
+   "name": "is_resume_hub",
+   "type": "string",
+   "title": "Resume hub",
+   "description": "Players who finish a side quest check in here to carry on.",
+   "constraints": {
+    "enum": [
+     "",
+     "Yes",
+     "No"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin",
+   "x-enum-ignore-case": true,
+   "x-authored": {
+    "value": "No"
+   }
+  },
+  {
+   "name": "is_point_of_no_return",
+   "type": "string",
+   "title": "Point of no return",
+   "description": "Arriving here clears any stored resume point for good.",
+   "constraints": {
+    "enum": [
+     "",
+     "Yes",
+     "No"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin",
+   "x-enum-ignore-case": true
+  },
+  {
+   "name": "min_w_cards_to_leave",
+   "type": "integer",
+   "title": "Scope needed to leave",
+   "description": "Least number of project-scope cards a player must hold to leave this space (0 or blank = none).",
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin"
+  },
+  {
+   "name": "fee_calculation_method",
+   "type": "string",
+   "title": "Fee works out as",
+   "description": "\"percentage_of_scope\" makes the Fee a percentage of the project's scope; blank means a flat amount.",
+   "constraints": {
+    "enum": [
+     "",
+     "flat",
+     "percentage_of_scope"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "Time and money",
+   "x-editable-by": "admin"
+  },
+  {
+   "name": "fee_label",
+   "type": "string",
+   "title": "Fee name",
+   "description": "What the fee is called on screen (Architect, Engineer...).",
+   "x-role": "labels",
+   "x-group": "Time and money",
+   "x-editable-by": "admin"
+  },
+  {
+   "name": "auto_apply_funding",
+   "type": "string",
+   "title": "Funding applies itself",
+   "description": "Funding cards are applied for the player on arrival.",
+   "constraints": {
+    "enum": [
+     "",
+     "Yes",
+     "No"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "Funding",
+   "x-editable-by": "admin",
+   "x-enum-ignore-case": true
+  },
+  {
+   "name": "auto_trigger_card_types",
+   "type": "string",
+   "title": "Cards dealt automatically",
+   "description": "Card families dealt on arrival without the player pressing a button, like \"B,I\".",
+   "x-role": "behaviour",
+   "x-group": "Cards",
+   "x-editable-by": "admin"
+  },
+  {
+   "name": "path_choice_memory_key",
+   "type": "string",
+   "title": "Remembers a path choice as",
+   "description": "A shared name; spaces that share it remember the same earlier choice.",
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin"
+  },
+  {
+   "name": "is_path_choice_lock_point",
+   "type": "string",
+   "title": "Locks in a path choice",
+   "description": "The player's first-visit destination is stored under the memory name.",
+   "constraints": {
+    "enum": [
+     "",
+     "Yes",
+     "No"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin",
+   "x-enum-ignore-case": true,
+   "x-authored": {
+    "value": "No"
+   }
+  },
+  {
+   "name": "display_label_override",
+   "type": "string",
+   "title": "Tile label",
+   "description": "Short name shown on the board tile.",
+   "x-role": "labels",
+   "x-group": "Board layout",
+   "x-editable-by": "admin",
+   "x-placed": true,
+   "x-authored": {
+    "copy": "displayName"
+   }
+  },
+  {
+   "name": "review_loop_message",
+   "type": "string",
+   "title": "Why you are back here",
+   "description": "Explains why a dice roll sent the player back to this space.",
+   "x-role": "content",
+   "x-group": "What players read",
+   "x-editable-by": "admin",
+   "x-multiline": true
+  },
+  {
+   "name": "pos_x",
+   "type": "number",
+   "title": "Board position X",
+   "description": "Where the tile sits on the board. Moved with the Board Layout Editor, not this form.",
+   "x-role": "layout",
+   "x-group": "Board layout",
+   "x-editable-by": "none"
+  },
+  {
+   "name": "pos_y",
+   "type": "number",
+   "title": "Board position Y",
+   "description": "Where the tile sits on the board. Moved with the Board Layout Editor, not this form.",
+   "x-role": "layout",
+   "x-group": "Board layout",
+   "x-editable-by": "none"
+  },
+  {
+   "name": "funding_source",
+   "type": "string",
+   "title": "Where the money comes from",
+   "description": "Owner = seed money, bank = loan, investor = investor money. Blank for most spaces.",
+   "constraints": {
+    "enum": [
+     "",
+     "owner",
+     "bank",
+     "investor"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "Funding",
+   "x-editable-by": "admin"
+  },
+  {
+   "name": "has_final_review_gate",
+   "type": "string",
+   "title": "Needs approvals to pass",
+   "description": "Players must hold the required approvals to leave this space.",
+   "constraints": {
+    "enum": [
+     "",
+     "Yes",
+     "No"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "Approvals",
+   "x-editable-by": "admin",
+   "x-enum-ignore-case": true
+  },
+  {
+   "name": "approval_role",
+   "type": "string",
+   "title": "Approval role",
+   "description": "Marks the space that plays the DOB exam, FDNY exam or DOB audit.",
+   "constraints": {
+    "enum": [
+     "",
+     "dob_exam",
+     "fdny_exam",
+     "dob_audit"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "Approvals",
+   "x-editable-by": "admin"
+  },
+  {
+   "name": "npc_speaker",
+   "type": "string",
+   "title": "Who speaks here",
+   "description": "A character id from CHARACTERS.csv, or PM for the project manager's own voice.",
+   "x-role": "content",
+   "x-group": "What players read",
+   "x-editable-by": "admin",
+   "x-ref": "CHARACTERS.id"
+  },
+  {
+   "name": "fee_category",
+   "type": "string",
+   "title": "Fee kind",
+   "description": "architectural / engineering fees count toward the 20% design-fee limit; construction (a change order) does not.",
+   "constraints": {
+    "enum": [
+     "",
+     "architectural",
+     "engineering",
+     "construction"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "Time and money",
+   "x-editable-by": "admin"
+  },
+  {
+   "name": "auto_roll_dice",
+   "type": "string",
+   "title": "Rolls itself",
+   "description": "The dice roll happens on arrival (the reviewing authority decides).",
+   "constraints": {
+    "enum": [
+     "",
+     "Yes",
+     "No"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin",
+   "x-enum-ignore-case": true,
+   "x-authored": {
+    "copy": "neighbour"
+   }
+  },
+  {
+   "name": "try_again_days",
+   "type": "integer",
+   "title": "Push-back days",
+   "description": "Days a push-back costs here.",
+   "x-role": "behaviour",
+   "x-group": "Push-back",
+   "x-editable-by": "admin"
+  },
+  {
+   "name": "try_again_scope_pct",
+   "type": "number",
+   "title": "Push-back percent of scope",
+   "description": "Percent of project scope a push-back costs here, like 0.5.",
+   "x-role": "behaviour",
+   "x-group": "Push-back",
+   "x-editable-by": "admin"
+  },
+  {
+   "name": "is_ending_space",
+   "type": "string",
+   "title": "Ending space",
+   "description": "Reaching this space finishes the project. Protected from being switched off.",
+   "constraints": {
+    "enum": [
+     "",
+     "Yes",
+     "No"
+    ]
+   },
+   "x-role": "behaviour",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin",
+   "x-enum-ignore-case": true,
+   "x-authored": {
+    "value": "No"
+   }
+  }
+ ]
+}

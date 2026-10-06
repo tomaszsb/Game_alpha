@@ -17,12 +17,15 @@
 
 import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
 import { parseSpacesCSV, parseDiceRollCSV, parseModalConfigCSV } from './utils/csvExport';
+import { parseSpaceSchema, SpaceSchema } from './utils/spaceSchema';
 import { DEFAULT_INSTANCE_ID } from '../board/saveBoardPosition';
 
 export interface EditorSource {
   spaces: SpaceRow[];
   diceRolls: DiceRollRow[];
   modalConfigs: ModalConfigRow[];
+  /** What a space can hold (Spaces.schema.json). Null when the file is missing or unreadable; the editor then lists unknown columns as plain text. */
+  schema: SpaceSchema | null;
 }
 
 /**
@@ -42,10 +45,11 @@ export function editorSourceBase(instanceId: string = DEFAULT_INSTANCE_ID): stri
 export async function loadEditorSource(instanceId: string = DEFAULT_INSTANCE_ID): Promise<EditorSource> {
   const bust = Date.now();
   const base = editorSourceBase(instanceId);
-  const [spacesResponse, diceRollResponse, modalConfigResponse] = await Promise.all([
+  const [spacesResponse, diceRollResponse, modalConfigResponse, schemaResponse] = await Promise.all([
     fetch(`${base}/SOURCE_FILES/Spaces.csv?_=` + bust),
     fetch(`${base}/SOURCE_FILES/DiceRoll Info.csv?_=` + bust),
     fetch(`${base}/SOURCE_FILES/ModalConfig.csv?_=` + bust),
+    fetch(`${base}/SOURCE_FILES/Spaces.schema.json?_=` + bust).catch(() => null),
   ]);
 
   if (!spacesResponse.ok || !diceRollResponse.ok) {
@@ -59,5 +63,9 @@ export async function loadEditorSource(instanceId: string = DEFAULT_INSTANCE_ID)
     ? parseModalConfigCSV(await modalConfigResponse.text())
     : [];
 
-  return { spaces, diceRolls, modalConfigs };
+  // The schema is optional too: without it "More settings" still lists every
+  // column the rows carry, just without labels and help.
+  const schema = schemaResponse && schemaResponse.ok ? parseSpaceSchema(await schemaResponse.text()) : null;
+
+  return { spaces, diceRolls, modalConfigs, schema };
 }

@@ -24,6 +24,7 @@ import { getBackendURL } from '../../utils/networkDetection';
 import { getAdminPassword } from '../../utils/adminAuth';
 import { getTeacherSession } from '../../utils/teacherAuth';
 import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
+import type { SpaceSchema } from './utils/spaceSchema';
 import { exportSpacesCSV, exportDiceRollCSV, exportModalConfigCSV } from './utils/csvExport';
 import { loadEditorSource } from './loadEditorSource';
 import { DEFAULT_INSTANCE_ID } from '../board/saveBoardPosition';
@@ -39,6 +40,8 @@ export interface UseEditorSource {
   modalConfigData: ModalConfigRow[];
   /** Every space name in the source, for the "where does this lead" dropdowns. */
   allSpaceNames: string[];
+  /** What a space can hold, for the "More settings" section. Null until loaded or when the file is missing. */
+  schema: SpaceSchema | null;
   /** The two rows of the space being worked on, or null when nothing is picked. */
   spaceFirst: SpaceRow | null;
   spaceSubsequent: SpaceRow | null;
@@ -50,6 +53,8 @@ export interface UseEditorSource {
   setSaveStatus: (status: SaveStatus | null) => void;
   handleFieldChange: (visitType: 'First' | 'Subsequent', field: keyof SpaceRow, value: string) => void;
   handleDisplayLabelChange: (value: string) => void;
+  /** Change one column the hand-built form does not show ("More settings"). */
+  handleExtraColumnChange: (visitType: 'First' | 'Subsequent', column: string, value: string) => void;
   handleDiceRollUpdate: (index: number, field: keyof DiceRollRow, value: string) => void;
   handleAddDiceRoll: (roll: DiceRollRow) => void;
   handleDeleteDiceRoll: (index: number) => void;
@@ -102,6 +107,7 @@ export function useEditorSource(
   const [spacesData, setSpacesData] = useState<SpaceRow[]>([]);
   const [diceRollData, setDiceRollData] = useState<DiceRollRow[]>([]);
   const [modalConfigData, setModalConfigData] = useState<ModalConfigRow[]>([]);
+  const [schema, setSchema] = useState<SpaceSchema | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -121,6 +127,7 @@ export function useEditorSource(
         setSpacesData(source.spaces);
         setDiceRollData(source.diceRolls);
         setModalConfigData(source.modalConfigs);
+        setSchema(source.schema);
         setIsLoading(false);
       } catch (err) {
         if (cancelled) return;
@@ -171,6 +178,22 @@ export function useEditorSource(
           ...space,
           _extraColumns: { ...(space._extraColumns ?? {}), display_label_override: value },
         };
+      }
+      return space;
+    }));
+    setHasUnsavedChanges(true);
+  }, [selectedSpaceName]);
+
+  // One column the hand-built form has no field for. Lives in _extraColumns, so it
+  // is written back like every other column (csvExport), with no editor change.
+  const handleExtraColumnChange = useCallback((
+    vType: 'First' | 'Subsequent',
+    column: string,
+    value: string
+  ) => {
+    setSpacesData(prev => prev.map(space => {
+      if (space.space_name === selectedSpaceName && space.visit_type === vType) {
+        return { ...space, _extraColumns: { ...(space._extraColumns ?? {}), [column]: value } };
       }
       return space;
     }));
@@ -368,6 +391,7 @@ export function useEditorSource(
     spacesData,
     diceRollData,
     modalConfigData,
+    schema,
     allSpaceNames,
     spaceFirst,
     spaceSubsequent,
@@ -379,6 +403,7 @@ export function useEditorSource(
     setSaveStatus,
     handleFieldChange,
     handleDisplayLabelChange,
+    handleExtraColumnChange,
     handleDiceRollUpdate,
     handleAddDiceRoll,
     handleDeleteDiceRoll,

@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.3.2] - 2026-10-06
+
+### One description of what a space can hold, and a "More settings" section that shows every setting (Job 2b, step 1)
+
+From the Manager brief 2026-10-05 and the editor review (section 4). **Not deployed; held for the Manager's go.** Players see nothing different.
+
+- **New file `public/data/SOURCE_FILES/Spaces.schema.json`: the one description of Spaces.csv.** All 60 columns, each with a plain-English label, help text, a group, a role, who may edit it (admin / teacher / edited elsewhere), the values the engine accepts (only where the engine itself checks), and, for the editor, whether the hand-built form already shows it (`x-placed`). It sits next to the CSVs on purpose: that way it is already copied, hashed, baked into every classroom and served at `/data/SOURCE_FILES/` with no new plumbing. (The review suggested `public/data/schema/`; nothing copies sub-folders, so this was the smaller change.) The wording of the labels and help is a first draft for Tom.
+- **The editor's new "More settings" section** (maintainer only; a teacher never sees it). It lists every column the hand-built form has no field for, grouped, with the schema's label and help, a drop-down where the schema lists the allowed values, a space picker for destinations, a text box otherwise. **A column the schema has never heard of is still listed (as plain text)**, so a brand-new column is editable the day it is added and saves back round-trip with no editor code change. Before this, 19 behaviour settings (`funding_source`, `approval_role`, `fee_category`, `auto_roll_dice`, `try_again_days`, `is_starting_space`...) existed in the data and could be kept but never seen or edited. Checked in the real app: the section opens on a real space with real values. The board position columns stay with the Board Layout Editor.
+- **`schemaCoverage` test keeps the description honest:** every Spaces.csv column has a schema entry and the other way round; every stock value is one the schema allows; the schema's `x-placed` list equals the columns the editor form has; and the schema's "teacher may edit" list equals the three hand-kept copies (`SpaceEditor.SAFE_FIELD_SUBSET`, `instanceCatalog.EDITABLE_FIELDS`, `instanceContentDiff.TEACHER_EDITABLE_COLUMNS`). Adding a column in one place and not the others now fails a test instead of failing quietly.
+- **Data cleanup the schema found:** 16 cells in `has_final_review_gate` held `PM`, `dob_exam`, `dob_audit` or `fdny_exam` instead of Yes/No. The engine only ever read `Yes`, so they did nothing; they are now blank (the baked board is byte-identical, `pipelineFaithful` green).
+- **Next steps for 2b (not in this commit):** the server's teacher-editable lists and the teacher-added-space builder read the schema instead of their own copies; DiceRoll Info and ModalConfig get schemas; one shared CSV reader.
+
+**Tests.** `MoreSettings` (6, incl. the new-column proof), `schemaCoverage` (6).
+
+**To undo:** revert this commit.
+
 ## [3.3.1] - 2026-10-06
 
 ### Teacher-safety fixes for "add a space" (Job 2a): the Enter-key trap, the Finish square, a check of the built board, plain-number Time and Fee

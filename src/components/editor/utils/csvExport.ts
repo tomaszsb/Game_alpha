@@ -13,7 +13,7 @@
 
 import { SpaceRow, DiceRollRow, ModalConfigRow } from '../types/EditorTypes';
 
-const SPACES_KNOWN_HEADERS = [
+export const SPACES_KNOWN_HEADERS = [
   'space_name', 'phase', 'visit_type', 'Title', 'Event', 'Action', 'Outcome',
   'w_card', 'b_card', 'i_card', 'l_card', 'e_card',
   'Time', 'Fee',

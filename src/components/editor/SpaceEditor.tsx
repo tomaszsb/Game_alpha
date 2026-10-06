@@ -3,6 +3,7 @@ import { SpaceRow, DiceRollRow, ModalConfigRow, PHASES, PATH_TYPES, YES_NO_OPTIO
 import { InlineDiceRollEditor } from './InlineDiceRollEditor';
 import { shortName } from '../../utils/boardCommon';
 import { SpaceRegionAnchor, regionForAnchor, regionHeading, regionShortLabel } from './spaceRegions';
+import { SpaceSchema, SchemaField, moreSettings, groupMoreSettings } from './utils/spaceSchema';
 
 /**
  * The safe subset a teacher may change: what a space SAYS and what it costs,
@@ -64,6 +65,15 @@ interface SpaceEditorProps {
    * field, so nothing can be added later and quietly not report.
    */
   onFocusedRegion?: (regionId: string | null) => void;
+  /**
+   * What a space can hold (Spaces.schema.json). With `onExtraColumnChange`, switches on
+   * the "More settings" section: every column the hand-built form has no field for,
+   * so a new column is editable the day it is added. Maintainer only: a teacher
+   * (`visibleFields` set) never sees it.
+   */
+  extraSchema?: SpaceSchema | null;
+  /** Change one "More settings" column on the current visit's row. */
+  onExtraColumnChange?: (visitType: 'First' | 'Subsequent', column: string, value: string) => void;
 }
 
 // Card type colors matching theme.ts cardTypes. The WORDS are not here: each
@@ -114,6 +124,8 @@ export function SpaceEditor({
   goTo,
   onEdited,
   onFocusedRegion,
+  extraSchema,
+  onExtraColumnChange,
 }: SpaceEditorProps): JSX.Element {
   const currentSpace = visitType === 'First' ? spaceFirst : spaceSubsequent;
   const formRef = useRef<HTMLDivElement | null>(null);
@@ -753,7 +765,94 @@ export function SpaceEditor({
             </div>
           </EditorSection>
         )}
+
+        {/* Every column the form above has no field for, straight from the schema:
+            a column added to Spaces.csv appears here with no editor change. */}
+        {!visibleFields && onExtraColumnChange && (
+          <MoreSettingsSection
+            schema={extraSchema ?? null}
+            row={currentSpace}
+            allSpaceNames={allSpaceNames}
+            onChange={(column, value) => onExtraColumnChange(visitType, column, value)}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * "More settings": the columns of this space's row that the hand-built form does
+ * not show. Which ones, how each is labelled, and what values it may hold all come
+ * from the schema (utils/spaceSchema.ts); a column with no schema entry yet is
+ * still listed, as plain text, so nothing is invisible.
+ */
+function MoreSettingsSection({ schema, row, allSpaceNames, onChange }: {
+  schema: SpaceSchema | null;
+  row: SpaceRow;
+  allSpaceNames: string[];
+  onChange: (column: string, value: string) => void;
+}): JSX.Element | null {
+  const list = moreSettings(schema, row);
+  if (list.length === 0) return null;
+  const groups = groupMoreSettings(list);
+  const valueOf = (name: string) => row._extraColumns?.[name] ?? '';
+  return (
+    <EditorSection
+      heading="More settings"
+      color={SECTION_COLORS.identity}
+      defaultOpen={false}
+      summary={`${list.length} settings`}
+    >
+      <div style={styles.sectionHint}>
+        Everything else this space can hold, straight from the data description. Most spaces leave these blank.
+      </div>
+      {groups.map(g => (
+        <div key={g.group} data-more-settings-group={g.group} style={{ marginBottom: '8px' }}>
+          <div style={{ ...styles.sectionHint, fontWeight: 600 }}>{g.group}</div>
+          {g.items.map(item => (
+            <MoreSettingField
+              key={item.name}
+              name={item.name}
+              field={item.field}
+              value={valueOf(item.name)}
+              allSpaceNames={allSpaceNames}
+              onChange={(v) => onChange(item.name, v)}
+            />
+          ))}
+        </div>
+      ))}
+    </EditorSection>
+  );
+}
+
+function MoreSettingField({ name, field, value, allSpaceNames, onChange }: {
+  name: string;
+  field: SchemaField | null;
+  value: string;
+  allSpaceNames: string[];
+  onChange: (v: string) => void;
+}): JSX.Element {
+  const label = field?.title ? `${field.title} (${name})` : name;
+  const help = field?.description;
+  const allowed = field?.constraints?.enum?.filter(v => v !== '');
+  let body: JSX.Element;
+  if (allowed && allowed.length > 0) {
+    // A stored value outside the list (e.g. "YES" vs "Yes") must stay selectable.
+    const ci = field?.['x-enum-ignore-case'];
+    const hasValue = !value || allowed.some(o => (ci ? o.toLowerCase() === value.toLowerCase() : o === value));
+    body = <SelectField label={label} value={value} options={hasValue ? allowed : [...allowed, value]} onChange={onChange} anchor={`field:${name}`} />;
+  } else if (field?.['x-ref'] === 'Spaces.space_name') {
+    body = <SpaceSelectField label={label} value={value} options={allSpaceNames} onChange={onChange} anchor={`field:${name}`} />;
+  } else if (field?.['x-multiline']) {
+    body = <TextareaField label={label} value={value} onChange={onChange} rows={2} anchor={`field:${name}`} />;
+  } else {
+    body = <Field label={label} value={value} onChange={onChange} anchor={`field:${name}`} />;
+  }
+  return (
+    <div data-more-setting={name}>
+      {body}
+      {help && <div style={styles.sectionHint}>{help}</div>}
     </div>
   );
 }
