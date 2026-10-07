@@ -101,7 +101,8 @@
     "browserslist": "^4.29.0",
     "baseline-browser-mapping": "^2.11.25",
     "js-yaml": "^4.3.2",
-    "qs": "^6.16.0"
+    "qs": "^6.16.0",
+    "shell-quote": "^1.12.0"
   },
   "keywords": [
     "typescript",
