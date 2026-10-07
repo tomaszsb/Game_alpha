@@ -11,6 +11,7 @@
 // Behind the classic/new toggle (off by default). Optional E-card play and the
 // detailed-card/modal restyle are later increments.
 
+import { PlayerAvatar } from '../common/PlayerAvatar';
 import React, { useEffect, useRef, useState } from 'react';
 import { PlayerPanelProps } from './panelTypes';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
@@ -826,8 +827,9 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
 
       {/* Header */}
       <div style={{ ...pad, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500 }}>
-          <span style={{ width: 11, height: 11, borderRadius: '50%', background: player.color || p.accent }} />
+        {/* The player's face, big enough to read across the table (Job 5), with their colour as the ring. */}
+        <div data-testid="panel-player-face" style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 17, fontWeight: 600 }}>
+          <PlayerAvatar avatar={player.avatar} color={player.color || p.accent} size={46} title={player.name} />
           {player.name}
         </div>
         {phaseLabel && <div style={{ fontSize: 11, color: p.muted, textAlign: 'right' }}>{phaseLabel}</div>}
@@ -864,10 +866,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 7 }}>
-          <button type="button" data-testid="glance-money" onClick={() => setNumbersPage('money')} style={glanceTile}
+          <button type="button" data-testid="glance-money" onClick={() => setNumbersPage('money')} style={{ ...glanceTile, gridColumn: '1 / -1', minHeight: 74 }}
             aria-label={`${NUMBERS.TILE_MONEY}: $${player.money.toLocaleString()}${moneyCue.word ? `, ${moneyCue.word}` : ''}`}>
             <span style={glanceLabel}><span aria-hidden>💰</span> {NUMBERS.TILE_MONEY}<span aria-hidden style={glanceArrow}>›</span></span>
-            <span style={{ ...glanceValue, color: moneyCue.color }}>${player.money.toLocaleString()}</span>
+            <span style={{ ...glanceValue, fontSize: 30, lineHeight: 1.15, color: moneyCue.color }}>${player.money.toLocaleString()}</span>
             {moneyCue.word && <span style={{ ...glanceSub, color: moneyCue.color, fontWeight: 700 }}>{moneyCue.word}</span>}
           </button>
           <button type="button" data-testid="glance-time" onClick={() => setShowChronicle(true)} style={glanceTile}
@@ -979,22 +981,22 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           {content && renderedStory && (
             <div style={{ fontSize: 12, color: p.muted, marginTop: 4, lineHeight: 1.5 }}>
               {portraitSrc && npcInfo && (
-                <span style={{ float: 'left', width: 36, marginRight: 6, marginBottom: 2, textAlign: 'center' }}>
+                <span data-testid="panel-mentor" style={{ float: 'left', width: 72, marginRight: 8, marginBottom: 2, textAlign: 'center' }}>
                   <img
                     src={portraitSrc}
                     alt={npcInfo.name}
                     style={{
-                      width: 22,
-                      height: 22,
+                      width: 58,
+                      height: 58,
                       borderRadius: '50%',
                       objectFit: 'cover',
-                      border: `1.5px solid ${npcInfo.color}`,
+                      border: `2.5px solid ${npcInfo.color}`,
                       display: 'block',
                       margin: '0 auto',
                     }}
                   />
                   <span style={{
-                    fontSize: 8,
+                    fontSize: 11,
                     fontWeight: 600,
                     color: npcInfo.color,
                     lineHeight: 1.15,
