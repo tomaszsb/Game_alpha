@@ -35,3 +35,23 @@ export function ProjectMat({ tiles, palette: p }: { tiles: MatTileState[]; palet
     </div>
   );
 }
+
+/** The mat squeezed to one row of dots (no extra height) for the phone header. */
+export function MatDots({ tiles, palette: p }: { tiles: MatTileState[]; palette: PanelPalette }): JSX.Element | null {
+  if (tiles.length === 0) return null;
+  const done = tiles.filter(t => t.done).length;
+  return (
+    <div
+      data-testid="project-mat-dots"
+      data-done={done}
+      data-total={tiles.length}
+      title={`My project: ${tiles.map(t => `${t.label} ${t.done ? '✓' : '○'}`).join(', ')}`}
+      aria-label={`My project: ${done} of ${tiles.length} steps done`}
+      style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
+    >
+      {tiles.map(t => (
+        <span key={t.id} aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: t.done ? p.good : 'transparent', border: `1.5px solid ${t.done ? p.good : p.border}` }} />
+      ))}
+    </div>
+  );
+}

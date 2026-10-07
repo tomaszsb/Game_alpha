@@ -11,7 +11,8 @@
 // Behind the classic/new toggle (off by default). Optional E-card play and the
 // detailed-card/modal restyle are later increments.
 
-import { ProjectMat } from './ProjectMat';
+import { ProjectMat, MatDots } from './ProjectMat';
+import { usePhoneWidth } from '../../hooks/usePhoneWidth';
 import { computeMat } from '../../utils/projectMat';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import React, { useEffect, useRef, useState } from 'react';
@@ -95,6 +96,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
 }) => {
   const p = panelPalettes[mode];
   const { openWithTerm } = useDictionaryPanel();
+  // On a phone the panel must not be bigger than it was: the large face / money / mentor / mat are PC-and-TV only.
+  const isPhone = usePhoneWidth();
   const [, force] = useState(0);
   const [isRollingDice, setIsRollingDice] = useState(false);
   const [isEndingTurn, setIsEndingTurn] = useState(false);
@@ -676,6 +679,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // cash is healthy AND the project is fully funded. Same
   // computeProjectFinances as "My numbers", so the two can't disagree.
   const fin = computeProjectFinances(player, (id) => getCardWordedFor(gameServices.dataService, id, player.projectType));
+  const matTiles = computeMat(player, fin);
   const moneyCue: { color: string; word?: string } =
     player.money < 0
       ? { color: '#dc2626', word: 'in the red' }
@@ -829,11 +833,23 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
 
       {/* Header */}
       <div style={{ ...pad, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        {/* The player's face, big enough to read across the table (Job 5), with their colour as the ring. */}
-        <div data-testid="panel-player-face" style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 17, fontWeight: 600 }}>
-          <PlayerAvatar avatar={player.avatar} color={player.color || p.accent} size={46} title={player.name} />
-          {player.name}
-        </div>
+        {isPhone ? (
+          /* Phone: the panel may not grow, so the old small header, with the mat squeezed into its spare
+             room as eight dots (no extra height). */
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500, minWidth: 0 }}>
+              <span style={{ width: 11, height: 11, borderRadius: '50%', background: player.color || p.accent, flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.name}</span>
+            </div>
+            <MatDots tiles={matTiles} palette={p} />
+          </>
+        ) : (
+          /* PC / TV: the player's face, big enough to read across the table (Job 5), in their colour. */
+          <div data-testid="panel-player-face" style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 17, fontWeight: 600 }}>
+            <PlayerAvatar avatar={player.avatar} color={player.color || p.accent} size={46} title={player.name} />
+            {player.name}
+          </div>
+        )}
         {phaseLabel && <div style={{ fontSize: 11, color: p.muted, textAlign: 'right' }}>{phaseLabel}</div>}
       </div>
 
@@ -868,10 +884,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 7 }}>
-          <button type="button" data-testid="glance-money" onClick={() => setNumbersPage('money')} style={{ ...glanceTile, gridColumn: '1 / -1', minHeight: 74 }}
+          <button type="button" data-testid="glance-money" onClick={() => setNumbersPage('money')} style={isPhone ? glanceTile : { ...glanceTile, gridColumn: '1 / -1', minHeight: 74 }}
             aria-label={`${NUMBERS.TILE_MONEY}: $${player.money.toLocaleString()}${moneyCue.word ? `, ${moneyCue.word}` : ''}`}>
             <span style={glanceLabel}><span aria-hidden>💰</span> {NUMBERS.TILE_MONEY}<span aria-hidden style={glanceArrow}>›</span></span>
-            <span style={{ ...glanceValue, fontSize: 30, lineHeight: 1.15, color: moneyCue.color }}>${player.money.toLocaleString()}</span>
+            <span style={{ ...glanceValue, ...(isPhone ? {} : { fontSize: 30, lineHeight: 1.15 }), color: moneyCue.color }}>${player.money.toLocaleString()}</span>
             {moneyCue.word && <span style={{ ...glanceSub, color: moneyCue.color, fontWeight: 700 }}>{moneyCue.word}</span>}
           </button>
           <button type="button" data-testid="glance-time" onClick={() => setShowChronicle(true)} style={glanceTile}
@@ -898,9 +914,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         </div>
         </div>
         {/* The mat: milestones fill in as the project moves (Job 5). */}
-        <div style={{ marginTop: 8 }}>
-          <ProjectMat tiles={computeMat(player, fin)} palette={p} />
-        </div>
+        {!isPhone && (
+          <div style={{ marginTop: 8 }}>
+            <ProjectMat tiles={matTiles} palette={p} />
+          </div>
+        )}
         {openHelp === 'glance' && (
           <HelpCard
             id="help-card-glance"
@@ -987,22 +1005,22 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           {content && renderedStory && (
             <div style={{ fontSize: 12, color: p.muted, marginTop: 4, lineHeight: 1.5 }}>
               {portraitSrc && npcInfo && (
-                <span data-testid="panel-mentor" style={{ float: 'left', width: 72, marginRight: 8, marginBottom: 2, textAlign: 'center' }}>
+                <span data-testid="panel-mentor" style={{ float: 'left', width: isPhone ? 36 : 72, marginRight: isPhone ? 6 : 8, marginBottom: 2, textAlign: 'center' }}>
                   <img
                     src={portraitSrc}
                     alt={npcInfo.name}
                     style={{
-                      width: 58,
-                      height: 58,
+                      width: isPhone ? 22 : 58,
+                      height: isPhone ? 22 : 58,
                       borderRadius: '50%',
                       objectFit: 'cover',
-                      border: `2.5px solid ${npcInfo.color}`,
+                      border: `${isPhone ? 1.5 : 2.5}px solid ${npcInfo.color}`,
                       display: 'block',
                       margin: '0 auto',
                     }}
                   />
                   <span style={{
-                    fontSize: 11,
+                    fontSize: isPhone ? 8 : 11,
                     fontWeight: 600,
                     color: npcInfo.color,
                     lineHeight: 1.15,

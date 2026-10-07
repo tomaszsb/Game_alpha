@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.6.1] - 2026-10-07
+
+### The phone player panel is no bigger than before (Tom: "player panel has to fit on a phone, it can not be bigger"). Not deployed.
+
+- **Measured in a real browser (local game, 1 player, phone-width emulation) before and after:** the panel was 631 px tall at both 360x640 and 390x844 before v3.6.0; v3.6.0 made it 868 px (+237 px: the bigger face and money tile, the mentor, and the mat's 111 px). It is now 631 px again at both sizes. Width is unchanged by this fix.
+- **How:** on a screen 480 px wide or less (`hooks/usePhoneWidth.ts`) the panel uses its old small header, the old money tile and the old small mentor, and the mat shrinks to eight small dots in the header's spare room (no extra height; hover/aria say how many steps are done). The big face, 30 px money, 58 px mentor and the full mat show on PC and TV only.
+- **Already there before any of this (not caused by it):** the panel's content is 427 px wide, wider than a 360 or 390 phone, so the right edge is cut off ("Ov..." in the header, tiles clipped). Same width before v3.6.0, so this fix leaves it; it is the open item in TODO "Phone width".
+- **Not measured:** the Progress strip at the top (the trophy board), which has its own size on a phone.
+
 ## [3.6.0] - 2026-10-07
 
 ### The rest of Job 5 (Tom: "do the rest of 5") plus two follow-ups from v3.5.1. Built; **NOT deployed.** Separate small commits, so any one can be reverted on its own.

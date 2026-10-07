@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, afterEach } from 'vitest';
-import { ProjectMat } from '../../../src/components/player/ProjectMat';
+import { ProjectMat, MatDots } from '../../../src/components/player/ProjectMat';
 import { panelPalettes } from '../../../src/components/player/panelTheme';
 
 describe('ProjectMat', () => {
@@ -23,5 +23,17 @@ describe('ProjectMat', () => {
   it('draws nothing when the data names no tiles', () => {
     const { container } = render(<ProjectMat palette={panelPalettes.light} tiles={[]} />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('the phone version is one row of dots that says how many steps are done', () => {
+    render(<MatDots palette={panelPalettes.light} tiles={[
+      { id: 'a', label: 'Scope chosen', done: true },
+      { id: 'b', label: 'Funded', done: true },
+      { id: 'c', label: 'DOB approved', done: false },
+    ]} />);
+    const dots = screen.getByTestId('project-mat-dots');
+    expect(dots).toHaveAttribute('data-done', '2');
+    expect(dots).toHaveAttribute('aria-label', 'My project: 2 of 3 steps done');
+    expect(dots.children).toHaveLength(3);
   });
 });
