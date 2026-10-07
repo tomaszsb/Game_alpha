@@ -32,7 +32,10 @@ COPY package*.json ./
 # requirement — see package.json's `engines`), which comfortably clears
 # npm v12's floor too, so the pin moved up deliberately alongside it. Bump
 # this pin (and the base image, if wanted) deliberately, not automatically.
-RUN npm install -g npm@12
+# Exact version, not the floating "@12" (2026-10-06): the floating pin pulled whatever 12.x
+# was newest on every build, so a new npm release could change or break a deploy with
+# no change in this repo. Bump this line deliberately, with a test build.
+RUN npm install -g npm@12.2.0
 
 # Install ALL dependencies (including build tools)
 # Skip Puppeteer browser download — not needed in production
