@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.3.5] - 2026-10-06
+
+### Deploy and build housekeeping (Manager list after Tom's first deploy of v3.3.4). No gameplay change.
+
+- **`deploy.sh` now checks itself.** After starting the container it waits (up to 60 s) for `/health`, prints the status and version, and prints a loud `DEPLOY FAILED` if it does not answer or the version is not the commit it just pulled. Before it stops the old container it reads how many player screens are connected and, if any, asks you to type `yes` (no terminal to ask on = it stops and says so; `FORCE=1` skips the question). The duplicate `game_alpha` lines from stop and rm are silenced. **Note:** the version `/health` shows is the commit that was pushed and pulled, so anything pushed after you were handed the command (a docs commit, say) is the version you will see.
+- **What `/health` `activeGames` means:** the number of games the server is still holding (created and not yet expired), not live players. It read 7 with nobody connected. Live players are `websocket.totalClients`.
+- **The 2 "critical" `npm ci` warnings:** one package, `shell-quote`, pulled in only by `concurrently`, the dev tool that starts the two dev servers (`npm run dev`). It is not part of the shipped game (`npm audit --omit=dev` = 0 found; the runtime never loads it). Fixed with a tested `overrides` entry to `shell-quote` 1.12.0, not `npm audit fix --force`; audit now reports 0.
+- **`eslint 9.39.5` "deprecated":** that is the maintenance line of ESLint 9; ESLint 10 exists, but `eslint-plugin-react` (latest 7.37.5) does not support it yet, so staying on 9 is right for now. Revisit when that plugin lists ESLint 10. (`npm run lint` has 4 errors and 36 warnings from before this work; not touched.)
+- **Dockerfile** pins `npm@12.2.0` instead of the floating `@12`, so a new npm release cannot change or break a deploy. Could not test a Docker build here (no Docker on this PC); the version exists in the registry.
+- **Vite/Vitest configs** use `import.meta.dirname` instead of `__dirname` (the warning is gone).
+- **The big PNGs in `dist/assets` are not a game-load cost.** They are the carousel pictures for the `/challenge` playtester page (`src/playtest/tour/`). The JavaScript only holds their web addresses; the page shows one picture at a time, so game players never download them. Converting them to WebP would shrink them a lot, but nothing needs it.
+
+**To undo:** revert the commits.
+
 ## [3.3.4] - 2026-10-06
 
 ### A classroom whose board is already broken can still save the fix (Manager request)
