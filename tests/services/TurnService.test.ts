@@ -1336,7 +1336,15 @@ describe('TurnService', () => {
     beforeEach(() => {
       (turnService as any).movementExecutor.executeMovement = vi.fn().mockResolvedValue(undefined);
       mockGameRulesService.checkWinCondition.mockResolvedValue(true);
-      mockStateService.getGameState.mockReturnValue({ ...mockGameState, currentPlayerId: 'player1' });
+      // A sole finisher: once they are marked finished nobody is left to play, so the game ends
+      // and the trophies (mocked here) name the winner.
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        currentPlayerId: 'player1',
+        players: [{ ...mockPlayer, finishedAtTurn: 1 }],
+      });
+      mockGameRulesService.computeStandings = vi.fn().mockReturnValue({ winnerId: 'player1', decidedBy: 'trophies', rows: [] });
+      mockStateService.endGame = vi.fn();
     });
 
     it('charges the late-rate civil penalty and resolves the violation when the winner never filed', async () => {
@@ -1352,8 +1360,8 @@ describe('TurnService', () => {
       await turnService.endTurnWithMovement();
 
       // large tier, late rate (never filed) = 20% of $1,000,000 = $200,000
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
-        id: 'player1',
+      // Through TEMP (the commit after a finish would otherwise overwrite a plain player update).
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith('player1', {
         money: 1000 - 200000,
         violationStatus: 'resolved',
       });
@@ -1365,8 +1373,8 @@ describe('TurnService', () => {
 
       await turnService.endTurnWithMovement();
 
-      expect(mockStateService.updatePlayer).not.toHaveBeenCalledWith(
-        expect.objectContaining({ violationStatus: 'resolved' })
+      expect(mockStateService.updateTempState).not.toHaveBeenCalledWith(
+        'player1', expect.objectContaining({ violationStatus: 'resolved' })
       );
     });
 
@@ -1376,8 +1384,8 @@ describe('TurnService', () => {
 
       await turnService.endTurnWithMovement();
 
-      expect(mockStateService.updatePlayer).not.toHaveBeenCalledWith(
-        expect.objectContaining({ violationStatus: 'resolved' })
+      expect(mockStateService.updateTempState).not.toHaveBeenCalledWith(
+        'player1', expect.objectContaining({ violationStatus: 'resolved' })
       );
     });
   });

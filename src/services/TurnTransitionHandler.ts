@@ -217,9 +217,17 @@ export class TurnTransitionHandler {
     let nextPlayerIndex = (currentPlayerIndex + 1) % allPlayers.length;
     let nextPlayer = allPlayers[nextPlayerIndex];
 
+    // Finished and out players never take another turn (they watch while the others play on).
+    const isDone = (p: Player) => p.finishedAtTurn !== undefined || !!p.outReason;
+
     // Use while loop to handle multiple consecutive turn skips without recursion
-    while (nextPlayer.turnModifiers && nextPlayer.turnModifiers.skipTurns > 0) {
-      const turnModifiers = nextPlayer.turnModifiers;
+    while (isDone(nextPlayer) || (nextPlayer.turnModifiers && nextPlayer.turnModifiers.skipTurns > 0)) {
+      if (isDone(nextPlayer)) {
+        nextPlayerIndex = (nextPlayerIndex + 1) % allPlayers.length;
+        nextPlayer = this.stateService.getGameState().players[nextPlayerIndex];
+        continue;
+      }
+      const turnModifiers = nextPlayer.turnModifiers!;
 
       // Log turn skip
       this.loggingService.info(`Turn skipped (${turnModifiers.skipTurns} remaining)`, {

@@ -336,15 +336,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
       // 'life_event' repurposing — ToastWriter's life_event case reads
       // cardType/cardName, which this emission never set, so the toast
       // silently rendered "Received: undefined" instead of this message.
-      this.stateService.endGame(undefined, { type: 'design_fee_cap', playerId });
-      this.stateService.emitGameEvent({
-        type: 'game_ended',
-        reason: 'design_fee_cap',
-        playerId: playerId,
-        playerName: updatedPlayer.name,
-        spaceName: updatedPlayer.currentSpace,
-        message: `⛔ GAME OVER: Design fees exceeded 20% of project scope!`,
-      });
+      this.takePlayerOut(playerId, 'design_fee_cap', `⛔ ${updatedPlayer.name} is out: design fees passed 20% of the project's scope.`);
     }
   }
 
@@ -425,16 +417,27 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
 
       // Domain-event stage 4: emit-after-commit + the real GameEnded type
       // (see checkDesignFeeCap's identical fix above for the full rationale).
-      this.stateService.endGame(undefined, { type: 'bankruptcy', playerId });
-      this.stateService.emitGameEvent({
-        type: 'game_ended',
-        reason: 'bankruptcy',
-        playerId: playerId,
-        playerName: updatedPlayer.name,
-        spaceName: updatedPlayer.currentSpace,
-        message: `💸 BANKRUPTCY: ${updatedPlayer.name} has run out of money and cannot continue the project!`,
-      });
+      this.takePlayerOut(playerId, 'bankruptcy', `💸 ${updatedPlayer.name} is out: ran out of money and cannot continue the project.`);
     }
+  }
+
+  /**
+   * A player who goes broke, or whose design fees pass the limit, is OUT: they stop taking turns,
+   * hold no trophy, and the others play on. TurnService decides whether anyone is left to play
+   * (a game with nobody left ends with a loss screen, exactly as the old rule did for one player).
+   */
+  private takePlayerOut(playerId: string, reason: 'bankruptcy' | 'design_fee_cap', message: string): void {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player || player.outReason) return;
+    this.stateService.updatePlayer({ id: playerId, outReason: reason });
+    this.stateService.emitGameEvent({
+      type: 'player_out',
+      playerId,
+      playerName: player.name,
+      reason,
+      spaceName: player.currentSpace,
+      message,
+    });
   }
 
   // Real gap found 2026-08-02 scoping the notification-bus TODO item: money

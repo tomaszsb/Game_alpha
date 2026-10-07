@@ -15,6 +15,8 @@ import { PostGameLogViewer } from '../game/PostGameLogViewer';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 import { lossTitle } from '../../utils/endGameLoss';
+import { getTrophyRules, TROPHY_IDS } from '../../utils/trophyRules';
+import type { TrophyStandings } from '../../utils/trophyScoring';
 
 interface EndGamePenaltyView {
   dobMissing: boolean;
@@ -41,6 +43,8 @@ export function EndGameModal(): JSX.Element {
   // player on a blank page (post-deploy playtest, v3.0.91).
   const [endReason, setEndReason] = useState<GameEndReason | null>(null);
   const [lossPlayer, setLossPlayer] = useState<Player | null>(null);
+  // The three-trophy result (who held which trophy and how each player did against their own plan).
+  const [standings, setStandings] = useState<TrophyStandings | null>(null);
   // fb:cc345da9 + fb:3483b37b — collapsible journey list. Defaults closed so
   // the panel isn't dominated by a 20-row movement log; one click reveals it.
   const [journeyOpen, setJourneyOpen] = useState<boolean>(false);
@@ -57,6 +61,7 @@ export function EndGameModal(): JSX.Element {
   useEffect(() => {
     const syncFromState = (gameState: ReturnType<typeof stateService.getGameState>) => {
       setIsGameOver(gameState.isGameOver);
+      setStandings(gameState.standings ?? null);
 
       if (gameState.isGameOver && !hasTrackedFinishRef.current) {
         hasTrackedFinishRef.current = true;
@@ -290,6 +295,8 @@ export function EndGameModal(): JSX.Element {
           </>
         )}
 
+        {standings && standings.rows.length > 0 && <TrophyBoard standings={standings} />}
+
         {/* fb:cc345da9 + fb:3483b37b — comprehensive end-game stats panel.
             Replaces the bare timestamp that was the only "stat" the playtester
             could see at the end. */}
@@ -420,6 +427,75 @@ export function EndGameModal(): JSX.Element {
         )}
       </div>
     </ModalBase>
+  );
+}
+
+// ============================================================================
+// Trophy board — the three races, each player against their own plan (lower is better)
+// ============================================================================
+
+function TrophyBoard({ standings }: { standings: TrophyStandings }): JSX.Element {
+  const rules = getTrophyRules();
+  const cell: React.CSSProperties = { padding: '6px 8px', textAlign: 'right', fontSize: '14px' };
+  return (
+    <div
+      data-testid="trophy-board"
+      style={{
+        marginBottom: '16px',
+        padding: '14px 16px',
+        backgroundColor: '#fffbeb',
+        borderRadius: theme.borderRadius.lg,
+        border: '1px solid #fde68a',
+        textAlign: 'left',
+      }}
+    >
+      <h3 style={{ margin: '0 0 4px 0', color: '#92400e', fontSize: '15px', fontWeight: 700 }}>
+        {theme.emoji.trophy} Trophies
+      </h3>
+      <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#a16207', fontStyle: 'italic' }}>
+        Each number is a percent of your own plan. Lower is better.
+        {standings.decidedBy === 'sum' && ' Nobody held enough trophies, so the lowest total of the three won.'}
+      </p>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ color: '#78350f', fontSize: '12px' }}>
+              <th style={{ ...cell, textAlign: 'left' }}>Player</th>
+              {TROPHY_IDS.map(id => <th key={id} style={cell}>{rules.names[id]}</th>)}
+              <th style={cell}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {standings.rows.map(row => {
+              const isWinner = row.playerId === standings.winnerId;
+              return (
+                <tr
+                  key={row.playerId}
+                  data-testid={`trophy-row-${row.playerId}`}
+                  data-status={row.status}
+                  style={{ borderTop: '1px solid #fde68a', fontWeight: isWinner ? 700 : 400, opacity: row.status === 'finished' ? 1 : 0.6 }}
+                >
+                  <td style={{ ...cell, textAlign: 'left' }}>
+                    {row.name}
+                    {row.status === 'out' && <span style={{ color: '#991b1b', marginLeft: 6 }}>out</span>}
+                    {row.status === 'unfinished' && <span style={{ marginLeft: 6 }}>did not finish</span>}
+                  </td>
+                  {TROPHY_IDS.map(id => {
+                    const held = row.trophies.includes(id);
+                    return (
+                      <td key={id} style={cell} data-testid={held ? `trophy-${id}-${row.playerId}` : undefined}>
+                        {row.status === 'finished' ? `${row[id]}%` : '—'}{held ? ` ${theme.emoji.trophy}` : ''}
+                      </td>
+                    );
+                  })}
+                  <td style={cell}>{row.status === 'finished' ? `${row.sum}%` : '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

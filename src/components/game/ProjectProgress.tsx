@@ -647,6 +647,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                 data-testid="player-progress-card"
                 data-player-name={player.name}
                 data-finished={String(dataService.getGameConfigBySpace(player.currentSpace)?.is_ending_space === true)}
+                data-out={String(!!player.outReason)}
               >
                 <div style={{ ...playerNameStyle, display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <PlayerAvatar avatar={player.avatar} color={player.color} size={20} title={player.name} /> {player.name}

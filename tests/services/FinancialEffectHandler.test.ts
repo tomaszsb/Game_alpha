@@ -53,6 +53,7 @@ function makeServices(opts: {
     }),
     emitGameEvent: vi.fn(),
     endGame: vi.fn(),
+    updatePlayer: vi.fn(),
     // trackDesignExpenditure reads gameState for turn-number cost-history entries.
     getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
   } as unknown as IStateService;
@@ -113,7 +114,7 @@ const ctx: EffectContext = { source: 'test', triggerEvent: 'manual' } as any;
 describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.70.4), checked at turn-commit (2026-10-02)', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('ends game when ratio crosses 20% in DESIGN phase', () => {
+  it('takes the player out when ratio crosses 20% in DESIGN phase', () => {
     // Scope 100k. designSoFar = 18k (18%). New 5% fee adds 5k → 23%, over the cap.
     const { handler, stateService, resourceService } = makeServices({
       projectScope: 100_000,
@@ -123,24 +124,23 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
     });
     handler.handleResourceChange(makeFeeEffect(5), ctx);
     // Rolling the fee never ends the game (2026-10-02): the cap is checked once, at turn-commit.
-    expect(stateService.endGame).not.toHaveBeenCalled();
+    expect(stateService.updatePlayer).not.toHaveBeenCalled();
     handler.checkDesignFeeCap('p1');
-    expect(stateService.endGame).toHaveBeenCalledTimes(1);
-    // No winner + a reason, so EndGameModal can render the loss screen
-    // (post-deploy playtest: loss endings left a blank page).
-    expect(stateService.endGame).toHaveBeenCalledWith(undefined, { type: 'design_fee_cap', playerId: 'p1' });
+    expect(stateService.updatePlayer).toHaveBeenCalledTimes(1);
+    // One player is out; whether the game is over is TurnService's call (nobody left to play = loss screen).
+    expect(stateService.updatePlayer).toHaveBeenCalledWith({ id: 'p1', outReason: 'design_fee_cap' });
     expect(stateService.emitGameEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'game_ended',
+        type: 'player_out',
         reason: 'design_fee_cap',
-        message: expect.stringContaining('GAME OVER'),
+        message: expect.stringContaining('is out'),
       })
     );
     // The deleted time-penalty fallback must NOT fire.
     expect((resourceService.addTime as any)).not.toHaveBeenCalled();
   });
 
-  it('ends game when ratio crosses 20% in CONSTRUCTION phase (the v2.70.4 change)', () => {
+  it('takes the player out when ratio crosses 20% in CONSTRUCTION phase (the v2.70.4 change)', () => {
     const { handler, stateService, resourceService } = makeServices({
       projectScope: 100_000,
       designSoFar: 18_000,
@@ -149,14 +149,14 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
     });
     handler.handleResourceChange(makeFeeEffect(5), ctx);
     // Rolling the fee never ends the game (2026-10-02): the cap is checked once, at turn-commit.
-    expect(stateService.endGame).not.toHaveBeenCalled();
+    expect(stateService.updatePlayer).not.toHaveBeenCalled();
     handler.checkDesignFeeCap('p1');
-    expect(stateService.endGame).toHaveBeenCalledTimes(1);
+    expect(stateService.updatePlayer).toHaveBeenCalledTimes(1);
     // Pre-v2.70.4 this branch fired addTime(+2) and a notification.
     expect((resourceService.addTime as any)).not.toHaveBeenCalled();
   });
 
-  it('ends game when ratio crosses 20% in REGULATORY phase', () => {
+  it('takes the player out when ratio crosses 20% in REGULATORY phase', () => {
     const { handler, stateService, resourceService } = makeServices({
       projectScope: 100_000,
       designSoFar: 18_000,
@@ -165,13 +165,13 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
     });
     handler.handleResourceChange(makeFeeEffect(5), ctx);
     // Rolling the fee never ends the game (2026-10-02): the cap is checked once, at turn-commit.
-    expect(stateService.endGame).not.toHaveBeenCalled();
+    expect(stateService.updatePlayer).not.toHaveBeenCalled();
     handler.checkDesignFeeCap('p1');
-    expect(stateService.endGame).toHaveBeenCalledTimes(1);
+    expect(stateService.updatePlayer).toHaveBeenCalledTimes(1);
     expect((resourceService.addTime as any)).not.toHaveBeenCalled();
   });
 
-  it('ends game when ratio crosses 20% with no dataService (UNKNOWN phase)', () => {
+  it('takes the player out when ratio crosses 20% with no dataService (UNKNOWN phase)', () => {
     // Defensive: dataService is an optional dependency; the rule must still fire.
     const { handler, stateService } = makeServices({
       projectScope: 100_000,
@@ -181,9 +181,9 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
     });
     handler.handleResourceChange(makeFeeEffect(5), ctx);
     // Rolling the fee never ends the game (2026-10-02): the cap is checked once, at turn-commit.
-    expect(stateService.endGame).not.toHaveBeenCalled();
+    expect(stateService.updatePlayer).not.toHaveBeenCalled();
     handler.checkDesignFeeCap('p1');
-    expect(stateService.endGame).toHaveBeenCalledTimes(1);
+    expect(stateService.updatePlayer).toHaveBeenCalledTimes(1);
   });
 
   it('does NOT end game when cumulative ratio stays under 20%', () => {
@@ -196,9 +196,9 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
     });
     handler.handleResourceChange(makeFeeEffect(1.5), ctx);
     // Rolling the fee never ends the game (2026-10-02): the cap is checked once, at turn-commit.
-    expect(stateService.endGame).not.toHaveBeenCalled();
+    expect(stateService.updatePlayer).not.toHaveBeenCalled();
     handler.checkDesignFeeCap('p1');
-    expect(stateService.endGame).not.toHaveBeenCalled();
+    expect(stateService.updatePlayer).not.toHaveBeenCalled();
   });
 });
 
@@ -212,6 +212,7 @@ describe('FinancialEffectHandler — SCOPE_PERCENTAGE authored fee (4b slice 4)'
       updateTempState: vi.fn(),
       emitGameEvent: vi.fn(),
       endGame: vi.fn(),
+    updatePlayer: vi.fn(),
       getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
     } as unknown as IStateService;
     const resourceService = {
@@ -241,7 +242,7 @@ describe('FinancialEffectHandler — SCOPE_PERCENTAGE authored fee (4b slice 4)'
   it('does NOT touch the 20% design-fee game-over cap (no instant-loss footgun)', () => {
     const { handler, stateService } = makeScopeServices(1_000_000);
     handler.handleFeeDeduction(scopeFee('25% of scope'), ctx); // would blow a real design cap
-    expect(stateService.endGame).not.toHaveBeenCalled();
+    expect(stateService.updatePlayer).not.toHaveBeenCalled();
     const designWrite = (stateService.updateTempState as any).mock.calls
       .find((c: any[]) => c[1]?.expenditures?.design != null);
     expect(designWrite).toBeUndefined();
@@ -268,6 +269,7 @@ describe('FinancialEffectHandler — fee deductions reach the player ledger (202
       updateTempState: vi.fn(),
       emitGameEvent: vi.fn(),
       endGame: vi.fn(),
+    updatePlayer: vi.fn(),
       getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
     } as unknown as IStateService;
     const resourceService = {
@@ -319,6 +321,7 @@ describe('FinancialEffectHandler — mandatory bills can bankrupt, but only at t
       updateTempState: vi.fn(),
       emitGameEvent: vi.fn(),
       endGame: vi.fn(),
+    updatePlayer: vi.fn(),
       getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
     } as unknown as IStateService;
     const resourceService = {
@@ -347,16 +350,16 @@ describe('FinancialEffectHandler — mandatory bills can bankrupt, but only at t
   it('does NOT end the game immediately when the charge leaves the player below zero — that balance can still be provisional (a Try Again could undo it) until the turn is actually committed', () => {
     const { handler, stateService } = makeBillServices(-500);
     handler.handleResourceChange(bill(-2000), ctx);
-    expect(stateService.endGame).not.toHaveBeenCalled();
+    expect(stateService.updatePlayer).not.toHaveBeenCalled();
   });
 
-  it('checkBankruptcy, called once at turn-commit (TurnService.endTurnWithMovement), ends the game when money is negative', () => {
+  it('checkBankruptcy, called once at turn-commit (TurnService.endTurnWithMovement), takes the player out when money is negative', () => {
     const { handler, stateService } = makeBillServices(-500);
     handler.checkBankruptcy('p1');
-    expect(stateService.endGame).toHaveBeenCalledTimes(1);
-    expect(stateService.endGame).toHaveBeenCalledWith(undefined, { type: 'bankruptcy', playerId: 'p1' });
+    expect(stateService.updatePlayer).toHaveBeenCalledTimes(1);
+    expect(stateService.updatePlayer).toHaveBeenCalledWith({ id: 'p1', outReason: 'bankruptcy' });
     expect(stateService.emitGameEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'game_ended', reason: 'bankruptcy', message: expect.stringContaining('BANKRUPTCY') }),
+      expect.objectContaining({ type: 'player_out', reason: 'bankruptcy', message: expect.stringContaining('is out') }),
     );
   });
 
@@ -364,7 +367,7 @@ describe('FinancialEffectHandler — mandatory bills can bankrupt, but only at t
     const { handler, stateService } = makeBillServices(300);
     handler.handleResourceChange(bill(-2000), ctx);
     handler.checkBankruptcy('p1');
-    expect(stateService.endGame).not.toHaveBeenCalled();
+    expect(stateService.updatePlayer).not.toHaveBeenCalled();
   });
 });
 
@@ -384,6 +387,7 @@ describe('FinancialEffectHandler — money changes reach the permanent log (2026
       updateTempState: vi.fn(),
       emitGameEvent: vi.fn(),
       endGame: vi.fn(),
+    updatePlayer: vi.fn(),
       getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
     } as unknown as IStateService;
     const resourceService = {

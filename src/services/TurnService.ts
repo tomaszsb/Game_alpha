@@ -380,9 +380,11 @@ export class TurnService implements ITurnService {
       // Check for win condition before ending turn
       const hasWon = await this.gameRulesService.checkWinCondition(gameState.currentPlayerId);
       if (hasWon) {
-        // Player has won - end the game
+        // This player has reached the ending space. They stop taking turns; the game goes on
+        // until every player has finished or gone out, then the trophies decide the winner.
         const winnerId = gameState.currentPlayerId;
         const winnerPlayer = this.stateService.getPlayer(winnerId);
+        const finishPenalty: NonNullable<Player['finishPenalty']> = {};
 
         // Workstream 7 Phase 7.4 — end-game penalty when the winner reached
         // FINISH without DOB sign-off. Backstop for the Stage-1 gate at
@@ -391,19 +393,13 @@ export class TurnService implements ITurnService {
         if (this.approvalService && winnerPlayer) {
           const penalty = this.approvalService.computeEndGamePenalty(winnerPlayer);
           if (penalty) {
-            this.stateService.updatePlayer({
-              id: winnerId,
+            // Through TEMP, like every other change this turn: the commit that follows would
+            // otherwise write the pre-penalty numbers straight back over the player.
+            this.stateService.updateTempState(winnerId, {
               timeSpent: penalty.newTimeSpent,
               money: penalty.newMoney,
             });
-            this.stateService.updateGameState({
-              endGamePenalty: {
-                dobMissing: true,
-                days: penalty.days,
-                fee: penalty.fee,
-                playerId: winnerId,
-              },
-            });
+            finishPenalty.dobMissing = { days: penalty.days, fee: penalty.fee };
             this.loggingService.info(`End-game penalty applied: missing DOB sign-off (+${penalty.days} days, +$${penalty.fee.toLocaleString()} fee).`, {
               playerId: winnerId,
               playerName: winnerPlayer.name,
@@ -421,14 +417,12 @@ export class TurnService implements ITurnService {
           const tier = winnerPlayer.violationTier ?? 'small';
           const penaltyBase = winnerPlayer.violationPenaltyBase ?? 0;
           const fee = computeFilingFee(tier, false, penaltyBase);
-          this.stateService.updatePlayer({
-            id: winnerId,
-            money: (winnerPlayer.money ?? 0) - fee,
+          // Re-read: the missing-sign-off charge above may already have changed their money.
+          this.stateService.updateTempState(winnerId, {
+            money: (this.stateService.getPlayer(winnerId)?.money ?? 0) - fee,
             violationStatus: 'resolved',
           });
-          this.stateService.updateGameState({
-            endGameViolationPenalty: { fee, playerId: winnerId },
-          });
+          finishPenalty.violation = { fee };
           this.loggingService.info(`End-game penalty applied: unresolved violation, treated as late (+$${fee.toLocaleString()} civil penalty).`, {
             playerId: winnerId,
             playerName: winnerPlayer.name,
@@ -437,19 +431,21 @@ export class TurnService implements ITurnService {
           });
         }
 
-        // Domain-event stage 4: the WIN ending previously had zero
-        // announcement anywhere outside EndGameModal — no log, no toast,
-        // no GameEvent. LogWriter/ToastWriter both react to this now.
-        this.stateService.endGame(winnerId);
+        this.stateService.updatePlayer({
+          id: winnerId,
+          finishedAtTurn: gameState.globalTurnCount,
+          finishPenalty,
+        });
         this.stateService.emitGameEvent({
-          type: 'game_ended',
-          reason: 'win',
+          type: 'player_finished',
           playerId: winnerId,
           playerName: winnerPlayer?.name ?? 'A player',
           spaceName: winnerPlayer?.currentSpace ?? '',
-          message: `🏆 ${winnerPlayer?.name ?? 'A player'} reached the finish line and won the game!`,
+          message: `🏁 ${winnerPlayer?.name ?? 'A player'} reached the finish line.`,
         });
-        return { nextPlayerId: winnerId }; // Winner remains current player
+        if (this.endGameIfEveryoneIsDone(winnerId)) {
+          return { nextPlayerId: winnerId }; // the finisher stays "current" on the end screen
+        }
       }
 
       step = 'check_bankruptcy';
@@ -466,12 +462,17 @@ export class TurnService implements ITurnService {
       // The 20% design-fee cap is checked here too (2026-10-02, Tom): a fee quote is
       // not real money until accepted, so the cap — like bankruptcy — must wait for
       // the commit, not fire at the roll.
-      this.effectEngineService?.checkDesignFeeCap(gameState.currentPlayerId);
-      if (!this.stateService.getGameState().isGameOver) {
+      // A finished player is not checked again. Money trouble now takes only THAT player out
+      // (they stop taking turns and hold no trophy); the game ends only when nobody is left to play.
+      if (!hasWon) {
+        this.effectEngineService?.checkDesignFeeCap(gameState.currentPlayerId);
         this.effectEngineService?.checkBankruptcy(gameState.currentPlayerId);
-      }
-      if (this.stateService.getGameState().isGameOver) {
-        return { nextPlayerId: gameState.currentPlayerId };
+        if (this.stateService.getPlayer(gameState.currentPlayerId)?.outReason) {
+          this.stateService.updatePlayer({ id: gameState.currentPlayerId, outAtTurn: gameState.globalTurnCount });
+          if (this.endGameIfEveryoneIsDone(gameState.currentPlayerId)) {
+            return { nextPlayerId: gameState.currentPlayerId };
+          }
+        }
       }
 
       step = 'commit_turn_transaction';
@@ -505,6 +506,54 @@ export class TurnService implements ITurnService {
       }
       throw error;
     }
+  }
+
+  /**
+   * When every player has finished or gone out, the game is over: the trophies pick the winner
+   * (GameRulesService.computeStandings). Everybody out = no winner, a loss screen for the last
+   * player to go out. Returns true when the game has just ended.
+   */
+  private endGameIfEveryoneIsDone(lastPlayerId: string): boolean {
+    const players = this.stateService.getGameState().players;
+    if (players.some(p => p.finishedAtTurn === undefined && !p.outReason)) return false;
+
+    const standings = this.gameRulesService.computeStandings();
+    const winner = standings.winnerId ? this.stateService.getPlayer(standings.winnerId) : undefined;
+    if (winner) {
+      // The winner's finish charges go on the end screen (the old single-winner fields).
+      const penalty = winner.finishPenalty;
+      this.stateService.updateGameState({
+        endGamePenalty: penalty?.dobMissing
+          ? { dobMissing: true, days: penalty.dobMissing.days, fee: penalty.dobMissing.fee, playerId: winner.id }
+          : undefined,
+        endGameViolationPenalty: penalty?.violation ? { fee: penalty.violation.fee, playerId: winner.id } : undefined,
+      });
+      this.stateService.endGame(winner.id, undefined, standings);
+      this.stateService.emitGameEvent({
+        type: 'game_ended',
+        reason: 'win',
+        playerId: winner.id,
+        playerName: winner.name,
+        spaceName: winner.currentSpace,
+        message: `🏆 ${winner.name} won the game!`,
+      });
+      return true;
+    }
+
+    const lastOut = this.stateService.getPlayer(lastPlayerId);
+    const reason = lastOut?.outReason ?? 'bankruptcy';
+    this.stateService.endGame(undefined, { type: reason, playerId: lastPlayerId }, standings);
+    this.stateService.emitGameEvent({
+      type: 'game_ended',
+      reason,
+      playerId: lastPlayerId,
+      playerName: lastOut?.name ?? 'A player',
+      spaceName: lastOut?.currentSpace ?? '',
+      message: reason === 'bankruptcy'
+        ? `💸 ${lastOut?.name ?? 'A player'} ran out of money and cannot continue the project.`
+        : `⛔ ${lastOut?.name ?? 'A player'}'s design fees passed 20% of the project's scope.`,
+    });
+    return true;
   }
 
   /**

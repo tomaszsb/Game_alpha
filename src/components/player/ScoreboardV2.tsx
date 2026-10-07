@@ -3,7 +3,8 @@
 // Soft positional standings, NOT a ranked race: players are tokens on the
 // permitting-lifecycle rail at their furthest-reached phase, so you read who's
 // where on the shared journey without rank numbers, win/lose, or elimination
-// framing (the game has no bankruptcy — bias watch-list #6). Below the rail,
+// framing. Players who have finished or are out are marked on their row (they
+// stop taking turns; the trophies are counted at the end). Below the rail,
 // each player's status row mirrors the panel's status zone (icon cash/days +
 // approval diodes) so panel and scoreboard read as one system.
 //
@@ -139,11 +140,16 @@ export const ScoreboardV2: React.FC<ScoreboardV2Props> = ({ gameServices, mode }
           return (
             <div
               key={player.id}
+              data-testid="scoreboard-player-row"
+              data-player-name={player.name}
+              data-finished={String(player.finishedAtTurn !== undefined)}
+              data-out={String(!!player.outReason)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
                 background: isCurrent ? p.surf2 : p.surf,
+                opacity: player.outReason ? 0.6 : 1,
                 border: isCurrent ? `1px solid ${p.accent}` : `1px solid transparent`,
                 borderRadius: 9,
                 padding: '8px 11px',
@@ -153,6 +159,8 @@ export const ScoreboardV2: React.FC<ScoreboardV2Props> = ({ gameServices, mode }
               <span style={{ fontSize: 13, fontWeight: 500, minWidth: 0, flex: '0 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {player.name}
                 {isCurrent && <span style={{ color: p.muted, fontWeight: 400 }}> · their turn</span>}
+                {player.finishedAtTurn !== undefined && <span style={{ color: p.muted, fontWeight: 400 }}> · finished</span>}
+                {player.outReason && <span style={{ color: p.muted, fontWeight: 400 }}> · out</span>}
               </span>
               <span style={{ fontSize: 11, color: p.muted, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {prettyPhase(pos.phase)}

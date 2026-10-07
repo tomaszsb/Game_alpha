@@ -27,6 +27,7 @@ function run(feeCategory: 'architectural' | 'engineering' | 'construction', pct:
     }),
     emitGameEvent: vi.fn(),
     endGame: vi.fn(),
+    updatePlayer: vi.fn(),
     getGameState: vi.fn(() => ({ globalTurnCount: 1 } as any)),
   } as unknown as IStateService;
   const resourceService = {
@@ -60,12 +61,12 @@ describe('change orders vs. the 20% design-fee tally', () => {
   it('the 20% cap does not fire on change orders alone', () => {
     const { handler, stateService } = run('construction', 25); // 25% of scope in change orders
     handler.checkDesignFeeCap('p1');
-    expect(stateService.endGame).not.toHaveBeenCalled();
+    expect(stateService.updatePlayer).not.toHaveBeenCalled();
   });
 
   it('the 20% cap still fires on design fees', () => {
     const { handler, stateService } = run('architectural', 20);
     handler.checkDesignFeeCap('p1');
-    expect(stateService.endGame).toHaveBeenCalled();
+    expect(stateService.updatePlayer).toHaveBeenCalledWith({ id: 'p1', outReason: 'design_fee_cap' });
   });
 });

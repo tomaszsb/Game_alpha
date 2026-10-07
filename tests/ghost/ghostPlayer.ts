@@ -71,6 +71,13 @@ export interface GhostGameResult {
   // bankruptcies and fee-cap losses.)
   reason: 'FINISHED' | 'LOST' | 'TURN_CAP' | 'LOOP' | 'EXCEPTION' | 'INVARIANT_VIOLATION';
   lossReason?: 'bankruptcy' | 'design_fee_cap';
+  /** How many seats played (options.players, default 1). `turns` counts every seat's turns together. */
+  players?: number;
+  /** The three-trophy result of a game that ended (who held which trophy, each player's percentages). */
+  standings?: import('../../src/utils/trophyScoring').TrophyStandings;
+  /** Total turns played (all seats) when the game ended, and when each player finished or went out. */
+  gameTurns?: number;
+  timeline?: Array<{ finishedAtTurn?: number; outAtTurn?: number }>;
   error?: string;
   trail: string[];
 }
@@ -133,7 +140,15 @@ export function detectSpaceLoop(
 }
 
 export interface GhostGameOptions {
+  /**
+   * Per-seat turn cap (the game's cap is this × players). Default 300.
+   */
   maxTurns?: number;
+  /**
+   * How many bots sit at the table (default 1). Each takes its turn in rotation with the same
+   * play rules; used to measure game length and the spread of the three trophy percentages.
+   */
+  players?: number;
   playerName?: string;
   verbose?: boolean;
   /**
@@ -250,11 +265,12 @@ export async function playOneGame(
   options: GhostGameOptions = {}
 ): Promise<GhostGameResult> {
   const { stateService, turnService, dataService, choiceService } = services;
-  const maxTurns = options.maxTurns ?? 300;
+  const seats = Math.max(1, options.players ?? 1);
+  const maxTurns = (options.maxTurns ?? 300) * seats;
   const playerName = options.playerName ?? 'Ghost';
   const signal = options.signal;
   const trail: string[] = [];
-  const visitCounts = new Map<string, number>();
+  const visitCountsByPlayer = new Map<string, Map<string, number>>();
 
   const fail = (reason: GhostGameResult['reason'], error: string, turns: number): GhostGameResult => ({
     success: false,
@@ -271,16 +287,20 @@ export async function playOneGame(
   };
 
   try {
-    stateService.addPlayer(playerName);
-    const player = stateService.getAllPlayers()[0];
-    const playerId = player.id;
-    stateService.setCurrentPlayer(playerId);
+    for (let i = 0; i < seats; i++) stateService.addPlayer(i === 0 ? playerName : `${playerName}${i + 1}`);
+    const firstId = stateService.getAllPlayers()[0].id;
+    stateService.setCurrentPlayer(firstId);
     stateService.startGame();
-    await turnService.startTurn(playerId);
+    await turnService.startTurn(firstId);
     if (signal?.aborted) return abortedResult(0);
 
     for (let turn = 0; turn < maxTurns; turn++) {
       if (signal?.aborted) return abortedResult(turn);
+
+      // Whoever's turn it is plays (with one seat this is always the same player).
+      const playerId = stateService.getGameState().currentPlayerId ?? firstId;
+      if (!visitCountsByPlayer.has(playerId)) visitCountsByPlayer.set(playerId, new Map());
+      const visitCounts = visitCountsByPlayer.get(playerId)!;
 
       const p = stateService.getPlayer(playerId);
       if (!p) return fail('INVARIANT_VIOLATION', 'Player disappeared from state', turn);
@@ -309,6 +329,10 @@ export async function playOneGame(
           finalSpace: p.currentSpace,
           reason: lossReason ? 'LOST' : 'FINISHED',
           ...(lossReason ? { lossReason } : {}),
+          players: seats,
+          standings: endState.standings,
+          gameTurns: endState.globalTurnCount,
+          timeline: endState.players.map(pl => ({ finishedAtTurn: pl.finishedAtTurn, outAtTurn: pl.outAtTurn })),
           trail,
         };
       }
