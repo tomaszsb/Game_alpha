@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.6.0] - 2026-10-07
+
+### The rest of Job 5 (Tom: "do the rest of 5") plus two follow-ups from v3.5.1. Built; **NOT deployed.** Separate small commits, so any one can be reverted on its own.
+
+- **Bigger trophies** on the live board (PC strip): the trophy icon is about twice the size and the race text a notch larger (Tom: "a little small").
+- **"Check my board" is now on each classroom's row** in the teacher list (next to Classroom Setup / Start a game), not four screens down. Same strip, same button; it still also sits at the top of Classroom Setup.
+- **Fast speed switch (per device):** `utils/gameSpeed.ts`. Fast cuts the pauses around a move, the camera glides, how long a pop-up note stays up, and small CSS fades to half, on this device only; it never changes rules or what other screens see (Tom picked "faster animations and pop-ups for everyone"). It is in the TV Menu and in the Progress toolbar ("Normal speed" / "Fast"), is remembered on the device, and is applied at start-up (`initGameSpeed` in `main.tsx`). Looping attention pulses keep their own pace.
+- **TV buttons in one menu:** `components/layout/TvMenu.tsx`. One "Menu" button holds Rules, Standings, History, Connect Phone, Adjust screen size, Speed and Back to PC, with the old labels and actions (Screen size keeps its first-use pulse). History and Connect Phone appear only during play, as before.
+- **Player panel:** the player's face (46px, in their colour) beside a bigger name; money is a full-width tile with a 30px number (the cue colours and words are unchanged); the mentor (the character who speaks at the space) is 58px with an 11px name instead of 22px / 8px.
+- **The mat:** `ProjectMat` under the four number boxes - eight tiles that fill in as the project moves (Scope chosen, Funded, Architect, Engineer, DOB approved, FDNY approved, Builder hired, Finished). Which tiles there are, their order and labels are `mat` rows in `TROPHIES.csv`; each row picks one of eight built-in checks (`scope_set, funded, architect_paid, engineer_paid, dob_approved, fdny_approved, builder_hired, finished`). A file with no `mat` rows keeps the stock mat.
+- **Tests:** gameSpeed (3), TvMenu (4), projectMat (4), ProjectMat (2).
+- **Not looked at in a browser; wording is a first draft for Tom.** What to look at: TV - the Menu button and each item in it, Speed Fast vs Normal on a move; phone/PC - the face, the big money, the mentor beside the story, the mat filling after a funding stop; Progress toolbar - the speed button.
+- **Not covered:** a "sliding pieces" board, art for Banker/Lender/Investor, sounds (the brief's "Later" list).
+
 ## [3.5.1] - 2026-10-07
 
 ### Live trophy board (Manager brief Job 5, first slice). Built; **NOT deployed - held while the Jarvis 2-seat run is live.** Sits on top of the held v3.5.0 (Job 4); the two Job 5 commits are separate and can be reverted without touching Job 4.

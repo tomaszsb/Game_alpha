@@ -11,6 +11,8 @@
 // Behind the classic/new toggle (off by default). Optional E-card play and the
 // detailed-card/modal restyle are later increments.
 
+import { ProjectMat } from './ProjectMat';
+import { computeMat } from '../../utils/projectMat';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import React, { useEffect, useRef, useState } from 'react';
 import { PlayerPanelProps } from './panelTypes';
@@ -894,6 +896,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             {fin.scopeTotal > 0 && <span style={glanceSub}>{FormatUtils.formatMoney(fin.scopeTotal)}</span>}
           </button>
         </div>
+        </div>
+        {/* The mat: milestones fill in as the project moves (Job 5). */}
+        <div style={{ marginTop: 8 }}>
+          <ProjectMat tiles={computeMat(player, fin)} palette={p} />
         </div>
         {openHelp === 'glance' && (
           <HelpCard

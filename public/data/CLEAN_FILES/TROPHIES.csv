@@ -10,3 +10,11 @@ points,cut_corner,2,Cut a corner
 review,review_passed,,
 review,review_sent_back,,
 space_event,CHEAT-BYPASS,cut_corner,
+mat,scope,scope_set,Scope chosen
+mat,funded,funded,Funded
+mat,architect,architect_paid,Architect
+mat,engineer,engineer_paid,Engineer
+mat,dob,dob_approved,DOB approved
+mat,fdny,fdny_approved,FDNY approved
+mat,builder,builder_hired,Builder hired
+mat,finish,finished,Finished

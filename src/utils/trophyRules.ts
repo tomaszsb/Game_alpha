@@ -8,13 +8,21 @@
 //   points        key = quality event              value = problem points it adds
 //   review        key = quality event              (this event counts as one review)
 //   space_event   key = space id                   value = quality event fired on arrival
+//   mat           key = tile id                    value = what fills it (see MAT_CHECKS)   text = the tile's label
 
 import type { TrophyRuleCsvRow } from '../types/DataTypes';
 
 export type TrophyId = 'time' | 'money' | 'quality';
 export const TROPHY_IDS: readonly TrophyId[] = ['time', 'money', 'quality'];
 
+/** What can fill a tile on the player's mat. The labels and order are data; the checks are these. */
+export const MAT_CHECKS = ['scope_set', 'funded', 'architect_paid', 'engineer_paid', 'dob_approved', 'fdny_approved', 'builder_hired', 'finished'] as const;
+export type MatCheck = typeof MAT_CHECKS[number];
+export interface MatTile { id: string; check: MatCheck; label: string }
+
 export interface TrophyRules {
+  /** The milestones on each player's mat, in order. */
+  mat: MatTile[];
   /** The name shown for each trophy. */
   names: Record<TrophyId, string>;
   /** How many of the three trophies a player must hold to win outright. */
@@ -27,7 +35,19 @@ export interface TrophyRules {
   spaceEvents: Record<string, string>;
 }
 
+const DEFAULT_MAT: MatTile[] = [
+  { id: 'scope', check: 'scope_set', label: 'Scope chosen' },
+  { id: 'funded', check: 'funded', label: 'Funded' },
+  { id: 'architect', check: 'architect_paid', label: 'Architect' },
+  { id: 'engineer', check: 'engineer_paid', label: 'Engineer' },
+  { id: 'dob', check: 'dob_approved', label: 'DOB approved' },
+  { id: 'fdny', check: 'fdny_approved', label: 'FDNY approved' },
+  { id: 'builder', check: 'builder_hired', label: 'Builder hired' },
+  { id: 'finish', check: 'finished', label: 'Finished' },
+];
+
 const DEFAULT_RULES: TrophyRules = {
+  mat: DEFAULT_MAT,
   names: { time: 'Fastest', money: 'On budget', quality: 'Best built' },
   trophiesToWin: 2,
   points: { review_passed: 0, review_sent_back: 1, violation: 2, cut_corner: 2 },
@@ -49,6 +69,7 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
     points: {},
     reviewEvents: [],
     spaceEvents: {},
+    mat: [],
   };
   for (const row of rows) {
     const key = (row.key || '').trim();
@@ -76,8 +97,12 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
       case 'space_event':
         if (value) next.spaceEvents[key] = value;
         break;
+      case 'mat':
+        if ((MAT_CHECKS as readonly string[]).includes(value) && text) next.mat.push({ id: key, check: value as MatCheck, label: text });
+        break;
     }
   }
+  if (next.mat.length === 0) next.mat = DEFAULT_MAT; // a file with no mat rows keeps the stock mat
   rules = next;
 }
 
