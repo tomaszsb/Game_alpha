@@ -93,7 +93,7 @@ export function parseCsvLine(line, options = {}) {
  * @returns {string[][]}
  */
 export function parseCsvRecords(text, options = {}) {
-  const clean = text.replace(/^﻿/, '').trim();
+  const clean = text.replace(/^\uFEFF/, '').trim();
   if (!clean) return [];
   return splitCsvRecords(clean).map(r => parseCsvLine(r, options));
 }

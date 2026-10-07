@@ -14,6 +14,10 @@ All notable changes to this project will be documented in this file.
 - **Vite/Vitest configs** use `import.meta.dirname` instead of `__dirname` (the warning is gone).
 - **The big PNGs in `dist/assets` are not a game-load cost.** They are the carousel pictures for the `/challenge` playtester page (`src/playtest/tour/`). The JavaScript only holds their web addresses; the page shows one picture at a time, so game players never download them. Converting them to WebP would shrink them a lot, but nothing needs it.
 
+- **First real run:** the new `deploy.sh` and the pinned Dockerfile had not run for real when they were committed (this PC has no Docker; `bash -n` passed). Tom's NEXT deploy is their first run. If anything looks off, paste the whole output back.
+- **Manual fallback if `deploy.sh` refuses or misbehaves:** it stops before touching the old container when players are connected and there is no terminal; `ssh unraid "cd /mnt/user/appdata/Game_alpha && FORCE=1 bash deploy.sh"` restarts anyway. If the script itself is broken, put the old known-good one back and run it: `ssh unraid "cd /mnt/user/appdata/Game_alpha && git pull origin master && git checkout 537b4a6 -- deploy.sh && bash deploy.sh"`.
+- **Also fixed:** a stray invisible character in `src/utils/csvCore.js` that lint flagged (the 4th of the 4 lint errors; the other 3 are older, see TODO).
+
 **To undo:** revert the commits.
 
 ## [3.3.4] - 2026-10-06
