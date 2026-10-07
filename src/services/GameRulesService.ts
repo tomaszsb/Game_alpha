@@ -684,8 +684,10 @@ export class GameRulesService implements IGameRulesService {
   }
 
   /**
-   * Determine the winner of the game based on highest score
-   * @returns The player ID of the winner, or null if no winner can be determined
+   * LEGACY highest-score pick, nothing calls it. The game's winner is now decided by the three
+   * trophies — see computeStandings() and TROPHIES.csv. Kept only until calculatePlayerScore's
+   * end-screen "Final score" line is retired (TODO).
+   * @returns The player ID of the highest scorer, or null if there are no players
    */
   determineWinner(): string | null {
     try {

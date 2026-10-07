@@ -187,6 +187,53 @@ describe('EndGameModal', () => {
     });
   });
 
+  describe('Trophy table', () => {
+    const row = (playerId: string, name: string, over: any = {}) => ({
+      playerId, name, status: 'finished', time: 90, money: 80, quality: 25, sum: 195, trophies: [],
+      daysUsed: 0, daysPlanned: 0, moneySpent: 0, moneyPlanned: 0, problemPoints: 0, reviews: 0, ...over,
+    });
+
+    it('shows every player against their own plan, marks the held trophies, and says when the total decided it', () => {
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        isGameOver: true,
+        winner: 'player1',
+        gamePhase: 'END' as const,
+        gameEndTime: new Date('2024-12-20T10:30:00Z'),
+        standings: {
+          winnerId: 'player1',
+          decidedBy: 'sum',
+          rows: [
+            row('player1', 'Test Winner', { trophies: ['time'] }),
+            row('player2', 'Other One', { time: 120, money: 70, quality: 50, sum: 240, trophies: ['money', 'quality'] }),
+            row('player3', 'Broke One', { status: 'out' }),
+          ],
+        },
+      });
+
+      render(<EndGameModal />);
+
+      expect(screen.getByTestId('trophy-board')).toBeInTheDocument();
+      expect(screen.getByTestId('trophy-time-player1')).toHaveTextContent('90%');
+      expect(screen.getByTestId('trophy-money-player2')).toBeInTheDocument();
+      expect(screen.getByTestId('trophy-quality-player2')).toBeInTheDocument();
+      expect(screen.queryByTestId('trophy-time-player2')).not.toBeInTheDocument();
+      expect(screen.getByTestId('trophy-row-player3')).toHaveAttribute('data-status', 'out');
+      // The player who is out has no trophy marks at all.
+      expect(screen.getByTestId('trophy-row-player3').textContent).not.toContain('%');
+      expect(screen.getByText(/lowest total of the three won/)).toBeInTheDocument();
+    });
+
+    it('does not show a trophy table when the game carries no standings', () => {
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState, isGameOver: true, winner: 'player1', gamePhase: 'END' as const,
+        gameEndTime: new Date('2024-12-20T10:30:00Z'),
+      });
+      render(<EndGameModal />);
+      expect(screen.queryByTestId('trophy-board')).not.toBeInTheDocument();
+    });
+  });
+
   describe('State Subscription', () => {
     it('should subscribe to state changes on mount', () => {
       render(<EndGameModal />);
