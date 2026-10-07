@@ -39,7 +39,7 @@ const E2E_HEAVY = [
 ];
 
 const ALIASES = {
-  '@': path.resolve(__dirname, './src'),
+  '@': path.resolve(import.meta.dirname, './src'),
   // @jalez/react-flow-smart-edge ships a CJS dist/index.js inside an
   // ESM package, and its ESM build named-imports CJS-only `pathfinding`.
   // Both crash Node's loader under jsdom. Real edge geometry isn't
@@ -47,7 +47,7 @@ const ALIASES = {
   // in tests. Production builds use the real package via Vite's ESM
   // resolution (`module` field).
   '@jalez/react-flow-smart-edge': path.resolve(
-    __dirname,
+    import.meta.dirname,
     'tests/stubs/smartEdgeStub.ts'
   ),
 };

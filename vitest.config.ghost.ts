@@ -57,10 +57,10 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
       // See vitest.config.dev.ts for the full explanation of this stub.
       '@jalez/react-flow-smart-edge': path.resolve(
-        __dirname,
+        import.meta.dirname,
         'tests/stubs/smartEdgeStub.ts'
       ),
     }
