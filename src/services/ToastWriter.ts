@@ -120,6 +120,18 @@ export class ToastWriter {
         );
         break;
 
+      case 'player_finished':
+      case 'player_out':
+        this.notificationService.notify(
+          {
+            short: event.type === 'player_finished' ? 'Finished!' : 'Out',
+            medium: event.message,
+            detailed: event.message,
+          },
+          { playerId: event.playerId, playerName: event.playerName, actionType: 'game_ended' }
+        );
+        break;
+
       case 'life_event':
       case 'dice_conditional_card':
         this.notificationService.notify(

@@ -150,6 +150,17 @@ export class LogWriter {
         });
         break;
 
+      case 'player_finished':
+      case 'player_out':
+        this.loggingService.info(event.message, {
+          playerId: event.playerId,
+          playerName: event.playerName,
+          action: 'game_end',
+          reason: event.type === 'player_out' ? event.reason : 'finished',
+          spaceName: event.spaceName,
+        });
+        break;
+
       // --- Domain-event stage 4: CardService lifecycle (log-only — grep
       // confirmed zero companion toasts anywhere in CardService.ts) ---
 

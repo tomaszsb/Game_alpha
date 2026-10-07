@@ -32,6 +32,8 @@ import { FinancialEffectHandler } from '../../src/services/FinancialEffectHandle
 import { ApprovalService } from '../../src/services/ApprovalService';
 import { LogWriter } from '../../src/services/LogWriter';
 import { ToastWriter } from '../../src/services/ToastWriter';
+import { TrophyScorekeeper } from '../../src/services/TrophyScorekeeper';
+import { configureTrophyRules } from '../../src/utils/trophyRules';
 
 class NodeDataService extends DataService {
   private readonly cleanFilesDir: string;
@@ -61,6 +63,7 @@ class NodeDataService extends DataService {
     // Optional, like the real loader: a hand-built data dir (the authored-insertion ghost's
     // temp classroom) may not carry it, and a board without it simply keeps every card's own wording.
     try { (this as any).parseScopeWordingCsv(read('SCOPE_WORDING.csv')); } catch { /* feature off */ }
+    try { (this as any).trophyRuleRows = (this as any).parseTrophyRulesCsv(read('TROPHIES.csv')); } catch { /* built-in defaults */ }
     (this as any).buildSpaces();
     (this as any).loaded = true;
   }
@@ -88,6 +91,8 @@ export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise
   // bus subscribers, so headless turn flows produce the same log/toast
   // output real play does.
   new LogWriter(stateService, loggingService);
+  new TrophyScorekeeper(stateService);
+  configureTrophyRules(dataService.getTrophyRuleRows());
   const resourceService = new ResourceService(stateService);
   const gameRulesService = new GameRulesService(dataService, stateService);
   stateService.setGameRulesService(gameRulesService);

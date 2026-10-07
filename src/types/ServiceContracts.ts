@@ -152,6 +152,8 @@ export interface IDataService {
   getCardTypeLabels(): import('./DataTypes').CardTypeLabel[];
   getCharacterRows(): import('./DataTypes').CharacterCsvRow[];
   getViolationRuleRows(): import('./DataTypes').ViolationRuleCsvRow[];
+  /** TROPHIES.csv — the three-trophy win rule's names, point sizes and quality events. */
+  getTrophyRuleRows(): import('./DataTypes').TrophyRuleCsvRow[];
   /** SCOPE_WORDING.csv — project types a dice throw can pick (bare nouns); empty = feature off. */
   getScopeProjectTypes(): string[];
   /** SCOPE_WORDING.csv — a work package's wording with a `{project}` blank, by base card id. */
@@ -286,7 +288,7 @@ export interface IStateService {
   // Game lifecycle methods
   initializeGame(): GameState;
   startGame(settings?: import('./StateTypes').GameModeSettings): GameState;
-  endGame(winnerId?: string, endReason?: import('./StateTypes').GameEndReason): GameState;
+  endGame(winnerId?: string, endReason?: import('./StateTypes').GameEndReason, standings?: import('../utils/trophyScoring').TrophyStandings): GameState;
   resetGame(): GameState;
   
   // Negotiation management methods
@@ -607,6 +609,9 @@ export interface IGameRulesService {
 
   // Condition evaluation methods
   evaluateCondition(playerId: string, condition: string | undefined, diceRoll?: number): boolean;
+
+  /** The three-trophy result right now: each player against their own plan, who holds which trophy, who wins. */
+  computeStandings(): import('../utils/trophyScoring').TrophyStandings;
 
   // Scoring and winner determination methods
   calculatePlayerScore(playerId: string): number;

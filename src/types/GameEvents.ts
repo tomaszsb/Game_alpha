@@ -257,6 +257,37 @@ export interface GameEndedEvent {
   message: string;
 }
 
+// --- Three-trophy win rule (TROPHIES.csv) ---
+
+/** Something happened that the "best built" trophy counts (a review passed or sent back, a violation, a cut corner). */
+export interface QualityEvent {
+  type: 'quality_event';
+  playerId: string;
+  playerName: string;
+  /** Event id from TROPHIES.csv: review_passed, review_sent_back, violation, cut_corner, ... */
+  eventId: string;
+  spaceName: string;
+}
+
+/** A player reached the ending space and stops taking turns; the others play on. */
+export interface PlayerFinishedEvent {
+  type: 'player_finished';
+  playerId: string;
+  playerName: string;
+  spaceName: string;
+  message: string;
+}
+
+/** A player is out (cash below zero, or design fees over the limit); the others play on. */
+export interface PlayerOutEvent {
+  type: 'player_out';
+  playerId: string;
+  playerName: string;
+  reason: 'bankruptcy' | 'design_fee_cap';
+  spaceName: string;
+  message: string;
+}
+
 // --- Card lifecycle (CardService) ---
 
 export interface CardDrawnEvent {
@@ -358,6 +389,9 @@ export type GameEvent =
   | RecurringCardEffectAppliedEvent
   | ApprovalOutcomeDeterminedEvent
   | GameEndedEvent
+  | QualityEvent
+  | PlayerFinishedEvent
+  | PlayerOutEvent
   | CardDrawnEvent
   | DeckReshuffledEvent
   | CardReplacedEvent

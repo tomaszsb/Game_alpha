@@ -162,6 +162,18 @@ export interface ViolationRuleCsvRow {
 }
 
 /**
+ * One row of TROPHIES.csv (kind,key,value,text) — the three-trophy win rule's names,
+ * point sizes and quality events. See src/utils/trophyRules.ts. Optional file: missing
+ * or empty leaves the built-in defaults.
+ */
+export interface TrophyRuleCsvRow {
+  kind: string;
+  key: string;
+  value: string;
+  text: string;
+}
+
+/**
  * 2026-08-14: CSV-portability lift, reskin item — vocabulary swap for
  * button/notification text. One row of UI_STRINGS.csv: a dot-path `key`
  * (mirrors src/constants/uiStrings.ts's export shape, e.g.
@@ -524,6 +536,27 @@ export interface Player {
   violationAccrualCheckpoint?: number;
   /** The kind of project this player was handed (bare noun, SCOPE_WORDING.csv), if any. */
   projectType?: string;
+  /** Quality ledger for the "best built" trophy: how many reviews they have had and the
+   *  problem points earned (sizes from TROPHIES.csv). Rolls back on Try Again like approvals. */
+  trophyRecord?: TrophyRecord;
+  /** Set when they reach the ending space and stop taking turns; value = the game turn they got there. */
+  finishedAtTurn?: number;
+  /** Set when the player is out (cash below zero, or design fees over the limit) — they hold no trophy. */
+  outReason?: 'bankruptcy' | 'design_fee_cap';
+  /** The game turn they went out. */
+  outAtTurn?: number;
+  /** Charges applied when they reached the ending space (kept here until the game ends, then the winner's go on the end screen). */
+  finishPenalty?: {
+    dobMissing?: { days: number; fee: number };
+    violation?: { fee: number };
+  };
+}
+
+export interface TrophyRecord {
+  reviews: number;
+  problemPoints: number;
+  /** How many times each quality event happened (event id -> count). */
+  counts: Record<string, number>;
 }
 
 export type ApprovalStatus = 'none' | 'minor-objection' | 'approved' | 'denied';

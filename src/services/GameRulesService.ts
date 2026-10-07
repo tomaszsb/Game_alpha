@@ -4,6 +4,9 @@ import { IGameRulesService, IDataService, IStateService } from '../types/Service
 import { debugWarn } from '../utils/debugLog';
 import { CardType, Movement } from '../types/DataTypes';
 import { ConditionEvaluator } from '../utils/ConditionEvaluator';
+import { computeProjectFinances } from '../utils/projectFinances';
+import { getTrophyRules } from '../utils/trophyRules';
+import { rankTrophies, MeasureInput, TrophyStandings } from '../utils/trophyScoring';
 
 /**
  * GameRulesService acts as the centralized authority for all game rule validations.
@@ -615,6 +618,34 @@ export class GameRulesService implements IGameRulesService {
       const contingency = Math.round(BASE_PATH_DAYS * CONTINGENCY_RATE);
       return { estimatedDays: BASE_PATH_DAYS + contingency, basePathDays: BASE_PATH_DAYS, workTypeDays: 0, contingencyDays: contingency, uniqueWorkTypes: [] };
     }
+  }
+
+  /**
+   * The three-trophy result (see utils/trophyScoring.ts). Each player is measured against
+   * their own plan: days used vs the project-length estimate, money spent vs the project
+   * budget (the same numbers the player's "My numbers" panel shows), and problem points
+   * per review. Only players who finished can hold a trophy; players who are out cannot.
+   */
+  computeStandings(): TrophyStandings {
+    const players = this.stateService.getGameState().players;
+    const inputs: MeasureInput[] = players.map(p => {
+      const finances = computeProjectFinances(p, id => this.dataService.getCardById(id) ?? this.dataService.getCardById(id.split('_')[0]));
+      const record = p.trophyRecord;
+      return {
+        playerId: p.id,
+        name: p.name,
+        finished: p.finishedAtTurn !== undefined,
+        out: !!p.outReason,
+        finishOrder: p.finishedAtTurn ?? Number.MAX_SAFE_INTEGER,
+        daysUsed: p.timeSpent ?? 0,
+        daysPlanned: this.calculateEstimatedProjectLength(p.id).estimatedDays,
+        moneySpent: finances.spent,
+        moneyPlanned: finances.design.budget + finances.regulatory.budget + finances.construction.budget + finances.contingency.budget,
+        problemPoints: record?.problemPoints ?? 0,
+        reviews: record?.reviews ?? 0,
+      };
+    });
+    return rankTrophies(inputs, getTrophyRules());
   }
 
   /**

@@ -1,0 +1,12 @@
+kind,key,value,text
+trophy,time,,Fastest
+trophy,money,,On budget
+trophy,quality,,Best built
+rule,trophies_to_win,2,
+points,review_passed,0,Passed on the first try
+points,review_sent_back,1,Sent back
+points,violation,2,Violation
+points,cut_corner,2,Cut a corner
+review,review_passed,,
+review,review_sent_back,,
+space_event,CHEAT-BYPASS,cut_corner,

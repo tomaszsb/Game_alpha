@@ -24,6 +24,7 @@ import { CardEffectHandler } from '../services/CardEffectHandler';
 import { ApprovalService } from '../services/ApprovalService';
 import { LogWriter } from '../services/LogWriter';
 import { ToastWriter } from '../services/ToastWriter';
+import { TrophyScorekeeper } from '../services/TrophyScorekeeper';
 
 interface ServiceProviderProps {
   children: ReactNode;
@@ -49,6 +50,8 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   // Constructed for that side effect only, so the instance is deliberately
   // not bound to a name: the bus keeps the reference alive.
   new LogWriter(stateService, loggingService);
+  // Same pattern: keeps the "best built" ledger from quality_event emissions.
+  new TrophyScorekeeper(stateService);
   const resourceService = new ResourceService(stateService);
   const choiceService = new ChoiceService(stateService);
   const gameRulesService = new GameRulesService(dataService, stateService);

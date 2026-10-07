@@ -499,6 +499,14 @@ export class DiceRollProcessor {
           source: 'examiner_roll',
           message: narration,
         });
+        // A plan review: passed first time, or sent back (an objection or a denial).
+        this.stateService.emitGameEvent({
+          type: 'quality_event',
+          playerId,
+          playerName: currentPlayer.name,
+          eventId: outcome.kind === 'approved' ? 'review_passed' : 'review_sent_back',
+          spaceName: currentPlayer.currentSpace,
+        });
       }
     }
 
@@ -524,6 +532,13 @@ export class DiceRollProcessor {
         // approval status change (the player was bounced, not denied), so
         // 'minor-objection' gives the amber "go fix this" treatment.
         this.lastApprovalOutcome = { text: `🛂 ${getDobLabel()} clerk: ${gate.reason}`, kind: 'minor-objection' };
+        this.stateService.emitGameEvent({
+          type: 'quality_event',
+          playerId,
+          playerName: currentPlayer.name,
+          eventId: 'review_sent_back',
+          spaceName: currentPlayer.currentSpace,
+        });
         // Domain-event stage 3: ToastWriter reacts to this emission (no
         // log-channel case for routed_back_to_review — see stage-3 scope note).
         this.stateService.emitGameEvent({
@@ -540,6 +555,15 @@ export class DiceRollProcessor {
           kind: 'gate_bounce',
         });
         return; // Skip Stage-2 dice resolution entirely.
+      }
+      if (gate.passed) {
+        this.stateService.emitGameEvent({
+          type: 'quality_event',
+          playerId,
+          playerName: currentPlayer.name,
+          eventId: 'review_passed',
+          spaceName: currentPlayer.currentSpace,
+        });
       }
     }
 

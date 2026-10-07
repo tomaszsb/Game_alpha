@@ -122,6 +122,10 @@ export interface MutablePlayerState {
   // e.g. "school"), picked by chance the first time they draw work packages. Set via
   // updateTempState so a push-back at that space throws the pick away with the cards.
   projectType?: string;
+
+  // Quality ledger for the "best built" trophy (TROPHIES.csv) — set via
+  // updateTempState so Try Again / push-back undoes the events it recorded.
+  trophyRecord?: import('./DataTypes').TrophyRecord;
 }
 
 /**
@@ -310,6 +314,10 @@ export interface GameState {
   // EndGameModal needs this to render a loss screen — with only `winner` to
   // go on, a loss ended the game but opened no modal, leaving a blank page.
   gameEndReason?: GameEndReason;
+  // The three-trophy result, set when the last player finishes or goes out.
+  // `winner` above is standings.winnerId; a game where everyone is out has no
+  // winner and a gameEndReason instead.
+  standings?: import('../utils/trophyScoring').TrophyStandings;
   // Workstream 7 Phase 7.4 — set when the winner reached FINISH without DOB
   // sign-off. EndGameModal renders a penalty section when this is present.
   endGamePenalty?: {
@@ -487,6 +495,11 @@ export interface PlayerUpdateData {
   violationDeadlineDay?: number;
   violationPenaltyBase?: number;
   violationAccrualCheckpoint?: number;
+  trophyRecord?: import('./DataTypes').TrophyRecord;
+  finishedAtTurn?: number;
+  outReason?: 'bankruptcy' | 'design_fee_cap';
+  outAtTurn?: number;
+  finishPenalty?: import('./DataTypes').Player['finishPenalty'];
 }
 
 export type PlayerCards = {

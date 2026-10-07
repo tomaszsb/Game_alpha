@@ -2332,6 +2332,14 @@ export class CardService implements ICardService {
       violationAccrualCheckpoint: variant === 'daily' ? deadlineDay : undefined,
     });
 
+    this.stateService.emitGameEvent({
+      type: 'quality_event',
+      playerId,
+      playerName: player.name,
+      eventId: 'violation',
+      spaceName: player.currentSpace,
+    });
+
     this.loggingService.info(
       `Violation triggered for ${player.name}: ${card.card_name} (${tier} tier, ${variant} variant, deadline day ${deadlineDay}, base $${penaltyBase.toLocaleString()})`,
       { playerId, cardId: card.card_id }

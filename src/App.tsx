@@ -16,6 +16,7 @@ import { getTooltipService } from './services/TooltipService';
 import { getPreviewParams, clearPreviewParams } from './utils/dictionaryBridge';
 import { FeedbackButton } from './components/feedback/FeedbackButton';
 import { configureApprovalSpaces } from './services/ApprovalService';
+import { configureTrophyRules } from './utils/trophyRules';
 import { configureNpcSpeakers, configureCharacterMap } from './constants/characters';
 import { configureCardTypeLabels } from './utils/cardTypeNames';
 import { configureViolationRules } from './utils/violationRules';
@@ -222,6 +223,8 @@ function AppContent(): JSX.Element {
         // Violation tier threshold, filing deadline, and fee/daily-accrual
         // rates. No ordering dependency on the other configure calls above.
         configureViolationRules(dataService.getViolationRuleRows());
+        // The three-trophy win rule's names and point sizes (TROPHIES.csv).
+        configureTrophyRules(dataService.getTrophyRuleRows());
         // Same reskin hook for button/notification text vocabulary
         // ("Hire Expeditors" etc). No ordering dependency on the other
         // configure calls above.

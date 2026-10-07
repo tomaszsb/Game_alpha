@@ -11,6 +11,7 @@ import { friendlySpaceName } from '../utils/logFormatting';
 import { GameEvent, LifeEventEffectSummary } from '../types/GameEvents';
 import { snapshotPlayerForLifeEvent, diffLifeEventSnapshot } from '../utils/lifeEventReceipts';
 import { DiceService } from './DiceService';
+import { spaceEventFor } from '../utils/trophyRules';
 
 /**
  * SpaceArrivalProcessor handles the processing of space effects when a player arrives at a space.
@@ -80,6 +81,19 @@ export class SpaceArrivalProcessor {
     }
 
     debugLog(`🏠 Processing arrival space effects for ${currentPlayer.name} at ${spaceName} (${visitType} visit)`);
+
+    // A space that TROPHIES.csv names as a quality event (cutting a corner) counts for the
+    // "best built" trophy the moment the player arrives.
+    const arrivalQualityEvent = spaceEventFor(spaceName);
+    if (arrivalQualityEvent) {
+      this.stateService.emitGameEvent({
+        type: 'quality_event',
+        playerId,
+        playerName: currentPlayer.name,
+        eventId: arrivalQualityEvent,
+        spaceName,
+      });
+    }
 
     try {
       // Get space effect data from DataService for the arrival space

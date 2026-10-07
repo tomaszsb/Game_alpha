@@ -17,6 +17,7 @@ import {
   CardTypeLabel,
   CharacterCsvRow,
   ViolationRuleCsvRow,
+  TrophyRuleCsvRow,
   UIStringCsvRow,
   NumbersSection
 } from '../types/DataTypes';
@@ -115,6 +116,8 @@ export class DataService implements IDataService {
   private characterRows: CharacterCsvRow[] = [];
   // 2026-08-14: CSV-portability lift, reskin item 2 — reskin hook for the Homeowner Violation tier/fee-rate numbers.
   private violationRuleRows: ViolationRuleCsvRow[] = [];
+  // TROPHIES.csv: the three-trophy win rule's names, point sizes and quality events. Optional.
+  private trophyRuleRows: TrophyRuleCsvRow[] = [];
   // SCOPE_WORDING.csv: the project types a dice throw can pick, and each work
   // package's wording with a {project} blank. Optional — see loadScopeWording.
   private scopeProjectTypes: string[] = [];
@@ -149,6 +152,7 @@ export class DataService implements IDataService {
           this.loadCardTypeLabels(),
           this.loadCharacters(),
           this.loadViolationRules(),
+          this.loadTrophyRules(),
           this.loadScopeWording(),
           this.loadUIStrings()
         ]);
@@ -204,6 +208,7 @@ export class DataService implements IDataService {
       this.loadCardTypeLabels(),
       this.loadCharacters(),
       this.loadViolationRules(),
+      this.loadTrophyRules(),
       this.loadScopeWording(),
       this.loadUIStrings()
     ]);
@@ -990,6 +995,44 @@ export class DataService implements IDataService {
         };
       })
       .filter(r => r.tier);
+  }
+
+  /**
+   * Load TROPHIES.csv (kind,key,value,text) — the three-trophy win rule. Optional: a
+   * missing file leaves the rows empty and trophyRules.ts keeps its built-in defaults.
+   */
+  private async loadTrophyRules(): Promise<void> {
+    try {
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/TROPHIES.csv?_=' + Date.now());
+      if (!response.ok) {
+        this.trophyRuleRows = [];
+        return;
+      }
+      this.trophyRuleRows = this.parseTrophyRulesCsv(await response.text());
+    } catch {
+      this.trophyRuleRows = [];
+    }
+  }
+
+  private parseTrophyRulesCsv(csvText: string): TrophyRuleCsvRow[] {
+    const lines = this.splitCsvRecords(csvText);
+    if (lines.length < 2) return [];
+    const get = this.csvFieldReader(lines[0]);
+    return lines.slice(1)
+      .map(line => {
+        const values = this.parseCsvLine(line);
+        return {
+          kind: (get(values, 'kind') || '').trim(),
+          key: (get(values, 'key') || '').trim(),
+          value: (get(values, 'value') || '').trim(),
+          text: (get(values, 'text') || '').trim(),
+        };
+      })
+      .filter(r => r.kind && r.key);
+  }
+
+  getTrophyRuleRows(): TrophyRuleCsvRow[] {
+    return [...this.trophyRuleRows];
   }
 
   /**

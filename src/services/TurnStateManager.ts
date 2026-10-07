@@ -11,6 +11,7 @@ import {
   CreateTempOptions
 } from '../types/StateTypes';
 import { debugLog } from '../utils/debugLog';
+import { cloneTrophyRecord } from '../utils/trophyRecord';
 
 /**
  * TurnStateManager handles the REAL/TEMP state model that enables Try Again functionality.
@@ -100,7 +101,8 @@ export class TurnStateManager {
       violationDeadlineDay: player.violationDeadlineDay,
       violationPenaltyBase: player.violationPenaltyBase,
       violationAccrualCheckpoint: player.violationAccrualCheckpoint,
-      projectType: player.projectType
+      projectType: player.projectType,
+      trophyRecord: cloneTrophyRecord(player.trophyRecord)
     };
   }
 
@@ -143,7 +145,8 @@ export class TurnStateManager {
       violationDeadlineDay: state.violationDeadlineDay,
       violationPenaltyBase: state.violationPenaltyBase,
       violationAccrualCheckpoint: state.violationAccrualCheckpoint,
-      projectType: state.projectType
+      projectType: state.projectType,
+      trophyRecord: cloneTrophyRecord(state.trophyRecord)
     };
   }
 

@@ -18,6 +18,7 @@ import {
   NegotiationState,
   GameEndReason
 } from '../types/StateTypes';
+import type { TrophyStandings } from '../utils/trophyScoring';
 import { colors } from '../styles/theme';
 import { ALL_IMAGE_ROLES, ALL_ETHNICITIES, ALL_GENDERS, NpcAppearance, NpcAppearances } from '../constants/characters';
 import { Choice } from '../types/CommonTypes';
@@ -404,7 +405,8 @@ export class StateService implements IStateService {
 
   advanceTurn(): GameState {
     const currentPlayerId = this.currentState.currentPlayerId;
-    const numPlayers = this.currentState.players.length;
+    // A round is one turn for each player still playing (finished and out players stop taking turns).
+    const numPlayers = Math.max(1, this.currentState.players.filter(p => p.finishedAtTurn === undefined && !p.outReason).length);
 
     // Handle case where no current player is set (for backwards compatibility)
     if (!currentPlayerId || numPlayers === 0) {
@@ -637,14 +639,15 @@ export class StateService implements IStateService {
     return null;
   }
 
-  endGame(winnerId?: string, endReason?: GameEndReason): GameState {
+  endGame(winnerId?: string, endReason?: GameEndReason, standings?: TrophyStandings): GameState {
     const newState: GameState = {
       ...this.currentState,
       gamePhase: 'END',
       gameEndTime: new Date(),
       isGameOver: true,
       winner: winnerId,
-      gameEndReason: endReason
+      gameEndReason: endReason,
+      standings
     };
 
     this.currentState = newState;
@@ -1412,6 +1415,10 @@ export class StateService implements IStateService {
           : undefined,
         // The kind of project is picked with the work packages, so it goes with them.
         projectType: realState.state.projectType,
+        // The quality ledger (reviews / problem points) goes back with everything else.
+        trophyRecord: realState.state.trophyRecord
+          ? { ...realState.state.trophyRecord, counts: { ...realState.state.trophyRecord.counts } }
+          : undefined,
       });
       this.updateActionCounts();
     }
