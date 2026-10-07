@@ -1,8 +1,8 @@
 # Next session starter — written 2026-10-06 by /koniec
 
 ## State at handoff
-- **Version:** v3.3.4 (`4ec41ac` + a tiny type-only fix in the wrap-up commit) — **pushed; deploy handed to Tom 2026-10-06, NOT confirmed.** `/health` read `c252a50` (v3.2.99) at 00:49 UTC 10-07. **Re-read `/health` and compare to `git rev-parse --short HEAD` — never believe this line.** The wrap-up commit moves HEAD one docs commit past the deployed code; `/health` will show `4ec41ac` if Tom deployed before it.
-- **Branch:** master, clean after the wrap-up commit (only `idea.txt` untracked — read it, never modify or commit it).
+- **Version:** v3.3.5 code on origin (`7790413`). **LIVE (checked 2026-10-07 01:10 UTC): `/health` = `4a0dae7c` = v3.3.5 housekeeping deployed by Tom; the only newer commit (`7790413`) changes just `deploy.sh` (run inside `main()`; the first deploy ran the old script's tail because its own `git pull` rewrote it mid-run, so the new player-check and `/health` wait have NOT yet run for real).** Re-read `/health` and compare to `git rev-parse --short=8 HEAD`; never believe this line.
+- **Branch:** master = origin/master, clean after the wrap-up commit (only `idea.txt` untracked — read it, never modify or commit it).
 - **Last shipped (2026-10-06, Manager brief Jobs 1+2):** v3.3.0 change orders not design fees, tests no longer run twice, ghost FINISHED/LOST; v3.3.1 teacher-safety fixes (quoted line breaks, FINISH protected, built-board check at save, plain-number Time/Fee); v3.3.2 `Spaces.schema.json` + editor "More settings"; v3.3.3 one CSV reader (`src/utils/csvCore.js`), dice/modal columns kept, 2 more schemas; v3.3.4 a broken classroom can still save its fix.
 - **Tests:** `npm test` 235 files / 3623 tests green (~130 s); typecheck + build clean. `test:ghost` 11 files / 43 tests green at v3.3.3 (strict 35/50 finished, smart-bot 43/50); a ghost run at v3.3.4 was started during wrap-up (v3.3.4 changed only server save code, which the ghost doesn't load).
 
@@ -18,7 +18,7 @@
 fb:feedback-1790939931163-adb1cc76, -1790512043564-612fbdc4, -1790939049674-a0cecb6a, -1790939744698-8cb652c4, -1790939218940-7fbea636, plus the older ones in TODO (glow: ae480630, 11662ac3, 95624c8e; phone-as-TV: 84b491f2, ec243622, a1260bfc, dc04ea53; b38110f3, ef974f1c). Flip only after Tom confirms on a real device.
 
 ## Suggested first move
-Run `/health`: did Tom deploy v3.3.4? Tell the Manager the reading (it asked). Then ask Tom the one Job 3 question (point sizes + yes) and, if yes, build it in small commits.
+Run `/health` (should be `4a0dae7c`, or `77904135` once Tom deploys the deploy.sh fix; ask him to paste that deploy's output, it is the first full run of the new checks). Then ask Tom the one Job 3 question (point sizes + yes) and, if yes, build it in small commits.
 
 ## Suggested model for next session
 Sonnet 5 — Job 3 is rules + data + the end-game flow; raise effort before reaching for a bigger model.
