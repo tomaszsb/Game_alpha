@@ -128,7 +128,7 @@ export function checkBoard({ gameConfigCsv, movementCsv, diceOutcomesCsv = '', l
  * A save is refused only if it makes the board WORSE (2026-10-06, Manager request):
  * a classroom whose board is already broken must still be able to take the save
  * that fixes it. Problems are matched by code + space + message.
- * @param {{ errors: Array<{ code: string, space?: string, message: string }> }} before the board as saved now (or null if it could not be checked)
+ * @param {{ errors: Array<{ code: string, space?: string, message: string }> } | null} before the board as saved now (or null if it could not be checked)
  * @param {{ errors: Array<{ code: string, space?: string, message: string }> }} after the board this save would produce
  * @returns {{ newErrors: Array<object>, remainingErrors: Array<object> }}
  */

@@ -2,6 +2,12 @@
 
 ---
 
+## v3.3.0 to v3.3.4 — Fewer surprise losses, and safer classroom editing (October 6, 2026)
+
+- **Fewer surprise losses at Hire a Builder.** A change order is not a design fee, so it no longer counts toward the 20% design-fee limit.
+- **Teachers adding a space:** pressing Enter in a new space's story no longer breaks that space (players used to get stuck on it). The FINISH space can't be switched off. Before any change is saved, the game checks players can still get from the start to the finish and says why if not. A classroom that is already broken can still save the fix. Time and Fee boxes take plain numbers.
+- **Maintainer editor:** a new "More settings" section shows settings that used to be invisible, plus any column added later.
+
 ## v3.2.99 — "Resume as <name>": a phone that drops gets its own seat back in one tap (October 3, 2026)
 
 - **Your phone remembers which player you were.** If you close the tab and open the game's plain web address again, the "which one are you?" list shows **"Resume as <your name>"** at the top. One tap puts you back on your own controller.
