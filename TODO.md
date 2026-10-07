@@ -164,6 +164,7 @@ September 26, 2026 — v3.2.82: Remote play mode (the last cloud PR, reviewed an
 - [ ] **OPTIONAL content: author `effects_on_play` prose for 74 E + 49 L cards** — only if a one-line authored effect adds teaching value.
 
 ### Reliability / plumbing (trigger noted per item)
+- [ ] **Ghost `diagnostic: runs one game` test timed out once at 60 s (2026-10-06) while `npm test` + a build ran beside it; alone it passes in ~26 s.** Not reproduced, so unidentified: probably only machine load against a 60 s limit. Trigger: if it fails when run alone, raise its limit or investigate.
 - [ ] **HTTP polling fallback while disconnected** — trigger: WS reconnect proves insufficient in real play.
 - [ ] **"Start without all phones" override for TV mode** — trigger: the hard-block gets in the way of solo demos.
 - [ ] **TV bug-report button pulls phone log buffers** (heartbeat-piggyback ~5s, last ~50 entries/phone) — trigger: next phone-crash-can't-report incident.
