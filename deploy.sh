@@ -4,6 +4,16 @@
 
 set -e  # Exit on error
 
+# Everything below lives in main() and runs at the very last line (2026-10-07).
+# Bash reads a script a piece at a time as it runs, and the `git pull` below can
+# REWRITE this very file. The first deploy of the health-wait version ran the old
+# script's first half, then the pull swapped the file, and bash carried on from the
+# old byte position inside the new text: it printed "game_alpha" twice (old, unsilenced
+# lines), skipped the connected-players check and the /health wait, and stopped after
+# "Verifying". A function body is read in full before anything in it runs, so the
+# pull can no longer change what this run does.
+main() {
+
 echo "Pulling latest changes..."
 git checkout -- deploy.sh 2>/dev/null || true
 git pull origin master
@@ -144,3 +154,7 @@ fi
 echo ""
 echo "Deployment complete!"
 echo "Check status with: docker logs -f game_alpha"
+}
+
+main "$@"
+exit $?
