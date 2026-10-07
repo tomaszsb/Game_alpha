@@ -46,11 +46,35 @@ echo "Ensuring isolated network exists..."
 # WITH IPv6 instead of silently regressing back to the false-foreign-alert bug.
 docker network create --ipv6 --subnet fd00:dead:beef:1::/64 game-net 2>/dev/null || true
 
+# Is anyone playing right now? (2026-10-06) /health's `activeGames` is NOT that: it
+# counts games the server still holds (created and not yet expired), so it read 7
+# with nobody connected. Live people are the websocket clients. Restarting drops
+# them, so ask first. No terminal (plain `ssh unraid "..."`) means we cannot ask:
+# stop and say how to run it, rather than cut people off silently.
+CLIENTS=$(curl -s --max-time 5 http://localhost:3080/health 2>/dev/null | grep -o '"totalClients":[0-9]*' | grep -o '[0-9]*$' || true)
+if [ -n "$CLIENTS" ] && [ "$CLIENTS" -gt 0 ] && [ "$FORCE" != "1" ]; then
+  echo ""
+  echo "   WARNING: $CLIENTS player screen(s) are connected right now. Restarting will drop them."
+  if [ -t 0 ]; then
+    read -r -p "   Restart anyway? Type yes to continue: " ANSWER
+    if [ "$ANSWER" != "yes" ]; then
+      echo "   Cancelled. The new image is built but the old container is still running."
+      exit 1
+    fi
+  else
+    echo "   This run has no terminal to ask on, so nothing was stopped. The new image is built."
+    echo "   Run it again from a terminal ( ssh -t unraid ... ), or set FORCE=1 to restart anyway."
+    exit 1
+  fi
+fi
+
 echo "Stopping existing container..."
-docker stop game_alpha 2>/dev/null || true
+# >/dev/null: docker prints the container name on stop and again on rm, which
+# looked like a duplicate line. Errors still show.
+docker stop game_alpha >/dev/null 2>&1 || true
 # -f because the container may have been recreated (and started) by Unraid's
 # Docker manager between the stop above and this line.
-docker rm -f game_alpha 2>/dev/null || true
+docker rm -f game_alpha >/dev/null 2>&1 || true
 
 echo "Starting container..."
 docker run -d \
@@ -82,6 +106,31 @@ if [ "$RUNNING_IMAGE_ID" != "$BUILT_IMAGE_ID" ]; then
   exit 1
 fi
 echo "   OK — running $GIT_COMMIT (${BUILT_IMAGE_ID:7:12})"
+
+echo ""
+echo "Waiting for the new container to answer /health..."
+# The image check above only proves the right image was started. This proves the
+# server inside it came up (2026-10-06: the script used to print nothing after
+# "Starting container...", so a crashing server looked like a finished deploy).
+HEALTH=""
+for i in $(seq 1 30); do
+  HEALTH=$(curl -s --max-time 3 http://localhost:3080/health 2>/dev/null || true)
+  if echo "$HEALTH" | grep -q '"status":"ok"'; then break; fi
+  HEALTH=""
+  sleep 2
+done
+if [ -z "$HEALTH" ]; then
+  echo "   DEPLOY FAILED: /health did not answer within 60 seconds."
+  echo "   Look at: docker logs --tail 50 game_alpha"
+  exit 1
+fi
+LIVE_VERSION=$(echo "$HEALTH" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
+LIVE_STATUS=$(echo "$HEALTH" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+if [ "$LIVE_VERSION" != "$GIT_COMMIT" ]; then
+  echo "   DEPLOY FAILED: /health says version $LIVE_VERSION but we built $GIT_COMMIT."
+  exit 1
+fi
+echo "   OK — status $LIVE_STATUS, version $LIVE_VERSION (the commit this deploy pulled)"
 
 echo ""
 echo "Cleaning up orphaned images..."
