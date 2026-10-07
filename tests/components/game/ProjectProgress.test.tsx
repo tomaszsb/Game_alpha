@@ -5,6 +5,13 @@ import { ProjectProgress } from '../../../src/components/game/ProjectProgress';
 import { IDataService, IGameRulesService } from '../../../src/types/ServiceContracts';
 import { Player } from '../../../src/types/StateTypes';
 import { setPanelMode, getStoredPanelMode } from '../../../src/components/player/panelTheme';
+import { buildLiveBoard } from '../../../src/utils/liveTrophies';
+import type { MeasureInput } from '../../../src/utils/trophyScoring';
+
+const boardRow = (id: string, name: string, over: Partial<MeasureInput> = {}): MeasureInput => ({
+  playerId: id, name, finished: false, out: false, finishOrder: 99, daysUsed: 5, daysPlanned: 110,
+  moneySpent: 0, moneyPlanned: 100000, problemPoints: 0, reviews: 0, ...over,
+});
 
 describe('ProjectProgress', () => {
   beforeEach(() => {
@@ -22,6 +29,8 @@ describe('ProjectProgress', () => {
   let mockGameRulesService: IGameRulesService;
   let mockOnToggleGameLog: () => void;
   let mockOnOpenRulesModal: () => void;
+  // What the live trophy board is built from (a test sets its own rows).
+  let boardInputs: MeasureInput[];
 
   const mockPlayers: any[] = [
     {
@@ -80,7 +89,9 @@ describe('ProjectProgress', () => {
       getCardById: vi.fn(() => undefined),
     } as unknown as IDataService;
 
+    boardInputs = [boardRow('player1', 'Alice')];
     mockGameRulesService = {
+      computeLiveBoard: vi.fn(() => buildLiveBoard(boardInputs)),
       calculateProjectScope: vi.fn().mockReturnValue(1000000),
       calculateEstimatedProjectLength: vi.fn().mockReturnValue({ estimatedDays: 110, contingencyDays: 10, uniqueWorkTypes: [] }),
     } as unknown as IGameRulesService;
@@ -184,7 +195,7 @@ describe('ProjectProgress', () => {
     expect(screen.getByText((content) => content.includes('1 Player'))).toBeInTheDocument();
   });
 
-  it('should display individual player progress', () => {
+  it('should show the live trophy board with a row for the player', () => {
     render(
       <ProjectProgress
         players={mockPlayers}
@@ -196,17 +207,12 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // More specific query for Alice's name within the individual player progress item.
-    // Avatar is now a real generated portrait image (AvatarIcons.tsx, via
-    // PlayerAvatar's title={player.name}), not the raw emoji character, so
-    // it's located by that title rather than by matching the '👤' glyph in
-    // textContent.
-    const avatarEl = screen.getByTitle('Alice');
-    expect(avatarEl.querySelector('img')).toBeInTheDocument();
-    const nameContainer = avatarEl.closest('div');
-    expect(nameContainer?.textContent).toContain('Alice');
-    expect((nameContainer as HTMLElement)?.style.fontWeight).toBe('bold');
-    expect(screen.getAllByText((content) => content === 'CONSTRUCTION').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId('live-trophy-board')).toBeInTheDocument();
+    const card = screen.getByTestId('player-progress-card');
+    expect(card.getAttribute('data-player-name')).toBe('Alice');
+    expect(screen.getByTitle('Alice').querySelector('img')).toBeInTheDocument();
+    // Alone at the table: leading all three races.
+    expect(screen.getAllByText('leading')).toHaveLength(3);
   });
 
   it('should handle no players gracefully', () => {
@@ -225,87 +231,6 @@ describe('ProjectProgress', () => {
     // Compact format: "0% | SETUP"
     expect(screen.getByText(/0%/)).toBeInTheDocument();
     expect(screen.getByText((content) => content.includes('0 Players'))).toBeInTheDocument();
-  });
-
-  it('should display design fee ratio for each player', () => {
-    const playerWithDesignFees: any[] = [
-      {
-        ...mockPlayers[0],
-        expenditures: { design: 100000, fees: 0, construction: 0 },
-      },
-    ];
-
-    render(
-      <ProjectProgress
-        players={playerWithDesignFees}
-        currentPlayerId="player1"
-        dataService={mockDataService}
-        gameRulesService={mockGameRulesService}
-        onToggleGameLog={mockOnToggleGameLog}
-        onOpenRulesModal={mockOnOpenRulesModal}
-      />
-    );
-
-    // Compact chip format (redesigned 2026-07-26): "📐 10%"
-    expect(screen.getByText(/📐 10%/)).toBeInTheDocument();
-  });
-
-  it('should display project timeline for each player', () => {
-    const playerWithTime: any[] = [
-      {
-        ...mockPlayers[0],
-        timeSpent: 50,
-      },
-    ];
-
-    (mockGameRulesService.calculateEstimatedProjectLength as ReturnType<typeof vi.fn>).mockReturnValue({
-      estimatedDays: 110,
-      contingencyDays: 10,
-      uniqueWorkTypes: ['Design', 'Construction', 'Permitting'],
-    });
-
-    render(
-      <ProjectProgress
-        players={playerWithTime}
-        currentPlayerId="player1"
-        dataService={mockDataService}
-        gameRulesService={mockGameRulesService}
-        onToggleGameLog={mockOnToggleGameLog}
-        onOpenRulesModal={mockOnOpenRulesModal}
-      />
-    );
-
-    // Compact chip format (redesigned 2026-07-26): "⏱️ 50/110d"
-    expect(screen.getByText(/⏱️ 50\/110d/)).toBeInTheDocument();
-  });
-
-  it('should show timeline color based on progress percentage', () => {
-    const playerNearDeadline: any[] = [
-      {
-        ...mockPlayers[0],
-        timeSpent: 90,
-      },
-    ];
-
-    (mockGameRulesService.calculateEstimatedProjectLength as ReturnType<typeof vi.fn>).mockReturnValue({
-      estimatedDays: 100,
-      contingencyDays: 10,
-      uniqueWorkTypes: [],
-    });
-
-    render(
-      <ProjectProgress
-        players={playerNearDeadline}
-        currentPlayerId="player1"
-        dataService={mockDataService}
-        gameRulesService={mockGameRulesService}
-        onToggleGameLog={mockOnToggleGameLog}
-        onOpenRulesModal={mockOnOpenRulesModal}
-      />
-    );
-
-    // Compact chip format (redesigned 2026-07-26): "⏱️ 90/100d"
-    expect(screen.getByText(/⏱️ 90\/100d/)).toBeInTheDocument();
   });
 
   it('should not render the TV theme button when onToggleTVDarkMode is not provided', () => {
@@ -346,28 +271,15 @@ describe('ProjectProgress', () => {
     expect(mockOnToggleTVDarkMode).toHaveBeenCalledTimes(1);
   });
 
-  it('should display multiple players with individual timelines', () => {
+  it('should show each player their place in the three races, and say places are for now until others catch up', () => {
     const twoPlayers: any[] = [
-      {
-        ...mockPlayers[0],
-        id: 'player1',
-        name: 'Alice',
-        timeSpent: 30,
-      },
-      {
-        ...mockPlayers[0],
-        id: 'player2',
-        name: 'Bob',
-        avatar: '🧔',
-        timeSpent: 60,
-      },
+      { ...mockPlayers[0], id: 'player1', name: 'Alice', timeSpent: 30 },
+      { ...mockPlayers[0], id: 'player2', name: 'Bob', avatar: '🧔', timeSpent: 60 },
     ];
-
-    (mockGameRulesService.calculateEstimatedProjectLength as ReturnType<typeof vi.fn>).mockReturnValue({
-      estimatedDays: 110,
-      contingencyDays: 10,
-      uniqueWorkTypes: ['Design', 'Construction'],
-    });
+    boardInputs = [
+      boardRow('player1', 'Alice', { daysUsed: 30 }),
+      boardRow('player2', 'Bob', { daysUsed: 60 }),
+    ];
 
     render(
       <ProjectProgress
@@ -380,15 +292,21 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // Both players should have timeline entries (compact inline "⏱️")
-    const timelineLabels = screen.getAllByText((content) => content.includes('⏱️'));
-    expect(timelineLabels).toHaveLength(2);
+    const cards = screen.getAllByTestId('player-progress-card');
+    expect(cards).toHaveLength(2);
+    // Alice (30 days) leads the time race and is solid: Bob has passed her day. Bob (60 days) is behind her
+    // and Alice has not reached his day yet, so his place is only for now.
+    expect(cards[0].getAttribute('data-provisional')).toBe('false');
+    expect(cards[1].getAttribute('data-provisional')).toBe('true');
+    expect(cards[1].querySelector('[data-testid="trophy-race-time"]')?.getAttribute('data-place')).toBe('2');
+    expect(screen.getByTestId('live-trophy-note')).toBeInTheDocument();
   });
 
   // Stable hooks for the playtest robot (Manager brief 2026-10-06): the visible
   // wording is untouched; these ids are what the robot finds controls by.
   it('exposes stable test ids for whose turn it is and for finished players', () => {
     const finisher = { ...mockPlayers[0], id: 'player2', name: 'Bob', currentSpace: 'FINISH' };
+    boardInputs = [boardRow('player1', 'Alice'), boardRow('player2', 'Bob', { finished: true })];
     (mockDataService.getGameConfigBySpace as any).mockImplementation((spaceName: string) =>
       spaceName === 'FINISH'
         ? { space_name: 'FINISH', phase: 'FINISH', is_ending_space: true }

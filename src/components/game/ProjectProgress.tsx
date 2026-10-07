@@ -1,15 +1,14 @@
 // src/components/game/ProjectProgress.tsx
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { LiveTrophyBoard } from './LiveTrophyBoard';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { IDataService, IGameRulesService } from '../../types/ServiceContracts';
 import { ConnectionStatus } from '../common/ConnectionStatus';
 import { getBackendURL, getCurrentGameId } from '../../utils/networkDetection';
 import { FormatUtils } from '../../utils/FormatUtils';
-import { designFeeIndicator, timelineIndicator } from '../../utils/progressIndicators';
 import { playerLifecyclePosition } from '../../utils/lifecycleProgress';
-import { PlayerAvatar } from '../common/PlayerAvatar';
 import { friendlySpaceName } from '../../utils/logFormatting';
 import { computeProjectFinances } from '../../utils/projectFinances';
 import { IconMoon, IconSun, IconClipboard, IconNotepad, IconEye, IconBookOpen } from '../icons/SetupIcons';
@@ -147,28 +146,6 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playersCardKey]);
 
-  // Calculate project timeline for any player
-  const getPlayerTimeline = (player: Player) => {
-    try {
-      const projectLengthInfo = gameRulesService.calculateEstimatedProjectLength(player.id);
-      const totalDays = player.timeSpent || 0;
-      const progressPercent = projectLengthInfo.estimatedDays > 0
-        ? (totalDays / projectLengthInfo.estimatedDays) * 100
-        : 0;
-
-      return {
-        totalDays,
-        estimatedDays: projectLengthInfo.estimatedDays,
-        contingencyDays: projectLengthInfo.contingencyDays,
-        progressPercent,
-        uniqueWorkTypes: projectLengthInfo.uniqueWorkTypes.length
-      };
-    } catch (error) {
-      console.error('Error calculating project timeline:', error);
-      return null;
-    }
-  };
-  
   // Get dynamic phase order from data service
   const phases = dataService.getPhaseOrder();
 
@@ -415,35 +392,6 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
     minWidth: compact ? '30px' : '40px'
   });
 
-  const playersGridStyle = {
-    display: 'grid',
-    gridTemplateColumns: `repeat(auto-fit, minmax(${compact ? '140px' : '180px'}, 1fr))`,
-    gap: compact ? '2px' : '4px',
-    marginTop: compact ? '2px' : '4px'
-  };
-
-  const playerItemStyle = {
-    background: dark ? dp.surf : colors.white,
-    borderRadius: '6px',
-    padding: compact ? '3px 6px' : '4px 8px',
-    border: `1px solid ${dark ? dp.border : colors.secondary.border}`,
-    fontSize: compact ? '0.65rem' : '0.7rem'
-  };
-
-  const playerNameStyle = {
-    fontWeight: 'bold' as const,
-    color: dark ? dp.text : colors.secondary.dark,
-    marginBottom: '1px'
-  };
-
-  const getPlayerProgressBarFill = (progress: number) => ({
-    background: `linear-gradient(90deg, ${colors.success.main}, ${colors.game.teal})`,
-    height: '100%',
-    width: `${progress}%`,
-    transition: 'width 0.3s ease',
-    borderRadius: '2px'
-  });
-
   return (
     <div style={containerStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
@@ -625,92 +573,15 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         })()}
       </div>
 
-      {/* Individual Player Progress */}
-      {players.length > 0 && (
-        <div style={playersGridStyle}>
-          {players.map((player) => {
-            const playerProgress = calculatePlayerProgress(player);
-
-            // Calculate design fee ratio for this player - uses memoized project scope
-            const designFees = player.expenditures?.design || 0;
-            const projectScope = playerProjectScopes[player.id] || 0;
-            const designFeeRatio = projectScope > 0 ? (designFees / projectScope) * 100 : 0;
-            // fb:f8491e74 — color + hover tooltip come from the shared, tested
-            // helper so the green→orange→red meaning is explained on hover.
-            const designFee = designFeeIndicator(designFeeRatio);
-            const designFeeColor = designFee.color;
-
-            return (
-              <div
-                key={player.id}
-                style={playerItemStyle}
-                data-testid="player-progress-card"
-                data-player-name={player.name}
-                data-finished={String(dataService.getGameConfigBySpace(player.currentSpace)?.is_ending_space === true)}
-                data-out={String(!!player.outReason)}
-              >
-                <div style={{ ...playerNameStyle, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <PlayerAvatar avatar={player.avatar} color={player.color} size={20} title={player.name} /> {player.name}
-                </div>
-                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: dark ? dp.muted : '#666' }} title={`Project completion: ${Math.round(playerProgress.progress)}% — how far through all phases you've progressed (Funding → Design → Regulatory → Construction). Advances each time you reach a new phase.`}>
-                  <span style={{ whiteSpace: 'nowrap' }}>🚀 <span style={{ fontWeight: 'bold', color: dark ? dp.text : colors.secondary.dark }}>{Math.round(playerProgress.progress)}% done</span></span>
-                  <div style={{ flex: 1, height: '4px', backgroundColor: dark ? dp.surf2 : '#e0e0e0', borderRadius: '2px', overflow: 'hidden' }}>
-                    <div style={getPlayerProgressBarFill(playerProgress.progress)}></div>
-                  </div>
-                  <span style={{ whiteSpace: 'nowrap', fontSize: '0.5rem', color: dark ? dp.muted : '#888' }}>{playerProgress.phase}</span>
-                </div>
-                {/* Comparison stats row — redesigned 2026-07-26 (maintainer:
-                    "poorly laid out, needs a real design pass"). Was 3 stacked
-                    full-width bars, each with its own legend/markers — a lot
-                    of chrome to compare one number across players. Condensed
-                    to a single row of compact color-coded chips (same
-                    semantic colors, same full detail on hover) so scanning
-                    across player cards for "who's ahead on X" doesn't require
-                    reading 3x the vertical space per player. Funding now uses
-                    the canonical computeProjectFinances() (matches the
-                    sidebar ledger and the top-bar pill above) instead of a
-                    second, independently hand-rolled scope-vs-funded calc —
-                    that duplication was the actual source of the funding-gap
-                    mismatch bug, not a display choice. */}
-                {(() => {
-                  const fin = computeProjectFinances(player, (id) => dataService.getCardById(id));
-                  const fundingColor = fin.fundingGap > 0 ? '#f44336' : '#4caf50';
-                  const fmt = (n: number) => FormatUtils.formatMoney(n);
-                  const fundingTooltip = fin.fundingGap > 0
-                    ? `Still to raise: ${fmt(fin.fundingGap)} (have ${fmt(fin.totalCapital)} of ${fmt(fin.commitments)} needed — scope plus design/regulatory/contingency budgets, spent ${fmt(fin.spent)} so far)`
-                    : `Fully funded: ${fmt(fin.totalCapital)} of ${fmt(fin.commitments)} needed`;
-
-                  const timeline = getPlayerTimeline(player);
-                  const timelineInd = timeline ? timelineIndicator(timeline.progressPercent) : null;
-
-                  const chipStyle = (color: string): React.CSSProperties => ({
-                    display: 'inline-flex', alignItems: 'center', gap: '2px',
-                    padding: '1px 5px', borderRadius: '9px', fontSize: '0.55rem', fontWeight: 'bold',
-                    color, background: `${color}18`, border: `1px solid ${color}40`,
-                    whiteSpace: 'nowrap',
-                  });
-
-                  return (
-                    <div style={{ marginTop: '3px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      <span style={chipStyle(fundingColor)} title={fundingTooltip}>
-                        💰 {fin.fundingGap > 0 ? `-${fmt(fin.fundingGap)}` : '✓'}
-                      </span>
-                      <span style={chipStyle(designFeeColor)} title={designFee.tooltip}>
-                        📐 {designFeeRatio.toFixed(0)}%
-                      </span>
-                      {timeline && timelineInd && (
-                        <span style={chipStyle(timelineInd.color)} title={timelineInd.tooltip}>
-                          ⏱️ {timeline.totalDays}/{timeline.estimatedDays}d
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* The live trophy board replaced the per-player cards here (Job 5): each player's place in the
+          three races and how far behind the leader they are. */}
+      <LiveTrophyBoard
+        players={players}
+        gameRulesService={gameRulesService}
+        currentPlayerId={currentPlayerId}
+        mode={mode}
+        compact
+      />
     </div>
   );
 }

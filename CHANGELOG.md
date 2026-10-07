@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.5.1] - 2026-10-07
+
+### Live trophy board (Manager brief Job 5, first slice). Built; **NOT deployed - held while the Jarvis 2-seat run is live.** Sits on top of the held v3.5.0 (Job 4); the two Job 5 commits are separate and can be reverted without touching Job 4.
+
+- **What changed on screen:** the big per-player cards in the Progress panel and the "Where everyone is" Standings pop-up on the TV are replaced by one board (`components/game/LiveTrophyBoard.tsx`). Each player gets a row with their place in the three races (names from `TROPHIES.csv`: Fastest / On budget / Best built) - "1st of 3" with a trophy and "leading", or "2nd of 3 - 5.0 points behind". Hover shows the numbers so far ("212 of 330 planned days", "$300,000 of $1,000,000 planned", "2 problem points in 4 reviews"). Players who finished say "finished"; players who are out show a dash.
+- **Time is not parallel (Tom, 2026-10-07):** a player on day 80 and one on day 200 are not at the same moment, so a place is only settled once every other player has finished or passed that player's day. Until then the row is drawn lighter, in italics, and a note under the board says so. (`utils/liveTrophies.ts`, tested.)
+- **Same numbers as the end count:** `GameRulesService.computeLiveBoard()` uses the exact measure inputs `computeStandings()` uses (one shared builder), so the live board and the end screen cannot disagree about a number.
+- **Kept for the playtest robot:** every row is still `data-testid="player-progress-card"` with `data-player-name`, `data-finished`, `data-out`; new `data-provisional`, `live-trophy-board`, `trophy-race-<time|money|quality>` (with `data-place`), `live-trophy-note`.
+- **Dropped with the old cards:** the per-player funding gap chip, design-fee percent chip and days chip. The design-fee warning still shows where it matters (the End Turn warning and the player's own numbers); the funding and design numbers are in "My numbers". `ScoreboardV2` is no longer shown on the TV (file kept, still tested) - delete it when Tom has seen the new board.
+- **Not looked at in a browser** (no real game driven); covered by component and unit tests. Wording is a first draft for Tom.
+
 ## [3.5.0] - 2026-10-07
 
 ### "Check my board" (Manager brief Job 4). Built; **NOT deployed, NOT pushed - Tom's word first. Untested in the production image (see below).**

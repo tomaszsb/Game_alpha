@@ -8,7 +8,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { colors } from '../../styles/theme';
 import { BoardCanvas } from '../board/BoardCanvas';
 import { ProjectProgress } from '../game/ProjectProgress';
-import { ScoreboardV2 } from '../player/ScoreboardV2';
+import { LiveTrophyBoard } from '../game/LiveTrophyBoard';
+import { panelPalettes } from '../player/panelTheme';
 import { RulesModal } from '../modals/RulesModal';
 import { useGameContext } from '../../context/GameContext';
 import { getServerURL, getCurrentGameId } from '../../utils/networkDetection';
@@ -658,7 +659,10 @@ export function TVDisplay(): JSX.Element {
             >
               ✕ Close
             </button>
-            <ScoreboardV2 gameServices={gameServices} mode={tvMode} />
+            <div style={{ background: panelPalettes[tvMode].bg, color: panelPalettes[tvMode].text, border: `0.5px solid ${panelPalettes[tvMode].border}`, borderRadius: 18, padding: 16 }}>
+              <p style={{ fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase', color: panelPalettes[tvMode].muted, margin: '0 0 10px' }}>Trophies</p>
+              <LiveTrophyBoard players={players} gameRulesService={gameRulesService} currentPlayerId={currentPlayerId} mode={tvMode} />
+            </div>
           </div>
         </div>
       )}
