@@ -61,7 +61,10 @@ docker network create --ipv6 --subnet fd00:dead:beef:1::/64 game-net 2>/dev/null
 # with nobody connected. Live people are the websocket clients. Restarting drops
 # them, so ask first. No terminal (plain `ssh unraid "..."`) means we cannot ask:
 # stop and say how to run it, rather than cut people off silently.
-CLIENTS=$(curl -s --max-time 5 http://localhost:3080/health 2>/dev/null | grep -o '"totalClients":[0-9]*' | grep -o '[0-9]*$' || true)
+# 127.0.0.1, not "localhost": on the Tower "localhost" can resolve to ::1 first and get no answer
+# while Docker's published port works fine on 127.0.0.1 (2026-10-07: a good deploy was reported as
+# FAILED, and this player check silently saw "nobody connected"). Same everywhere in this script.
+CLIENTS=$(curl -s --max-time 5 http://127.0.0.1:3080/health 2>/dev/null | grep -o '"totalClients":[0-9]*' | grep -o '[0-9]*$' || true)
 if [ -n "$CLIENTS" ] && [ "$CLIENTS" -gt 0 ] && [ "$FORCE" != "1" ]; then
   echo ""
   echo "   WARNING: $CLIENTS player screen(s) are connected right now. Restarting will drop them."
@@ -124,7 +127,7 @@ echo "Waiting for the new container to answer /health..."
 # "Starting container...", so a crashing server looked like a finished deploy).
 HEALTH=""
 for i in $(seq 1 30); do
-  HEALTH=$(curl -s --max-time 3 http://localhost:3080/health 2>/dev/null || true)
+  HEALTH=$(curl -s --max-time 3 http://127.0.0.1:3080/health 2>/dev/null || true)
   if echo "$HEALTH" | grep -q '"status":"ok"'; then break; fi
   HEALTH=""
   sleep 2
@@ -132,6 +135,8 @@ done
 if [ -z "$HEALTH" ]; then
   echo "   DEPLOY FAILED: /health did not answer within 60 seconds."
   echo "   Look at: docker logs --tail 50 game_alpha"
+  echo "   Also check the public /health (curl https://game.unravelcodes.com/health) before assuming the game is down:"
+  echo "   this check talks to the container on 127.0.0.1:3080 and can fail while the game itself is fine."
   exit 1
 fi
 LIVE_VERSION=$(echo "$HEALTH" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
