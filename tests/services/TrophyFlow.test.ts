@@ -122,3 +122,20 @@ describe('three-trophy flow', () => {
     expect(current()).toBe(b); // wraps past Ann
   });
 });
+
+describe('live trophy board from the real services', () => {
+  it('shows everyone mid-game, ranks the one with fewer days first, and leaves out the player who is out', async () => {
+    const [a, b, c] = await newGame(['Ann', 'Bo', 'Cy']);
+    s.stateService.updateTempState(a, { timeSpent: 40 });
+    s.stateService.updateTempState(b, { timeSpent: 90 });
+    s.stateService.updatePlayer({ id: c, outReason: 'bankruptcy' });
+
+    const board = s.gameRulesService.computeLiveBoard();
+    const row = (id: string) => board.rows.find(r => r.playerId === id)!;
+    expect(row(a).races.time).toMatchObject({ place: 1, of: 2 });
+    expect(row(b).races.time.place).toBe(2);
+    expect(row(c).status).toBe('out');
+    expect(row(a).solid).toBe(true);
+    expect(row(b).solid).toBe(false);
+  });
+});

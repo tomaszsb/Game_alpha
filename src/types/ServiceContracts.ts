@@ -612,6 +612,8 @@ export interface IGameRulesService {
 
   /** The three-trophy result right now: each player against their own plan, who holds which trophy, who wins. */
   computeStandings(): import('../utils/trophyScoring').TrophyStandings;
+  /** The three races right now (everyone's numbers so far and their place), for the live trophy board. */
+  computeLiveBoard(): import('../utils/liveTrophies').LiveBoard;
 
   // Scoring and winner determination methods
   calculatePlayerScore(playerId: string): number;

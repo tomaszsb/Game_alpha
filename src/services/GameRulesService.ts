@@ -7,6 +7,7 @@ import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { computeProjectFinances } from '../utils/projectFinances';
 import { getTrophyRules } from '../utils/trophyRules';
 import { rankTrophies, MeasureInput, TrophyStandings } from '../utils/trophyScoring';
+import { buildLiveBoard, LiveBoard } from '../utils/liveTrophies';
 
 /**
  * GameRulesService acts as the centralized authority for all game rule validations.
@@ -627,8 +628,20 @@ export class GameRulesService implements IGameRulesService {
    * per review. Only players who finished can hold a trophy; players who are out cannot.
    */
   computeStandings(): TrophyStandings {
+    return rankTrophies(this.buildMeasureInputs(), getTrophyRules());
+  }
+
+  /**
+   * The three races right now, for the live trophy board: every player's numbers so far and their
+   * place in each race (see utils/liveTrophies.ts for when a place counts as settled).
+   */
+  computeLiveBoard(): LiveBoard {
+    return buildLiveBoard(this.buildMeasureInputs());
+  }
+
+  private buildMeasureInputs(): MeasureInput[] {
     const players = this.stateService.getGameState().players;
-    const inputs: MeasureInput[] = players.map(p => {
+    return players.map(p => {
       const finances = computeProjectFinances(p, id => this.dataService.getCardById(id) ?? this.dataService.getCardById(id.split('_')[0]));
       const record = p.trophyRecord;
       return {
@@ -645,7 +658,6 @@ export class GameRulesService implements IGameRulesService {
         reviews: record?.reviews ?? 0,
       };
     });
-    return rankTrophies(inputs, getTrophyRules());
   }
 
   /**
