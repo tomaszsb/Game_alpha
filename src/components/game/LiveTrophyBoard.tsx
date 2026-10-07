@@ -81,7 +81,7 @@ export function LiveTrophyBoard({ players, gameRulesService, currentPlayerId, mo
                       data-testid={`trophy-race-${id}`}
                       data-place={race.place ?? ''}
                       title={out ? `${names[id]}: out of the game` : `${names[id]}: ${race.value}% of plan so far (${detail(id, row)})`}
-                      style={{ fontSize: compact ? '0.62rem' : '0.7rem', lineHeight: 1.25, opacity: row.solid || out ? 1 : 0.75, fontStyle: row.solid || out ? 'normal' : 'italic' }}
+                      style={{ fontSize: compact ? '0.7rem' : '0.78rem', lineHeight: 1.25, opacity: row.solid || out ? 1 : 0.75, fontStyle: row.solid || out ? 'normal' : 'italic' }}
                     >
                       <div style={{ color: p.muted }}>{names[id]}</div>
                       {out || race.place === null ? (
@@ -89,7 +89,8 @@ export function LiveTrophyBoard({ players, gameRulesService, currentPlayerId, mo
                       ) : (
                         <>
                           <div style={{ fontWeight: 700, color: leading ? p.good : p.text }}>
-                            {leading ? '🏆 ' : ''}{ordinal(race.place)} <span style={{ fontWeight: 400, color: p.muted }}>of {race.of}</span>
+                            {leading && <span aria-hidden style={{ fontSize: compact ? '1.9em' : '1.6em', lineHeight: 1, verticalAlign: 'middle', marginRight: 3 }}>🏆</span>}
+                            {ordinal(race.place)} <span style={{ fontWeight: 400, color: p.muted }}>of {race.of}</span>
                           </div>
                           <div style={{ color: p.muted }}>
                             {leading ? 'leading' : `${race.behind} points behind`}
