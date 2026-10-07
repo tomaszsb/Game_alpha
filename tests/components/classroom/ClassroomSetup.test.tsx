@@ -132,6 +132,9 @@ function jsonResponse(body: unknown, status = 200) {
   return { ok: status < 300, status, json: async () => body };
 }
 
+// The board-check strip makes its own request; it has its own test file.
+vi.mock('../../../src/components/classroom/BoardCheckStrip', () => ({ BoardCheckStrip: () => null }));
+
 describe('ClassroomSetup', () => {
   const fetchMock = vi.fn();
 

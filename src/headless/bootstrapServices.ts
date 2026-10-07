@@ -1,0 +1,164 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- headless test harness: pokes private service members on purpose */
+/**
+ * Headless service bootstrap for the Ghost Player.
+ *
+ * Mirrors the production DI wiring in src/context/GameContext.tsx, but uses
+ * a Node-friendly DataService that reads CSVs directly from disk instead of
+ * going through fetch(). Same service instances, same public APIs, same
+ * behavior — just no browser.
+ *
+ * Extracted from tests/E2E-LogicPlaythrough.test.ts so the Ghost Player and
+ * future headless tests can share one bootstrap.
+ */
+
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+import { DataService } from '../services/DataService';
+import { StateService } from '../services/StateService';
+import { LoggingService } from '../services/LoggingService';
+import { ResourceService } from '../services/ResourceService';
+import { GameRulesService } from '../services/GameRulesService';
+import { ChoiceService } from '../services/ChoiceService';
+import { CardService } from '../services/CardService';
+import { MovementService } from '../services/MovementService';
+import { NotificationService } from '../services/NotificationService';
+import { TargetingService } from '../services/TargetingService';
+import { EffectEngineService } from '../services/EffectEngineService';
+import { NegotiationService } from '../services/NegotiationService';
+import { TurnService } from '../services/TurnService';
+import { CardEffectService } from '../services/CardEffectService';
+import { CardEffectHandler } from '../services/CardEffectHandler';
+import { FinancialEffectHandler } from '../services/FinancialEffectHandler';
+import { ApprovalService } from '../services/ApprovalService';
+import { LogWriter } from '../services/LogWriter';
+import { ToastWriter } from '../services/ToastWriter';
+import { TrophyScorekeeper } from '../services/TrophyScorekeeper';
+import { configureTrophyRules } from '../utils/trophyRules';
+
+class NodeDataService extends DataService {
+  private readonly cleanFilesDir: string;
+  // Defaults to the stock CLEAN_FILES, but accepts an explicit dir so a test
+  // can point the ghost at a baked classroom instance (e.g. one carrying a
+  // teacher-authored insertion) instead of stock.
+  constructor(cleanFilesDir?: string) {
+    super();
+    this.cleanFilesDir = cleanFilesDir ?? join(process.cwd(), 'public', 'data', 'CLEAN_FILES');
+  }
+  async loadData(): Promise<void> {
+    if ((this as any).loaded) return;
+    const dataDir = this.cleanFilesDir;
+    const read = (file: string) => readFileSync(join(dataDir, file), 'utf-8');
+    (this as any).gameConfigs = (this as any).parseGameConfigCsv(read('GAME_CONFIG.csv'));
+    (this as any).movements = (this as any).parseMovementCsv(read('MOVEMENT.csv'));
+    (this as any).diceOutcomes = (this as any).parseDiceOutcomesCsv(read('DICE_OUTCOMES.csv'));
+    (this as any).spaceEffects = (this as any).parseSpaceEffectsCsv(read('SPACE_EFFECTS.csv'));
+    (this as any).diceEffects = (this as any).parseDiceEffectsCsv(read('DICE_EFFECTS.csv'));
+    (this as any).spaceContents = (this as any).parseSpaceContentCsv(read('SPACE_CONTENT.csv'));
+    (this as any).cards = (this as any).parseCardsCsv(read('CARDS_EXPANDED.csv'));
+    // LOGIC_QUESTIONS.csv drives the yes/no decision chain at logic-typed
+    // movement spaces (e.g. REG-FDNY-FEE-REVIEW). Without this, handleLogicMovement
+    // falls back to auto-selecting destination_1, leaving downstream logic-only
+    // destinations (REG-FDNY-PLAN-EXAM) unreachable in headless ghost runs.
+    (this as any).logicQuestions = (this as any).parseLogicQuestionsCsv(read('LOGIC_QUESTIONS.csv'));
+    // Optional, like the real loader: a hand-built data dir (the authored-insertion ghost's
+    // temp classroom) may not carry it, and a board without it simply keeps every card's own wording.
+    try { (this as any).parseScopeWordingCsv(read('SCOPE_WORDING.csv')); } catch { /* feature off */ }
+    try { (this as any).trophyRuleRows = (this as any).parseTrophyRulesCsv(read('TROPHIES.csv')); } catch { /* built-in defaults */ }
+    (this as any).buildSpaces();
+    (this as any).loaded = true;
+  }
+}
+
+export interface HeadlessServices {
+  dataService: DataService;
+  stateService: StateService;
+  turnService: TurnService;
+  gameRulesService: GameRulesService;
+  cardService: CardService;
+  movementService: MovementService;
+  choiceService: ChoiceService;
+  resourceService: ResourceService;
+  loggingService: LoggingService;
+}
+
+export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise<HeadlessServices> {
+  const dataService = new NodeDataService(cleanFilesDir);
+  await dataService.loadData();
+
+  const stateService = new StateService(dataService);
+  const loggingService = new LoggingService(stateService);
+  // Domain-event stage 3: mirrors ServiceProvider.tsx's always-on GameEvent
+  // bus subscribers, so headless turn flows produce the same log/toast
+  // output real play does.
+  new LogWriter(stateService, loggingService);
+  new TrophyScorekeeper(stateService);
+  configureTrophyRules(dataService.getTrophyRuleRows());
+  const resourceService = new ResourceService(stateService);
+  const gameRulesService = new GameRulesService(dataService, stateService);
+  stateService.setGameRulesService(gameRulesService);
+  const choiceService = new ChoiceService(stateService);
+  // Workstream 7 — wire ApprovalService so the gate at REG-DOB-FINAL-REVIEW
+  // actually fires and the bot exercises the approval mechanic end-to-end.
+  // Mirrors ServiceProvider.tsx wiring. (TODO L64.)
+  const approvalService = new ApprovalService();
+  const cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService, choiceService, approvalService);
+  const movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService, approvalService);
+  const notificationService = new NotificationService(stateService, loggingService);
+  new ToastWriter(stateService, notificationService);
+  const targetingService = new TargetingService(stateService, choiceService);
+  const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService, dataService, notificationService);
+  const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService, dataService, notificationService);
+  // Kid E — bot can't click discard-choice modals (L003 / L048 forced-discard
+  // fan-out). Flipping this to true makes the handler auto-pick oldest cards
+  // instead of awaiting a choice that would hang the headless turn loop.
+  cardEffectHandler.autoPickForcedDiscards = true;
+  const effectEngineService = new EffectEngineService(
+    resourceService,
+    cardService,
+    choiceService,
+    stateService,
+    movementService,
+    {} as any,
+    gameRulesService,
+    targetingService,
+    loggingService,
+    dataService,
+    financialEffectHandler,
+    cardEffectHandler
+  );
+  const negotiationService = new NegotiationService(stateService, effectEngineService, resourceService, choiceService);
+  const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+  const turnService = new TurnService(
+    dataService,
+    stateService,
+    gameRulesService,
+    cardService,
+    resourceService,
+    movementService,
+    negotiationService,
+    loggingService,
+    choiceService,
+    notificationService,
+    undefined, // effectEngineService — wired via setter for genuine cycle below
+    undefined, // diceService — TurnService creates a default
+    undefined, // spaceEffectService — TurnService creates a default
+    cardEffectService,
+    approvalService
+  );
+  turnService.setEffectEngineService(effectEngineService);
+  effectEngineService.setTurnService(turnService);
+  cardService.setEffectEngineService(effectEngineService);
+
+  return {
+    dataService,
+    stateService,
+    turnService,
+    gameRulesService,
+    cardService,
+    movementService,
+    choiceService,
+    resourceService,
+    loggingService,
+  };
+}

@@ -54,6 +54,7 @@ import { diffSubmittedContent, restrictChangesToWording, findBadWordingNumbers }
 import { validateConfig } from './instanceValidation.js';
 import { buildCatalog } from './instanceCatalog.js';
 import { compareBoardReports } from './boardCheck.js';
+import { createPlaytestRunner } from './boardPlaytest.js';
 import { parseCsvWithHeaders } from './processGameData.js';
 import {
   bakeInstance,
@@ -1245,6 +1246,47 @@ app.get('/api/instances/:id', (req, res) => {
     console.error(`❌ Instance read failed for "${req.params.id}":`, err.message);
     res.status(500).json({ success: false, error: 'Instance config unreadable' });
   }
+});
+
+// "Check my board" (Manager brief Job 4): the ghost bot plays the teacher's BAKED board in a separate
+// process and says whether a game can be finished. POST starts a check (write access, like any other
+// edit of the classroom); GET reads the latest one (open - it is a verdict, not board data).
+const boardPlaytests = createPlaytestRunner();
+
+app.post('/api/instances/:id/board-check', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) return res.status(404).json({ success: false, error: 'No such instance' });
+    const access = checkInstanceWriteAccess(config, {
+      token: req.headers['x-instance-token'],
+      adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
+      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+      accountId: resolveTeacherAccountId(req),
+    });
+    if (!access.ok) {
+      logVisitor(req, 'INSTANCE_MUTATION_AUTH_FAILED', { instanceId: req.params.id });
+      return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
+    }
+    const cleanDir = path.join(resolvedDir(instancesRoot, req.params.id), 'CLEAN_FILES');
+    if (!fs.existsSync(path.join(cleanDir, 'GAME_CONFIG.csv'))) {
+      return res.status(409).json({ success: false, error: 'This classroom has no built board yet. Save a change first, then check it.' });
+    }
+    const { games, seats } = req.body || {};
+    const job = boardPlaytests.start(req.params.id, cleanDir, { games, seats });
+    logVisitor(req, 'BOARD_CHECK_STARTED', { instanceId: req.params.id });
+    res.status(202).json({ success: true, check: job });
+  } catch (err) {
+    console.error(`❌ Board check failed to start for "${req.params.id}":`, err.message);
+    res.status(err.statusCode || 500).json({ success: false, error: err.statusCode ? err.message : 'Could not start the board check' });
+  }
+});
+
+app.get('/api/instances/:id/board-check', (req, res) => {
+  const check = boardPlaytests.get(req.params.id);
+  res.json({ success: true, check });
 });
 
 // The Classroom Setup screen's data source: the FULL stock deck (the

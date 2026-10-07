@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.5.0] - 2026-10-07
+
+### "Check my board" (Manager brief Job 4). Built; **NOT deployed, NOT pushed - Tom's word first. Untested in the production image (see below).**
+
+**What a teacher sees:** in Classroom Setup, a **Check my board** button. The server plays the classroom's built board with practice players in the background and answers in plain words: "practice players finished this board in 3 of 3 games", or "2 of 3 practice games got stuck ... around: <space>". A game that ends because the practice player ran out of money is reported as normal play, not a board fault. A save never waits for it.
+
+- **How it runs:** `POST /api/instances/:id/board-check` (same write access as any classroom edit) starts it; `GET` reads the latest result (kept in memory; a server restart forgets it). The bot runs in a CHILD process (`server/boardPlaytest.js` spawns `node --import tsx scripts/boardPlaytest.ts <baked CLEAN_FILES> <games> <seats> <seed>`), so the web server never loads the TypeScript game code. One check at a time for the whole server, cut off after 10 minutes. Default 3 seeded solo games; the route accepts up to 6 games and 4 seats.
+- **Reads the real end, not "game over":** FINISHED / LOST(bankruptcy, design fee) / LOOP or TURN_CAP (stuck) / EXCEPTION or INVARIANT (broken). Verdict: problem if any game is stuck or broken, ok if none and at least one finished, otherwise "unclear" (never a pass). Works under the new Job 3 rule (a finish no longer ends the game; with more than one seat the game runs until everyone finished or is out).
+- **Time, measured on this PC (plain node, 3 solo games from seed 424242):** 59 s, 31 s, 8 s = about 98 s. One 4-seat game: 56 s. A stuck board is caught in about 1-2 s. The Unraid box may be slower. The strip says "one to two minutes".
+- **The bot moved into the shipped code:** `tests/ghost/ghostPlayer.ts` and `bootstrapServices.ts` now live in `src/headless/` (the Docker image leaves `tests/` out - `.dockerignore`), with one-line re-export stubs left in `tests/ghost/` so no test changed. Plain node needed two fixes the test runner hid: the script exits explicitly (the services leave timers running) and routes the game's stdout logging to stderr.
+- **Tests:** `tests/server/boardPlaytest.test.ts` (verdict wording cases, the one-at-a-time runner with a fake child, and two REAL child-process runs: the stock board finishes; a board whose first space leads back to itself is reported stuck in about 1 s), `BoardCheckStrip.test.tsx` (4). The 2 ClassroomSetup tests now stub the strip (it makes its own request).
+- **NOT verified:** a Docker build. This PC has no Docker, so whether the image can run `node --import tsx` as the read-only, `/tmp`-noexec container (the esbuild binary for alpine, a writable temp dir) is unproven. The first deploy is its first test: press the button on a real classroom and read the answer. If it says "The check could not run", the server log has the reason.
+- **Wording is a first draft for Tom** (button, headline lines, stuck/crash lines, the "ran out of money is normal play" note).
+
+**To undo:** revert the Job 4 commit.
+
 ## [3.4.0] - 2026-10-07
 
 ### The three-trophy win rule (Manager brief Job 3). Built; **NOT deployed - hold until the Manager says the Jarvis baseline is handled.**

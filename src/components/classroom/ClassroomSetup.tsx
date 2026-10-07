@@ -10,6 +10,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { SpaceDeckPanel } from './SpaceDeckPanel';
+import { BoardCheckStrip } from './BoardCheckStrip';
 import { SpaceEditor, SAFE_FIELD_SUBSET } from '../editor/SpaceEditor';
 import { useEditorSource, type SaveStatus } from '../editor/useEditorSource';
 import { colors } from '../../styles/theme';
@@ -68,6 +69,8 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
           ✕ Close
         </button>
       </div>
+
+      <BoardCheckStrip instanceId={instanceId} changeToken={reloadToken} />
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: '0.75rem', padding: '0 0.75rem 0.75rem' }}>
         <div style={{ flex: '0 0 320px', minWidth: 0, overflowY: 'auto' }}>

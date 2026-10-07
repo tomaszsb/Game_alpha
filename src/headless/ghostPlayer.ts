@@ -1,0 +1,706 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- headless test harness: pokes private service members on purpose */
+/**
+ * Ghost Player — a headless bot that plays the game by picking random valid
+ * actions. The Ghost Player is the v3.0 Beta regression safety net: it
+ * exercises real service code paths without a UI, so silent breakage in any
+ * space, card, or effect is caught in CI instead of by a student mid-session.
+ *
+ * Design goals:
+ *   - Use the same DI-wired services the real game uses (via bootstrapServices)
+ *   - Make only legal choices (no brute-forcing invalid state)
+ *   - Report failures with enough context to reproduce deterministically
+ *   - Cheap enough to run 1,000+ games in CI without babysitting
+ *
+ * Failure modes we detect:
+ *   - Uncaught exceptions from any service
+ *   - Turn count exceeding the cap (stuck / infinite loop)
+ *   - NaN or undefined resource values on the player
+ *   - Current space missing from the space table (corrupt move)
+ */
+
+import { appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import type { HeadlessServices } from './bootstrapServices';
+import { bootstrapHeadlessServices } from './bootstrapServices';
+
+/**
+ * Per-game progress heartbeat (TODO 2026-06-14). A full ghost batch can run
+ * ~50 min and vitest swallows console.log on passing tests, so there was no way
+ * to tell mid-run whether it was progressing or hung. When a batch passes a
+ * `progressLabel`, every finished game appends one line to a tail-able log
+ * (`tail -f` confirms movement; a flatlining gameIndex = a stuck game) and
+ * overwrites a one-line at-a-glance file. Best-effort: a write failure must
+ * never break a test. Separate from `.claude/ghost-history.jsonl`, which is the
+ * once-per-batch durable record of the final tally.
+ *
+ * The at-a-glance file is per-label (2026-07-09, split into parallel files):
+ * once strict/negotiate-coverage/smart-bot run as separate test files on
+ * separate workers, they call this concurrently — a single shared
+ * `ghost-progress.txt` would have each batch overwrite the others' line.
+ */
+function writeGhostProgress(
+  label: string, gameIndex: number, total: number, elapsedMs: number, wins: number, lastReason: string
+): void {
+  try {
+    const logPath = '.claude/ghost-progress.log';
+    mkdirSync(dirname(logPath), { recursive: true });
+    appendFileSync(logPath, JSON.stringify({
+      ts: new Date().toISOString(), label, gameIndex, total, elapsedMs, wins, lastReason,
+    }) + '\n');
+    const mins = (elapsedMs / 60000).toFixed(1);
+    writeFileSync(`.claude/ghost-progress-${label}.txt`, `${label} ${gameIndex}/${total} · ${mins}m · wins ${wins} · last ${lastReason}\n`);
+  } catch {
+    // Non-fatal: progress logging must never break the test.
+  }
+}
+
+export interface GhostGameResult {
+  success: boolean;
+  turns: number;
+  finalSpace: string | undefined;
+  // LOOP is a TURN_CAP game whose trail shows a player stuck cycling through a
+  // small set of spaces with no progress — an unwinnable soft-lock. Split out
+  // from TURN_CAP (audit round 3 / CLAUDE.md "ghost gate catches crashes, not
+  // soft-locks") so it counts as a HARD failure: the win-floor's slack would
+  // otherwise absorb it as a normal loss, which is how the Prof Cert loop
+  // shipped through a green gate (v3.0.79).
+  // FINISHED = the player reached the end of the project. LOST = the game ended
+  // with no winner (bankruptcy or the 20% design-fee cap; `lossReason` says which,
+  // `finalSpace` says where). Both are clean ends (success: true) — a LOST game is
+  // the game working, not a bot failure — but only FINISHED counts as a win. (Before
+  // 2026-10-06 every ended game was reported as 'WIN', so "50/50 wins" included
+  // bankruptcies and fee-cap losses.)
+  reason: 'FINISHED' | 'LOST' | 'TURN_CAP' | 'LOOP' | 'EXCEPTION' | 'INVARIANT_VIOLATION';
+  lossReason?: 'bankruptcy' | 'design_fee_cap';
+  /** How many seats played (options.players, default 1). `turns` counts every seat's turns together. */
+  players?: number;
+  /** The three-trophy result of a game that ended (who held which trophy, each player's percentages). */
+  standings?: import('../utils/trophyScoring').TrophyStandings;
+  /** Total turns played (all seats) when the game ended, and when each player finished or went out. */
+  gameTurns?: number;
+  timeline?: Array<{ finishedAtTurn?: number; outAtTurn?: number }>;
+  error?: string;
+  trail: string[];
+}
+
+/**
+ * Hard failures are correctness bugs the gate must never let through:
+ * crashes (EXCEPTION), broken invariants (INVARIANT_VIOLATION), and now
+ * soft-lock loops (LOOP). A plain TURN_CAP (slow but progressing game) is NOT
+ * hard — it's absorbed by the win-rate floor. Single source of truth so the
+ * three gate tests can't drift apart on what "hard" means.
+ */
+export function isHardFailure(result: GhostGameResult): boolean {
+  return result.reason === 'EXCEPTION'
+    || result.reason === 'INVARIANT_VIOLATION'
+    || result.reason === 'LOOP';
+}
+
+/** Pull the per-turn space sequence out of a game trail (the `T<n> SPACE:…` lines). */
+export function extractSpaceSequence(trail: string[]): string[] {
+  const seq: string[] = [];
+  for (const line of trail) {
+    const m = /^T\d+ ([^:\s]+):/.exec(line);
+    if (m) seq.push(m[1]);
+  }
+  return seq;
+}
+
+/**
+ * Detect a soft-lock loop in a (TURN_CAP) trail: the tail is an exact repeat
+ * of a short space-cycle for several periods, i.e. the player made no real
+ * progress before the turn cap. Only meaningful for games that DIDN'T finish —
+ * a winning game's trail naturally ends at FINISH. Pure + unit-tested.
+ * @param trail the game's trail lines
+ * @param opts minRepeats: how many back-to-back repeats prove a stuck cycle;
+ *   maxPeriod: largest cycle length considered.
+ */
+export function detectSpaceLoop(
+  trail: string[],
+  opts: { minRepeats?: number; maxPeriod?: number } = {}
+): { looped: boolean; period?: number; cycle?: string[] } {
+  const minRepeats = opts.minRepeats ?? 3;
+  const maxPeriod = opts.maxPeriod ?? 12;
+  const seq = extractSpaceSequence(trail);
+  for (let k = 1; k <= maxPeriod; k++) {
+    const need = k * minRepeats;
+    if (seq.length < need) continue;
+    const tail = seq.slice(seq.length - need);
+    const base = tail.slice(0, k);
+    let exact = true;
+    for (let i = 0; i < tail.length; i++) {
+      if (tail[i] !== base[i % k]) { exact = false; break; }
+    }
+    // k ascends, so an all-same tail is caught at k=1 ("stuck on one space");
+    // any exact repeat reaching k>1 therefore spans ≥2 distinct spaces.
+    if (exact) {
+      return { looped: true, period: k, cycle: base };
+    }
+  }
+  return { looped: false };
+}
+
+export interface GhostGameOptions {
+  /**
+   * Per-seat turn cap (the game's cap is this × players). Default 300.
+   */
+  maxTurns?: number;
+  /**
+   * How many bots sit at the table (default 1). Each takes its turn in rotation with the same
+   * play rules; used to measure game length and the spread of the three trophy percentages.
+   */
+  players?: number;
+  playerName?: string;
+  verbose?: boolean;
+  /**
+   * Probability (0..1) that the ghost will invoke Try Again on any turn where
+   * the current space allows it (can_negotiate = true). Default 0 — the base
+   * ghost never uses Try Again. The "try-again-happy" variant uses ~0.2 so
+   * every strict run exercises the Try Again code path and its state reverts.
+   */
+  tryAgainProbability?: number;
+  /**
+   * When true, the ghost plays Try Again like a rational player: it will NOT
+   * undo a turn on which it just earned a DOB or FDNY approval stamp. Blind
+   * Try Again at an examiner space reverts the freshly-granted approval (it
+   * lives in TEMP state until end-of-turn), and the Stage-1 gate at FINAL-REVIEW
+   * then routes the un-approved player back to the examiner — an infinite
+   * regulatory loop that a real player never hits. The win-rate gate uses this
+   * smart bot so its floor reflects competent play; the negotiate-coverage gate
+   * leaves it false so it still stress-tests reverting an approval grant.
+   * Default false.
+   */
+  smartTryAgain?: boolean;
+  /**
+   * When true, a game that hits the turn cap while stuck in a repeating
+   * space-cycle is reclassified TURN_CAP → LOOP (a HARD failure). Default
+   * false, and deliberately so: random/blind bots loop because they make dumb
+   * choices (the strict floor tolerates it; negotiate-coverage loops ON PURPOSE
+   * by reverting approvals), so a loop there is not a game bug. A loop under
+   * RATIONAL play (smart-bot, or a fixture board) IS a soft-lock bug — that's
+   * the Prof Cert case (v3.0.79) where every path was trapped. Enable only on
+   * gates where the bot plays sensibly.
+   */
+  detectLoops?: boolean;
+  /**
+   * Optional abort signal. When triggered, the game loop and inner helpers
+   * (resolveAnyPendingChoice, triggerManualSpaceEffects) return early at the
+   * next yield point. Used by runGhostBatch to enforce a per-game wall-clock
+   * cap without leaking the timed-out game's CPU into subsequent games.
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * mulberry32 — 4-line seeded PRNG with good statistical properties for our
+ * use case (picking between a handful of options per turn). Same input seed
+ * always produces the same sequence; uses no global state. Output range is
+ * [0, 1) so it's a drop-in replacement for Math.random.
+ */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Play one game to completion (or failure) using a single Ghost Player.
+ * Returns a result object; never throws — all failures are captured in
+ * `result.success === false` so batch runners can aggregate.
+ */
+// Phase order for the bot's forward-bias heuristic. Higher = later in the
+// project lifecycle. PM-DECISION-CHECK (OWNER) is a resume hub reached from
+// multiple later phases; without a forward bias, the random-move bot loops
+// through it forever.
+const PHASE_ORDER: Record<string, number> = {
+  SETUP: 0,
+  OWNER: 1,
+  FUNDING: 2,
+  DESIGN: 3,
+  REGULATORY: 4,
+  CONSTRUCTION: 5,
+  END: 6,
+};
+
+function phaseOf(dataService: any, space: string): number {
+  const cfg = dataService.getGameConfigBySpace(space);
+  return PHASE_ORDER[cfg?.phase] ?? -1;
+}
+
+/**
+ * Pick a destination favoring forward progress + exploration:
+ *   1. Filter to destinations whose phase >= current phase (forward / same)
+ *   2. Among those (or all, if no forward options), pick the least-visited
+ *   3. Ties broken randomly
+ * Falls back to pure random only when phase data is missing.
+ */
+function pickDestination(
+  dataService: any,
+  destinations: string[],
+  currentSpace: string,
+  visitCounts: Map<string, number>
+): string {
+  if (destinations.length === 1) return destinations[0];
+  const currentPhase = phaseOf(dataService, currentSpace);
+  if (currentPhase < 0) {
+    return destinations[Math.floor(Math.random() * destinations.length)];
+  }
+  const forward = destinations.filter(d => phaseOf(dataService, d) >= currentPhase);
+  const pool = forward.length > 0 ? forward : destinations;
+  let minVisits = Infinity;
+  for (const d of pool) {
+    const v = visitCounts.get(d) ?? 0;
+    if (v < minVisits) minVisits = v;
+  }
+  const leastVisited = pool.filter(d => (visitCounts.get(d) ?? 0) === minVisits);
+  return leastVisited[Math.floor(Math.random() * leastVisited.length)];
+}
+
+export async function playOneGame(
+  services: HeadlessServices,
+  options: GhostGameOptions = {}
+): Promise<GhostGameResult> {
+  const { stateService, turnService, dataService } = services;
+  const seats = Math.max(1, options.players ?? 1);
+  const maxTurns = (options.maxTurns ?? 300) * seats;
+  const playerName = options.playerName ?? 'Ghost';
+  const signal = options.signal;
+  const trail: string[] = [];
+  const visitCountsByPlayer = new Map<string, Map<string, number>>();
+
+  const fail = (reason: GhostGameResult['reason'], error: string, turns: number): GhostGameResult => ({
+    success: false,
+    turns,
+    finalSpace: safeGetPlayerSpace(stateService),
+    reason,
+    error,
+    trail,
+  });
+
+  const abortedResult = (turn: number): GhostGameResult => {
+    trail.push(`  aborted by wall-clock signal at turn ${turn}`);
+    return fail('TURN_CAP', 'Aborted by wall-clock signal', turn);
+  };
+
+  try {
+    for (let i = 0; i < seats; i++) stateService.addPlayer(i === 0 ? playerName : `${playerName}${i + 1}`);
+    const firstId = stateService.getAllPlayers()[0].id;
+    stateService.setCurrentPlayer(firstId);
+    stateService.startGame();
+    await turnService.startTurn(firstId);
+    if (signal?.aborted) return abortedResult(0);
+
+    for (let turn = 0; turn < maxTurns; turn++) {
+      if (signal?.aborted) return abortedResult(turn);
+
+      // Whoever's turn it is plays (with one seat this is always the same player).
+      const playerId = stateService.getGameState().currentPlayerId ?? firstId;
+      if (!visitCountsByPlayer.has(playerId)) visitCountsByPlayer.set(playerId, new Map());
+      const visitCounts = visitCountsByPlayer.get(playerId)!;
+
+      const p = stateService.getPlayer(playerId);
+      if (!p) return fail('INVARIANT_VIOLATION', 'Player disappeared from state', turn);
+
+      // Invariant checks on every turn
+      const invariantErr = checkInvariants(p, dataService);
+      if (invariantErr) return fail('INVARIANT_VIOLATION', invariantErr, turn);
+
+      // Snapshot approval state at turn start (TEMP == REAL right after startTurn)
+      // so the smart-bot Try Again rule can tell whether THIS turn earned a stamp.
+      const dobApprovedAtStart = p.dobApprovalStatus === 'approved';
+      const fdnyApprovedAtStart = p.fdnyApprovalStatus === 'approved';
+
+      const wCards = p.hand?.filter((c: string) => c.startsWith('W')).length ?? 0;
+      trail.push(`T${turn} ${p.currentSpace}:${p.visitType} hand=${p.hand?.length ?? 0}(W=${wCards}) $${p.money}`);
+      if (options.verbose) console.log(`T${turn} @ ${p.currentSpace} (${p.visitType})`);
+      visitCounts.set(p.currentSpace, (visitCounts.get(p.currentSpace) ?? 0) + 1);
+
+      // Check whether the game ended: finished the project, or lost it
+      const endState = stateService.getGameState();
+      if (endState.isGameOver) {
+        const lossReason = endState.gameEndReason?.type;
+        return {
+          success: true,
+          turns: turn,
+          finalSpace: p.currentSpace,
+          reason: lossReason ? 'LOST' : 'FINISHED',
+          ...(lossReason ? { lossReason } : {}),
+          players: seats,
+          standings: endState.standings,
+          gameTurns: endState.globalTurnCount,
+          timeline: endState.players.map(pl => ({ finishedAtTurn: pl.finishedAtTurn, outAtTurn: pl.outAtTurn })),
+          trail,
+        };
+      }
+
+      // Handle any pending choice before doing space effects
+      await resolveAnyPendingChoice(services, signal);
+      if (signal?.aborted) return abortedResult(turn);
+
+      // Some spaces have an "automatic funding" hook the UI calls explicitly
+      if (p.currentSpace === 'OWNER-FUND-INITIATION') {
+        await turnService.handleAutomaticFunding(playerId);
+        if (signal?.aborted) return abortedResult(turn);
+      }
+
+      // Trigger manual space effects (dice rolls, card draws, etc.)
+      await triggerManualSpaceEffects(services, playerId, trail, signal);
+      if (signal?.aborted) return abortedResult(turn);
+
+      // Resolve any choice that popped up from the effect
+      await resolveAnyPendingChoice(services, signal);
+      if (signal?.aborted) return abortedResult(turn);
+
+      // For movement: if it's a choice-type move, pick a random destination
+      const refreshed = stateService.getPlayer(playerId);
+      if (!refreshed) return fail('INVARIANT_VIOLATION', 'Player vanished mid-turn', turn);
+      const movement = dataService.getMovement(refreshed.currentSpace, refreshed.visitType);
+
+      if (movement?.movement_type === 'choice') {
+        // Use MovementService.getValidMoves so we respect any runtime filtering
+        // (e.g. spaces that present 2 CSV destinations but only allow one based
+        // on prior player state). Falling back to raw CSV dests mirrors the old
+        // behavior if the service somehow returns nothing.
+        let dests = services.movementService.getValidMoves(playerId);
+        if (!dests || dests.length === 0) dests = collectDestinations(movement);
+        if (dests.length === 0) {
+          return fail('INVARIANT_VIOLATION', `Choice movement from ${refreshed.currentSpace} has no destinations`, turn);
+        }
+        const pick = pickDestination(dataService, dests, refreshed.currentSpace, visitCounts);
+        stateService.setPlayerMoveIntent(playerId, pick);
+      } else if (movement?.movement_type === 'dice' || movement?.movement_type === 'dice_outcome') {
+        // Dice-based movement: roll if not already rolled
+        const state = stateService.getGameState();
+        if (!state.hasPlayerRolledDice) {
+          await turnService.rollDiceAndProcessEffects(playerId);
+        }
+      }
+
+      // Final choice resolution (rolling dice may have introduced one)
+      await resolveAnyPendingChoice(services, signal);
+      if (signal?.aborted) return abortedResult(turn);
+
+      // A space effect or dice roll may have ended the game (e.g. reaching FINISH).
+      // If so, loop back so the isGameOver check at the top can record the WIN.
+      const gs = stateService.getGameState();
+      if (gs.isGameOver || gs.gamePhase !== 'PLAY') continue;
+
+      // Randomly invoke Try Again on spaces that allow it. This exercises the
+      // snapshot-revert code path so the try-again-happy ghost variant catches
+      // regressions in the state-restore logic.
+      const tryAgainProb = options.tryAgainProbability ?? 0;
+      if (tryAgainProb > 0 && Math.random() < tryAgainProb) {
+        const pp = stateService.getPlayer(playerId);
+        // Smart bot: never undo a turn that just earned an approval stamp — a
+        // rational player keeps that progress. Skipping the Try Again here breaks
+        // the regulatory loop (revert-approval → Stage-1 gate → back to examiner).
+        const gainedApproval =
+          (!dobApprovedAtStart && pp?.dobApprovalStatus === 'approved') ||
+          (!fdnyApprovedAtStart && pp?.fdnyApprovalStatus === 'approved');
+        if (options.smartTryAgain && gainedApproval) {
+          trail.push(`  smart: kept approval at ${pp?.currentSpace}, skipped Try Again`);
+          // fall through to the normal end-turn path below
+        } else {
+          const spaceContent = pp ? dataService.getSpaceContent(pp.currentSpace, pp.visitType) : null;
+          if (spaceContent?.can_negotiate) {
+            const handBefore = pp?.hand?.length ?? 0;
+            const timeBefore = pp?.timeSpent ?? 0;
+            const moneyBefore = pp?.money ?? 0;
+            const tryResult = await turnService.tryAgainOnSpace(playerId);
+            if (tryResult.success && tryResult.shouldAdvanceTurn) {
+              const after = stateService.getPlayer(playerId);
+              trail.push(
+                `  tryAgain@${pp?.currentSpace} hand:${handBefore}→${after?.hand?.length ?? 0} ` +
+                  `time:${timeBefore}→${after?.timeSpent ?? 0} $:${moneyBefore}→${after?.money ?? 0}`
+              );
+              await turnService.endTurnWithMovement(true, true);
+              continue;
+            }
+            trail.push(`  tryAgain failed: ${tryResult.message}`);
+          }
+        }
+      }
+
+      // Verify action completion before ending turn (mirrors real UI guard)
+      const preEndState = stateService.getGameState();
+      if (preEndState.requiredActions > preEndState.completedActionCount) {
+        return fail(
+          'INVARIANT_VIOLATION',
+          `Action mismatch at ${stateService.getPlayer(playerId)?.currentSpace}: ` +
+            `required=${preEndState.requiredActions}, completed=${preEndState.completedActionCount}, ` +
+            `manualActions=${JSON.stringify(preEndState.completedActions?.manualActions)}`,
+          turn
+        );
+      }
+
+      await turnService.endTurnWithMovement();
+      if (signal?.aborted) return abortedResult(turn);
+    }
+
+    // A game that hit the cap without finishing is either slow-but-progressing
+    // (TURN_CAP, a soft loss) or stuck in a cycle (LOOP, a hard failure). Only
+    // reclassify under rational play — see detectLoops doc on GhostGameOptions.
+    if (options.detectLoops) {
+      const loop = detectSpaceLoop(trail);
+      if (loop.looped) {
+        return fail('LOOP', `Stuck in a ${loop.period}-space cycle (${loop.cycle?.join(' → ')}) — never reaches FINISH`, maxTurns);
+      }
+    }
+    return fail('TURN_CAP', `Game did not finish within ${maxTurns} turns`, maxTurns);
+  } catch (err: any) {
+    const turns = trail.length;
+    const message = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
+    return fail('EXCEPTION', message, turns);
+  }
+}
+
+function checkInvariants(player: any, dataService: any): string | null {
+  if (player.money == null || Number.isNaN(player.money)) {
+    return `player.money is ${player.money}`;
+  }
+  if (player.timeSpent == null || Number.isNaN(player.timeSpent)) {
+    return `player.timeSpent is ${player.timeSpent}`;
+  }
+  if (!player.currentSpace) {
+    return 'player.currentSpace is empty';
+  }
+  // Verify the space actually exists in the data
+  const effects = dataService.getSpaceEffects(player.currentSpace, player.visitType);
+  const movement = dataService.getMovement(player.currentSpace, player.visitType);
+  if ((!effects || effects.length === 0) && !movement) {
+    return `space "${player.currentSpace}" (${player.visitType}) not found in data tables (effects=${effects?.length ?? 'null'}, movement=${!!movement})`;
+  }
+  return null;
+}
+
+async function resolveAnyPendingChoice(services: HeadlessServices, signal?: AbortSignal): Promise<void> {
+  const { stateService, choiceService } = services;
+  // Loop in case one resolution triggers another (e.g. LOGIC_QUESTION chains
+  // where answering Q1 leads to Q2, etc.). 20 iterations covers the longest
+  // chain in production (REG-FDNY-FEE-REVIEW = 5 questions + a possible
+  // sub-choice MOVEMENT modal at Q5).
+  for (let i = 0; i < 20; i++) {
+    if (signal?.aborted) return;
+    const choice = stateService.getGameState().awaitingChoice;
+    if (!choice) return;
+    if (choice.options.length === 0) return; // can't resolve, let the turn end
+    // Resolve everything — including MOVEMENT-type sub-choices from inside
+    // logic chains. We previously skipped MOVEMENT choices on the theory that
+    // the main loop's setPlayerMoveIntent handles them, but that only applies
+    // to top-level 'choice' movement_type spaces. A MOVEMENT choice created
+    // mid-chain (resolveLogicTarget Case 2) hangs the chain forever if the
+    // ghost doesn't resolve it, eventually triggering the 5-minute promise
+    // timeout in ChoiceService and stalling the whole test batch.
+    const pick = choice.options[Math.floor(Math.random() * choice.options.length)];
+    choiceService.resolveChoice(choice.id, pick.id);
+    // Yield to the event loop so the resolver (e.g. walkLogicChain awaiting
+    // on the resolved createChoice promise) can resume and set the next
+    // awaitingChoice before we re-check. walkLogicChain chains through
+    // multiple awaits (createChoice → resolveLogicTarget → recursive
+    // walkLogicChain → createChoice), so we need a setTimeout(0) yield
+    // not just a microtask flush.
+    await new Promise((r) => setTimeout(r, 0));
+  }
+}
+
+async function triggerManualSpaceEffects(
+  services: HeadlessServices,
+  playerId: string,
+  trail: string[],
+  signal?: AbortSignal
+): Promise<void> {
+  const { stateService, dataService, turnService, choiceService } = services;
+  const p = stateService.getPlayer(playerId);
+  if (!p) return;
+  const effects = dataService.getSpaceEffects(p.currentSpace, p.visitType);
+  if (!effects) return;
+
+  for (const effect of effects) {
+    if (signal?.aborted) return;
+    if (effect.trigger_type !== 'manual') continue;
+    if (effect.effect_type === 'turn') continue; // skip end-turn effects
+
+    // UI splits dice vs non-dice effects:
+    //   dice → turnService.rollDiceWithFeedback() (handles DICE_EFFECTS like W card draws)
+    //   other → turnService.triggerManualEffect(key)
+    if (effect.effect_type === 'dice') {
+      if (stateService.getGameState().hasPlayerRolledDice) {
+        trail.push(`  skip dice (already rolled)`);
+        continue;
+      }
+      try {
+        const result = await turnService.rollDiceWithFeedback(playerId);
+        const pp = stateService.getPlayer(playerId);
+        const w = pp?.hand?.filter((c: string) => c.startsWith('W')).length ?? 0;
+        trail.push(`  rolled(${result?.diceValue}) fx=${result?.effects?.length ?? 0} → hand=${pp?.hand?.length ?? 0}(W=${w})`);
+      } catch (e: any) {
+        trail.push(`  roll FAILED: ${e?.message || e}`);
+      }
+    } else {
+      const key = `${effect.effect_type}:${effect.effect_action}`;
+      try {
+        const promise = turnService.triggerManualEffect(playerId, key);
+        // Poll for pending choice — triggerManualEffect sets awaitingChoice
+        // synchronously inside createChoice before the promise hangs.
+        // Poll up to 50ms (10 × 5ms) to be safe across environments.
+        for (let wait = 0; wait < 10; wait++) {
+          const choice = stateService.getGameState().awaitingChoice;
+          if (choice && choice.type !== 'MOVEMENT' && choice.options.length > 0) {
+            const pick = choice.options[Math.floor(Math.random() * choice.options.length)];
+            choiceService.resolveChoice(choice.id, pick.id);
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 5));
+        }
+        // Await with a 10s timeout to prevent hanging if choice was never resolved.
+        // Also race the abort signal so a wall-clock cap kicks in immediately.
+        // Listener is explicitly removed in finally to avoid accumulating handlers
+        // on a long-lived signal (one per effect × per turn would otherwise leak
+        // hundreds of listeners and trigger MaxListenersExceededWarning).
+        let abortHandler: (() => void) | undefined;
+        const abortPromise = new Promise((_, reject) => {
+          if (signal?.aborted) {
+            reject(new Error('aborted by wall-clock signal'));
+            return;
+          }
+          abortHandler = () => reject(new Error('aborted by wall-clock signal'));
+          signal?.addEventListener('abort', abortHandler);
+        });
+        try {
+          await Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(
+              `triggerManualEffect(${key}) timed out after 10s — choice may not have been resolved`
+            )), 10000)),
+            abortPromise
+          ]);
+        } finally {
+          if (abortHandler) signal?.removeEventListener('abort', abortHandler);
+        }
+        const pp = stateService.getPlayer(playerId);
+        const w = pp?.hand?.filter((c: string) => c.startsWith('W')).length ?? 0;
+        trail.push(`  triggered(${key}) → hand=${pp?.hand?.length ?? 0}(W=${w})`);
+      } catch (e: any) {
+        trail.push(`  trigger(${key}) FAILED: ${e?.message || e}`);
+      }
+    }
+  }
+}
+
+function collectDestinations(movement: any): string[] {
+  const out: string[] = [];
+  for (let i = 1; i <= 5; i++) {
+    const d = movement[`destination_${i}`];
+    if (d) out.push(d);
+  }
+  return out;
+}
+
+function safeGetPlayerSpace(stateService: any): string | undefined {
+  try {
+    const players = stateService.getAllPlayers();
+    return players[0]?.currentSpace;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Run N games back-to-back, each with a fresh service bootstrap, and return
+ * aggregate results. Fresh bootstrap per game is the safe default — it
+ * prevents state bleed between games at the cost of a small perf hit.
+ *
+ * Seeding: pass `baseSeed` to make the batch deterministic. Each game runs
+ * with `Math.random` overridden to `mulberry32(baseSeed + i)` for the
+ * duration of that game (restored in finally). Game-internal services and
+ * the ghost's own choices both observe the seeded stream, so seeded batches
+ * reproduce bit-for-bit across runs. Without `baseSeed`, Math.random is
+ * untouched and behavior is stochastic (suitable for the diagnostic test).
+ */
+export async function runGhostBatch(
+  gameCount: number,
+  options: GhostGameOptions & { baseSeed?: number; perGameTimeoutMs?: number; progressLabel?: string } = {}
+): Promise<{
+  total: number;
+  /** Games that reached the end of the project (reason FINISHED). */
+  wins: number;
+  /** Games that ended with no winner (reason LOST), and by what/where. */
+  lost: number;
+  lostBy: Record<string, number>;
+  failures: GhostGameResult[];
+  avgTurns: number;
+  longGames: number;
+}> {
+  const failures: GhostGameResult[] = [];
+  let wins = 0;
+  let lost = 0;
+  const lostBy: Record<string, number> = {};
+  let totalTurns = 0;
+  let longGames = 0;
+  const LONG_GAME_THRESHOLD = 60;
+  // Wall-clock cap per game. Default 30s keeps the blind/coverage runs bounded
+  // against pathological loops. The smart-bot win-rate test overrides this with
+  // a high value so every game reaches its NATURAL end (win, or the maxTurns
+  // cap) instead of being cut off by a machine-speed-dependent stopwatch —
+  // making the win count deterministic. See ghostPlayerSmartBot.test.ts.
+  const PER_GAME_TIMEOUT_MS = options.perGameTimeoutMs ?? 30000;
+
+  const { baseSeed, perGameTimeoutMs: _perGameTimeoutMs, progressLabel, ...gameOptions } = options;
+  const originalRandom = Math.random;
+  const batchStart = Date.now();
+
+  try {
+    for (let i = 0; i < gameCount; i++) {
+      if (baseSeed != null) {
+        Math.random = mulberry32(baseSeed + i);
+      }
+      const services = await bootstrapHeadlessServices();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), PER_GAME_TIMEOUT_MS);
+      let result: GhostGameResult;
+      try {
+        result = await playOneGame(services, { ...gameOptions, signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+      totalTurns += Math.max(0, result.turns);
+      if (result.success) {
+        if (result.reason === 'LOST') {
+          lost++;
+          const key = `${result.lossReason ?? 'unknown'}@${result.finalSpace ?? '?'}`;
+          lostBy[key] = (lostBy[key] ?? 0) + 1;
+        } else {
+          wins++;
+        }
+        if (result.turns > LONG_GAME_THRESHOLD) {
+          longGames++;
+          console.warn(`⚠️ Long game #${i + 1}: ${result.turns} turns (possible loop). Final space: ${result.finalSpace}`);
+        }
+      } else {
+        failures.push(result);
+      }
+
+      // Per-game heartbeat so a long batch is observable / a hang is visible.
+      if (progressLabel) {
+        writeGhostProgress(progressLabel, i + 1, gameCount, Date.now() - batchStart, wins, result.reason);
+      }
+    }
+  } finally {
+    if (baseSeed != null) Math.random = originalRandom;
+  }
+
+  return {
+    total: gameCount,
+    wins,
+    lost,
+    lostBy,
+    failures,
+    avgTurns: totalTurns / gameCount,
+    longGames,
+  };
+}

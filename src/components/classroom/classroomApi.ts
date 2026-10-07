@@ -203,6 +203,58 @@ async function mutate(path: string, method: string, body: unknown, deps: Classro
   }
 }
 
+/** One "Check my board" run, as the server reports it (server/boardPlaytest.js). */
+export interface BoardCheck {
+  status: 'running' | 'done' | 'error';
+  games: number;
+  seats: number;
+  startedAt: number;
+  finishedAt: number | null;
+  /** One entry per practice game played so far. */
+  results: Array<{ reason: string; ms?: number; finalSpace?: string }>;
+  error: string | null;
+  summary: null | {
+    verdict: 'ok' | 'problem' | 'unclear';
+    headline: string;
+    problems: Array<{ code: string; message: string; spaces?: string[] }>;
+    counts: { games: number; finished: number; lost: number; stuck: number; broken: number };
+    lostNote: string | null;
+  };
+}
+
+/** Ask the server to play this classroom's built board with practice players (runs in the background). */
+export async function startBoardCheck(
+  instanceId: string,
+  deps: ClassroomApiDeps = {}
+): Promise<{ success: true; check: BoardCheck } | { success: false; error: string }> {
+  const { fetchFn, getPassword, getSession, getURL } = resolveDeps(deps);
+  const password = getPassword();
+  const session = getSession();
+  if (!password && !session) {
+    return { success: false, error: 'Not signed in. Log in as the classroom owner or admin.' };
+  }
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (password) headers['x-admin-password'] = password;
+  if (session) headers['x-teacher-session'] = session;
+  try {
+    const response = await fetchFn(`${getURL()}/api/instances/${instanceId}/board-check`, { method: 'POST', headers, body: '{}' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) return { success: false, error: data.error || `Could not start the check (HTTP ${response.status})` };
+    return { success: true, check: data.check as BoardCheck };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/** The latest check for this classroom (null if none has been run since the server started). */
+export async function fetchBoardCheck(instanceId: string, deps: ClassroomApiDeps = {}): Promise<BoardCheck | null> {
+  const { fetchFn, getURL } = resolveDeps(deps);
+  const response = await fetchFn(`${getURL()}/api/instances/${instanceId}/board-check?_=${Date.now()}`);
+  if (!response.ok) throw new Error(`Board check unavailable (HTTP ${response.status})`);
+  const data = await response.json();
+  return (data.check ?? null) as BoardCheck | null;
+}
+
 /**
  * Switch a space on/off. The hybrid confirm flow: call with dryRun:true to
  * get the report (pass-through suggestion + candidates, or protection
