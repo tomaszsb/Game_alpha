@@ -13,11 +13,13 @@ interface BoardCheckStripProps {
   instanceId: string;
   /** Bumps every time the teacher saves a change, so an older verdict can be marked as out of date. */
   changeToken: number;
+  /** On a classroom row of the teacher list: no box of its own, no margin. */
+  bare?: boolean;
 }
 
 const POLL_MS = 3000;
 
-export function BoardCheckStrip({ instanceId, changeToken }: BoardCheckStripProps): JSX.Element {
+export function BoardCheckStrip({ instanceId, changeToken, bare }: BoardCheckStripProps): JSX.Element {
   const [check, setCheck] = useState<BoardCheck | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
@@ -60,8 +62,8 @@ export function BoardCheckStrip({ instanceId, changeToken }: BoardCheckStripProp
     <div
       data-testid="board-check"
       style={{
-        margin: '0.5rem 0.75rem', padding: '0.6rem 0.9rem', background: '#fff', border: '1px solid #dee2e6',
-        borderRadius: 8, display: 'flex', flexDirection: 'column', gap: '0.4rem',
+        margin: bare ? 0 : '0.5rem 0.75rem', padding: bare ? 0 : '0.6rem 0.9rem', background: bare ? 'transparent' : '#fff',
+        border: bare ? 'none' : '1px solid #dee2e6', borderRadius: 8, width: bare ? '100%' : undefined, display: 'flex', flexDirection: 'column', gap: '0.4rem',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
