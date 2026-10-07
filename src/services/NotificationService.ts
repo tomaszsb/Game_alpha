@@ -1,6 +1,7 @@
 // src/services/NotificationService.ts
 
 import { IStateService, ILoggingService } from '../types/ServiceContracts';
+import { scaleMs } from '../utils/gameSpeed';
 
 export interface NotificationContent {
   // Three levels of detail for the same action
@@ -102,7 +103,7 @@ export class NotificationService implements INotificationService {
       delete this.buttonFeedback[actionType];
       delete this.buttonTimeouts[actionType];
       this.onButtonFeedbackUpdate?.(this.buttonFeedback);
-    }, duration);
+    }, scaleMs(duration));
   }
 
   private setPlayerNotification(playerId: string, message: string, duration: number): void {
@@ -120,7 +121,7 @@ export class NotificationService implements INotificationService {
       delete this.playerNotifications[playerId];
       delete this.notificationTimeouts[playerId];
       this.onNotificationUpdate?.(this.playerNotifications);
-    }, duration);
+    }, scaleMs(duration));
   }
 
   clearPlayerNotifications(playerId?: string): void {

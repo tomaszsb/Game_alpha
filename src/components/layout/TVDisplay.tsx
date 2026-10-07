@@ -9,6 +9,7 @@ import { colors } from '../../styles/theme';
 import { BoardCanvas } from '../board/BoardCanvas';
 import { ProjectProgress } from '../game/ProjectProgress';
 import { LiveTrophyBoard } from '../game/LiveTrophyBoard';
+import { TvMenu } from './TvMenu';
 import { panelPalettes } from '../player/panelTheme';
 import { RulesModal } from '../modals/RulesModal';
 import { useGameContext } from '../../context/GameContext';
@@ -19,7 +20,6 @@ import { AvatarIcon } from '../icons/AvatarIcons';
 import { IconCheck } from '../icons/SetupIcons';
 import { ShutdownNotice } from '../common/ShutdownNotice';
 import { HistoryFeed, HistoryFeedFilters, DEFAULT_HISTORY_FILTERS } from '../game/HistoryFeed';
-import { ScreenSizeControl } from './ScreenSizeControl';
 import { roleUrl, setStoredDeviceRole } from '../../utils/deviceRole';
 import { getGameOverHeadline } from '../../utils/endGameLoss';
 import {
@@ -221,83 +221,33 @@ export function TVDisplay(): JSX.Element {
             <span style={styles.gameCode}>Game: {gameId}</span>
           )}
           <ClassroomBadge style={{ fontSize: '1rem', padding: '0.35rem 0.9rem' }} />
-          <button
-            onClick={() => setIsRulesOpen(true)}
-            style={styles.tvHeaderButton}
-          >
-            📋 Rules
-          </button>
-          <button
-            onClick={() => setShowScoreboard(s => !s)}
-            style={{
-              ...styles.tvHeaderButton,
-              backgroundColor: showScoreboard ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)',
-            }}
-          >
-            📊 Standings
-          </button>
-          {/* The persistent history column's on/off switch. Only during PLAY —
-              there is nothing to look back on before the game starts. */}
-          {gamePhase === 'PLAY' && (
-            <button
-              onClick={() => setShowHistory(s => !s)}
-              style={{
-                ...styles.tvHeaderButton,
-                backgroundColor: showHistory ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)',
-                border: `2px solid ${showHistory ? 'white' : 'rgba(255,255,255,0.5)'}`,
-              }}
-            >
-              📜 History
-            </button>
-          )}
-          <button
-            onClick={() => {
+          {/* One Menu button holds what used to be six header buttons (Job 5). */}
+          <TvMenu
+            playing={gamePhase === 'PLAY'}
+            buttonStyle={styles.tvHeaderButton}
+            showScoreboard={showScoreboard}
+            onToggleScoreboard={() => setShowScoreboard(s => !s)}
+            showHistory={showHistory}
+            onToggleHistory={() => setShowHistory(s => !s)}
+            showQRPanel={showQRPanel}
+            onToggleQR={() => setShowQRPanel(v => !v)}
+            onOpenRules={() => setIsRulesOpen(true)}
+            onBackToPC={() => {
               // "Back to PC" says what this screen is, so remember that (a screen
               // that was a TV is not one any more).
               setStoredDeviceRole('pc');
               window.location.href = roleUrl('pc', window.location.href);
             }}
-            style={styles.tvHeaderButton}
-          >
-            🖥️ Back to PC
-          </button>
-          {/* Job 3B (Tom, 2026-09-25): "the resolution changer is on the
-              bottom of the screen and may get cut off — it should be a
-              button on top of the screen," "make it super easy to change...
-              and easy to find this button." Was a footer link (fb:93449bf2);
-              now a real header button beside the others, only offered where
-              tvScaleIsAvailable() sees headroom to gain. The gentle pulse
-              below is the "flare" Tom also asked for, on the lobby only,
-              until this TV has opened it once. */}
-          <ScreenSizeControl
-            onOpen={() => {
+            onOpenScreenSize={() => {
               if (!scaleButtonUsed) {
                 markTvScaleButtonUsed();
                 setScaleButtonUsed(true);
               }
             }}
-            style={{
-              ...styles.tvHeaderButton,
-              ...(shouldPulseTvScaleButton({ gamePhase, hasUsedButton: scaleButtonUsed, prefersReducedMotion })
-                ? { animation: 'tvScaleButtonPulse 2.2s ease-in-out infinite' }
-                : {}),
-            }}
+            screenSizeStyle={shouldPulseTvScaleButton({ gamePhase, hasUsedButton: scaleButtonUsed, prefersReducedMotion })
+              ? { animation: 'tvScaleButtonPulse 2.2s ease-in-out infinite' }
+              : {}}
           />
-          {/* Mid-game phone QR — hidden during SETUP (sidebar already shows QR).
-              A player whose phone died mid-game can scan and rejoin without
-              stopping the host. fb:TODO-253a */}
-          {gamePhase === 'PLAY' && (
-            <button
-              onClick={() => setShowQRPanel(v => !v)}
-              style={{
-                ...styles.tvHeaderButton,
-                backgroundColor: showQRPanel ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)',
-                border: `2px solid ${showQRPanel ? 'white' : 'rgba(255,255,255,0.5)'}`,
-              }}
-            >
-              📱 Connect Phone
-            </button>
-          )}
         </div>
 
         {/* Phone-controller indicator — at 10ft viewing distance the

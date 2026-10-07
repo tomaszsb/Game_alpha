@@ -7,9 +7,12 @@ import { App } from './App';
 import { PlaytesterLandingPage } from './playtest/PlaytesterLandingPage';
 import { capturePwaInstallPrompt } from './playtest/pwaInstall';
 import { AdminStatsPage } from './pages/AdminStatsPage';
+import { initGameSpeed } from './utils/gameSpeed';
 
 // Install console capture early so we catch errors during init
 installConsoleCapture();
+// A remembered "Fast" speed has to be in force before the first move.
+initGameSpeed();
 
 // PWA installability + push-reminder delivery both need the service worker
 // registered (a no-op passthrough for fetch — see public/sw.js — so this is

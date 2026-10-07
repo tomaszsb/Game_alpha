@@ -7,6 +7,7 @@ import { friendlySpaceName } from '../utils/logFormatting';
 import { GameState, Player, PlayerUpdateData } from '../types/StateTypes';
 import { Movement, VisitType, LogicQuestion } from '../types/DataTypes';
 import { DOB_EXAM_SPACE, DOB_AUDIT_SPACE } from './ApprovalService';
+import { scaleMs } from '../utils/gameSpeed';
 
 // Q4 ("Do you have sprinklers / standpipe / fire alarm / fire suppression?")
 // auto-answers YES when the player holds any W card whose work type is a
@@ -642,12 +643,12 @@ export class MovementService implements IMovementService {
             setTimeout(() => {
               this.stateService.setMoving(false);
               resolve(result);
-            }, MOVEMENT_TIMING.POST_MOVEMENT_DELAY);
+            }, scaleMs(MOVEMENT_TIMING.POST_MOVEMENT_DELAY));
           } catch (error) {
             this.stateService.setMoving(false);
             reject(error);
           }
-        }, MOVEMENT_TIMING.PRE_MOVEMENT_DELAY);
+        }, scaleMs(MOVEMENT_TIMING.PRE_MOVEMENT_DELAY));
       });
     }
 
@@ -696,8 +697,8 @@ export class MovementService implements IMovementService {
             setTimeout(() => {
               this.stateService.setMoving(false);
               resolve(result);
-            }, MOVEMENT_TIMING.POST_MOVEMENT_DELAY);
-          }, MOVEMENT_TIMING.MOVEMENT_ANIMATION_DELAY);
+            }, scaleMs(MOVEMENT_TIMING.POST_MOVEMENT_DELAY));
+          }, scaleMs(MOVEMENT_TIMING.MOVEMENT_ANIMATION_DELAY));
 
         } catch (error) {
           console.error(`❌ MOVEMENT ERROR:`, error);
@@ -705,7 +706,7 @@ export class MovementService implements IMovementService {
           this.stateService.setMoving(false);
           reject(error);
         }
-      }, MOVEMENT_TIMING.PRE_MOVEMENT_DELAY);
+      }, scaleMs(MOVEMENT_TIMING.PRE_MOVEMENT_DELAY));
     });
   }
 

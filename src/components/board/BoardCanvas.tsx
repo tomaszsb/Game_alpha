@@ -79,6 +79,7 @@ import { resolveFundingAmountTokenForPreview } from '../../utils/templateInterpo
 import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { useDestinationPreview } from '../../utils/destinationPreview';
+import { scaleMs } from '../../utils/gameSpeed';
 
 // ===================================================================
 // Custom node — preserves the look of BoardV3 tiles
@@ -1107,7 +1108,7 @@ function BoardCanvasInner({
   const panBy = useCallback(
     (dx: number, dy: number) => {
       const v = getViewport();
-      setViewport({ x: v.x + dx, y: v.y + dy, zoom: v.zoom }, { duration: 150 });
+      setViewport({ x: v.x + dx, y: v.y + dy, zoom: v.zoom }, { duration: scaleMs(150) });
     },
     [getViewport, setViewport]
   );
@@ -1594,14 +1595,14 @@ function BoardCanvasInner({
             : undefined,
         });
         if (!center) return;
-        setCenter(center.x, center.y, { zoom: v.zoom, duration: 350 });
+        setCenter(center.x, center.y, { zoom: v.zoom, duration: scaleMs(350) });
         return;
       }
       try {
         fitView({
           nodes: focusIds.map(id => ({ id })),
           padding: 0.25,
-          duration: 350,
+          duration: scaleMs(350),
           maxZoom: 1.5,
           // fb:93449bf2 — this call had a ceiling but no floor, so a space
           // whose valid moves are scattered across the board would zoom out
@@ -1638,7 +1639,7 @@ function BoardCanvasInner({
     const center = computeFocusCenter(initialNodes, [focusRequest.spaceId]);
     if (!center) return; // unknown space id — nothing to pan to, fail quiet
     const v = getViewport();
-    setCenter(center.x, center.y, { zoom: v.zoom, duration: 500 });
+    setCenter(center.x, center.y, { zoom: v.zoom, duration: scaleMs(500) });
     setHighlightedSpaceId(focusRequest.spaceId);
     // Clears (not a finite CSS iteration-count) so a second click on the
     // SAME space — the class never having been removed — still restarts the

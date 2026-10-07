@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { LiveTrophyBoard } from './LiveTrophyBoard';
+import { useGameSpeed } from '../../utils/gameSpeed';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { IDataService, IGameRulesService } from '../../types/ServiceContracts';
@@ -99,6 +100,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   const mode: PanelMode = modeProp ?? storedMode;
   const dark = mode === 'dark';
   const dp = panelPalettes.dark;
+  const [speed, setSpeed] = useGameSpeed();
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
   // Active indicator helpers (ActiveDot lives at module scope, just above)
@@ -428,6 +430,8 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             // This device's light/dark (moved here from above the player card,
             // fb:b6963218 extra). Hidden on the TV, which follows the shared TV theme.
             { onClick: toggleMode, icon: dark ? <IconSun size="1em" /> : <IconMoon size="1em" />, label: dark ? 'Light' : 'Dark', bg: HEADER_BUTTON_BG, active: false, title: 'Light / dark mode' },
+            // Fast / Normal speed for THIS device (shorter pauses, glides and pop-up notes).
+            { onClick: () => setSpeed(speed === 'fast' ? 'normal' : 'fast'), icon: <span aria-hidden>⚡</span>, label: speed === 'fast' ? 'Fast' : 'Normal speed', bg: HEADER_BUTTON_BG, active: speed === 'fast', title: 'Game speed: Fast shortens the pauses, glides and pop-up notes on this screen only' },
             ...(onToggleTVDarkMode ? [{ onClick: onToggleTVDarkMode, icon: <IconMoon size="1em" />, label: 'TV theme', bg: HEADER_BUTTON_BG, active: tvDarkMode, title: 'Switch the shared TV screen between light and dark' }] : []),
           ].map((btn, i) => (
             <button key={i} onClick={btn.onClick} title={(btn as { title?: string }).title} style={{
