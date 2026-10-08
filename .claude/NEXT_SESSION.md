@@ -2,7 +2,7 @@
 
 ## State at handoff
 - **Version:** v3.6.3 on origin (`51790a5` = docs on top of code `445c73b`). **LIVE (checked 2026-10-08 02:11 UTC): `/health` = `445c73b2` = v3.6.3; Tom deployed it, so everything built 2026-10-07 is live.** Re-read `/health`; never believe this line.
-- **Branch:** master = origin/master, clean (only `idea.txt` untracked: read it, never modify or commit it).
+- **Branch:** master = origin/master, clean (the old `idea.txt` was consumed into `docs/core/DND_RESKIN_EXPERIMENT.md` and deleted at Tom's word on 2026-10-07).
 - **Last shipped (2026-10-07, Manager Jobs 3-7):** 3.4.0 three-trophy win rule; 3.5.0 "Check my board"; 3.5.1 live trophy board; 3.6.0 rest of Job 5; 3.6.1 phone panel back to its old size; 3.6.2 phone page width fixed + FDNY second read 7 days (Job 7).
 - **Tests:** `npm test` 245 files / 3690 green; typecheck + build clean; lint unchanged (3 old errors). **Ghost gate green at v3.6.3 (head 445c73b): 11 files / 43 tests, smart-bot 43/50 finished, identical to before Job 3; Manager told.**
 
