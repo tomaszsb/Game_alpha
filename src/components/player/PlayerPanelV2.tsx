@@ -13,6 +13,8 @@
 
 import { ProjectMat, MatDots } from './ProjectMat';
 import { BuilderBidsCard, BuilderMoneyLine, isShoppingForBuilder } from './BuilderBidsCard';
+import { showScopeApprovalWarning } from '../../utils/scopeChangeWarning';
+import { getDobLabel } from '../../services/ApprovalService';
 import { usePhoneWidth } from '../../hooks/usePhoneWidth';
 import { computeMat } from '../../utils/projectMat';
 import { PlayerAvatar } from '../common/PlayerAvatar';
@@ -31,7 +33,7 @@ import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { TurnCommitControl } from './TurnCommitControl';
 import { getEndTurnWarning } from '../../utils/endTurnWarning';
 import { getEndTurnCostPreview, getTryAgainCostPreview, getLoanOnTheTable, isManualEffectCompleted, perAmountUnit, timeRowDays } from '../../utils/costPreview';
-import { ACTION_ROW, COMMIT, NUMBERS, GLANCE_HELP } from '../../constants/uiStrings';
+import { ACTION_ROW, COMMIT, NUMBERS, GLANCE_HELP, SCOPE_APPROVAL } from '../../constants/uiStrings';
 import { setDestinationPreview } from '../../utils/destinationPreview';
 import { getBuilderRules } from '../../utils/trophyRules';
 import { computeProjectFinances } from '../../utils/projectFinances';
@@ -335,6 +337,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const shoppingForBuilder = isShoppingForBuilder(gameServices, playerId);
   const builderJustHired = !!player.contractor && player.visitType === 'First' && !!player.builderBids?.hiredId
     && player.currentSpace === getBuilderRules().space;
+  const scopeApprovalWarning = isMyTurn && showScopeApprovalWarning(player, gameServices.dataService.getDiceEffects(player.currentSpace, player.visitType) ?? []);
   const pendingActions = collapsePairedDiceActions(mapped);
   const expeditorTargetAction = /((replace|return|give)_e|transfer)\b/i;
   // "Pass a team member to your left/right" also needs someone to pass it TO —
@@ -1083,6 +1086,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         (visiblePendingActions.length > 0 || doneActionTraces.length > 0 || showMovementOptions || shoppingForBuilder || builderJustHired) && (
         <div style={pad}>
           <p style={zlbl}>{ACTION_ROW.HEADER}</p>
+          {scopeApprovalWarning && (
+            <div data-testid="scope-approval-warning" style={{ fontSize: 12, margin: '0 0 7px', padding: '6px 9px', background: p.warnSurf, border: '1px solid #f59e0b', borderRadius: 8, color: p.text }}>
+              ⚠️ {SCOPE_APPROVAL.warn(getDobLabel())}
+            </div>
+          )}
           {(shoppingForBuilder || builderJustHired) && (
             <BuilderBidsCard gameServices={gameServices} playerId={playerId} palette={p} canAct={isMyTurn} />
           )}

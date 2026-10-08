@@ -125,3 +125,4 @@ BUILDER_BIDS.log,Hired a builder for {price} and {days} days of work. The work t
 BUILDER_BIDS.holdsShort,good through day {day}
 BUILDER_BIDS.hireShort,Hire
 BUILDER_BIDS.lenderShort,Short on money? The lender is one door away.
+${k},"${v}"

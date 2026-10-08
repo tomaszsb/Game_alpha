@@ -96,6 +96,8 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'NUMBERS.scope.newTag': 'NEW',
   // Hire a Builder: the bids on the table and the money line at the lender. Numbers are always
   // exact except the lender's "about" figure, which says plainly that it is a guess.
+  // Heads-up before a roll that can add work while the player holds an approval (fb:21473ad9).
+  'SCOPE_APPROVAL.warn': 'Careful: if this adds work to your plan, your {approval} approval is lost and you will have to get it again.',
   'BUILDER_BIDS.title': '{n} builders have priced your job',
   'BUILDER_BIDS.intro': 'Each one gives you a price, how many days the work will take, and how long that price stays good. You will not know how good a builder is until you hire one.',
   'BUILDER_BIDS.days': '{days} days of work',
@@ -364,6 +366,11 @@ export const NUMBERS = {
   scopeAddedNote: (tag: string) => getUIString('NUMBERS.scope.addedNote', { tag }),
   get EXPEDITORS_EMPTY() { return getUIString('NUMBERS.expeditors.empty'); },
   get MONEY_ONGOING() { return getUIString('NUMBERS.money.ongoing'); },
+};
+
+/** The warning before a scope-changing roll while an approval is held. */
+export const SCOPE_APPROVAL = {
+  warn: (approval: string) => getUIString('SCOPE_APPROVAL.warn', { approval }),
 };
 
 /** Hire a Builder - the three bids, and the line about the quote at the lender. */

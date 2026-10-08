@@ -621,7 +621,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             delete next[event.playerId];
             return next;
           });
-        }, 5000);
+        }, 10000); // long enough to read (fb:21473ad9: "warned again when I accept")
         return;
       }
       if ((event.type === 'seed_money' || event.type === 'auto_dice_roll') && event.turnEffectResult) {
