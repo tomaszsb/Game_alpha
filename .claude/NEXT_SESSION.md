@@ -11,6 +11,16 @@
 2. **Deploy v3.6.x, then Tom looks on real devices** (list in TODO "Jobs 3-7"): TV Menu, Fast vs Normal, trophy board, panel (phone must be unchanged in size), the mat, and "Check my board" on a real classroom row (its first real run in Docker). Deploys were HELD while the Jarvis 2-seat run was live: no deploy until the Manager/Tom say its report is read.
 3. **Tom's wording drafts** (trophy names, finished/out tags, "X is out", end-screen hint, Check-my-board texts, End Turn warnings, the two Job 7 route descriptions) and **17 untracked feedback reports** (`/start full`).
 
+## Manager's comments on Job 6 (received 2026-10-08, deploy hold LIFTED; Job 6 itself has its own hold)
+- **Guarantee numbers:** keep 100/120/150/180 in the data file, but do NOT type 80: a TEST derives the worst bank/investor round trip (loan desk + bank per $200K or investor worst roll + hub, from the movement/effects data) and fails if the smallest option is not above it plus a stated margin.
+- **Robot:** removing the two dice buttons ("See how good his work is", "See what it adds up to") stalls the Jarvis robot (nightly 04:00 + RUN-ME 7). **Job 6 does NOT deploy until (a) the ghost bot picks a bid and Check-my-board still finishes, and (b) the Jarvis session has updated its robot.** At the START of the build, give the Manager the exact new labels/test ids so it can brief Jarvis. The next robot run is a new baseline, not comparable with the 10-06/10-07 runs.
+- **Per-bidder expiry stays (Tom decided).** Test the "let one lapse on purpose to re-roll" case; the screen must say plainly which bids lapsed and why.
+- **Number cannot lie:** quoted price and days are exactly what is paid and waited; if a card/dice can still change it, show "about" and say so.
+- **Quality:** confirm the ledger counts it ONCE; Check-my-board's "unclear" must not read a low-quality builder as a board fault.
+- **Teacher editor:** the new bidder data file and the new door must be in the editor's protection lists (BANK-FUND-REVIEW anchor note in the editor review) and covered by Check my board.
+- **Owed:** Tom's stopwatch on a real 3+ player game (Job 3's 2-3x longer games unmeasured by a human).
+- Jarvis 2-seat report (live v3.4.0): ran out of time at 145/150 min, 40 turns per seat, no end, seats uneven 144 vs 479 steps (cause unknown).
+
 ## Decisions waiting on the user
 - Job 6 go + the open question (above). Whether to fix the panel's +18px (649 vs 631 at 360 wide) by shortening something else.
 
