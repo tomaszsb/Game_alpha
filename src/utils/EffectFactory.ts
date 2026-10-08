@@ -597,12 +597,7 @@ export class EffectFactory {
     // Handle "X Cards" format in effect_type (e.g., "W Cards", "B Cards")
     // This is used in DICE_ROLL_INFO.csv where the effect_type column contains the card type
     // rollEffect can be "Draw 1", "Remove 1", "Replace 1", etc.
-    // The generated DICE_EFFECTS.csv writes these rows as effect_type "cards" with the card type in its own
-    // column. Those rows MUST take this path too: it is the one that knows Remove and Replace. They used to
-    // fall through to a draw-only branch, so a roll of "Remove 1" or "Replace 1" at the engineer / architect /
-    // lender silently drew a card instead, and the player's scope could only ever grow (fb:712a9859).
-    const cardType = parseCardTypeFromText(diceEffect.effect_type)
-      ?? (diceEffect.effect_type.toLowerCase().trim() === 'cards' && diceEffect.card_type ? (diceEffect.card_type as CardType) : null);
+    const cardType = parseCardTypeFromText(diceEffect.effect_type);
     if (cardType) {
       const parsed = parseCardActionFromText(rollEffect);
       if (parsed) {
