@@ -383,7 +383,8 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
     display: 'flex',
     justifyContent: 'space-between',
     marginBottom: compact ? '2px' : '4px',
-    padding: '0 4px'
+    padding: '0 4px',
+    gap: '2px'
   };
 
   const phaseIndicatorStyle = (phase: string, index: number) => ({
@@ -391,13 +392,19 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
     fontWeight: 'bold' as const,
     color: overallProgress.averageProgress >= ((index + 1) / phases.length) * 100 ? colors.success.main : dark ? dp.muted : colors.secondary.main,
     textAlign: 'center' as const,
-    minWidth: compact ? '30px' : '40px'
+    // flex-basis 0 + min-width 0: six labels share the row instead of forcing it wider than a phone.
+    flex: '1 1 0',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
   });
 
   return (
     <div style={containerStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      {/* flexWrap: on a phone this row (title, game code, connection dot, 8 buttons) was wider than the
+          screen and dragged the whole page, player panel included, wider than the phone. */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', minWidth: 0 }}>
           <div style={titleStyle}>
             🚀 Progress
           </div>
@@ -417,7 +424,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           )}
           <ConnectionStatus serverUrl={getBackendURL()} />
         </div>
-        {!hideButtons && <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+        {!hideButtons && <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {[
             { onClick: onOpenRulesModal, icon: <IconClipboard size="1em" />, label: 'How to play', bg: HEADER_BUTTON_BG, active: isRulesOpen },
             { onClick: onToggleGameLog, icon: <IconNotepad size="1em" />, label: 'Log', bg: HEADER_BUTTON_BG, active: isGameLogOpen },

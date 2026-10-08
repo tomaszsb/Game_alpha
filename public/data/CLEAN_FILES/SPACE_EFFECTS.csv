@@ -137,7 +137,7 @@ REG-FDNY-PLAN-EXAM,First,dice,dice_outcome,Time outcomes,,See how long fire revi
 REG-FDNY-PLAN-EXAM,First,time,add,10,,Spend 10 days,auto,,,,,,,
 REG-FDNY-PLAN-EXAM,Subsequent,cards,draw_L,1,dice_roll_2,Draw 1 if you roll a 2 L cards,auto,,,,,,,
 REG-FDNY-PLAN-EXAM,Subsequent,dice,dice_outcome,Time outcomes,,See if you get the stamp,manual,,,,,,,See if you get the stamp
-REG-FDNY-PLAN-EXAM,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
+REG-FDNY-PLAN-EXAM,Subsequent,time,add,7,,Spend 7 days,auto,,,,,,,
 CON-INITIATION,First,cards,draw_L,1,dice_roll_3,Draw 1 if you roll a 3 L cards,auto,,,,,,,
 CON-INITIATION,First,cards,draw_E,3,,Add a team member,manual,,,,,,,Add a team member
 CON-INITIATION,First,dice,dice_outcome,Quality,,See how good his work is,manual,,,,,,,See how good his work is

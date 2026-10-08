@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.6.2] - 2026-10-07
+
+### Job 7 (plan-exam rounds cost at least a week) and the phone width fix. Not deployed.
+
+- **Job 7 (Tom: 7 days):** every plan-exam round already cost 10 days (DOB first and second read, FDNY first read) except the FDNY second read, which cost 5. It now costs 7 (source `SOURCE_FILES/Spaces.csv`, Time cell of `REG-FDNY-PLAN-EXAM` second visit, and the regenerated `CLEAN_FILES/SPACE_EFFECTS.csv`; the visible line reads "Spend 7 days"). The odds (dice tables) are untouched, as the brief says. Tom still rewords the two route descriptions.
+- **Phone width fixed.** Cause found in a real browser: not the player panel but the Progress strip above it. Its title row (title, game code, connection dot and eight buttons) could not wrap, and the phase-name row had a 30-40 px minimum per label, so the strip needed about 411 px and dragged the whole page column to 435 px on a 360 or 390 phone, clipping the right edge of everything (including the player panel, which was 427 px wide). The buttons and title now wrap onto a second line and the six phase labels share the row (and shorten with "..." if they must). Measured after the fix: nothing is wider than the screen at 360x640 and 390x844 (panel 352 px and 382 px wide, page not scrollable sideways). The v3.6.0 Speed button made the old problem about 40 px worse.
+- **Honest size note:** because the panel is now laid out at the real phone width its text wraps where before it was clipped off-screen, so the card measures 649 px tall instead of 631 px (+18 px, 3%); the Progress strip gained one row of buttons. The panel's own content is unchanged from v3.6.1.
+
 ## [3.6.1] - 2026-10-07
 
 ### The phone player panel is no bigger than before (Tom: "player panel has to fit on a phone, it can not be bigger"). Not deployed.
