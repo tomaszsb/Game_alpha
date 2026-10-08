@@ -18,3 +18,21 @@ mat,dob,dob_approved,DOB approved
 mat,fdny,fdny_approved,FDNY approved
 mat,builder,builder_hired,Builder hired
 mat,finish,finished,Finished
+points,builder_high,0,Hired a high-quality builder
+points,builder_medium,1,Hired a medium-quality builder
+points,builder_low,2,Hired a low-quality builder
+review,builder_high,,
+review,builder_medium,,
+review,builder_low,,
+rule,bids_offered,3,
+guarantee,g1,100,
+guarantee,g2,120,
+guarantee,g3,150,
+guarantee,g4,180,
+builder_quality,HIGH,builder_high,High
+builder_quality,MED,builder_medium,Medium
+builder_quality,LOW,builder_low,Low
+builder_space,CON-INITIATION,LEND-SCOPE-CHECK,
+builder_note_space,LEND-SCOPE-CHECK,,
+builder_note_space,BANK-FUND-REVIEW,,
+builder_note_space,INVESTOR-FUND-REVIEW,,
