@@ -8,6 +8,7 @@ import { GameState, Player, PlayerUpdateData } from '../types/StateTypes';
 import { Movement, VisitType, LogicQuestion } from '../types/DataTypes';
 import { DOB_EXAM_SPACE, DOB_AUDIT_SPACE } from './ApprovalService';
 import { scaleMs } from '../utils/gameSpeed';
+import { getBuilderRules } from '../utils/trophyRules';
 
 // Q4 ("Do you have sprinklers / standpipe / fire alarm / fire suppression?")
 // auto-answers YES when the player holds any W card whose work type is a
@@ -191,6 +192,17 @@ export class MovementService implements IMovementService {
         }
       }
 
+      // SPECIAL HANDLING: the builder's desk. Until a builder is hired the only way on is the
+      // door to the bank (TROPHIES.csv builder_space), so a player cannot walk past the hire;
+      // once hired the door is shut and the normal road is the only one.
+      const builder = getBuilderRules();
+      // (A board whose edited road no longer offers the door has no way on until the hire is made.)
+      if (builder.space && player.currentSpace === builder.space) {
+        validMoves = player.contractor
+          ? validMoves.filter(dest => dest !== builder.door)
+          : (builder.door && validMoves.includes(builder.door) ? [builder.door] : []);
+      }
+
       return validMoves;
     } catch (error) {
       console.error(`Error getting valid moves for player ${playerId}:`, error);
@@ -265,13 +277,16 @@ export class MovementService implements IMovementService {
     }
 
     // Determine visit type for destination space
-    const newVisitType: VisitType = this.hasPlayerVisitedSpace(player, destinationSpace)
+    // The builder's desk stays a FIRST visit until a builder is hired: a trip to the bank and
+    // back must not turn it into the change-order visit.
+    const stillShopping = destinationSpace === getBuilderRules().space && !player.contractor;
+    const newVisitType: VisitType = this.hasPlayerVisitedSpace(player, destinationSpace) && !stillShopping
       ? 'Subsequent'
       : 'First';
 
     // Update visited spaces array if this is a first visit
     // Ensure we maintain immutability and prevent duplicates
-    const updatedVisitedSpaces = newVisitType === 'First'
+    const updatedVisitedSpaces = newVisitType === 'First' && !player.visitedSpaces.includes(destinationSpace)
       ? [...player.visitedSpaces, destinationSpace]
       : player.visitedSpaces;
 

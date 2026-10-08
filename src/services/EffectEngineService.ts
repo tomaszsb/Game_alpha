@@ -369,8 +369,9 @@ export class EffectEngineService implements IEffectEngineService {
                   : (raw === 'MED' || raw === 'MEDIUM') ? 'MED'
                   : raw === 'LOW' ? 'LOW'
                   : 'MED';
-              this.stateService.updatePlayer({
-                id: payload.playerId,
+              // Through TEMP (not updatePlayer): the hired builder is part of the turn's snapshot,
+              // so it must commit with the turn and roll back with a push-back.
+              this.stateService.updateTempState(payload.playerId, {
                 contractor: {
                   ...existingContractor,
                   quality,
@@ -381,8 +382,7 @@ export class EffectEngineService implements IEffectEngineService {
               // multiplier: parse 1..6, default 3 if malformed
               const parsed = parseInt(payload.value.trim(), 10);
               const multiplier = (!isNaN(parsed) && parsed >= 1 && parsed <= 6) ? parsed : 3;
-              this.stateService.updatePlayer({
-                id: payload.playerId,
+              this.stateService.updateTempState(payload.playerId, {
                 contractor: {
                   ...existingContractor,
                   multiplier,

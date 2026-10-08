@@ -31,6 +31,9 @@ export const SEMANTIC_ANCHORS = [
   'CON-INITIATION',
   'ENG-INITIATION',
   'INVESTOR-FUND-REVIEW',
+  // Not named in code: TROPHIES.csv's builder_space row makes it the door from Hire a Builder
+  // to the money stops. Switching it off would leave the builder with no way to the lender.
+  'LEND-SCOPE-CHECK',
   'OWNER-FUND-INITIATION',
   'OWNER-SCOPE-INITIATION',
   'PM-DECISION-CHECK',

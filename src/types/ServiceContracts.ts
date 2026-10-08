@@ -426,6 +426,10 @@ export interface ITurnService {
   rollDiceWithFeedback(playerId: string): Promise<import('./StateTypes').TurnEffectResult>;
   rerollDice(playerId: string): Promise<import('./StateTypes').TurnEffectResult>;
   triggerManualEffectWithFeedback(playerId: string, effectType: string): Promise<import('./StateTypes').TurnEffectResult>;
+  /** The builders' bids on the table for a player at the builder's desk (drawn or refreshed as needed). */
+  ensureBuilderBids(playerId: string): import('../utils/builderBids').BuilderBidSet | undefined;
+  /** Sign the bid the player picked: exactly its price and days, or nothing. */
+  hireBuilderBid(playerId: string, bidId: string): Promise<import('../services/BuilderBidService').HireResult>;
   performNegotiation(playerId: string, partnerId: string): Promise<{ success: boolean; message: string }>;
   tryAgainOnSpace(playerId: string): Promise<{ success: boolean; message: string; shouldAdvanceTurn?: boolean }>;
   handleAutomaticFunding(playerId: string): Promise<import('./StateTypes').TurnEffectResult>;

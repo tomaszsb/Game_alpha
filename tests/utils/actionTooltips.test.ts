@@ -235,16 +235,10 @@ describe('the 7 card rows (Part 1)', () => {
 });
 
 describe('merged dice buttons explain every outcome they fire', () => {
-  it('Con-Initiation (first visit) uses the approved combined quality + bid text', () => {
-    const button = diceButtonAt('CON-INITIATION', 'First');
-    expect(button.mergedFrom).toHaveLength(2);
-
-    const t = tooltipOf(button);
-    const combined = row('dice', 'dice_outcome_quality_multiplier');
-    expect(t.tooltip).toBe(combined.tooltip_why);
-    expect(t.context).toBe(combined.tooltip_context);
-    // ...and not a stitched-together pair of the two single rows.
-    expect(t.tooltip).not.toBe(row('dice', 'dice_outcome_quality').tooltip_why);
+  it('Con-Initiation (first visit) no longer has an outcome button: the builders\' bids stand in', () => {
+    // Job 6 (2026-10-08): the quality + multiplier presses were replaced by the bid choice
+    // (BuilderBidsCard), so there is no merged button left to explain here.
+    expect(buttonsAt('CON-INITIATION', 'First').find((b) => b.isDiceEffect)).toBeUndefined();
   });
 
   it('Investor Review joins the investor text and the time text, in row order', () => {

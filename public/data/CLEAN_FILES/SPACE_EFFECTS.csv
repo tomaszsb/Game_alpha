@@ -140,8 +140,6 @@ REG-FDNY-PLAN-EXAM,Subsequent,dice,dice_outcome,Time outcomes,,See if you get th
 REG-FDNY-PLAN-EXAM,Subsequent,time,add,7,,Spend 7 days,auto,,,,,,,
 CON-INITIATION,First,cards,draw_L,1,dice_roll_3,Draw 1 if you roll a 3 L cards,auto,,,,,,,
 CON-INITIATION,First,cards,draw_E,3,,Add a team member,manual,,,,,,,Add a team member
-CON-INITIATION,First,dice,dice_outcome,Quality,,See how good his work is,manual,,,,,,,See how good his work is
-CON-INITIATION,First,dice,dice_outcome,Multiplier,,See what it adds up to,manual,,,,,,,See what it adds up to
 CON-INITIATION,Subsequent,cards,draw_L,1,dice_roll_4,Draw 1 if you roll a 4 L cards,auto,,,,,,,
 CON-INITIATION,Subsequent,cards,draw_E,1,,Bring in more help,manual,,,,,,,Bring in more help
 CON-INITIATION,Subsequent,dice,dice_outcome,Time outcomes,,See how long the change takes,manual,,,,,,,See how long the change takes

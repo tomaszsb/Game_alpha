@@ -1365,9 +1365,10 @@ describe('EffectEngineService', () => {
       const result = await effectEngineService.processEffect(effect, ctx);
 
       expect(result.success).toBe(true);
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+      // Through TEMP, so the hired builder commits with the turn and rolls back with a push-back.
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+        'player1',
         expect.objectContaining({
-          id: 'player1',
           contractor: expect.objectContaining({ quality: 'HIGH', hiredAt: 'CON-INITIATION' })
         })
       );
@@ -1385,7 +1386,8 @@ describe('EffectEngineService', () => {
 
       await effectEngineService.processEffect(effect, ctx);
 
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+        'player1',
         expect.objectContaining({ contractor: expect.objectContaining({ quality: 'MED' }) })
       );
     });
@@ -1423,7 +1425,8 @@ describe('EffectEngineService', () => {
       const result = await effectEngineService.processEffect(effect, ctx);
 
       expect(result.success).toBe(true);
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+        'player1',
         expect.objectContaining({ contractor: expect.objectContaining({ multiplier: 3 }) })
       );
       // allowNegative: the signing charge is a mandatory bill — an unpayable
@@ -1482,7 +1485,10 @@ describe('EffectEngineService', () => {
       const result = await effectEngineService.processEffect(effect, ctx);
 
       expect(result.success).toBe(true);
-      expect(mockStateService.updateTempState).not.toHaveBeenCalled();
+      expect(mockStateService.updateTempState).not.toHaveBeenCalledWith(
+        'player1',
+        expect.objectContaining({ expenditures: expect.anything() })
+      );
       // (The static getPlayer mock never applies the multiplier write, so the
       // engine reads the pre-existing 1× → 10 days. The point here is only
       // that the schedule lands while the expenditure does not.)

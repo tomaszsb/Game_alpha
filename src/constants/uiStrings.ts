@@ -94,6 +94,28 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'DEVICE_ROLE.phone.hint': 'The board is on another screen. This one is only for your turn.',
   'DEVICE_ROLE.suggested': 'Looks like this one',
   'NUMBERS.scope.newTag': 'NEW',
+  // Hire a Builder: the bids on the table and the money line at the lender. Numbers are always
+  // exact except the lender's "about" figure, which says plainly that it is a guess.
+  'BUILDER_BIDS.title': '{n} builders have priced your job',
+  'BUILDER_BIDS.intro': 'Each one gives you a price, how many days the work will take, and how long that price stays good. You will not know how good a builder is until you hire one.',
+  'BUILDER_BIDS.days': '{days} days of work',
+  'BUILDER_BIDS.holds': 'Price good through day {day} ({left} more days)',
+  'BUILDER_BIDS.hire': 'Hire this builder',
+  'BUILDER_BIDS.hireAria': 'Hire the builder who quoted {price} and {days} days of work',
+  'BUILDER_BIDS.lapsed.expired': 'One builder price ({price}) ran out after {guarantee} days. A new builder has taken that place.',
+  'BUILDER_BIDS.lapsed.plan': 'Your plan changed, so the builders priced it again. The old prices no longer count.',
+  'BUILDER_BIDS.lender': 'Short on money? Visit the lender first. These prices stay good through the days shown, as long as your plan stays the same.',
+  'BUILDER_BIDS.hired': 'You hired a builder for {price} and {days} days of work. The work turns out to be {quality} quality.',
+  'BUILDER_BIDS.bank.quote': 'Cheapest builder price so far: {price} for {days} days of work. It stays good through day {day} (you are on day {today}) if your plan stays the same.',
+  'BUILDER_BIDS.err.hired': 'You have already hired a builder.',
+  'BUILDER_BIDS.err.notHere': 'You can only hire a builder at the builder desk.',
+  'BUILDER_BIDS.err.changed': 'Those prices changed while you were deciding. Look at the new bids.',
+  'BUILDER_BIDS.err.failed': 'The contract could not be signed.',
+  'BUILDER_BIDS.log': 'Hired a builder for {price} and {days} days of work. The work turns out to be {quality} quality.',
+  'BUILDER_BIDS.holdsShort': 'good through day {day}',
+  'BUILDER_BIDS.hireShort': 'Hire',
+  'BUILDER_BIDS.lenderShort': 'Short on money? The lender is one door away.',
+  'BUILDER_BIDS.bank.likely': 'Builders will likely quote about {price} for your job. This is only a rough guess until you visit them.',
   // The Owner's story, once chance has picked the player's kind of project (fb:612fbdc4).
   // {projectType} arrives with its article ("a school"). Appended to the story of a space
   // that deals work packages; a reskin rewords it here.
@@ -342,6 +364,31 @@ export const NUMBERS = {
   scopeAddedNote: (tag: string) => getUIString('NUMBERS.scope.addedNote', { tag }),
   get EXPEDITORS_EMPTY() { return getUIString('NUMBERS.expeditors.empty'); },
   get MONEY_ONGOING() { return getUIString('NUMBERS.money.ongoing'); },
+};
+
+/** Hire a Builder - the three bids, and the line about the quote at the lender. */
+export const BUILDER_BIDS = {
+  title: (n: number) => getUIString('BUILDER_BIDS.title', { n }),
+  get INTRO() { return getUIString('BUILDER_BIDS.intro'); },
+  days: (days: number) => getUIString('BUILDER_BIDS.days', { days }),
+  holds: (day: number, left: number) => getUIString('BUILDER_BIDS.holds', { day, left }),
+  get HIRE() { return getUIString('BUILDER_BIDS.hire'); },
+  /** The phone-width versions: the same facts in fewer words, so three bids stay short on a small screen. */
+  holdsShort: (day: number) => getUIString('BUILDER_BIDS.holdsShort', { day }),
+  get HIRE_SHORT() { return getUIString('BUILDER_BIDS.hireShort'); },
+  get LENDER_SHORT() { return getUIString('BUILDER_BIDS.lenderShort'); },
+  hireAria: (price: string, days: number) => getUIString('BUILDER_BIDS.hireAria', { price, days }),
+  lapsedExpired: (price: string, guarantee: number) => getUIString('BUILDER_BIDS.lapsed.expired', { price, guarantee }),
+  get LAPSED_PLAN() { return getUIString('BUILDER_BIDS.lapsed.plan'); },
+  get LENDER() { return getUIString('BUILDER_BIDS.lender'); },
+  hired: (price: string, days: number, quality: string) => getUIString('BUILDER_BIDS.hired', { price, days, quality }),
+  bankQuote: (price: string, days: number, day: number, today: number) => getUIString('BUILDER_BIDS.bank.quote', { price, days, day, today }),
+  bankLikely: (price: string) => getUIString('BUILDER_BIDS.bank.likely', { price }),
+  get ERR_HIRED() { return getUIString('BUILDER_BIDS.err.hired'); },
+  get ERR_NOT_HERE() { return getUIString('BUILDER_BIDS.err.notHere'); },
+  get ERR_CHANGED() { return getUIString('BUILDER_BIDS.err.changed'); },
+  get ERR_FAILED() { return getUIString('BUILDER_BIDS.err.failed'); },
+  log: (price: string, days: number, quality: string) => getUIString('BUILDER_BIDS.log', { price, days, quality }),
 };
 
 /** The one shared "?" above the four glance boxes — see PlayerPanelV2.tsx. */

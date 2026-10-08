@@ -126,6 +126,11 @@ export interface MutablePlayerState {
   // Quality ledger for the "best built" trophy (TROPHIES.csv) — set via
   // updateTempState so Try Again / push-back undoes the events it recorded.
   trophyRecord?: import('./DataTypes').TrophyRecord;
+
+  // The hired builder and the bids on the table: hiring charges money and days, so a
+  // push-back that throws the turn away must throw the hire (and the bids drawn) away too.
+  contractor?: { quality: 'HIGH' | 'MED' | 'LOW'; multiplier: number; hiredAt?: string };
+  builderBids?: import('../utils/builderBids').BuilderBidSet;
 }
 
 /**
@@ -496,6 +501,7 @@ export interface PlayerUpdateData {
   violationPenaltyBase?: number;
   violationAccrualCheckpoint?: number;
   trophyRecord?: import('./DataTypes').TrophyRecord;
+  builderBids?: import('../utils/builderBids').BuilderBidSet;
   finishedAtTurn?: number;
   outReason?: 'bankruptcy' | 'design_fee_cap';
   outAtTurn?: number;

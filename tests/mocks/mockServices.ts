@@ -236,6 +236,7 @@ export const createMockGameRulesService = (): any => ({
 
   // Project scope calculation methods
   calculateProjectScope: vi.fn().mockReturnValue(0),
+  calculateTotalWorkCost: vi.fn().mockReturnValue(0),
 
   // Project timeline calculation methods
   calculateEstimatedProjectLength: vi.fn().mockReturnValue({ estimatedDays: 110, contingencyDays: 10, uniqueWorkTypes: [] }),
@@ -398,6 +399,9 @@ export const createMockTurnService = (): any => ({
   rollDiceWithFeedback: vi.fn(),
   rerollDice: vi.fn(),
   triggerManualEffectWithFeedback: vi.fn(),
+  // Hire a Builder
+  ensureBuilderBids: vi.fn().mockReturnValue(undefined),
+  hireBuilderBid: vi.fn(),
   performNegotiation: vi.fn(),
   tryAgainOnSpace: vi.fn(),
   handleAutomaticFunding: vi.fn()

@@ -12,6 +12,7 @@ import {
 } from '../types/StateTypes';
 import { debugLog } from '../utils/debugLog';
 import { cloneTrophyRecord } from '../utils/trophyRecord';
+import { cloneBuilderBids } from '../utils/builderBids';
 
 /**
  * TurnStateManager handles the REAL/TEMP state model that enables Try Again functionality.
@@ -102,7 +103,9 @@ export class TurnStateManager {
       violationPenaltyBase: player.violationPenaltyBase,
       violationAccrualCheckpoint: player.violationAccrualCheckpoint,
       projectType: player.projectType,
-      trophyRecord: cloneTrophyRecord(player.trophyRecord)
+      trophyRecord: cloneTrophyRecord(player.trophyRecord),
+      contractor: player.contractor ? { ...player.contractor } : undefined,
+      builderBids: cloneBuilderBids(player.builderBids)
     };
   }
 
@@ -146,7 +149,9 @@ export class TurnStateManager {
       violationPenaltyBase: state.violationPenaltyBase,
       violationAccrualCheckpoint: state.violationAccrualCheckpoint,
       projectType: state.projectType,
-      trophyRecord: cloneTrophyRecord(state.trophyRecord)
+      trophyRecord: cloneTrophyRecord(state.trophyRecord),
+      contractor: state.contractor ? { ...state.contractor } : undefined,
+      builderBids: cloneBuilderBids(state.builderBids)
     };
   }
 

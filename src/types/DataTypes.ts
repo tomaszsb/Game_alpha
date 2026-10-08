@@ -539,6 +539,8 @@ export interface Player {
   /** Quality ledger for the "best built" trophy: how many reviews they have had and the
    *  problem points earned (sizes from TROPHIES.csv). Rolls back on Try Again like approvals. */
   trophyRecord?: TrophyRecord;
+  /** The builders' bids on the table (utils/builderBids.ts). Rolls back on Try Again with everything else. */
+  builderBids?: import('../utils/builderBids').BuilderBidSet;
   /** Set when they reach the ending space and stop taking turns; value = the game turn they got there. */
   finishedAtTurn?: number;
   /** Set when the player is out (cash below zero, or design fees over the limit) — they hold no trophy. */

@@ -356,6 +356,22 @@ export async function playOneGame(
       await resolveAnyPendingChoice(services, signal);
       if (signal?.aborted) return abortedResult(turn);
 
+      // At the builder's desk the only road on is the bank until someone is hired: take a bid.
+      // Every bot signs the cheapest price it can pay (or the cheapest there is): the quality is
+      // hidden, so price is all a bot can go on, and signing a dearer builder at random only
+      // measures how often a careless player goes bankrupt, not whether the board works.
+      const shoppingBids = turnService.ensureBuilderBids(playerId);
+      if (shoppingBids && shoppingBids.bids.length > 0) {
+        const cash = stateService.getPlayer(playerId)?.money ?? 0;
+        const affordable = shoppingBids.bids.filter((b) => b.price <= cash);
+        const pool = affordable.length > 0 ? affordable : shoppingBids.bids;
+        const chosen = pool.reduce((a, b) => (b.price < a.price ? b : a));
+        const hired = await turnService.hireBuilderBid(playerId, chosen.id);
+        trail.push(hired.success
+          ? `  hired a builder: $${chosen.price} / ${chosen.days}d (${hired.qualityName})`
+          : `  hire failed: ${hired.message}`);
+      }
+
       // For movement: if it's a choice-type move, pick a random destination
       const refreshed = stateService.getPlayer(playerId);
       if (!refreshed) return fail('INVARIANT_VIOLATION', 'Player vanished mid-turn', turn);

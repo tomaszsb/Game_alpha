@@ -19,6 +19,7 @@ import {
   GameEndReason
 } from '../types/StateTypes';
 import type { TrophyStandings } from '../utils/trophyScoring';
+import { cloneBuilderBids } from '../utils/builderBids';
 import { colors } from '../styles/theme';
 import { ALL_IMAGE_ROLES, ALL_ETHNICITIES, ALL_GENDERS, NpcAppearance, NpcAppearances } from '../constants/characters';
 import { Choice } from '../types/CommonTypes';
@@ -1419,6 +1420,9 @@ export class StateService implements IStateService {
         trophyRecord: realState.state.trophyRecord
           ? { ...realState.state.trophyRecord, counts: { ...realState.state.trophyRecord.counts } }
           : undefined,
+        // The hired builder and the bids on the table go back with the money the hire cost.
+        contractor: realState.state.contractor ? { ...realState.state.contractor } : undefined,
+        builderBids: cloneBuilderBids(realState.state.builderBids),
       });
       this.updateActionCounts();
     }

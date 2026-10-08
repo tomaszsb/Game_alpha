@@ -9,6 +9,7 @@ import { TurnTransitionHandler } from './TurnTransitionHandler';
 import { MovementExecutor } from './MovementExecutor';
 import { TurnEffectsOrchestrator } from './TurnEffectsOrchestrator';
 import { ManualActionProcessor } from './ManualActionProcessor';
+import { BuilderBidService } from './BuilderBidService';
 import { GameState, Player, TurnEffectResult, CreateTempOptions, MutablePlayerState } from '../types/StateTypes';
 import { SpaceEffect, VisitType } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
@@ -35,6 +36,7 @@ export class TurnService implements ITurnService {
   private readonly turnTransitionHandler: TurnTransitionHandler;
   private readonly turnEffectsOrchestrator: TurnEffectsOrchestrator;
   private readonly manualActionProcessor: ManualActionProcessor;
+  private readonly builderBidService: BuilderBidService;
   // No longer forwarded to spaceArrivalProcessor/diceRollProcessor/
   // manualActionProcessor/turnTransitionHandler (2026-08-01: none of the
   // four ever read it — see CHANGELOG). Kept positionally for back-compat
@@ -114,6 +116,8 @@ export class TurnService implements ITurnService {
       effectEngineService,
       cardEffectService
     );
+    // Builder bids: the bids on the table and the hire (Hire a Builder)
+    this.builderBidService = new BuilderBidService(stateService, gameRulesService, loggingService, effectEngineService);
     // Set the callback for processing dice roll effects (needed for circular dependency)
     this.diceRollProcessor.setProcessDiceRollEffectsCallback(
       (playerId, diceRoll) => this.turnEffectsOrchestrator.processDiceRollEffects(playerId, diceRoll)
@@ -147,6 +151,7 @@ export class TurnService implements ITurnService {
     this.turnTransitionHandler.setEffectEngineService(effectEngineService);
     this.turnEffectsOrchestrator.setEffectEngineService(effectEngineService);
     this.manualActionProcessor.setEffectEngineService(effectEngineService);
+    this.builderBidService.setEffectEngineService(effectEngineService);
   }
 
   /**
@@ -902,6 +907,16 @@ export class TurnService implements ITurnService {
    */
   async triggerManualEffectWithFeedback(playerId: string, effectType: string): Promise<TurnEffectResult> {
     return this.manualActionProcessor.triggerManualEffectWithFeedback(playerId, effectType);
+  }
+
+  /** The builders' bids on the table for a player standing at the builder's desk (drawn or refreshed as needed). */
+  ensureBuilderBids(playerId: string): import('../utils/builderBids').BuilderBidSet | undefined {
+    return this.builderBidService.ensureBids(playerId);
+  }
+
+  /** Sign the bid the player picked: exactly its price and days, or nothing. */
+  hireBuilderBid(playerId: string, bidId: string): Promise<import('./BuilderBidService').HireResult> {
+    return this.builderBidService.hireBid(playerId, bidId);
   }
 
   /**

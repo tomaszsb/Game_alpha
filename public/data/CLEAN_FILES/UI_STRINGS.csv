@@ -105,3 +105,23 @@ NUMBERS.section.scope,Scope
 NUMBERS.section.expeditors,Expeditors
 NUMBERS.expeditors.empty,"You haven't hired anyone yet."
 NUMBERS.money.ongoing,Still costing you
+BUILDER_BIDS.title,{n} builders have priced your job
+BUILDER_BIDS.intro,"Each one gives you a price, how many days the work will take, and how long that price stays good. You will not know how good a builder is until you hire one."
+BUILDER_BIDS.days,{days} days of work
+BUILDER_BIDS.holds,Price good through day {day} ({left} more days)
+BUILDER_BIDS.hire,Hire this builder
+BUILDER_BIDS.hireAria,Hire the builder who quoted {price} and {days} days of work
+BUILDER_BIDS.lapsed.expired,One builder price ({price}) ran out after {guarantee} days. A new builder has taken that place.
+BUILDER_BIDS.lapsed.plan,"Your plan changed, so the builders priced it again. The old prices no longer count."
+BUILDER_BIDS.lender,"Short on money? Visit the lender first. These prices stay good through the days shown, as long as your plan stays the same."
+BUILDER_BIDS.hired,You hired a builder for {price} and {days} days of work. The work turns out to be {quality} quality.
+BUILDER_BIDS.bank.quote,Cheapest builder price so far: {price} for {days} days of work. It stays good through day {day} (you are on day {today}) if your plan stays the same.
+BUILDER_BIDS.bank.likely,Builders will likely quote about {price} for your job. This is only a rough guess until you visit them.
+BUILDER_BIDS.err.hired,You have already hired a builder.
+BUILDER_BIDS.err.notHere,You can only hire a builder at the builder desk.
+BUILDER_BIDS.err.changed,Those prices changed while you were deciding. Look at the new bids.
+BUILDER_BIDS.err.failed,The contract could not be signed.
+BUILDER_BIDS.log,Hired a builder for {price} and {days} days of work. The work turns out to be {quality} quality.
+BUILDER_BIDS.holdsShort,good through day {day}
+BUILDER_BIDS.hireShort,Hire
+BUILDER_BIDS.lenderShort,Short on money? The lender is one door away.
