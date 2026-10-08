@@ -865,6 +865,22 @@ export function computeFocusCenter(
 }
 
 /**
+ * The places the board should light up as "you can go here". A logic space (the FDNY intake) can list
+ * four roads in MOVEMENT.csv while the answers the player gave leave only two; the panel offers the
+ * two, so the board must light the same two, not all four (fb:496cc1c8, fb:8f4769cc: "the panel shows
+ * two, the board shows four"). When a movement choice is waiting, its options are the truth.
+ */
+export function narrowToOfferedMoves(
+  validMoves: string[],
+  awaitingChoice: { type?: string; options?: Array<{ id: string }> } | null | undefined,
+): string[] {
+  if (awaitingChoice?.type !== 'MOVEMENT' || !awaitingChoice.options?.length) return validMoves;
+  const offered = new Set(awaitingChoice.options.map(o => o.id));
+  const narrowed = validMoves.filter(id => offered.has(id));
+  return narrowed.length > 0 ? narrowed : validMoves;
+}
+
+/**
  * How a board tile shows the current player's destination choice
  * (fb:71935ebb, fb:6416f76e): 'picked' for the chosen destination
  * (moveIntent, synced to every screen), 'preview' for the one the player is

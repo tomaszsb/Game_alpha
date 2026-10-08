@@ -740,3 +740,20 @@ describe('uniqueDiceDestinations (board edges for dice spaces — fb:35daf1ba)',
     expect(uniqueDiceDestinations({ roll_1: 'A', roll_2: '', roll_3: '   ', roll_4: 'B' })).toEqual(['A', 'B']);
   });
 });
+
+import { narrowToOfferedMoves } from '../../src/utils/boardCommon';
+
+describe('narrowToOfferedMoves (fb:496cc1c8, fb:8f4769cc)', () => {
+  const four = ['PM-DECISION-CHECK', 'CON-INITIATION', 'REG-DOB-TYPE-SELECT', 'REG-FDNY-PLAN-EXAM'];
+  it('lights only what the panel offers when a movement choice is waiting', () => {
+    const choice = { type: 'MOVEMENT', options: [{ id: 'PM-DECISION-CHECK' }, { id: 'CON-INITIATION' }] };
+    expect(narrowToOfferedMoves(four, choice)).toEqual(['PM-DECISION-CHECK', 'CON-INITIATION']);
+  });
+  it('leaves the roads alone when no movement choice is waiting', () => {
+    expect(narrowToOfferedMoves(four, null)).toEqual(four);
+    expect(narrowToOfferedMoves(four, { type: 'CARD', options: [{ id: 'x' }] })).toEqual(four);
+  });
+  it('never narrows to nothing', () => {
+    expect(narrowToOfferedMoves(four, { type: 'MOVEMENT', options: [{ id: 'ELSEWHERE' }] })).toEqual(four);
+  });
+});

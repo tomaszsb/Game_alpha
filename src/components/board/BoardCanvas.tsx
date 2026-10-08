@@ -62,7 +62,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, formatEdgeLabel, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, resolveDestinationHighlight, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX, TV_TARGET_MIN_TILE_PX } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, formatEdgeLabel, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, resolveDestinationHighlight, narrowToOfferedMoves, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX, TV_TARGET_MIN_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 import { resolveFundingAmountTokenForPreview } from '../../utils/templateInterpolation';
@@ -1170,7 +1170,7 @@ function BoardCanvasInner({
     const update = () => {
       const s = stateService.getGameState();
       if (s.gamePhase === 'PLAY' && s.currentPlayerId && !s.hasPlayerMovedThisTurn && !s.isMoving) {
-        try { setValidMoves(movementService.getValidMoves(s.currentPlayerId)); }
+        try { setValidMoves(narrowToOfferedMoves(movementService.getValidMoves(s.currentPlayerId), s.awaitingChoice)); }
         catch { setValidMoves([]); }
       } else { setValidMoves([]); }
       setActionCounts({
