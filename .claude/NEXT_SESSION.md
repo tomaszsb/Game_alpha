@@ -21,6 +21,9 @@
 - **Owed:** Tom's stopwatch on a real 3+ player game (Job 3's 2-3x longer games unmeasured by a human).
 - Jarvis 2-seat report (live v3.4.0): ran out of time at 145/150 min, 40 turns per seat, no end, seats uneven 144 vs 479 steps (cause unknown).
 
+## D&D reskin check (Tom, 2026-10-07: "add to check this vs dnd reskin")
+Before Job 6 is called done, and as a pass over Jobs 3-5, check each against the "a reskin swaps by data alone" rule: (1) bidder wording/labels, the three quality names, guarantee options and problem-point sizes must all come from data files (none typed in code); (2) the new bid choice, the quality reveal and the bank money line must read through the UI-strings/CHARACTERS vocabulary, not hard-coded "builder"/"bank"/"DOB"/"FDNY"; (3) the door from Hire a Builder to the bank must be a data row (MOVEMENT/space flags), not a space-name literal; (4) re-audit what Jobs 3-5 left in code: `MAT_CHECKS` vocabulary and the mat's fixed 8 checks, TvMenu/LiveTrophyBoard/BoardCheckStrip wording, the `review_*`/`cut_corner` event ids, `CHEAT-BYPASS` handling, the 5->7 day change (data, fine). Record leaks in TODO under the existing "Workstream 6 CSV-only-reskin audit" items; do not fix unasked.
+
 ## Decisions waiting on the user
 - Job 6 go + the open question (above). Whether to fix the panel's +18px (649 vs 631 at 360 wide) by shortening something else.
 
