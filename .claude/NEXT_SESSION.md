@@ -12,13 +12,13 @@
 3. **Tom's wording drafts** (trophy names, finished/out tags, "X is out", end-screen hint, Check-my-board texts, End Turn warnings, the two Job 7 route descriptions) and **17 untracked feedback reports** (`/start full`).
 
 ## Decisions waiting on the user
-- Job 6 answers (above). Whether to fix the panel's +18px (649 vs 631 at 360 wide) by shortening something else.
+- Job 6 go + the open question (above). Whether to fix the panel's +18px (649 vs 631 at 360 wide) by shortening something else.
 
 ## Flip after deploy
 fb:feedback-1790939931163-adb1cc76, -1790512043564-612fbdc4, -1790939049674-a0cecb6a, -1790939744698-8cb652c4, -1790939218940-7fbea636, plus the older ones in TODO (glow: ae480630, 11662ac3, 95624c8e; phone-as-TV: 84b491f2, ec243622, a1260bfc, dc04ea53; b38110f3, ef974f1c). Flip only after Tom confirms on a real device.
 
 ## Suggested first move
-Run `/health`, read the ghost result, then ask Tom the Job 6 list. Ask the Manager whether the Jarvis report is read before anyone deploys.
+Run `/health`; read the Manager's reply to the Job 6 design (it was sent at wrap-up); then ask Tom for his go on Job 6 (and the one open question: quoted price+days = what you pay and wait).
 
 ## Suggested model for next session
 Sonnet 5 — Job 6 is rules + data + UI; raise effort before a bigger model.
