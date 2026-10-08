@@ -1,6 +1,6 @@
 // src/components/game/ProjectProgress.tsx
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { LiveTrophyBoard } from './LiveTrophyBoard';
 import { useGameSpeed } from '../../utils/gameSpeed';
 import { colors } from '../../styles/theme';
@@ -12,9 +12,9 @@ import { FormatUtils } from '../../utils/FormatUtils';
 import { playerLifecyclePosition } from '../../utils/lifecycleProgress';
 import { friendlySpaceName } from '../../utils/logFormatting';
 import { computeProjectFinances } from '../../utils/projectFinances';
-import { IconMoon, IconSun, IconClipboard, IconNotepad, IconEye, IconBookOpen } from '../icons/SetupIcons';
 import { usePanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
-import { ScreenTypeMenu } from './ScreenTypeMenu';
+import { HeaderMenu, type HeaderMenuItem } from '../layout/HeaderMenu';
+import { buildHeaderMenuItems } from '../../utils/headerMenuItems';
 
 // One colour for every header button (Tom, 2026-10-02): players read the old per-button
 // colours as meaning something about the board's colours.
@@ -65,34 +65,20 @@ interface ProjectProgressProps {
   /** Callback to flip the shared TV theme. Provided by the parent, which
    *  owns the stateService.setTVDarkMode() call and the admin/teacher gate. */
   onToggleTVDarkMode?: () => void;
+  /** A ready-made menu (the TV builds its own list: Standings, Connect phone). When given, it replaces the
+   *  PC's list, and `tv` draws the Menu button at 10-foot size. Same look, same place, either way. */
+  menu?: { items: HeaderMenuItem[]; onOpenScreenSize?: () => void; screenSizeStyle?: React.CSSProperties; tv?: boolean };
   /** Force a theme (TVDisplay passes the shared TV theme). Omitted on a PC, where
    *  this device's own light/dark setting applies. */
   mode?: PanelMode;
 }
 
-/** Small green dot marking a toolbar button whose panel is currently open.
- *  Declared at module scope: a component defined inside render is a fresh type
- *  on every pass, so React remounts it and it cannot hold state. */
-function ActiveDot({ show }: { show?: boolean }): JSX.Element | null {
-  return show ? (
-    <span style={{
-      position: 'absolute',
-      top: '-2px',
-      right: '-2px',
-      width: '8px',
-      height: '8px',
-      background: '#4caf50',
-      borderRadius: '50%',
-      border: '1px solid white',
-    }} />
-  ) : null;
-}
 
 /**
  * ProjectProgress component displays global project progress for all players.
  * Shows current phase, overall progress, and player positions in the project lifecycle.
  */
-export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed, isRulesOpen, isGameLogOpen, isDisplaySettingsOpen, onToggleGlossary, isGlossaryOpen, tvDarkMode, onToggleTVDarkMode, mode: modeProp }: ProjectProgressProps): JSX.Element {
+export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed, isGameLogOpen, onToggleGlossary, isGlossaryOpen, tvDarkMode, onToggleTVDarkMode, menu, mode: modeProp }: ProjectProgressProps): JSX.Element {
   // fb:feedback-1788865148274-b6963218 — "the progress tracker is not in dark
   // mode", and the light/dark toggle belongs in this toolbar rather than above
   // one player's card. Chrome only: phase/status colours keep their meaning.
@@ -103,29 +89,6 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   const [speed, setSpeed] = useGameSpeed();
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
-  // Active indicator helpers (ActiveDot lives at module scope, just above)
-  const activeGlow = (isActive?: boolean): React.CSSProperties => isActive ? {
-    boxShadow: '0 0 0 2px #4caf50, 0 2px 4px rgba(0,0,0,0.1)',
-  } : {};
-
-  // Fullscreen state
-  const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
-
-  const toggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      document.documentElement.requestFullscreen();
-    }
-  }, []);
 
   // Memoize project scope calculations for all players - only recalculates when cards change
   // Using a stable key based on card contents, not array references
@@ -174,71 +137,34 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
 
   const overallProgress = calculateOverallProgress();
 
-  // ONE set of header buttons for the full bar and the minimised bar (fb:fa2a2ddf, fb:4009c63a: "the buttons in
-  // the extended version are all gray but in the minimised version colorful and different sizes - one design").
-  // The minimised bar shows the same buttons as icons only.
-  const renderHeaderButtons = (showLabels: boolean) => (
+  // ONE header menu for the full bar and the minimised bar, and the same one the TV and remote screens use
+  // (Tom, 2026-10-08: every version looks identical; menus that hide leave the room to the game).
+  const menuItems = menu?.items ?? buildHeaderMenuItems({
+    howToPlay: onOpenRulesModal,
+    gameLog: { onToggle: onToggleGameLog, open: isGameLogOpen },
+    view: onOpenDisplaySettings,
+    glossary: onToggleGlossary ? { onToggle: onToggleGlossary, open: isGlossaryOpen } : undefined,
+    theme: { dark, toggle: toggleMode },
+    speed: { fast: speed === 'fast', toggle: () => setSpeed(speed === 'fast' ? 'normal' : 'fast') },
+    tvTheme: onToggleTVDarkMode ? { dark: !!tvDarkMode, toggle: onToggleTVDarkMode } : undefined,
+  });
+  const menuButtonStyle: React.CSSProperties = {
+    padding: menu?.tv ? '6px 12px' : '3px 8px', fontSize: menu?.tv ? '0.95rem' : '11px', fontWeight: 'bold',
+    backgroundColor: HEADER_BUTTON_BG, color: colors.white,
+    border: `1px solid ${colors.white}`, borderRadius: '6px',
+    cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '2px',
+  };
+  const renderHeaderButtons = (iconOnly: boolean) => (
     <>
-            {[
-              { onClick: onOpenRulesModal, icon: <IconClipboard size="1em" />, label: 'How to play', bg: HEADER_BUTTON_BG, active: isRulesOpen },
-              { onClick: onToggleGameLog, icon: <IconNotepad size="1em" />, label: 'Log', bg: HEADER_BUTTON_BG, active: isGameLogOpen },
-              ...(onOpenDisplaySettings ? [{ onClick: onOpenDisplaySettings, icon: <IconEye size="1em" />, label: 'View', bg: HEADER_BUTTON_BG, active: isDisplaySettingsOpen }] : []),
-              ...(onToggleGlossary ? [{ onClick: onToggleGlossary, icon: <IconBookOpen size="1em" />, label: 'Glossary', bg: HEADER_BUTTON_BG, active: isGlossaryOpen }] : []),
-              // Remote control for the shared TV screen's theme (GameState.tvDarkMode).
-              // Only rendered for admin/teacher (GameLayout gates the props); a
-              // regular player never sees this button. Harmless no-op if no TV
-              // is currently connected to this game.
-              // This device's light/dark (moved here from above the player card,
-              // fb:b6963218 extra). Hidden on the TV, which follows the shared TV theme.
-              { onClick: toggleMode, icon: dark ? <IconSun size="1em" /> : <IconMoon size="1em" />, label: dark ? 'Light' : 'Dark', bg: HEADER_BUTTON_BG, active: false, title: 'Light / dark mode' },
-              // Fast / Normal speed for THIS device (shorter pauses, glides and pop-up notes).
-              { onClick: () => setSpeed(speed === 'fast' ? 'normal' : 'fast'), icon: <span aria-hidden>⚡</span>, label: speed === 'fast' ? 'Fast' : 'Normal speed', bg: HEADER_BUTTON_BG, active: speed === 'fast', title: 'Game speed: Fast shortens the pauses, glides and pop-up notes on this screen only' },
-              ...(onToggleTVDarkMode ? [{ onClick: onToggleTVDarkMode, icon: <IconMoon size="1em" />, label: 'TV theme', bg: HEADER_BUTTON_BG, active: tvDarkMode, title: 'Switch the shared TV screen between light and dark' }] : []),
-            ].map((btn, i) => (
-              <button key={i} onClick={btn.onClick} title={(btn as { title?: string }).title} style={{
-                padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-                backgroundColor: btn.bg, color: colors.white,
-                border: `1px solid ${colors.white}`, borderRadius: '6px',
-                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
-                alignItems: 'center', gap: '2px', position: 'relative',
-                ...activeGlow(btn.active)
-              }}>
-                <span>{btn.icon}</span>
-                <span style={{ display: showLabels ? 'inline' : 'none' }}>{btn.label}</span>
-                <ActiveDot show={btn.active} />
-              </button>
-            ))}
-            <ScreenTypeMenu
-              showLabel={showLabels}
-              buttonStyle={{
-                padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-                backgroundColor: HEADER_BUTTON_BG, color: colors.white,
-                border: `1px solid ${colors.white}`, borderRadius: '6px',
-                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
-                alignItems: 'center', gap: '2px'
-              }}
-            />
-            <button onClick={toggleFullscreen} style={{
-              padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-              backgroundColor: HEADER_BUTTON_BG, color: colors.white,
-              border: `1px solid ${colors.white}`, borderRadius: '6px',
-              cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
-              alignItems: 'center', gap: '2px'
-            }}>
-              <span>⛶</span>
-              <span style={{ display: showLabels ? 'inline' : 'none' }}>{isFullscreen ? 'Exit' : 'Full'}</span>
-            </button>
-            {onToggleCollapsed && (
-              <button onClick={onToggleCollapsed} style={{
-                padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-                backgroundColor: HEADER_BUTTON_BG, color: colors.white,
-                border: `1px solid ${colors.white}`, borderRadius: '6px',
-                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
-                alignItems: 'center', gap: '2px'
-              }}>
-                <span>{collapsed ? '▼' : '▲'}</span>
-              </button>
-            )}
+      {/* Clicks here must not also open or close the bar (the TV makes the whole bar a click target). */}
+      <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+        <HeaderMenu items={menuItems} buttonStyle={menuButtonStyle} iconOnly={iconOnly} onOpenScreenSize={menu?.onOpenScreenSize} screenSizeStyle={menu?.screenSizeStyle} />
+        {onToggleCollapsed && (
+          <button onClick={onToggleCollapsed} aria-label={collapsed ? 'Show the progress bar' : 'Hide the progress bar'} style={menuButtonStyle}>
+            <span>{collapsed ? '▼' : '▲'}</span>
+          </button>
+        )}
+      </span>
     </>
   );
 

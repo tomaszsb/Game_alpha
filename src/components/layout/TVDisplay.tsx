@@ -9,7 +9,9 @@ import { colors } from '../../styles/theme';
 import { BoardCanvas } from '../board/BoardCanvas';
 import { ProjectProgress } from '../game/ProjectProgress';
 import { LiveTrophyBoard } from '../game/LiveTrophyBoard';
-import { TvMenu } from './TvMenu';
+import { HeaderMenu } from './HeaderMenu';
+import { buildHeaderMenuItems } from '../../utils/headerMenuItems';
+import { useGameSpeed } from '../../utils/gameSpeed';
 import { panelPalettes } from '../player/panelTheme';
 import { RulesModal } from '../modals/RulesModal';
 import { useGameContext } from '../../context/GameContext';
@@ -20,7 +22,6 @@ import { AvatarIcon } from '../icons/AvatarIcons';
 import { IconCheck } from '../icons/SetupIcons';
 import { ShutdownNotice } from '../common/ShutdownNotice';
 import { HistoryFeed, HistoryFeedFilters, DEFAULT_HISTORY_FILTERS } from '../game/HistoryFeed';
-import { roleUrl, setStoredDeviceRole } from '../../utils/deviceRole';
 import { getGameOverHeadline } from '../../utils/endGameLoss';
 import {
   applyStoredTvLayoutWidth,
@@ -178,6 +179,26 @@ export function TVDisplay(): JSX.Element {
   // still runs the full width of the TV.
   const showHistoryColumn = gamePhase === 'PLAY' && showHistory;
 
+  // The TV's menu: the same list and wording as a PC's, plus what only a shared screen has (Standings, Connect phone).
+  const [gameSpeed, setGameSpeed] = useGameSpeed();
+  const playing = gamePhase === 'PLAY';
+  const tvMenuItems = buildHeaderMenuItems({
+    howToPlay: () => setIsRulesOpen(true),
+    gameLog: playing ? { onToggle: () => setShowHistory(s => !s), open: showHistory } : undefined,
+    standings: { onToggle: () => setShowScoreboard(s => !s), open: showScoreboard },
+    connectPhone: playing ? { onToggle: () => setShowQRPanel(v => !v), open: showQRPanel } : undefined,
+    speed: { fast: gameSpeed === 'fast', toggle: () => setGameSpeed(gameSpeed === 'fast' ? 'normal' : 'fast') },
+  });
+  const onOpenScreenSize = () => {
+    if (!scaleButtonUsed) {
+      markTvScaleButtonUsed();
+      setScaleButtonUsed(true);
+    }
+  };
+  const screenSizeStyle: React.CSSProperties = shouldPulseTvScaleButton({ gamePhase, hasUsedButton: scaleButtonUsed, prefersReducedMotion })
+    ? { animation: 'tvScaleButtonPulse 2.2s ease-in-out infinite' }
+    : {};
+
   return (
     <div style={{
       ...styles.container,
@@ -221,33 +242,11 @@ export function TVDisplay(): JSX.Element {
             <span style={styles.gameCode}>Game: {gameId}</span>
           )}
           <ClassroomBadge style={{ fontSize: '1rem', padding: '0.35rem 0.9rem' }} />
-          {/* One Menu button holds what used to be six header buttons (Job 5). */}
-          <TvMenu
-            playing={gamePhase === 'PLAY'}
-            buttonStyle={styles.tvHeaderButton}
-            showScoreboard={showScoreboard}
-            onToggleScoreboard={() => setShowScoreboard(s => !s)}
-            showHistory={showHistory}
-            onToggleHistory={() => setShowHistory(s => !s)}
-            showQRPanel={showQRPanel}
-            onToggleQR={() => setShowQRPanel(v => !v)}
-            onOpenRules={() => setIsRulesOpen(true)}
-            onBackToPC={() => {
-              // "Back to PC" says what this screen is, so remember that (a screen
-              // that was a TV is not one any more).
-              setStoredDeviceRole('pc');
-              window.location.href = roleUrl('pc', window.location.href);
-            }}
-            onOpenScreenSize={() => {
-              if (!scaleButtonUsed) {
-                markTvScaleButtonUsed();
-                setScaleButtonUsed(true);
-              }
-            }}
-            screenSizeStyle={shouldPulseTvScaleButton({ gamePhase, hasUsedButton: scaleButtonUsed, prefersReducedMotion })
-              ? { animation: 'tvScaleButtonPulse 2.2s ease-in-out infinite' }
-              : {}}
-          />
+          {/* The same Menu the PC has. During play it sits in the progress bar (same place as on a PC); before
+              play there is no bar, so it sits here. */}
+          {gamePhase !== 'PLAY' && (
+            <HeaderMenu items={tvMenuItems} buttonStyle={styles.tvHeaderButton} align="left" onOpenScreenSize={onOpenScreenSize} screenSizeStyle={screenSizeStyle} />
+          )}
         </div>
 
         {/* Phone-controller indicator — at 10ft viewing distance the
@@ -352,7 +351,7 @@ export function TVDisplay(): JSX.Element {
               gameRulesService={gameRulesService}
               onToggleGameLog={() => {}}
               onOpenRulesModal={() => {}}
-              hideButtons
+              menu={{ items: tvMenuItems, onOpenScreenSize, screenSizeStyle, tv: true }}
               compact
               collapsed={!isProgressExpanded}
               mode={tvMode}

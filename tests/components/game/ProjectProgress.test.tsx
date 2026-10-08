@@ -113,7 +113,8 @@ describe('ProjectProgress', () => {
     );
 
     // v3.2.72: renamed "Rules" → "How to play" (Onboarding Phase C Slice 3).
-    const rulesButton = screen.getByText('How to play');
+    fireEvent.click(screen.getByTestId('header-menu-button'));
+    const rulesButton = screen.getByText(/How to play/);
     expect(rulesButton).toBeInTheDocument();
 
     fireEvent.click(rulesButton);
@@ -134,11 +135,13 @@ describe('ProjectProgress', () => {
         onOpenRulesModal={mockOnOpenRulesModal}
       />
     );
-    const toggle = screen.getByTitle('Light / dark mode');
-    expect(toggle).toHaveTextContent('Dark');
+    fireEvent.click(screen.getByTestId('header-menu-button'));
+    const toggle = screen.getByTitle('Light / dark mode on this screen');
+    expect(toggle).toHaveTextContent('Dark mode');
     fireEvent.click(toggle);
     expect(getStoredPanelMode()).toBe('dark');
-    expect(screen.getByTitle('Light / dark mode')).toHaveTextContent('Light');
+    fireEvent.click(screen.getByTestId('header-menu-button'));
+    expect(screen.getByTitle('Light / dark mode on this screen')).toHaveTextContent('Light mode');
     expect((container.firstChild as HTMLElement).style.background).toContain('rgb(15, 23, 42)');
     setPanelMode('light');
   });
@@ -171,7 +174,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    const logButton = screen.getByText('Log');
+    fireEvent.click(screen.getByTestId('header-menu-button'));
+    const logButton = screen.getByText(/Game log/);
     expect(logButton).toBeInTheDocument();
 
     fireEvent.click(logButton);
@@ -265,7 +269,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    const tvThemeButton = screen.getByText('TV theme');
+    fireEvent.click(screen.getByTestId('header-menu-button'));
+    const tvThemeButton = screen.getByText(/TV theme/);
     expect(tvThemeButton).toBeInTheDocument();
 
     fireEvent.click(tvThemeButton);
@@ -346,22 +351,19 @@ describe('ProjectProgress', () => {
     expect(turn).toHaveTextContent('Alice’s Turn');
   });
 
-  it('the minimised bar has the same buttons, in the same look, as the full bar (fb:fa2a2ddf)', () => {
+  it('the open bar and the minimised bar show the same Menu button (one look, menus hide)', () => {
     const props = {
       players: mockPlayers, currentPlayerId: 'player1', dataService: mockDataService, gameRulesService: mockGameRulesService,
       onToggleGameLog: mockOnToggleGameLog, onOpenRulesModal: mockOnOpenRulesModal, onToggleCollapsed: vi.fn(),
     } as any;
-    const look = (container: HTMLElement) =>
-      [...container.querySelectorAll('button')].map(b => (b as HTMLElement).style.backgroundColor).filter(Boolean);
     const full = render(<ProjectProgress {...props} />);
-    const fullLook = look(full.container);
+    expect(screen.getAllByTestId('header-menu-button')).toHaveLength(1);
+    const fullColor = (screen.getByTestId('header-menu-button') as HTMLElement).style.backgroundColor;
+    // nothing but the Menu button and the fold arrow: no row of loose buttons
+    expect(screen.queryByText('Glossary')).not.toBeInTheDocument();
     full.unmount();
-    const small = render(<ProjectProgress {...props} collapsed />);
-    const smallLook = look(small.container);
-    // one colour for every header button, collapsed or not, and the same number of them
-    expect(new Set(smallLook).size).toBe(1);
-    expect(new Set(fullLook).size).toBe(1);
-    expect(smallLook[0]).toBe(fullLook[0]);
-    expect(smallLook.length).toBe(fullLook.length);
+    render(<ProjectProgress {...props} collapsed />);
+    expect(screen.getAllByTestId('header-menu-button')).toHaveLength(1);
+    expect((screen.getByTestId('header-menu-button') as HTMLElement).style.backgroundColor).toBe(fullColor);
   });
 });

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.2] - 2026-10-08
+
+### One header menu for the PC, the TV and the remote screen (Tom, 2026-10-08: "all versions ... should always strive to look identical, open and closed ... as much of the space as possible for the game, so menus hiding are preferable"; settles fb:fa2a2ddf and fb:4009c63a). Not deployed.
+
+- **One component, `HeaderMenu`:** every screen shows a single "Menu" button (grey, top right of the progress bar, in the open bar AND the minimised bar; bigger on a TV) and everything else is inside it. The row of loose header buttons on the PC is gone; the TV's old menu is the same component now.
+- **One list, one order, one set of words** (`headerMenuItems.ts`): How to play, Game log, Standings (TV), View, Glossary, Connect phone (TV, in play), Dark/Light mode, Speed, TV theme (admin). A screen lists only what it can do. Built in everywhere: Adjust screen size (when the screen can), "This screen is a ... " (PC / TV / phone, replaces the old Screen button and the TV's "Back to PC") and Full screen.
+- **TV:** during play its Menu sits in the progress bar exactly where a PC's does; before play (no bar) it sits in the header. Clicking the Menu no longer also opens or closes the bar.
+- **Renamed for sameness:** the PC's "Log" and the TV's "History" are both "Game log"; "Rules" and "How to play" are both "How to play".
+- **Tests:** `HeaderMenu` (6, replaces `TvMenu`), `ProjectProgress` updated; `npm test` 250 files / 3751 green; typecheck clean; lint unchanged (3 old errors). Checked in a real browser at PC and TV size.
+
 ## [3.7.1] - 2026-10-08
 
 ### Feedback fixes from the 2026-10-08 triage (19 new reports). Not deployed.
