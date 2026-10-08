@@ -1,6 +1,6 @@
 /* @vitest-pool forks */
 import React from 'react';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BoardCheckStrip } from '../../../src/components/classroom/BoardCheckStrip';
@@ -50,5 +50,37 @@ describe('BoardCheckStrip', () => {
     render(<BoardCheckStrip instanceId="room-1" changeToken={0} />);
     fireEvent.click(screen.getByTestId('board-check-button'));
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Not signed in.'));
+  });
+
+  it('says so when the server stops answering while a check shows as running, instead of waiting for ever', async () => {
+    vi.useFakeTimers();
+    try {
+      const running: api.BoardCheck = { status: 'running', games: 3, seats: 1, startedAt: 1, finishedAt: null, results: [], error: null, summary: null };
+      const fetchSpy = vi.spyOn(api, 'fetchBoardCheck').mockResolvedValueOnce(running).mockRejectedValue(new Error('offline'));
+      render(<BoardCheckStrip instanceId="room-1" changeToken={0} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(screen.getByTestId('board-check-progress')).toBeInTheDocument();
+      await act(async () => { await vi.advanceTimersByTimeAsync(3000 * 4); });
+      expect(screen.getByTestId('board-check-lost')).toBeInTheDocument();
+      expect(fetchSpy.mock.calls.length).toBeGreaterThan(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops waiting for a check that has outlasted the server cut-off, and lets the teacher press again', async () => {
+    vi.useFakeTimers();
+    try {
+      const running: api.BoardCheck = { status: 'running', games: 3, seats: 1, startedAt: 1, finishedAt: null, results: [], error: null, summary: null };
+      vi.spyOn(api, 'fetchBoardCheck').mockResolvedValue(running);
+      render(<BoardCheckStrip instanceId="room-1" changeToken={0} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(screen.getByTestId('board-check-button')).toBeDisabled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(13 * 60 * 1000); });
+      expect(screen.getByTestId('board-check-stale')).toBeInTheDocument();
+      expect(screen.getByTestId('board-check-button')).not.toBeDisabled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

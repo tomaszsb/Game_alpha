@@ -83,14 +83,14 @@ export function summarizePlaytest(games) {
 /**
  * One check at a time for the whole server (the bot uses a full CPU core). `spawn` is injectable for tests.
  */
-export function createPlaytestRunner({ spawn = nodeSpawn, now = () => Date.now(), timeoutMs = CHECK_TIMEOUT_MS } = {}) {
+export function createPlaytestRunner({ spawn = nodeSpawn, now = () => Date.now(), timeoutMs = CHECK_TIMEOUT_MS, exitGraceMs = 3000, log = console.log } = {}) {
   /** @type {Map<string, any>} the latest job per classroom (kept in memory; a restart forgets it) */
   const jobs = new Map();
   let runningId = null;
 
   function publicJob(job) {
     if (!job) return null;
-    const { child: _child, timer: _timer, ...rest } = job;
+    const { child: _child, timer: _timer, exitTimer: _exitTimer, stderrTail: _stderrTail, ...rest } = job;
     return rest;
   }
 
@@ -126,6 +126,7 @@ export function createPlaytestRunner({ spawn = nodeSpawn, now = () => Date.now()
     const finish = (status, error) => {
       if (job.status !== 'running') return;
       clearTimeout(job.timer);
+      clearTimeout(job.exitTimer);
       job.status = status;
       job.error = error || null;
       job.finishedAt = now();
@@ -134,12 +135,18 @@ export function createPlaytestRunner({ spawn = nodeSpawn, now = () => Date.now()
         job.summary = { ...job.summary, verdict: 'unclear', headline: 'The check could not run. Nothing is wrong with your board that we know of; try again, and tell the site owner if it keeps happening.' };
       }
       if (runningId === instanceId) runningId = null;
+      // The only record of why a check ended the way it did (nothing else logs this).
+      log(`[board-check] ${instanceId}: ${status}${error ? ` (${error})` : ''}, ${job.results.length} game(s) in ${Math.round((job.finishedAt - job.startedAt) / 1000)}s${job.stderrTail ? ` | stderr tail: ${job.stderrTail.replace(/\s+/g, ' ').slice(-300)}` : ''}`);
     };
 
     job.timer = setTimeout(() => {
-      try { child.kill('SIGKILL'); } catch { /* already gone */ }
+      // Record the reason first: killing the child makes its own 'close' fire at once, with a vaguer message.
       finish('error', 'The check took too long and was stopped.');
+      try { child.kill('SIGKILL'); } catch { /* already gone */ }
     }, timeoutMs);
+
+    job.stderrTail = '';
+    child.stderr?.on('data', chunk => { job.stderrTail = (job.stderrTail + chunk.toString()).slice(-2000); });
 
     let buffer = '';
     child.stdout.on('data', chunk => {
@@ -157,9 +164,16 @@ export function createPlaytestRunner({ spawn = nodeSpawn, now = () => Date.now()
       }
     });
     child.on('error', err => finish('error', err.message));
-    child.on('close', code => {
+    const settle = code => {
       if (job.sawDone) finish('done');
       else finish('error', job.scriptError || `The check stopped early (exit ${code}).`);
+    };
+    child.on('close', settle);
+    // 'close' waits for every pipe to shut. A helper process the child started can keep one open after the
+    // child itself is gone, and then 'close' never comes and the job reads "running" until the 10-minute
+    // cut-off. The child's own exit is enough: give its last output a moment, then settle.
+    child.on('exit', code => {
+      job.exitTimer = setTimeout(() => settle(code), exitGraceMs);
     });
 
     return publicJob(job);

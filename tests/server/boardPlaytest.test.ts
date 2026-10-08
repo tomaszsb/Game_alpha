@@ -89,6 +89,32 @@ describe('createPlaytestRunner (fake child process)', () => {
     expect(runner.isBusy()).toBe(false);
   });
 
+  it('a child that exits but never closes its pipes still ends the job (the screen must not read "running" for ever)', async () => {
+    const { child, spawn } = fakeSpawn();
+    const logs: string[] = [];
+    const runner = createPlaytestRunner({ spawn, exitGraceMs: 20, log: (m: string) => logs.push(m) });
+    runner.start('a', '/x');
+    child.stdout.emit('data', Buffer.from('{"type":"game","reason":"FINISHED"}\n{"type":"done"}\n'));
+    child.stderr.emit('data', Buffer.from('some warning'));
+    child.emit('exit', 0); // no 'close' follows
+    expect(runner.get('a').status).toBe('running');
+    await new Promise(r => setTimeout(r, 60));
+    expect(runner.get('a').status).toBe('done');
+    expect(runner.isBusy()).toBe(false);
+    expect(logs.join('\n')).toMatch(/\[board-check\] a: done, 1 game/);
+  });
+
+  it('a check that outlasts the time limit is stopped and reported as an error', async () => {
+    const { spawn } = fakeSpawn();
+    const runner = createPlaytestRunner({ spawn, timeoutMs: 20, log: () => {} });
+    runner.start('a', '/x');
+    await new Promise(r => setTimeout(r, 60));
+    const job = runner.get('a');
+    expect(job.status).toBe('error');
+    expect(job.error).toMatch(/too long/);
+    expect(runner.isBusy()).toBe(false);
+  });
+
   it('clamps games and seats', () => {
     const { spawn, calls } = fakeSpawn();
     createPlaytestRunner({ spawn }).start('a', '/x', { games: 99, seats: 99 });

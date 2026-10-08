@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.6.3] - 2026-10-07
+
+### "Check my board" can no longer leave the screen on "running" for ever (Manager report: Tom's first press on live stayed on "running" for over an hour). Not deployed.
+
+- **What was seen:** the first press on the live Tower (23:28Z) showed "Checking... practice game 1 of 3" for over an hour; at 00:31Z no check process existed and the container had not restarted; the second press (00:34Z) worked. The server accepted the second press, so it no longer considered the first job running: the SCREEN was out of date, not the job.
+- **Cause not proven; two real holes closed** (nothing in the logs could say which one bit): (1) the screen swallowed every failed poll, so a server that stopped answering looked exactly like "still running" for ever; (2) on the server a job ended only when the child's pipes all closed ('close'), and a helper process the child leaves behind can hold one open, which would have left the job "running" until the 10-minute cut-off.
+- **Fix:** the screen counts failed polls (3 in a row: "Lost touch with the server ...") and stops waiting after 12 minutes (the server cuts a check off at 10): "This check is taking much longer than it should ...", with the button usable again. The server now also settles a job 3 s after the child EXITS even if 'close' never comes, records the "too long" reason before it kills the child (the kill's own 'close' used to win with a vaguer message), and **logs one line per finished check** (`[board-check] <classroom>: done|error ..., N game(s) in Ns | stderr tail ...`), the first record of why a check ended as it did. Look in `docker logs game_alpha` for `[board-check]` next time.
+- **Tests:** runner exits-without-close, time-limit; screen lost-touch and stale (fake timers). `server/boardPlaytest.js`, `BoardCheckStrip.tsx` only.
+
 ## [3.6.2] - 2026-10-07
 
 ### Job 7 (plan-exam rounds cost at least a week) and the phone width fix. Not deployed.
