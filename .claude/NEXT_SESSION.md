@@ -1,10 +1,10 @@
 # Next session starter — written 2026-10-07 by /koniec
 
 ## State at handoff
-- **Version:** v3.6.2 on origin (`43c7a92`). **LIVE (checked 2026-10-08 00:35 UTC): `/health` = `6b474341` (v3.5.1).** v3.6.0-3.6.2 (Fast switch, TV Menu, face/money/mentor, mat, phone fixes, Job 7) + the deploy.sh 127.0.0.1 fix are **pending deploy**. Re-read `/health`; never believe this line.
+- **Version:** v3.6.3 on origin (`445c73b`). **LIVE (checked 2026-10-08 00:35 UTC): `/health` = `6b474341` (v3.5.1).** v3.6.0-3.6.3 (Fast switch, TV Menu, face/money/mentor, mat, phone fixes, Job 7) + the deploy.sh 127.0.0.1 fix are **pending deploy**. Re-read `/health`; never believe this line.
 - **Branch:** master = origin/master, clean (only `idea.txt` untracked: read it, never modify or commit it).
 - **Last shipped (2026-10-07, Manager Jobs 3-7):** 3.4.0 three-trophy win rule; 3.5.0 "Check my board"; 3.5.1 live trophy board; 3.6.0 rest of Job 5; 3.6.1 phone panel back to its old size; 3.6.2 phone page width fixed + FDNY second read 7 days (Job 7).
-- **Tests:** `npm test` 245 files / 3690 green; typecheck + build clean; lint unchanged (3 old errors). **Ghost gate for v3.6.2 was still running at wrap-up** (started ~19:50 EDT, `$TEMP/ghost2.log`); green at v3.4.0 (smart-bot 43/50). Read `.claude/ghost-history.jsonl` (smart-bot, head 43c7a92) and tell the Manager.
+- **Tests:** `npm test` 245 files / 3690 green; typecheck + build clean; lint unchanged (3 old errors). **Ghost gate green at v3.6.3 (head 445c73b): 11 files / 43 tests, smart-bot 43/50 finished, identical to before Job 3; Manager told.**
 
 ## Top 3 open items
 1. **Job 6 (builder and bank) — NOT started, needs Tom's answers:** how close counts as "close" for the bank-to-builder shortcut (30 days?); three named bidders or random each time; show the builder's likely price as a number at the bank? Ask him in ONE list.
