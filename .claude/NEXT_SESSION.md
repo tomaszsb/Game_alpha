@@ -1,31 +1,30 @@
-# Next session starter — written 2026-10-06 by /koniec
+# Next session starter — written 2026-10-07 by /koniec
 
 ## State at handoff
-- **Version:** v3.3.5 code on origin (`7790413`). **LIVE (checked 2026-10-07 01:10 UTC): `/health` = `4a0dae7c` = v3.3.5 housekeeping deployed by Tom; the only newer commit (`7790413`) changes just `deploy.sh` (run inside `main()`; the first deploy ran the old script's tail because its own `git pull` rewrote it mid-run, so the new player-check and `/health` wait have NOT yet run for real).** Re-read `/health` and compare to `git rev-parse --short=8 HEAD`; never believe this line.
-- **Branch:** master = origin/master, clean after the wrap-up commit (only `idea.txt` untracked — read it, never modify or commit it).
-- **Last shipped (2026-10-06, Manager brief Jobs 1+2):** v3.3.0 change orders not design fees, tests no longer run twice, ghost FINISHED/LOST; v3.3.1 teacher-safety fixes (quoted line breaks, FINISH protected, built-board check at save, plain-number Time/Fee); v3.3.2 `Spaces.schema.json` + editor "More settings"; v3.3.3 one CSV reader (`src/utils/csvCore.js`), dice/modal columns kept, 2 more schemas; v3.3.4 a broken classroom can still save its fix.
-- **Tests:** `npm test` 235 files / 3623 tests green (~130 s); typecheck + build clean. `test:ghost` 11 files / 43 tests green at v3.3.3 (strict 35/50 finished, smart-bot 43/50); a ghost run at v3.3.4 was started during wrap-up (v3.3.4 changed only server save code, which the ghost doesn't load).
+- **Version:** v3.6.2 on origin (`43c7a92`). **LIVE (checked 2026-10-08 00:35 UTC): `/health` = `6b474341` (v3.5.1).** v3.6.0-3.6.2 (Fast switch, TV Menu, face/money/mentor, mat, phone fixes, Job 7) + the deploy.sh 127.0.0.1 fix are **pending deploy**. Re-read `/health`; never believe this line.
+- **Branch:** master = origin/master, clean (only `idea.txt` untracked: read it, never modify or commit it).
+- **Last shipped (2026-10-07, Manager Jobs 3-7):** 3.4.0 three-trophy win rule; 3.5.0 "Check my board"; 3.5.1 live trophy board; 3.6.0 rest of Job 5; 3.6.1 phone panel back to its old size; 3.6.2 phone page width fixed + FDNY second read 7 days (Job 7).
+- **Tests:** `npm test` 245 files / 3690 green; typecheck + build clean; lint unchanged (3 old errors). **Ghost gate for v3.6.2 was still running at wrap-up** (started ~19:50 EDT, `$TEMP/ghost2.log`); green at v3.4.0 (smart-bot 43/50). Read `.claude/ghost-history.jsonl` (smart-bot, head 43c7a92) and tell the Manager.
 
 ## Top 3 open items
-1. **Job 3 — the three-trophy win rule (NOT built; waits for Tom's yes).** Agreed on paper 2026-10-06 (memory `project-trifecta-win-rule`): winner holds 2 of 3 trophies; fastest = days used / days planned (plan = 300 + 100 per kind of work, +10%); on budget = money spent / planned (scope + 20% design + 5% permits + work, +10%); best built = problem points / number of reviews (sent back 1, violation +2, cut corner +2, sizes in data). No two-crown winner → lowest SUM of the three %. Out players (broke / over 20%) hold no trophy and the rest keep playing. **Point sizes APPROVED and build set for the next working day, per Tom's words as relayed by the Manager (not seen in my own chat): "yes to those points. but let's build it all tommorow. so push as is and ill deploy". Confirm with Tom in chat before building** (a relayed go is not his go); sizes live in data files. Also in the brief: measure game length for 2/3/4 players before/after, check the L/E cards that hit other players, bot balance run, hold the Jarvis re-run until the Manager asks. Brief: `E:\Documents\People\AI\Manager\handouts\2026-10-05-game-trifecta-and-fixes.md`.
-2. **Tom's real TV + phone game on the new version, then flip the reports** (list below); Tom reads the 176 reworded work packages in `public/data/CLEAN_FILES/SCOPE_WORDING.csv`.
-3. **5 feedback reports untracked** (filed 2026-10-04/05: FDNY shows but DOB vanished, too many life events, zoom, phase vs important info, scope box diagonal) — run `/start full`. Also TODO has the editor leftovers (R3 half-done splices, dead old "Add space" button).
+1. **Job 6 (builder and bank) — NOT started, needs Tom's answers:** how close counts as "close" for the bank-to-builder shortcut (30 days?); three named bidders or random each time; show the builder's likely price as a number at the bank? Ask him in ONE list.
+2. **Deploy v3.6.x, then Tom looks on real devices** (list in TODO "Jobs 3-7"): TV Menu, Fast vs Normal, trophy board, panel (phone must be unchanged in size), the mat, and "Check my board" on a real classroom row (its first real run in Docker). Deploys were HELD while the Jarvis 2-seat run was live: no deploy until the Manager/Tom say its report is read.
+3. **Tom's wording drafts** (trophy names, finished/out tags, "X is out", end-screen hint, Check-my-board texts, End Turn warnings, the two Job 7 route descriptions) and **17 untracked feedback reports** (`/start full`).
 
 ## Decisions waiting on the user
-- Job 3: point sizes approved, build "tomorrow" (relayed; reconfirm in chat). Push of the 7 held commits (up to the wrap-up commit) was relayed too, and waits for Tom's own word in chat unless he already pushed. Labels/help wording in `Spaces.schema.json` is a first draft for Tom to reword.
+- Job 6 answers (above). Whether to fix the panel's +18px (649 vs 631 at 360 wide) by shortening something else.
 
 ## Flip after deploy
 fb:feedback-1790939931163-adb1cc76, -1790512043564-612fbdc4, -1790939049674-a0cecb6a, -1790939744698-8cb652c4, -1790939218940-7fbea636, plus the older ones in TODO (glow: ae480630, 11662ac3, 95624c8e; phone-as-TV: 84b491f2, ec243622, a1260bfc, dc04ea53; b38110f3, ef974f1c). Flip only after Tom confirms on a real device.
 
 ## Suggested first move
-Run `/health` (should be `4a0dae7c`, or `77904135` once Tom deploys the deploy.sh fix; ask him to paste that deploy's output, it is the first full run of the new checks). Then ask Tom the one Job 3 question (point sizes + yes) and, if yes, build it in small commits.
+Run `/health`, read the ghost result, then ask Tom the Job 6 list. Ask the Manager whether the Jarvis report is read before anyone deploys.
 
 ## Suggested model for next session
-Sonnet 5 — Job 3 is rules + data + the end-game flow; raise effort before reaching for a bigger model.
+Sonnet 5 — Job 6 is rules + data + UI; raise effort before a bigger model.
 
 ## Reminders
-- **Deploy stays Tom's** (`ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`, Windows PowerShell); confirm with `/health`. Tell the Manager the reading after he deploys.
-- A deploy ships HEAD: never call part of a stack "safe to ship alone". Hold Job 3 deploys until the Manager says the Jarvis re-run baseline is handled.
-- Commands for Tom go into PowerShell: no `grep`; use `curl.exe`.
-- Scripted edits: write files with the Write tool; build backslashes with `chr(92)`; check CRLF before editing (SpaceEditor.tsx, SpaceDeckScreen.tsx are CRLF). Memory `reference-tool-quirks` has the rest.
-- Pull feedback screenshots from `/api/feedback/<id>.json` BEFORE calling a report unclear.
+- **Deploy stays Tom's** (`ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`, PowerShell); confirm with `/health`. The fixed deploy.sh now checks 127.0.0.1 (a false "DEPLOY FAILED" came from `localhost`); if it still says failed, check the public `/health`.
+- A deploy ships HEAD. The Docker image leaves `tests/` out: the headless bot lives in `src/headless/` now.
+- Commands for Tom go in PowerShell (no grep; `curl.exe`). Edit CRLF files with a script that keeps EOL (the Edit tool flips them).
+- Tom's rules this session: the phone player panel must NOT get bigger; measure in a browser before claiming layout; his real go in chat, a relayed one is not enough.

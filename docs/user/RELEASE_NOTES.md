@@ -2,6 +2,18 @@
 
 ---
 
+## v3.4.0 to v3.6.2 — A new way to win, a trophy board, and a Fast switch (October 7, 2026)
+
+- **The game is now won on three trophies, not on who finishes first.** Fastest, On budget and Best built, each measured against your own plan. Get two and you win; if nobody does, the lowest total of the three wins. Reaching the finish square no longer stops everyone: you stop taking turns and watch while the others play on.
+- **Running out of money (or passing the 20% design-fee limit) now takes only you out.** The others keep playing. A solo game works as before.
+- **A live trophy board** replaces the big player cards and the "Where everyone is" pop-up. It shows each player's place in the three races. Places are lighter until everyone else has passed your day, because players take turns at different points in time.
+- **A Fast switch** (in the TV Menu and the Progress bar) shortens pauses and pop-up notes on that screen. **The TV's buttons are in one Menu.**
+- **The player panel** shows your face, big money, a bigger character beside the story and a "My project" mat that fills in (on a phone it stays the same size, with a row of dots). The page no longer runs wider than a phone screen.
+- **FDNY's second read now takes 7 days (was 5).**
+- **Teachers:** a "Check my board" button, on each classroom's row, plays your board with practice players and tells you whether a game can be finished.
+
+---
+
 ## v3.3.0 to v3.3.4 — Fewer surprise losses, and safer classroom editing (October 6, 2026)
 
 - **Fewer surprise losses at Hire a Builder.** A change order is not a design fee, so it no longer counts toward the 20% design-fee limit.
