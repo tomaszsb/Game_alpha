@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.1] - 2026-10-08
+
+### Feedback fixes from the 2026-10-08 triage (19 new reports). Not deployed.
+
+- **Trophy board no longer says "1st" for everyone** (fb:67a9c44b, fb:f6aebc05): a race only shows places once it is contested (two or more players and not all level). A solo player, or everyone level at the start, sees "-  no race yet" and no trophy (`liveTrophies.contested`).
+- **The board lights only the roads the panel offers** (fb:496cc1c8, fb:8f4769cc): at a logic space (the FDNY intake) MOVEMENT.csv lists four roads while the player's answers leave two; the board lit all four. When a movement choice is waiting, its options are now the ones lit (`narrowToOfferedMoves`). The engine itself still accepts any listed road (unchanged).
+- **Warning before a roll that can add work** (fb:21473ad9): at the scope-check spaces, while a DOB approval is held: "Careful: if this adds work to your plan, your DOB approval is lost and you will have to get it again." The revoke banner now stays 10 s (was 5).
+- **A lost approval no longer vanishes** (fb:bbeb13e2): the DOB tag went from "approved" to "none" after a scope change and "none" is hidden before the Regulatory stage, so it vanished while FDNY stayed. A player who has already been to an examiner now keeps the "not approved" mark.
+- **Money page lists every payment** (fb:7c8375eb): "What you've paid", one line each, newest first, exact dollars (from the player's cost history).
+- **"View Intelligence" is now "Look up in the glossary"** (fb:eaba5e71) in the card detail pop-up.
+- **One look for the header buttons** (fb:fa2a2ddf): the minimised bar shows the same buttons as the full bar (icons only, same grey) instead of its own coloured set. The TV Menu (v3.6.0) is unchanged: Tom chose one menu there (fb:4009c63a stays open as a question for him).
+- **Checked, not bugs:** life events "almost every turn" (fb:6321757b) measured 0.11-0.20 per turn, one in six by design; Try Again does roll a new die (fb:712a9859) - but see the next point.
+- **NOT shipped, needs Tom (TODO):** a roll of "Remove 1" / "Replace 1" on work packages has always DRAWN a card instead (`EffectFactory` sent the generated `cards` rows down a draw-only branch). The fix works but lets scope shrink, and then the 20% design-fee cap ended 5 of 6 test games (turns 6-42). The fix is saved (`git show 396f37c`, reverted in `8aa9f59`).
+- **Tests:** `npm test` 250 files / 3749 green; typecheck and build clean; lint unchanged (3 old errors).
+
 ## [3.7.0] - 2026-10-08
 
 ### Job 6: Hire a Builder is a choice between three bids, not two outcome buttons (Tom's go 2026-10-08). Built; **NOT deployed** until the ghost bot, "Check my board" AND the Jarvis robot all handle the bid choice (ghost bot and Check my board are done and green; the Jarvis robot is the Manager's brief, sent 2026-10-08).

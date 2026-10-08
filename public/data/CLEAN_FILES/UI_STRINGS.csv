@@ -125,7 +125,7 @@ BUILDER_BIDS.log,Hired a builder for {price} and {days} days of work. The work t
 BUILDER_BIDS.holdsShort,good through day {day}
 BUILDER_BIDS.hireShort,Hire
 BUILDER_BIDS.lenderShort,Short on money? The lender is one door away.
-${k},"${v}"
+SCOPE_APPROVAL.warn,"Careful: if this adds work to your plan, your {approval} approval is lost and you will have to get it again."
 NUMBERS.money.paid,"What you've paid"
 NUMBERS.money.paidNone,Nothing paid yet.
 CARD_DETAILS.GLOSSARY,Look up in the glossary
