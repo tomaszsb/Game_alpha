@@ -12,6 +12,7 @@
 // detailed-card/modal restyle are later increments.
 
 import { ProjectMat, MatDots } from './ProjectMat';
+import { BuilderBidsCard, BuilderMoneyLine, isShoppingForBuilder } from './BuilderBidsCard';
 import { usePhoneWidth } from '../../hooks/usePhoneWidth';
 import { computeMat } from '../../utils/projectMat';
 import { PlayerAvatar } from '../common/PlayerAvatar';
@@ -32,6 +33,7 @@ import { getEndTurnWarning } from '../../utils/endTurnWarning';
 import { getEndTurnCostPreview, getTryAgainCostPreview, getLoanOnTheTable, isManualEffectCompleted, perAmountUnit, timeRowDays } from '../../utils/costPreview';
 import { ACTION_ROW, COMMIT, NUMBERS, GLANCE_HELP } from '../../constants/uiStrings';
 import { setDestinationPreview } from '../../utils/destinationPreview';
+import { getBuilderRules } from '../../utils/trophyRules';
 import { computeProjectFinances } from '../../utils/projectFinances';
 import { isSkippableEffectAction } from '../../utils/skippableActions';
 import { FormatUtils } from '../../utils/FormatUtils';
@@ -329,6 +331,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       effect,
     };
   });
+  // Hire a Builder: the bids stand in for the two outcome buttons that used to be pressed here.
+  const shoppingForBuilder = isShoppingForBuilder(gameServices, playerId);
+  const builderJustHired = !!player.contractor && player.visitType === 'First' && !!player.builderBids?.hiredId
+    && player.currentSpace === getBuilderRules().space;
   const pendingActions = collapsePairedDiceActions(mapped);
   const expeditorTargetAction = /((replace|return|give)_e|transfer)\b/i;
   // "Pass a team member to your left/right" also needs someone to pass it TO —
@@ -1072,10 +1078,14 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       </div>
 
       {/* This turn — pending actions, done traces, movement */}
+      {isMyTurn && <div style={{ padding: '0 13px' }}><BuilderMoneyLine gameServices={gameServices} playerId={playerId} palette={p} /></div>}
       {isMyTurn &&
-        (visiblePendingActions.length > 0 || doneActionTraces.length > 0 || showMovementOptions) && (
+        (visiblePendingActions.length > 0 || doneActionTraces.length > 0 || showMovementOptions || shoppingForBuilder || builderJustHired) && (
         <div style={pad}>
           <p style={zlbl}>{ACTION_ROW.HEADER}</p>
+          {(shoppingForBuilder || builderJustHired) && (
+            <BuilderBidsCard gameServices={gameServices} playerId={playerId} palette={p} canAct={isMyTurn} />
+          )}
           {visiblePendingActions.map((a) => {
             // Teaching layer (Onboarding Phase C, v3.2.54). The explanation is a
             // SIBLING of the action button, never a child, and that is structural
