@@ -174,6 +174,74 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
 
   const overallProgress = calculateOverallProgress();
 
+  // ONE set of header buttons for the full bar and the minimised bar (fb:fa2a2ddf, fb:4009c63a: "the buttons in
+  // the extended version are all gray but in the minimised version colorful and different sizes - one design").
+  // The minimised bar shows the same buttons as icons only.
+  const renderHeaderButtons = (showLabels: boolean) => (
+    <>
+            {[
+              { onClick: onOpenRulesModal, icon: <IconClipboard size="1em" />, label: 'How to play', bg: HEADER_BUTTON_BG, active: isRulesOpen },
+              { onClick: onToggleGameLog, icon: <IconNotepad size="1em" />, label: 'Log', bg: HEADER_BUTTON_BG, active: isGameLogOpen },
+              ...(onOpenDisplaySettings ? [{ onClick: onOpenDisplaySettings, icon: <IconEye size="1em" />, label: 'View', bg: HEADER_BUTTON_BG, active: isDisplaySettingsOpen }] : []),
+              ...(onToggleGlossary ? [{ onClick: onToggleGlossary, icon: <IconBookOpen size="1em" />, label: 'Glossary', bg: HEADER_BUTTON_BG, active: isGlossaryOpen }] : []),
+              // Remote control for the shared TV screen's theme (GameState.tvDarkMode).
+              // Only rendered for admin/teacher (GameLayout gates the props); a
+              // regular player never sees this button. Harmless no-op if no TV
+              // is currently connected to this game.
+              // This device's light/dark (moved here from above the player card,
+              // fb:b6963218 extra). Hidden on the TV, which follows the shared TV theme.
+              { onClick: toggleMode, icon: dark ? <IconSun size="1em" /> : <IconMoon size="1em" />, label: dark ? 'Light' : 'Dark', bg: HEADER_BUTTON_BG, active: false, title: 'Light / dark mode' },
+              // Fast / Normal speed for THIS device (shorter pauses, glides and pop-up notes).
+              { onClick: () => setSpeed(speed === 'fast' ? 'normal' : 'fast'), icon: <span aria-hidden>⚡</span>, label: speed === 'fast' ? 'Fast' : 'Normal speed', bg: HEADER_BUTTON_BG, active: speed === 'fast', title: 'Game speed: Fast shortens the pauses, glides and pop-up notes on this screen only' },
+              ...(onToggleTVDarkMode ? [{ onClick: onToggleTVDarkMode, icon: <IconMoon size="1em" />, label: 'TV theme', bg: HEADER_BUTTON_BG, active: tvDarkMode, title: 'Switch the shared TV screen between light and dark' }] : []),
+            ].map((btn, i) => (
+              <button key={i} onClick={btn.onClick} title={(btn as { title?: string }).title} style={{
+                padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
+                backgroundColor: btn.bg, color: colors.white,
+                border: `1px solid ${colors.white}`, borderRadius: '6px',
+                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
+                alignItems: 'center', gap: '2px', position: 'relative',
+                ...activeGlow(btn.active)
+              }}>
+                <span>{btn.icon}</span>
+                <span style={{ display: showLabels ? 'inline' : 'none' }}>{btn.label}</span>
+                <ActiveDot show={btn.active} />
+              </button>
+            ))}
+            <ScreenTypeMenu
+              showLabel={showLabels}
+              buttonStyle={{
+                padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
+                backgroundColor: HEADER_BUTTON_BG, color: colors.white,
+                border: `1px solid ${colors.white}`, borderRadius: '6px',
+                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
+                alignItems: 'center', gap: '2px'
+              }}
+            />
+            <button onClick={toggleFullscreen} style={{
+              padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
+              backgroundColor: HEADER_BUTTON_BG, color: colors.white,
+              border: `1px solid ${colors.white}`, borderRadius: '6px',
+              cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
+              alignItems: 'center', gap: '2px'
+            }}>
+              <span>⛶</span>
+              <span style={{ display: showLabels ? 'inline' : 'none' }}>{isFullscreen ? 'Exit' : 'Full'}</span>
+            </button>
+            {onToggleCollapsed && (
+              <button onClick={onToggleCollapsed} style={{
+                padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
+                backgroundColor: HEADER_BUTTON_BG, color: colors.white,
+                border: `1px solid ${colors.white}`, borderRadius: '6px',
+                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
+                alignItems: 'center', gap: '2px'
+              }}>
+                <span>{collapsed ? '▼' : '▲'}</span>
+              </button>
+            )}
+    </>
+  );
+
   // Collapsed mode: slim single-line summary bar
   if (collapsed) {
     return (
@@ -246,94 +314,15 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             transition: 'width 0.3s ease',
           }} />
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {!hideButtons && (
-            <>
-              <button onClick={onOpenRulesModal} style={{
-                padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
-                backgroundColor: colors.purple.main, color: colors.white,
-                border: `2px solid ${colors.white}`, borderRadius: '8px',
-                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
-                position: 'relative', ...activeGlow(isRulesOpen)
-              }}>
-                <span>📋</span>
-                <ActiveDot show={isRulesOpen} />
-              </button>
-              <button onClick={onToggleGameLog} style={{
-                padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
-                backgroundColor: colors.primary.main, color: colors.white,
-                border: `2px solid ${colors.white}`, borderRadius: '8px',
-                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
-                position: 'relative', ...activeGlow(isGameLogOpen)
-              }}>
-                {/* Distinct from PlayerPanelV2's "📜 History" (that one is
-                    this player only; this is every player's activity). */}
-                <span>🗒️</span>
-                <ActiveDot show={isGameLogOpen} />
-              </button>
-              {onOpenDisplaySettings && (
-                <button onClick={onOpenDisplaySettings} style={{
-                  padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
-                  backgroundColor: colors.success.main, color: colors.white,
-                  border: `2px solid ${colors.white}`, borderRadius: '8px',
-                  cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
-                  position: 'relative', ...activeGlow(isDisplaySettingsOpen)
-                }}>
-                  <span>👁️</span>
-                  <ActiveDot show={isDisplaySettingsOpen} />
-                </button>
-              )}
-              {onToggleGlossary && (
-                <button onClick={onToggleGlossary} style={{
-                  padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
-                  backgroundColor: '#ff9800', color: colors.white,
-                  border: `2px solid ${colors.white}`, borderRadius: '8px',
-                  cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
-                  position: 'relative', ...activeGlow(isGlossaryOpen)
-                }}>
-                  <span>📖</span>
-                  <ActiveDot show={isGlossaryOpen} />
-                </button>
-              )}
-              {onToggleTVDarkMode && (
-                <button
-                  onClick={onToggleTVDarkMode}
-                  title="Switch the shared TV screen between light and dark"
-                  style={{
-                    padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
-                    backgroundColor: '#607d8b', color: colors.white,
-                    border: `2px solid ${colors.white}`, borderRadius: '8px',
-                    cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
-                    position: 'relative', ...activeGlow(tvDarkMode)
-                  }}>
-                  <IconMoon size="0.85em" />
-                  <ActiveDot show={tvDarkMode} />
-                </button>
-              )}
-              <button onClick={() => {
-                const url = new URL(window.location.href);
-                if (url.searchParams.get('mode') === 'tv') {
-                  url.searchParams.delete('mode');
-                } else {
-                  url.searchParams.set('mode', 'tv');
-                }
-                window.location.href = url.toString();
-              }} style={{
-                padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
-                backgroundColor: '#9c27b0', color: colors.white,
-                border: `2px solid ${colors.white}`, borderRadius: '8px',
-                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px'
-              }}>
-                <span>📺</span>
-              </button>
-            </>
-          )}
-          {onToggleCollapsed && (
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px', alignItems: 'center' }}>
+          {!hideButtons && renderHeaderButtons(false)}
+          {/* With the header buttons hidden the bar can still be opened again. */}
+          {hideButtons && onToggleCollapsed && (
             <button onClick={onToggleCollapsed} style={{
-              padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
-              backgroundColor: colors.info.main, color: colors.white,
-              border: `2px solid ${colors.white}`, borderRadius: '8px',
-              cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px'
+              padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
+              backgroundColor: HEADER_BUTTON_BG, color: colors.white,
+              border: `1px solid ${colors.white}`, borderRadius: '6px',
+              cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '2px'
             }}>
               <span>▼</span>
             </button>
@@ -425,66 +414,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           <ConnectionStatus serverUrl={getBackendURL()} />
         </div>
         {!hideButtons && <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {[
-            { onClick: onOpenRulesModal, icon: <IconClipboard size="1em" />, label: 'How to play', bg: HEADER_BUTTON_BG, active: isRulesOpen },
-            { onClick: onToggleGameLog, icon: <IconNotepad size="1em" />, label: 'Log', bg: HEADER_BUTTON_BG, active: isGameLogOpen },
-            ...(onOpenDisplaySettings ? [{ onClick: onOpenDisplaySettings, icon: <IconEye size="1em" />, label: 'View', bg: HEADER_BUTTON_BG, active: isDisplaySettingsOpen }] : []),
-            ...(onToggleGlossary ? [{ onClick: onToggleGlossary, icon: <IconBookOpen size="1em" />, label: 'Glossary', bg: HEADER_BUTTON_BG, active: isGlossaryOpen }] : []),
-            // Remote control for the shared TV screen's theme (GameState.tvDarkMode).
-            // Only rendered for admin/teacher (GameLayout gates the props); a
-            // regular player never sees this button. Harmless no-op if no TV
-            // is currently connected to this game.
-            // This device's light/dark (moved here from above the player card,
-            // fb:b6963218 extra). Hidden on the TV, which follows the shared TV theme.
-            { onClick: toggleMode, icon: dark ? <IconSun size="1em" /> : <IconMoon size="1em" />, label: dark ? 'Light' : 'Dark', bg: HEADER_BUTTON_BG, active: false, title: 'Light / dark mode' },
-            // Fast / Normal speed for THIS device (shorter pauses, glides and pop-up notes).
-            { onClick: () => setSpeed(speed === 'fast' ? 'normal' : 'fast'), icon: <span aria-hidden>⚡</span>, label: speed === 'fast' ? 'Fast' : 'Normal speed', bg: HEADER_BUTTON_BG, active: speed === 'fast', title: 'Game speed: Fast shortens the pauses, glides and pop-up notes on this screen only' },
-            ...(onToggleTVDarkMode ? [{ onClick: onToggleTVDarkMode, icon: <IconMoon size="1em" />, label: 'TV theme', bg: HEADER_BUTTON_BG, active: tvDarkMode, title: 'Switch the shared TV screen between light and dark' }] : []),
-          ].map((btn, i) => (
-            <button key={i} onClick={btn.onClick} title={(btn as { title?: string }).title} style={{
-              padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-              backgroundColor: btn.bg, color: colors.white,
-              border: `1px solid ${colors.white}`, borderRadius: '6px',
-              cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
-              alignItems: 'center', gap: '2px', position: 'relative',
-              ...activeGlow(btn.active)
-            }}>
-              <span>{btn.icon}</span>
-              <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>{btn.label}</span>
-              <ActiveDot show={btn.active} />
-            </button>
-          ))}
-          <ScreenTypeMenu
-            showLabel={window.innerWidth >= 768}
-            buttonStyle={{
-              padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-              backgroundColor: HEADER_BUTTON_BG, color: colors.white,
-              border: `1px solid ${colors.white}`, borderRadius: '6px',
-              cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
-              alignItems: 'center', gap: '2px'
-            }}
-          />
-          <button onClick={toggleFullscreen} style={{
-            padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-            backgroundColor: HEADER_BUTTON_BG, color: colors.white,
-            border: `1px solid ${colors.white}`, borderRadius: '6px',
-            cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
-            alignItems: 'center', gap: '2px'
-          }}>
-            <span>⛶</span>
-            <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>{isFullscreen ? 'Exit' : 'Full'}</span>
-          </button>
-          {onToggleCollapsed && (
-            <button onClick={onToggleCollapsed} style={{
-              padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
-              backgroundColor: HEADER_BUTTON_BG, color: colors.white,
-              border: `1px solid ${colors.white}`, borderRadius: '6px',
-              cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
-              alignItems: 'center', gap: '2px'
-            }}>
-              <span>▲</span>
-            </button>
-          )}
+          {renderHeaderButtons(window.innerWidth >= 768)}
         </div>}
       </div>
 

@@ -345,4 +345,23 @@ describe('ProjectProgress', () => {
     expect(turn.getAttribute('data-player-name')).toBe('Alice');
     expect(turn).toHaveTextContent('Alice’s Turn');
   });
+
+  it('the minimised bar has the same buttons, in the same look, as the full bar (fb:fa2a2ddf)', () => {
+    const props = {
+      players: mockPlayers, currentPlayerId: 'player1', dataService: mockDataService, gameRulesService: mockGameRulesService,
+      onToggleGameLog: mockOnToggleGameLog, onOpenRulesModal: mockOnOpenRulesModal, onToggleCollapsed: vi.fn(),
+    } as any;
+    const look = (container: HTMLElement) =>
+      [...container.querySelectorAll('button')].map(b => (b as HTMLElement).style.backgroundColor).filter(Boolean);
+    const full = render(<ProjectProgress {...props} />);
+    const fullLook = look(full.container);
+    full.unmount();
+    const small = render(<ProjectProgress {...props} collapsed />);
+    const smallLook = look(small.container);
+    // one colour for every header button, collapsed or not, and the same number of them
+    expect(new Set(smallLook).size).toBe(1);
+    expect(new Set(fullLook).size).toBe(1);
+    expect(smallLook[0]).toBe(fullLook[0]);
+    expect(smallLook.length).toBe(fullLook.length);
+  });
 });
