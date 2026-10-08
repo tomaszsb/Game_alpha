@@ -22,6 +22,12 @@ export interface RaceStanding {
   of: number;
   /** Points of percent behind the leader (0 for the leader). null when out. */
   behind: number | null;
+  /**
+   * True only when someone is actually ahead: at least two players are in this race and their numbers
+   * are not all the same. A solo player, or everyone level (the start of the game; nobody has had a
+   * review yet), is not a race, and the board must not hand out "1st" (fb:67a9c44b, fb:f6aebc05).
+   */
+  contested: boolean;
 }
 
 export interface LiveRow {
@@ -50,18 +56,19 @@ export function buildLiveBoard(inputs: MeasureInput[]): LiveBoard {
   const races = new Map<string, Record<TrophyId, RaceStanding>>();
   for (const r of rows) {
     races.set(r.input.playerId, {
-      time: { value: r.row.time, place: null, of: inRace.length, behind: null },
-      money: { value: r.row.money, place: null, of: inRace.length, behind: null },
-      quality: { value: r.row.quality, place: null, of: inRace.length, behind: null },
+      time: { value: r.row.time, place: null, of: inRace.length, behind: null, contested: false },
+      money: { value: r.row.money, place: null, of: inRace.length, behind: null, contested: false },
+      quality: { value: r.row.quality, place: null, of: inRace.length, behind: null, contested: false },
     });
   }
   for (const id of TROPHY_IDS) {
     if (inRace.length === 0) continue;
     const best = Math.min(...inRace.map(r => r.row[id]));
+    const contested = inRace.length >= 2 && inRace.some(r => r.row[id] !== best);
     for (const r of inRace) {
       const mine = r.row[id];
       const place = 1 + inRace.filter(o => o.row[id] < mine).length;
-      races.get(r.input.playerId)![id] = { value: mine, place, of: inRace.length, behind: round1(mine - best) };
+      races.get(r.input.playerId)![id] = { value: mine, place, of: inRace.length, behind: round1(mine - best), contested };
     }
   }
 

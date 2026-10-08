@@ -211,8 +211,9 @@ describe('ProjectProgress', () => {
     const card = screen.getByTestId('player-progress-card');
     expect(card.getAttribute('data-player-name')).toBe('Alice');
     expect(screen.getByTitle('Alice').querySelector('img')).toBeInTheDocument();
-    // Alone at the table: leading all three races.
-    expect(screen.getAllByText('leading')).toHaveLength(3);
+    // Alone at the table there is no race: no "1st", no trophy, no "leading" (fb:67a9c44b).
+    expect(screen.queryByText('leading')).toBeNull();
+    expect(screen.getAllByText('no race yet')).toHaveLength(3);
   });
 
   it('should handle no players gracefully', () => {

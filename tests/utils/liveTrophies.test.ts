@@ -25,6 +25,22 @@ describe('buildLiveBoard', () => {
     expect(row(b, 'b').races.quality).toMatchObject({ place: 3, behind: 100 });
   });
 
+  it('a race is only contested when someone is actually ahead (fb:67a9c44b, fb:f6aebc05)', () => {
+    // alone: no race at all
+    const solo = buildLiveBoard([p('a')]);
+    expect(row(solo, 'a').races.time.contested).toBe(false);
+    // everyone level (the start of a game): no race either, in any of the three
+    const level = buildLiveBoard([p('a'), p('b'), p('c')]);
+    for (const id of ['time', 'money', 'quality'] as const) expect(row(level, 'a').races[id].contested).toBe(false);
+    // one number differs: that race is on, the others are still level
+    const one = buildLiveBoard([p('a', { moneySpent: 50_000 }), p('b'), p('c')]);
+    expect(row(one, 'b').races.money.contested).toBe(true);
+    expect(row(one, 'b').races.time.contested).toBe(false);
+    // a player who is out does not make a race of one
+    const outOne = buildLiveBoard([p('a'), p('b', { out: true, moneySpent: 1 })]);
+    expect(row(outOne, 'a').races.money.contested).toBe(false);
+  });
+
   it('ties share the better place', () => {
     const b = buildLiveBoard([p('a'), p('b'), p('c', { problemPoints: 2 })]);
     expect(row(b, 'a').races.quality.place).toBe(1);

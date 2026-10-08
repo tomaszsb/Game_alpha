@@ -86,6 +86,12 @@ export function LiveTrophyBoard({ players, gameRulesService, currentPlayerId, mo
                       <div style={{ color: p.muted }}>{names[id]}</div>
                       {out || race.place === null ? (
                         <div>—</div>
+                      ) : !race.contested ? (
+                        // Nobody is ahead yet (a solo player, or everyone level): no place, no trophy.
+                        <>
+                          <div style={{ fontWeight: 700, color: p.muted }}>—</div>
+                          <div style={{ color: p.muted }}>no race yet</div>
+                        </>
                       ) : (
                         <>
                           <div style={{ fontWeight: 700, color: leading ? p.good : p.text }}>
