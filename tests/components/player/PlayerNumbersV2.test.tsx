@@ -50,6 +50,24 @@ describe('PlayerNumbersV2 — recall reference', () => {
   // The scope list is collapsed behind the "Total scope" header; tap it open.
   const openScope = () => fireEvent.click(screen.getByRole('button', { name: /Total scope/i }));
 
+  it('lists every payment on the money page, newest first (fb:7c8375eb)', () => {
+    const costHistory = [
+      { id: 'c1', category: 'design', amount: 20000, description: 'Architect fee: 8% of scope', turn: 2, timestamp: new Date() },
+      { id: 'c2', category: 'design', amount: 12000, description: 'Engineer fee: 4% of scope', turn: 4, timestamp: new Date() },
+    ];
+    renderModal({ ...player, costHistory }, 'money');
+    const rows = screen.getAllByTestId('money-paid-row');
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('Engineer fee: 4% of scope');
+    expect(rows[0]).toHaveTextContent('$12,000');
+    expect(rows[1]).toHaveTextContent('Architect fee: 8% of scope');
+  });
+
+  it('says so when nothing has been paid yet', () => {
+    renderModal({ ...player, costHistory: [] }, 'money');
+    expect(screen.getByTestId('money-paid-list')).toHaveTextContent('Nothing paid yet.');
+  });
+
   it('lists each work package by name (recall what they were) and the money section', () => {
     renderModal(player, 'scope');
     expect(screen.getByText(/What you're building/i)).toBeInTheDocument();

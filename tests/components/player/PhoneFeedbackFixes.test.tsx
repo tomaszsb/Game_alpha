@@ -114,6 +114,14 @@ describe('DOB / FDNY approval tags (fb:b8902332)', () => {
     }
   });
 
+  it('a player who has already been to an examiner keeps that tag even in an early phase (fb:bbeb13e2)', () => {
+    // Scope changed back at Design: the DOB approval went back to "none". It must show ✗, not vanish.
+    setup({ ...basePlayer, visitedSpaces: ['REG-DOB-PLAN-EXAM'], fdnyApprovalStatus: 'denied' }, 'DESIGN');
+    renderPanel();
+    expect(screen.getByTestId('approval-tag-dob')).toHaveTextContent('DOB ✗');
+    expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY ✗');
+  });
+
   it('an approval earned early still shows (status wins over phase)', () => {
     setup({ ...basePlayer, fdnyApprovalStatus: 'approved' }, 'DESIGN');
     renderPanel();

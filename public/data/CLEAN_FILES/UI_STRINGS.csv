@@ -126,3 +126,6 @@ BUILDER_BIDS.holdsShort,good through day {day}
 BUILDER_BIDS.hireShort,Hire
 BUILDER_BIDS.lenderShort,Short on money? The lender is one door away.
 ${k},"${v}"
+NUMBERS.money.paid,"What you've paid"
+NUMBERS.money.paidNone,Nothing paid yet.
+CARD_DETAILS.GLOSSARY,Look up in the glossary

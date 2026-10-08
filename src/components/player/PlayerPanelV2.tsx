@@ -14,7 +14,7 @@
 import { ProjectMat, MatDots } from './ProjectMat';
 import { BuilderBidsCard, BuilderMoneyLine, isShoppingForBuilder } from './BuilderBidsCard';
 import { showScopeApprovalWarning } from '../../utils/scopeChangeWarning';
-import { getDobLabel } from '../../services/ApprovalService';
+import { getDobLabel, DOB_EXAM_SPACE, FDNY_EXAM_SPACE } from '../../services/ApprovalService';
 import { usePhoneWidth } from '../../hooks/usePhoneWidth';
 import { computeMat } from '../../utils/projectMat';
 import { PlayerAvatar } from '../common/PlayerAvatar';
@@ -248,8 +248,12 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const phaseLabel = config?.phase || '';
 
   const atApprovalsStage = phaseLabel === 'REGULATORY' || phaseLabel === 'CONSTRUCTION' || phaseLabel === 'END';
-  const dob = approvalView(player.dobApprovalStatus, atApprovalsStage);
-  const fdny = approvalView(player.fdnyApprovalStatus, atApprovalsStage);
+  // A player who has already been to an examiner has the approval on the line, so "not approved" stays
+  // on screen for it even before the Regulatory stage (an approval lost to a scope change used to just
+  // vanish while the other tag stayed: fb:bbeb13e2, "FDNY shows but DOB vanished").
+  const visited = player.visitedSpaces ?? [];
+  const dob = approvalView(player.dobApprovalStatus, atApprovalsStage || visited.includes(DOB_EXAM_SPACE));
+  const fdny = approvalView(player.fdnyApprovalStatus, atApprovalsStage || visited.includes(FDNY_EXAM_SPACE));
   // Resolved violations fade to a quiet trace (like DOB/FDNY do) rather than
   // showing forever — only 'active' needs the player's attention.
   const violation = player.violationStatus === 'active' ? violationView(player.violationStatus) : null;

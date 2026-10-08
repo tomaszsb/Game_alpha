@@ -128,6 +128,9 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'NUMBERS.scope.addedNote': 'The items tagged {tag} were just added to your scope. When scope grows, the design and filing fees — a percentage of scope — grow with it, and any plan approval you already had no longer covers the new work.',
   'NUMBERS.expeditors.empty': "You haven't hired anyone yet.",
   'NUMBERS.money.ongoing': 'Still costing you',
+  // The line-by-line list under "Your money" (fb:7c8375eb: "I paid several fees but cannot see which ones").
+  'NUMBERS.money.paid': "What you've paid",
+  'NUMBERS.money.paidNone': 'Nothing paid yet.',
   // v3.2.72, Onboarding Phase C Slice 3 (2026-09-22 playtest report, #2
   // confusion at 12 trips): the four glance boxes had no "?" at all, so
   // "deficit" (the Money box's own orange sub-label) went unexplained.
@@ -211,6 +214,8 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'CARD_DETAILS.TRANSFER_TOGGLE': '↔ Transfer',
   'CARD_DETAILS.TRANSFER_CONFIRM': 'Transfer',
   'CARD_DETAILS.TRANSFER_HEADING': 'Select player to transfer to:',
+  // Was "View Intelligence": nobody knew it opened the glossary (fb:eaba5e71).
+  'CARD_DETAILS.GLOSSARY': 'Look up in the glossary',
 
   'DISCARD_PILE.EMPTY_STATE': 'No resources used yet',
   'DISCARD_PILE.FILTER_LABEL': 'Filter by type',
@@ -366,6 +371,8 @@ export const NUMBERS = {
   scopeAddedNote: (tag: string) => getUIString('NUMBERS.scope.addedNote', { tag }),
   get EXPEDITORS_EMPTY() { return getUIString('NUMBERS.expeditors.empty'); },
   get MONEY_ONGOING() { return getUIString('NUMBERS.money.ongoing'); },
+  get MONEY_PAID() { return getUIString('NUMBERS.money.paid'); },
+  get MONEY_PAID_NONE() { return getUIString('NUMBERS.money.paidNone'); },
 };
 
 /** The warning before a scope-changing roll while an approval is held. */
@@ -507,6 +514,7 @@ export const CARD_DETAILS = {
   get TRANSFER_TOGGLE() { return getUIString('CARD_DETAILS.TRANSFER_TOGGLE'); },
   get TRANSFER_CONFIRM() { return getUIString('CARD_DETAILS.TRANSFER_CONFIRM'); },
   get TRANSFER_HEADING() { return getUIString('CARD_DETAILS.TRANSFER_HEADING'); },
+  get GLOSSARY() { return getUIString('CARD_DETAILS.GLOSSARY'); },
 };
 
 // --- DiscardPileModal ---

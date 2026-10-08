@@ -159,7 +159,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
       <button
         onClick={() => openInDictionary('card', card.card_id)}
         style={secondaryBtnStyle}
-        title="Open in Glossary Dashboard"
+        title={CARD_DETAILS.GLOSSARY}
         onMouseEnter={(e) => {
           e.currentTarget.style.backgroundColor = p.surf2;
         }}
@@ -167,7 +167,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
           e.currentTarget.style.backgroundColor = p.surf;
         }}
       >
-        📖 View Intelligence
+        📖 {CARD_DETAILS.GLOSSARY}
       </button>
     </>
   );

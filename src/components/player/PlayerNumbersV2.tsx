@@ -435,6 +435,23 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
         </div>
         )}
 
+        {/* Every payment, one line each (fb:7c8375eb): the list behind "Spent so far". */}
+        {page === 'money' && (
+          <div data-testid="money-paid-list" style={{ marginBottom: 12 }}>
+            <p style={sectionLabel}>{NUMBERS.MONEY_PAID}</p>
+            {(player.costHistory ?? []).length === 0 ? (
+              <p style={{ fontSize: 12, color: p.muted, margin: 0 }}>{NUMBERS.MONEY_PAID_NONE}</p>
+            ) : (
+              [...(player.costHistory ?? [])].reverse().map((c) => (
+                <div key={c.id} style={row} data-testid="money-paid-row">
+                  <span style={{ flex: 1, minWidth: 0 }}>{c.description}</span>
+                  <span style={{ fontWeight: 600 }}>${Math.round(c.amount).toLocaleString()}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
         {/* Money page: the money-family cards you hold (loans, investments on
             the stock board) and anything still costing you each turn — both
             used to sit in "What's affecting you" (fb:adad1561). */}
