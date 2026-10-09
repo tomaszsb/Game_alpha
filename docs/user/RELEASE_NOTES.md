@@ -2,6 +2,15 @@
 
 ---
 
+## v3.6.3 to v3.7.5 — Pick your builder, one Menu everywhere, fairer limits (October 9, 2026)
+
+- **Hire a Builder is now a choice.** Three builders each give you a price, how many days the work takes and how long that price stays good. You will not know how good a builder is until you hire one. Short on money? A door leads to the lender, and your prices wait for you until the day shown (unless your plan changes).
+- **One Menu on every screen.** PC, TV and remote now share the same grey Menu button (open or minimised); everything else is inside it.
+- **The trophy board stays quiet until someone is ahead.** No more "1st" for everybody at the start.
+- **The final review no longer asks for a fire-department sign-off a project never needed.** The FDNY tag now shows a muted dash when that review is not needed, and a cross when it is still owed.
+- **Smaller fixes:** the Money page lists every payment; "View Intelligence" is "Look up in the glossary"; the board lights only the roads you can really take; a warning appears before a roll that could cost you an approval.
+- **Fairer limits:** work-package rolls that remove or swap a package now actually do that, and the 20% design-fee limit is measured against your biggest plan so dropping work cannot knock you out. A project that takes three times its planned days now ends (the owner stops financing it).
+
 ## v3.4.0 to v3.6.2 — A new way to win, a trophy board, and a Fast switch (October 7, 2026)
 
 - **The game is now won on three trophies, not on who finishes first.** Fastest, On budget and Best built, each measured against your own plan. Get two and you win; if nobody does, the lowest total of the three wins. Reaching the finish square no longer stops everyone: you stop taking turns and watch while the others play on.

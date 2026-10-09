@@ -1,43 +1,30 @@
-# Next session starter — written 2026-10-07 by /koniec (second wrap-up of the day; no game source changed after the first)
+# Next session starter — written 2026-10-09 by /koniec
 
 ## State at handoff
-- **Version:** v3.6.3 on origin (`51790a5` = docs on top of code `445c73b`). **LIVE (checked 2026-10-08 02:11 UTC): `/health` = `445c73b2` = v3.6.3; Tom deployed it, so everything built 2026-10-07 is live.** Re-read `/health`; never believe this line.
-- **Branch:** master = origin/master, clean (the old `idea.txt` was consumed into `docs/core/DND_RESKIN_EXPERIMENT.md` and deleted at Tom's word on 2026-10-07).
-- **Last shipped (2026-10-07, Manager Jobs 3-7):** 3.4.0 three-trophy win rule; 3.5.0 "Check my board"; 3.5.1 live trophy board; 3.6.0 rest of Job 5; 3.6.1 phone panel back to its old size; 3.6.2 phone page width fixed + FDNY second read 7 days (Job 7).
-- **Tests:** `npm test` 245 files / 3690 green; typecheck + build clean; lint unchanged (3 old errors). **Ghost gate green at v3.6.3 (head 445c73b): 11 files / 43 tests, smart-bot 43/50 finished, identical to before Job 3; Manager told.**
+- **Version:** v3.7.5 built and pushed (`54e860c`). **Live at the last check (2026-10-09 04:57 UTC): `/health` = `9b5d0555` = v3.7.2; Tom said he was mid-deploy when this wrapped.** Re-read `/health`; never believe this line.
+- **Branch:** master = origin/master after the wrap-up commit, clean.
+- **Last shipped (2026-10-08/09):** 3.7.0 Job 6 (Hire a Builder = three bids, door to the lender, hidden quality); 3.7.1 feedback fixes (trophy board "no race yet", board lights only offered roads, scope-change warning, DOB tag kept, Money page lists payments, glossary label); 3.7.2 one header Menu on PC/TV/remote; 3.7.3 final review asks FDNY only when needed (+ FDNY tag needed vs not); 3.7.4 300% time limit; 3.7.5 work-package Remove/Replace rolls fixed + design cap and time limit measured against the biggest plan.
+- **Tests:** `npm test` 253 files / 3778 green; typecheck + build clean; lint unchanged (3 old errors). Ghost gate green at 3.7.5 (11 files / 43 tests; smart bot **38/50 = the floor**, 8 lost to the time limit; 45/50 with the limit off). Check my board 3/3 and 2/2 on the stock board; not yet run on a real classroom row in Docker.
 
 ## Top 3 open items
-1. **Job 6 (builder and bank) — DESIGN SETTLED WITH TOM, NOT BUILT; needs his explicit go.** Tom's decisions: three random bidders drawn independently (identical ones possible); each bid shows PRICE, DAYS and its OWN price-guarantee days; quality hidden until hired (high 0 / medium 1 / low 2 problem points for Best built, in data); guarantee options must cover a bank/investor round trip through the hub (investor worst case ~80 days) so **100/120/150/180 days**, random per bidder, in a data file; a door from Hire a Builder to the bank (return via PM-DECISION-CHECK, no direct loan->builder road); return with scope unchanged and a bid inside its guarantee keeps it at the quoted price, an expired bidder is replaced by a fresh random one; ANY scope change voids all bids (DOB/FDNY re-scrutiny already happens: scope change takes approvals back); money line at the bank ("cheapest quote $X, good N more days" / "likely about $X"). Still unanswered: quoted price+days = exactly what you pay and wait? Effect: the two dice buttons at Hire a Builder go away (robot clicks them by text). Cost estimate given: 4-7% of his week. Plan: pure bid logic + data file, then engine/state (TEMP rollback), then the door + hub return, then the bank line; small commits, no deploy. The Manager was sent the design for comments; read its reply.
-2. **Deploy v3.6.x, then Tom looks on real devices** (list in TODO "Jobs 3-7"): TV Menu, Fast vs Normal, trophy board, panel (phone must be unchanged in size), the mat, and "Check my board" on a real classroom row (its first real run in Docker). Deploys were HELD while the Jarvis 2-seat run was live: no deploy until the Manager/Tom say its report is read.
-3. **Tom's wording drafts** (trophy names, finished/out tags, "X is out", end-screen hint, Check-my-board texts, End Turn warnings, the two Job 7 route descriptions) and **17 untracked feedback reports** (`/start full`).
-
-## Manager's comments on Job 6 (received 2026-10-08, deploy hold LIFTED; Job 6 itself has its own hold)
-- **Guarantee numbers:** keep 100/120/150/180 in the data file, but do NOT type 80: a TEST derives the worst bank/investor round trip (loan desk + bank per $200K or investor worst roll + hub, from the movement/effects data) and fails if the smallest option is not above it plus a stated margin.
-- **Robot:** removing the two dice buttons ("See how good his work is", "See what it adds up to") stalls the Jarvis robot (nightly 04:00 + RUN-ME 7). **Job 6 does NOT deploy until (a) the ghost bot picks a bid and Check-my-board still finishes, and (b) the Jarvis session has updated its robot.** At the START of the build, give the Manager the exact new labels/test ids so it can brief Jarvis. The next robot run is a new baseline, not comparable with the 10-06/10-07 runs.
-- **Per-bidder expiry stays (Tom decided).** Test the "let one lapse on purpose to re-roll" case; the screen must say plainly which bids lapsed and why.
-- **Number cannot lie:** quoted price and days are exactly what is paid and waited; if a card/dice can still change it, show "about" and say so.
-- **Quality:** confirm the ledger counts it ONCE; Check-my-board's "unclear" must not read a low-quality builder as a board fault.
-- **Teacher editor:** the new bidder data file and the new door must be in the editor's protection lists (BANK-FUND-REVIEW anchor note in the editor review) and covered by Check my board.
-- **Owed:** Tom's stopwatch on a real 3+ player game (Job 3's 2-3x longer games unmeasured by a human).
-- Jarvis 2-seat report (live v3.4.0): ran out of time at 145/150 min, 40 turns per seat, no end, seats uneven 144 vs 479 steps (cause unknown).
-
-## D&D reskin check (Tom, 2026-10-07: "add to check this vs dnd reskin")
-Before Job 6 is called done, and as a pass over Jobs 3-5, check each against the "a reskin swaps by data alone" rule: (1) bidder wording/labels, the three quality names, guarantee options and problem-point sizes must all come from data files (none typed in code); (2) the new bid choice, the quality reveal and the bank money line must read through the UI-strings/CHARACTERS vocabulary, not hard-coded "builder"/"bank"/"DOB"/"FDNY"; (3) the door from Hire a Builder to the bank must be a data row (MOVEMENT/space flags), not a space-name literal; (4) re-audit what Jobs 3-5 left in code: `MAT_CHECKS` vocabulary and the mat's fixed 8 checks, TvMenu/LiveTrophyBoard/BoardCheckStrip wording, the `review_*`/`cut_corner` event ids, `CHEAT-BYPASS` handling, the 5->7 day change (data, fine). Record leaks in TODO under the existing "Workstream 6 CSV-only-reskin audit" items; do not fix unasked.
+1. **Deploy gate — the Jarvis robot.** Do not call v3.7.x done until the robot clicks `builder-bid-hire` (not the old dice), opens the header Menu (`header-menu-button`) instead of loose header buttons, and handles the two pick-a-card pop-ups (`choice-option` for Remove; `card-replacement-modal` / `card-replacement-pick` for Replace). The Manager has all ids (contract in `E:\Documents\People\AI\Manager\handouts\2026-10-08-jarvis-robot-bid-choice-FINAL-CONTRACT.md`). First run after is a new baseline.
+2. **Time limit: 300% / 500% / off — Tom's call after a few real games.** 300% costs the smart bot ~7 finished games (games run ~16% longer since the Remove/Replace fix). I suggested 500% (one number, `TROPHIES.csv` `rule,time_cap_percent`); not yet run at 500%. The Manager still thinks it is "parked" — it is built and pushed since 3.7.4.
+3. **Tom's wording drafts + real-device looks:** `UI_STRINGS.csv` `BUILDER_BIDS.*`, trophy names, finished/out tags, Check-my-board texts, End Turn warnings; the new header Menu on a real TV/phone; the phone panel at Hire a Builder is ~105 px taller (Tom OK'd for now). Also 49-ish open feedback reports (19 triaged in TODO "Newly arrived 2026-10-08": trophy/board/etc. done; left: TV-vs-PC bar question closed by the Menu, wishlist parked, old 3.2.99 reports to confirm-and-close).
 
 ## Decisions waiting on the user
-- Job 6 go + the open question (above). Whether to fix the panel's +18px (649 vs 631 at 360 wide) by shortening something else.
+- Time limit value (above). Tom already answered: Remove/Replace fix = yes with biggest-plan cap; FDNY = fix the flag not the path; 300% accepted for now; phone panel OK.
 
 ## Flip after deploy
-fb:feedback-1790939931163-adb1cc76, -1790512043564-612fbdc4, -1790939049674-a0cecb6a, -1790939744698-8cb652c4, -1790939218940-7fbea636, plus the older ones in TODO (glow: ae480630, 11662ac3, 95624c8e; phone-as-TV: 84b491f2, ec243622, a1260bfc, dc04ea53; b38110f3, ef974f1c). Flip only after Tom confirms on a real device.
+fb:feedback-1790939931163-adb1cc76, -1790512043564-612fbdc4, -1790939049674-a0cecb6a, -1790939744698-8cb652c4, -1790939218940-7fbea636, plus the older ones in TODO (glow: ae480630, 11662ac3, 95624c8e; phone-as-TV: 84b491f2, ec243622, a1260bfc, dc04ea53; b38110f3, ef974f1c). Newly fixed this session (flip once 3.7.x is confirmed live and Tom has looked): fb:67a9c44b, f6aebc05 (trophy board), 496cc1c8, 8f4769cc (roads), 21473ad9 (warning), 7c8375eb, eaba5e71, fa2a2ddf (Menu), bbeb13e2 (DOB tag), 712a9859 (Remove/Replace). Flip only after Tom confirms on a real device.
 
 ## Suggested first move
-Run `/health`; read the Manager's reply to the Job 6 design (it was sent at wrap-up); then ask Tom for his go on Job 6 (and the one open question: quoted price+days = what you pay and wait).
+Read `/health` and ask Tom (or the Manager) whether the deploy finished and whether the Jarvis robot has been updated; then ask Tom for his time-limit choice (and offer the 500% run, ~18 min).
 
 ## Suggested model for next session
-Sonnet 5 — Job 6 is rules + data + UI; raise effort before a bigger model.
+Sonnet 5 — remaining work is data tuning, the robot hand-off and small fixes; raise effort before a bigger model.
 
 ## Reminders
-- **Deploy stays Tom's** (`ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`, PowerShell); confirm with `/health`. The fixed deploy.sh now checks 127.0.0.1 (a false "DEPLOY FAILED" came from `localhost`); if it still says failed, check the public `/health`.
-- A deploy ships HEAD. The Docker image leaves `tests/` out: the headless bot lives in `src/headless/` now.
-- Commands for Tom go in PowerShell (no grep; `curl.exe`). Edit CRLF files with a script that keeps EOL (the Edit tool flips them).
-- Tom's rules this session: the phone player panel must NOT get bigger; measure in a browser before claiming layout; his real go in chat, a relayed one is not enough.
+- **Deploy stays Tom's** (`ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`, PowerShell); confirm with `/health`.
+- A new player field the turn snapshot copies must be written with `updateTempState`, and tests must END THE TURN before looking (CLAUDE.md TACTICAL, charter 3.99).
+- Tom's rules: all screens look identical and menus hide (new header controls go in `HeaderMenu`); phone panel never bigger without his OK; his real go in chat (a relayed one is not enough for risky steps).
+- Commands for Tom go in PowerShell. Edit CRLF files with a script that keeps EOL (the Edit tool flips them).
