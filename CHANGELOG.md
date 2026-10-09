@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 - **The fix:** `ApprovalService.isFdnyReviewNeeded` (needed = any FDNY status already, or the FDNY / DOB plan exam visited, or fire-protection work in hand; `MovementService` registers what counts as fire protection). The final review asks for FDNY approval only when it is needed; DOB approval is always required. A project that needs FDNY is still sent to the examiner as before.
 - **The tag:** the FDNY badge shows "FDNY ✗" when the review is owed and a muted "FDNY –" ("not needed for your project") when it is not.
 - **Tests:** `FdnyReviewNeeded` (8), the gate and tag tests; `npm test` 251 files green; typecheck clean. Ghost gate green (11 files / 43 tests); smart bot 43/50 finished (avg 103 turns, was 110).
-- **Still open (TODO):** whether the plan examiner should ALWAYS be offered while FDNY is not approved (Tom has not answered).
+- **Decided by Tom:** no road to the plan examiner is added. Nobody would pay for a plan exam they do not need, and the clerks would not let them through; the requirement (the flag) was wrong, not the path.
 
 ## [3.7.2] - 2026-10-08
 
