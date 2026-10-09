@@ -471,6 +471,7 @@ export class TurnService implements ITurnService {
       // (they stop taking turns and hold no trophy); the game ends only when nobody is left to play.
       if (!hasWon) {
         this.effectEngineService?.checkDesignFeeCap(gameState.currentPlayerId);
+        this.effectEngineService?.checkTimeCap(gameState.currentPlayerId);
         this.effectEngineService?.checkBankruptcy(gameState.currentPlayerId);
         if (this.stateService.getPlayer(gameState.currentPlayerId)?.outReason) {
           this.stateService.updatePlayer({ id: gameState.currentPlayerId, outAtTurn: gameState.globalTurnCount });

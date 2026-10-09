@@ -10,6 +10,7 @@
 //   space_event   key = space id                   value = quality event fired on arrival
 //   mat           key = tile id                    value = what fills it (see MAT_CHECKS)   text = the tile's label
 //   rule          key = bids_offered               value = how many builders bid at once
+//   rule          key = time_cap_percent           value = days used as a % of the plan that takes a player out (0 = off)
 //   guarantee     key = option id                  value = days a bid's price is held (each bidder gets one at random)
 //   builder_quality key = HIGH | MED | LOW         value = quality event fired on hiring   text = the quality's name
 //   builder_space key = the hiring space           value = the door from it to the bank (a space id)
@@ -57,6 +58,8 @@ export interface TrophyRules {
   reviewEvents: string[];
   /** Space id -> quality event fired when a player arrives there. */
   spaceEvents: Record<string, string>;
+  /** A player is out when days used reach this % of the days planned (300 = three times as long; 0 = no limit). */
+  timeCapPercent: number;
   /** Builder bids: where, how many, how long a price is held, and what quality each hire counts as. */
   builder: BuilderRules;
 }
@@ -92,6 +95,7 @@ const DEFAULT_RULES: TrophyRules = {
   points: { review_passed: 0, review_sent_back: 1, violation: 2, cut_corner: 2, builder_high: 0, builder_medium: 1, builder_low: 2 },
   reviewEvents: ['review_passed', 'review_sent_back', 'builder_high', 'builder_medium', 'builder_low'],
   spaceEvents: { 'CHEAT-BYPASS': 'cut_corner' },
+  timeCapPercent: 300,
   builder: DEFAULT_BUILDER,
 };
 
@@ -110,6 +114,7 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
     reviewEvents: [],
     spaceEvents: {},
     mat: [],
+    timeCapPercent: DEFAULT_RULES.timeCapPercent,
     builder: { ...DEFAULT_BUILDER, space: '', door: '', noteSpaces: [], guaranteeDays: [], qualities: { ...DEFAULT_BUILDER.qualities } },
   };
   let sawBuilderSpace = false;
@@ -126,6 +131,9 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
         if (key === 'trophies_to_win') {
           const n = parseInt(value, 10);
           if (Number.isFinite(n) && n >= 1 && n <= TROPHY_IDS.length) next.trophiesToWin = n;
+        } else if (key === 'time_cap_percent') {
+          const n = parseInt(value, 10);
+          if (Number.isFinite(n) && n >= 0) next.timeCapPercent = n;
         } else if (key === 'bids_offered') {
           const n = parseInt(value, 10);
           if (Number.isFinite(n) && n >= 1 && n <= 6) next.builder.bidsOffered = n;

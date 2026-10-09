@@ -8,14 +8,16 @@
 import type { GameEndReason } from '../types/StateTypes';
 
 export function lossTitle(reason: GameEndReason): string {
-  return reason.type === 'bankruptcy' ? 'The project went under' : 'The design budget sank the project';
+  if (reason.type === 'bankruptcy') return 'The project went under';
+  if (reason.type === 'time_cap') return 'The owner pulled the plug';
+  return 'The design budget sank the project';
 }
 
 /** One plain line for a loss, naming the player (works solo and shared screen alike). */
 export function lossLine(reason: GameEndReason, playerName: string): string {
-  return reason.type === 'bankruptcy'
-    ? `${playerName} ran out of money — a bill came due with nothing left to pay it.`
-    : `${playerName}'s design fees passed 20% of the project's scope.`;
+  if (reason.type === 'bankruptcy') return `${playerName} ran out of money — a bill came due with nothing left to pay it.`;
+  if (reason.type === 'time_cap') return `${playerName}'s project took far longer than planned, and the owner stopped financing it.`;
+  return `${playerName}'s design fees passed 20% of the project's scope.`;
 }
 
 export interface GameOverHeadline {

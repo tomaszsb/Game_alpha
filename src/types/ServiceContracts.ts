@@ -516,6 +516,8 @@ export interface IFinancialEffectHandler {
   checkBankruptcy(playerId: string): void;
   /** Ends the game (no winner) if design fees have reached 20% of project scope. */
   checkDesignFeeCap(playerId: string): void;
+  /** Takes the player out if their project has taken the data's time-cap share of its planned days (300%). */
+  checkTimeCap(playerId: string): void;
 }
 
 /**
@@ -670,6 +672,9 @@ export interface IEffectEngineService {
 
   /** Same, for the 20% design-fee cap — checked once at turn-commit, not at the roll. */
   checkDesignFeeCap(playerId: string): void;
+
+  /** Same, for the time cap (the owner stops financing a project that took 300% of its plan). */
+  checkTimeCap(playerId: string): void;
 }
 
 export interface ITargetingService {

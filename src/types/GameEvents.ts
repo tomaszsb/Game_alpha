@@ -250,7 +250,7 @@ export interface ApprovalOutcomeDeterminedEvent {
 // 3 flavors, not 3 unrelated moments.
 export interface GameEndedEvent {
   type: 'game_ended';
-  reason: 'win' | 'bankruptcy' | 'design_fee_cap';
+  reason: 'win' | 'bankruptcy' | 'design_fee_cap' | 'time_cap';
   playerId: string;
   playerName: string;
   spaceName: string;
@@ -283,7 +283,7 @@ export interface PlayerOutEvent {
   type: 'player_out';
   playerId: string;
   playerName: string;
-  reason: 'bankruptcy' | 'design_fee_cap';
+  reason: 'bankruptcy' | 'design_fee_cap' | 'time_cap';
   spaceName: string;
   message: string;
 }

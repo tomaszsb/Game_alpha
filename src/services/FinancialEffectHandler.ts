@@ -18,6 +18,7 @@ import {
 import { Player } from '../types/DataTypes';
 import { extractPercentage, parseFeeFromDescription } from '../utils/parseUtils';
 import { debugLog, debugWarn } from '../utils/debugLog';
+import { getTrophyRules } from '../utils/trophyRules';
 
 type ResourceChangePayload = Extract<Effect, { effectType: 'RESOURCE_CHANGE' }>['payload'];
 type FeeDeductionPayload = Extract<Effect, { effectType: 'FEE_DEDUCTION' }>['payload'];
@@ -340,6 +341,26 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     }
   }
 
+  /**
+   * Takes the player out when their project has run to the time cap: days used reach the data's share
+   * (TROPHIES.csv `time_cap_percent`, 300) of the days the plan called for. No owner keeps financing a
+   * job that took three times as long as promised (Tom, 2026-10-08). Checked once at turn-commit with
+   * the other two ways out. 0 in the data switches it off; a plan with no days yet cannot run late.
+   */
+  public checkTimeCap(playerId: string): void {
+    const percent = getTrophyRules().timeCapPercent;
+    if (!percent || percent <= 0) return;
+    const player = this.stateService.getPlayer(playerId);
+    if (!player || player.outReason) return;
+    // No work packages yet means no plan to run late against.
+    if (!(this.gameRulesService.calculateProjectScope(playerId) > 0)) return;
+    const plannedDays = this.gameRulesService.calculateEstimatedProjectLength(playerId).estimatedDays;
+    if (!(plannedDays > 0)) return;
+    if ((player.timeSpent ?? 0) >= plannedDays * (percent / 100)) {
+      this.takePlayerOut(playerId, 'time_cap', `⛔ ${player.name} is out: the project took ${percent}% of the days it was planned for, and the owner stopped financing it.`);
+    }
+  }
+
   private notifyMoneyReceived(playerId: string, amount: number, source: string, sourceType: string, reason: string): void {
     if (!this.notificationService) return;
 
@@ -426,7 +447,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
    * hold no trophy, and the others play on. TurnService decides whether anyone is left to play
    * (a game with nobody left ends with a loss screen, exactly as the old rule did for one player).
    */
-  private takePlayerOut(playerId: string, reason: 'bankruptcy' | 'design_fee_cap', message: string): void {
+  private takePlayerOut(playerId: string, reason: 'bankruptcy' | 'design_fee_cap' | 'time_cap', message: string): void {
     const player = this.stateService.getPlayer(playerId);
     if (!player || player.outReason) return;
     this.stateService.updatePlayer({ id: playerId, outReason: reason });

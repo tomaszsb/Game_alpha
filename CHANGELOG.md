@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.4] - 2026-10-09
+
+### A time limit: a project that takes 300% of its planned days takes that player out (Tom: "yes to 300%", fb:391cc247). Not deployed.
+
+- **The rule:** like the design-fee cap and bankruptcy, it is checked once when a turn is committed. When a player's days used reach 300% of the days their plan called for (the same planned days the progress numbers use), they are out: they stop taking turns, hold no trophy, and the others play on. The end screen says "The owner pulled the plug". No work packages yet means no plan, so nothing can run late.
+- **Data:** `TROPHIES.csv` `rule,time_cap_percent,300`; 0 switches it off. `FinancialEffectHandler.checkTimeCap`.
+- **Tests:** `TimeCap` (6); `npm test` 252 files / 3766 green.
+
 ## [3.7.3] - 2026-10-09
 
 ### The final-review clerk no longer holds back a project that never needed the fire department (Tom: "we have to fix the DOB clerk at the end"; fb:8f4769cc, fb:496cc1c8). Not deployed.

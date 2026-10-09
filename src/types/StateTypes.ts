@@ -291,7 +291,7 @@ export interface NegotiationResult {
 // bill drove cash below zero; `design_fee_cap` = design fees passed 20% of
 // project scope. Both are set by FinancialEffectHandler.
 export interface GameEndReason {
-  type: 'bankruptcy' | 'design_fee_cap';
+  type: 'bankruptcy' | 'design_fee_cap' | 'time_cap';
   playerId: string;
 }
 
@@ -503,7 +503,7 @@ export interface PlayerUpdateData {
   trophyRecord?: import('./DataTypes').TrophyRecord;
   builderBids?: import('../utils/builderBids').BuilderBidSet;
   finishedAtTurn?: number;
-  outReason?: 'bankruptcy' | 'design_fee_cap';
+  outReason?: 'bankruptcy' | 'design_fee_cap' | 'time_cap';
   outAtTurn?: number;
   finishPenalty?: import('./DataTypes').Player['finishPenalty'];
 }

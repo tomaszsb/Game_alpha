@@ -71,7 +71,7 @@ export interface GhostGameResult {
   // 2026-10-06 every ended game was reported as 'WIN', so "50/50 wins" included
   // bankruptcies and fee-cap losses.)
   reason: 'FINISHED' | 'LOST' | 'TURN_CAP' | 'LOOP' | 'EXCEPTION' | 'INVARIANT_VIOLATION';
-  lossReason?: 'bankruptcy' | 'design_fee_cap';
+  lossReason?: 'bankruptcy' | 'design_fee_cap' | 'time_cap';
   /** How many seats played (options.players, default 1). `turns` counts every seat's turns together. */
   players?: number;
   /** The three-trophy result of a game that ended (who held which trophy, each player's percentages). */

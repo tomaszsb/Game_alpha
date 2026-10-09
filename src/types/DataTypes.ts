@@ -544,7 +544,7 @@ export interface Player {
   /** Set when they reach the ending space and stop taking turns; value = the game turn they got there. */
   finishedAtTurn?: number;
   /** Set when the player is out (cash below zero, or design fees over the limit) — they hold no trophy. */
-  outReason?: 'bankruptcy' | 'design_fee_cap';
+  outReason?: 'bankruptcy' | 'design_fee_cap' | 'time_cap';
   /** The game turn they went out. */
   outAtTurn?: number;
   /** Charges applied when they reached the ending space (kept here until the game ends, then the winner's go on the end screen). */

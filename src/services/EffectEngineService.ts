@@ -143,6 +143,11 @@ export class EffectEngineService implements IEffectEngineService {
     this.financialEffectHandler?.checkDesignFeeCap(playerId);
   }
 
+  /** Passthrough to FinancialEffectHandler.checkTimeCap (the 300% time cap) — same reason. */
+  public checkTimeCap(playerId: string): void {
+    this.financialEffectHandler?.checkTimeCap(playerId);
+  }
+
   /**
    * Assert that critical setter-injected dependencies are initialized.
    * Some services (dataService) are optional and handled with null checks.
