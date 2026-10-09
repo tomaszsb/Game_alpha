@@ -541,6 +541,12 @@ export interface Player {
   trophyRecord?: TrophyRecord;
   /** The builders' bids on the table (utils/builderBids.ts). Rolls back on Try Again with everything else. */
   builderBids?: import('../utils/builderBids').BuilderBidSet;
+  /** The biggest project scope this player has had at the end of any turn. The 20% design-fee cap is measured against it,
+   *  so a roll that shrinks the plan cannot, by itself, push fees over the limit. */
+  peakScope?: number;
+  /** The most planned days this player's project has called for at the end of any turn; the 300% time cap is
+   *  measured against it for the same reason as peakScope (dropping work must not make a project "late"). */
+  peakPlanDays?: number;
   /** Set when they reach the ending space and stop taking turns; value = the game turn they got there. */
   finishedAtTurn?: number;
   /** Set when the player is out (cash below zero, or design fees over the limit) — they hold no trophy. */

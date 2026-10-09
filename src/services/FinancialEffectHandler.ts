@@ -318,7 +318,14 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     if (!updatedPlayer) return;
 
     const totalDesignFees = updatedPlayer.expenditures?.design || 0;
-    const playerScope = this.gameRulesService.calculateProjectScope(playerId);
+    const currentScope = this.gameRulesService.calculateProjectScope(playerId);
+    // Measured against the BIGGEST scope this player has had at a turn's end (Tom, 2026-10-09): the fees were
+    // priced on that bigger plan, so dropping work later must not push them over the limit by itself.
+    // Kept out of the turn snapshot on purpose (a push-back never un-sees a size already committed).
+    const playerScope = Math.max(updatedPlayer.peakScope ?? 0, currentScope);
+    if (playerScope > (updatedPlayer.peakScope ?? 0)) {
+      this.stateService.updateTempState(playerId, { peakScope: playerScope });
+    }
     const designFeeRatio = playerScope > 0 ? (totalDesignFees / playerScope) * 100 : 0;
 
     if (designFeeRatio >= 20) {
@@ -354,8 +361,12 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     if (!player || player.outReason) return;
     // No work packages yet means no plan to run late against.
     if (!(this.gameRulesService.calculateProjectScope(playerId) > 0)) return;
-    const plannedDays = this.gameRulesService.calculateEstimatedProjectLength(playerId).estimatedDays;
+    const currentPlan = this.gameRulesService.calculateEstimatedProjectLength(playerId).estimatedDays;
+    // Against the BIGGEST plan this project has called for (as with the design-fee cap): dropping work shrinks
+    // the plan, and a project must not become "late" just because it got smaller.
+    const plannedDays = Math.max(player.peakPlanDays ?? 0, currentPlan);
     if (!(plannedDays > 0)) return;
+    if (plannedDays > (player.peakPlanDays ?? 0)) this.stateService.updateTempState(playerId, { peakPlanDays: plannedDays });
     if ((player.timeSpent ?? 0) >= plannedDays * (percent / 100)) {
       this.takePlayerOut(playerId, 'time_cap', `⛔ ${player.name} is out: the project took ${percent}% of the days it was planned for, and the owner stopped financing it.`);
     }

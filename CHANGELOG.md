@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.5] - 2026-10-09
+
+### Work-package "Remove 1" / "Replace 1" rolls work now, and the 20% design-fee cap and the 300% time limit are measured against the BIGGEST plan (Tom: yes to "b"; fb:712a9859). Not deployed.
+
+- **The fix:** at the architect, engineer, lender and owner-decision spaces a roll of "Remove 1" or "Replace 1" on work packages used to DRAW a card (the generated `cards` rows went down a draw-only branch), so the plan could only grow. They now remove / swap one. With more packages than the roll removes, the player picks which (a choice pop-up for Remove, the swap pop-up for Replace); with exactly one it is taken automatically.
+- **Design-fee cap:** the 20% is measured against the biggest scope the player has had at the end of any turn (`peakScope`), so dropping work cannot by itself end the game. A plan that only grew behaves exactly as before.
+- **Time limit:** the 300% is measured against the biggest plan in days (`peakPlanDays`) for the same reason.
+- **Robot hooks:** the Remove pick-a-card pop-up options are `data-testid="choice-option"` (with `data-option-id`); Replace uses `card-replacement-modal` / `card-replacement-pick`.
+- **Numbers (smart bot, same 50 games):** before 43 finished / 4 lost; with this fix and the 300% limit ON 38 finished / 10 lost (8 to the time limit; games run about 16% longer); with the limit OFF 45 finished / 1 lost and no design-fee losses. The limit stays at 300% for now; Tom decides whether to loosen it (500% suggested) after a few real games.
+- **Tests:** `DesignCapPeakScope` (6), `TimeCap` (7), `EffectFactory` Remove/Replace rolls; `npm test` 253 files / 3778 green; ghost gate green (38/50 smart bot, at the floor); Check my board 3 of 3 and 2 of 2 finished.
+
 ## [3.7.4] - 2026-10-09
 
 ### A time limit: a project that takes 300% of its planned days takes that player out (Tom: "yes to 300%", fb:391cc247). Not deployed.

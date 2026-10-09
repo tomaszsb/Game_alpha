@@ -131,6 +131,12 @@ export interface MutablePlayerState {
   // push-back that throws the turn away must throw the hire (and the bids drawn) away too.
   contractor?: { quality: 'HIGH' | 'MED' | 'LOW'; multiplier: number; hiredAt?: string };
   builderBids?: import('../utils/builderBids').BuilderBidSet;
+
+  /** Biggest scope at any turn's end - the 20% design-fee cap is measured against it. Written through
+   *  updateTempState but NOT part of the turn snapshot, so a push-back never forgets it. */
+  peakScope?: number;
+  /** Same idea for the planned days (the time cap). */
+  peakPlanDays?: number;
 }
 
 /**
@@ -502,6 +508,8 @@ export interface PlayerUpdateData {
   violationAccrualCheckpoint?: number;
   trophyRecord?: import('./DataTypes').TrophyRecord;
   builderBids?: import('../utils/builderBids').BuilderBidSet;
+  peakScope?: number;
+  peakPlanDays?: number;
   finishedAtTurn?: number;
   outReason?: 'bankruptcy' | 'design_fee_cap' | 'time_cap';
   outAtTurn?: number;

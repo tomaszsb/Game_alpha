@@ -297,6 +297,8 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
           return (
             <Tooltip key={option.id} content={choiceTooltip.tooltip} context={choiceTooltip.context} position="right">
               <button
+                data-testid="choice-option"
+                data-option-id={option.id}
                 onClick={() => handleChoiceClick(option.id)}
                 style={choiceButtonStyle}
                 onMouseEnter={(e) => {

@@ -64,3 +64,20 @@ describe('the time cap', () => {
     expect(lossLine(reason, 'Sam')).toContain('longer than planned');
   });
 });
+
+describe('the time cap measures against the biggest plan (with the Remove/Replace rolls fixed)', () => {
+  it('dropping work does not make a project late', async () => {
+    const g = await game(['W001', 'W023', 'W039', 'W060']); // four kinds of work
+    const check = () => (g.turnService as any).effectEngineService.checkTimeCap(g.id);
+    check(); // records the big plan
+    const big = g.stateService.getPlayer(g.id).peakPlanDays;
+    expect(big).toBe(g.planned);
+    // days that are fine for the big plan but over 300% of the small one
+    g.stateService.updatePlayer({ id: g.id, hand: ['W001'] } as any); // down to one kind of work
+    const small = g.gameRulesService.calculateEstimatedProjectLength(g.id).estimatedDays as number;
+    expect(small).toBeLessThan(big);
+    g.stateService.updatePlayer({ id: g.id, timeSpent: Math.floor(small * 3) + 1 } as any);
+    check();
+    expect(g.stateService.getPlayer(g.id).outReason).toBeUndefined();
+  });
+});
