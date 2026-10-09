@@ -481,6 +481,36 @@ describe('EffectFactory', () => {
     });
   });
 
+  describe('createEffectsFromDiceRoll - work-package rolls (fb:712a9859)', () => {
+    // The generated DICE_EFFECTS.csv row for ENG-SCOPE-CHECK: effect_type "cards", card type in its own column.
+    const row = [{
+      space_name: 'ENG-SCOPE-CHECK', visit_type: 'First' as const, effect_type: 'cards', card_type: 'W',
+      roll_1: 'Remove 1', roll_2: 'Draw 1', roll_3: 'Replace 1', roll_4: 'No change', roll_5: 'No change', roll_6: 'No change',
+    }];
+    const at = (roll: number) => EffectFactory.createEffectsFromDiceRoll(row as any, mockPlayerId, 'ENG-SCOPE-CHECK', roll, 'Test Player');
+
+    it('a roll of Remove 1 removes a work package (it used to draw one)', () => {
+      const types = at(1).map(e => e.effectType);
+      expect(types).toContain('CARD_DISCARD');
+      expect(types).not.toContain('CARD_DRAW');
+    });
+    it('a roll of Draw 1 draws one', () => {
+      const types = at(2).map(e => e.effectType);
+      expect(types).toContain('CARD_DRAW');
+      expect(types).not.toContain('CARD_DISCARD');
+    });
+    it('a roll of Replace 1 swaps: one discard, then one draw', () => {
+      const types = at(3).map(e => e.effectType).filter(t => t === 'CARD_DISCARD' || t === 'CARD_DRAW');
+      expect(types).toEqual(['CARD_DISCARD', 'CARD_DRAW']);
+    });
+    it('No change does nothing to the hand', () => {
+      expect(at(4).filter(e => e.effectType === 'CARD_DRAW' || e.effectType === 'CARD_DISCARD')).toHaveLength(0);
+    });
+    it('every scope change recalculates the scope', () => {
+      for (const roll of [1, 2, 3]) expect(at(roll).map(e => e.effectType)).toContain('RECALCULATE_SCOPE');
+    });
+  });
+
   describe('createEffectsFromDiceRoll - design fee percentage effects', () => {
     it('should create RESOURCE_CHANGE with percentageOfScope for percentage money effects', () => {
       // Arrange - Simulating ARCH-FEE-REVIEW dice effect
