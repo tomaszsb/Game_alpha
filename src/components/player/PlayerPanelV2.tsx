@@ -56,9 +56,13 @@ type ApprovalView = { label: string; dot: string; mark: string };
 // yet" is itself the news — the player should see the ✗ waiting there, not an empty spot
 // (fb:b8902332, real phone 2026-09-27: "there used to be tags… a ✗ for not and a ✓ for
 // yes. I just do not see them"). Before that stage an approval is irrelevant, so stays hidden.
-function approvalView(status: string | undefined, showNone = false): ApprovalView | null {
+function approvalView(status: string | undefined, showNone = false, notNeeded = false): ApprovalView | null {
   if (!status || status === 'none') {
-    return showNone ? { label: 'not approved yet', dot: '#94a3b8', mark: '✗' } : null;
+    if (!showNone) return null;
+    // A review this project never needs reads differently from one that is still owed (Tom, 2026-10-08).
+    return notNeeded
+      ? { label: 'not needed for your project', dot: '#94a3b8', mark: '–' }
+      : { label: 'not approved yet', dot: '#94a3b8', mark: '✗' };
   }
   switch (status) {
     case 'approved':
@@ -253,7 +257,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // vanish while the other tag stayed: fb:bbeb13e2, "FDNY shows but DOB vanished").
   const visited = player.visitedSpaces ?? [];
   const dob = approvalView(player.dobApprovalStatus, atApprovalsStage || visited.includes(DOB_EXAM_SPACE));
-  const fdny = approvalView(player.fdnyApprovalStatus, atApprovalsStage || visited.includes(FDNY_EXAM_SPACE));
+  const fdnyNotNeeded = gameServices.approvalService?.isFdnyReviewNeeded?.(player) === false;
+  const fdny = approvalView(player.fdnyApprovalStatus, atApprovalsStage || visited.includes(FDNY_EXAM_SPACE), fdnyNotNeeded);
   // Resolved violations fade to a quiet trace (like DOB/FDNY do) rather than
   // showing forever — only 'active' needs the player's attention.
   const violation = player.violationStatus === 'active' ? violationView(player.violationStatus) : null;

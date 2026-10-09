@@ -236,9 +236,36 @@ export interface IApprovalService {
    * Returns [] if neither approval is currently 'approved'.
    */
   getApprovedDestinations(player: Player): string[];
+
+  /**
+   * Does this player's project need the fire department's plan review at all? True once they have been
+   * through it (any status but "none"), or the building department sent them there (they went through its
+   * plan exam), or the work includes fire protection. A project with none of those never needs it, so the
+   * final review must not hold it back for a sign-off the intake never asked for, and the panel shows the
+   * FDNY tag differently ("not needed"). When no fire-protection check is registered (legacy tests) every
+   * project is treated as needing it, as before.
+   */
+  isFdnyReviewNeeded(player: Player): boolean;
+
+  /** Tells the service how to recognise fire-protection work in a hand (MovementService registers this). */
+  setFireProtectionCheck?(check: (player: Player) => boolean): void;
 }
 
 export class ApprovalService implements IApprovalService {
+  private fireProtectionCheck?: (player: Player) => boolean;
+
+  setFireProtectionCheck(check: (player: Player) => boolean): void {
+    this.fireProtectionCheck = check;
+  }
+
+  isFdnyReviewNeeded(player: Player): boolean {
+    if (!this.fireProtectionCheck) return true;
+    if (player.fdnyApprovalStatus && player.fdnyApprovalStatus !== 'none') return true;
+    const visited = player.visitedSpaces ?? [];
+    if (visited.includes(FDNY_EXAM_SPACE) || visited.includes(DOB_EXAM_SPACE)) return true;
+    return this.fireProtectionCheck(player);
+  }
+
   resolveDiceOutcome(space: string, visitType: VisitType, roll: number): ApprovalOutcome | null {
     if (space === FDNY_EXAM_SPACE) {
       return this.resolveFdny(visitType, roll);
@@ -341,7 +368,8 @@ export class ApprovalService implements IApprovalService {
 
   checkFinalReviewGate(player: Player): FinalReviewGateResult {
     const dobOk = player.dobApprovalStatus === 'approved';
-    const fdnyOk = player.fdnyApprovalStatus === 'approved';
+    // A project the fire department never needed to review is not held back for its sign-off.
+    const fdnyOk = player.fdnyApprovalStatus === 'approved' || !this.isFdnyReviewNeeded(player);
 
     if (dobOk && fdnyOk) {
       return { passed: true };

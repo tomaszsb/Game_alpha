@@ -78,6 +78,8 @@ export class MovementService implements IMovementService {
     notificationService?: INotificationService
   ) {
     this.notificationService = notificationService;
+    // The approval rules need to know what counts as fire-protection work; this is the one place that does.
+    this.approvalService?.setFireProtectionCheck?.((p) => this.playerHoldsFireProtection(p));
   }
 
   /**

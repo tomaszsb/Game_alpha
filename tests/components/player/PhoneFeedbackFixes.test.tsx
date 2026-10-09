@@ -122,6 +122,18 @@ describe('DOB / FDNY approval tags (fb:b8902332)', () => {
     expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY ✗');
   });
 
+  it('the FDNY tag reads differently when the review is needed and when it is not (Tom, 2026-10-08)', () => {
+    setup({ ...basePlayer, dobApprovalStatus: 'approved' }, 'REGULATORY');
+    (services as any).approvalService = { isFdnyReviewNeeded: vi.fn().mockReturnValue(true) };
+    renderPanel();
+    expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY ✗');
+    cleanup();
+    (services as any).approvalService = { isFdnyReviewNeeded: vi.fn().mockReturnValue(false) };
+    renderPanel();
+    expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY –');
+    expect(screen.getByTestId('approval-tag-fdny')).toHaveAttribute('title', 'FDNY not needed for your project');
+  });
+
   it('an approval earned early still shows (status wins over phase)', () => {
     setup({ ...basePlayer, fdnyApprovalStatus: 'approved' }, 'DESIGN');
     renderPanel();

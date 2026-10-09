@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.3] - 2026-10-09
+
+### The final-review clerk no longer holds back a project that never needed the fire department (Tom: "we have to fix the DOB clerk at the end"; fb:8f4769cc, fb:496cc1c8). Not deployed.
+
+- **The cause:** the FDNY intake only offers the plan examiner to a project the fire department must review (it holds fire-protection work, DOB sent it on, or it was approved before and the scope changed). But the final review demanded FDNY approval from EVERY project, so a project that was never sent to the examiner (a professional-certification job with no fire-protection work) was refused at the end and bounced back to an examiner it had no way to choose.
+- **The fix:** `ApprovalService.isFdnyReviewNeeded` (needed = any FDNY status already, or the FDNY / DOB plan exam visited, or fire-protection work in hand; `MovementService` registers what counts as fire protection). The final review asks for FDNY approval only when it is needed; DOB approval is always required. A project that needs FDNY is still sent to the examiner as before.
+- **The tag:** the FDNY badge shows "FDNY ✗" when the review is owed and a muted "FDNY –" ("not needed for your project") when it is not.
+- **Tests:** `FdnyReviewNeeded` (8), the gate and tag tests; `npm test` 251 files green; typecheck clean. Ghost gate green (11 files / 43 tests); smart bot 43/50 finished (avg 103 turns, was 110).
+- **Still open (TODO):** whether the plan examiner should ALWAYS be offered while FDNY is not approved (Tom has not answered).
+
 ## [3.7.2] - 2026-10-08
 
 ### One header menu for the PC, the TV and the remote screen (Tom, 2026-10-08: "all versions ... should always strive to look identical, open and closed ... as much of the space as possible for the game, so menus hiding are preferable"; settles fb:fa2a2ddf and fb:4009c63a). Not deployed.

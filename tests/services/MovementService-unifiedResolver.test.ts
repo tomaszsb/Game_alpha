@@ -175,7 +175,8 @@ describe('MovementService.getValidMoves — unified resolver (Phase 2.1)', () =>
         id: 'p1',
         currentSpace: 'REG-DOB-FINAL-REVIEW',
         visitType: 'First',
-        visitedSpaces: ['REG-DOB-FINAL-REVIEW'],
+        // went through the DOB plan exam, which sends a project on to the fire department: FDNY IS needed
+        visitedSpaces: ['REG-DOB-PLAN-EXAM', 'REG-DOB-FINAL-REVIEW'],
         dobApprovalStatus: 'approved',
         fdnyApprovalStatus: 'none',
       } as any;
