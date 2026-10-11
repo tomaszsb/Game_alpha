@@ -1,0 +1,148 @@
+import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import { buildTownLayout, buildingBox, buildingViews, isoPoint } from '../../src/utils/townLayout';
+import { extractPrefix } from '../../src/constants/characters';
+import type { TownCsvRow } from '../../src/types/DataTypes';
+
+const CLEAN = path.join(__dirname, '../../public/data/CLEAN_FILES');
+
+/** Plain CSV reader for these two simple files (no quoted commas in either). */
+function readCsv(file: string): Record<string, string>[] {
+  const [head, ...lines] = fs.readFileSync(path.join(CLEAN, file), 'utf-8').split(/\r?\n/).filter(Boolean);
+  const cols = head.split(',');
+  return lines.map(l => {
+    const v = l.split(',');
+    return Object.fromEntries(cols.map((c, i) => [c, (v[i] ?? '').trim()]));
+  });
+}
+
+const townRows = () => readCsv('TOWN.csv') as unknown as TownCsvRow[];
+const stockSpaces = () => readCsv('GAME_CONFIG.csv').map(r => r.space_name).filter(s => s !== 'START-QUICK-PLAY-GUIDE');
+const label = (s: string) => s;
+
+const row = (o: Partial<TownCsvRow>): TownCsvRow => ({
+  kind: '', id: '', name: '', building: '', col: '', row: '', width: '', depth: '', height: '', color: '', icon: '', value: '', ...o,
+});
+
+describe('town layout (TOWN.csv)', () => {
+  it('the stock town puts every square of the stock board in exactly one building', () => {
+    const spaces = stockSpaces();
+    const layout = buildTownLayout(townRows(), spaces, extractPrefix, label)!;
+    expect(layout).not.toBeNull();
+    const placed = layout.buildings.flatMap(b => b.rooms);
+    expect(placed.sort()).toEqual([...spaces].sort());
+    expect(new Set(placed).size).toBe(placed.length);
+    expect(layout.buildings.some(b => b.isNewPlace)).toBe(false);
+  });
+
+  it("follows Tom's layout: the find-a-consultant rooms and the lender are in Your office, filing is at the Buildings Department", () => {
+    const layout = buildTownLayout(townRows(), stockSpaces(), extractPrefix, label)!;
+    const at = (s: string) => layout.roomToBuilding.get(s);
+    for (const s of ['PM-DECISION-CHECK', 'ARCH-INITIATION', 'ENG-INITIATION', 'LEND-SCOPE-CHECK', 'CHEAT-BYPASS']) expect(at(s)).toBe('office');
+    expect(at('REG-DOB-TYPE-SELECT')).toBe('dob');
+    expect(at('BANK-FUND-REVIEW')).toBe('bank');
+    expect(at('INVESTOR-FUND-REVIEW')).toBe('investor');
+    expect(at('CON-INITIATION')).toBe('trailer');
+    expect(at('CON-ISSUES')).toBe('trailer');
+    expect(at('CON-INSPECT')).toBe('site');
+    expect(layout.buildings.find(b => b.id === 'lender')).toBeUndefined();
+  });
+
+  it('no town list (or no buildings in it) means no town: the classic board only', () => {
+    expect(buildTownLayout([], stockSpaces(), extractPrefix, label)).toBeNull();
+    expect(buildTownLayout([row({ kind: 'room', id: 'X', building: 'b' })], ['X'], extractPrefix, label)).toBeNull();
+  });
+
+  it("a teacher's added square joins its speaking character's building", () => {
+    const rows = [
+      row({ kind: 'building', id: 'arch', name: 'Studio', col: '0', row: '0' }),
+      row({ kind: 'room', id: 'ARCH-FEE-REVIEW', building: 'arch' }),
+    ];
+    const layout = buildTownLayout(rows, ['ARCH-FEE-REVIEW', 'ARCH-NEW-SKETCH'], extractPrefix, label)!;
+    expect(layout.roomToBuilding.get('ARCH-NEW-SKETCH')).toBe('arch');
+    expect(layout.buildings).toHaveLength(1);
+  });
+
+  it('a square with no building and no character gets a lot of its own, named after it, under the town', () => {
+    const rows = [
+      row({ kind: 'building', id: 'a', name: 'A', col: '0', row: '0', width: '4', depth: '4' }),
+      row({ kind: 'room', id: 'OWNER-SCOPE-INITIATION', building: 'a' }),
+    ];
+    const layout = buildTownLayout(rows, ['OWNER-SCOPE-INITIATION', 'PARTY-TIME', 'ZONING-HEARING'], extractPrefix, s => `Label ${s}`)!;
+    const extra = layout.buildings.filter(b => b.isNewPlace);
+    expect(extra.map(b => b.name)).toEqual(['Label PARTY-TIME', 'Label ZONING-HEARING']);
+    expect(extra.every(b => b.row > 4)).toBe(true);
+    expect(extra[0].col).not.toBe(extra[1].col);
+  });
+
+  it('ignores rooms for squares this board does not have, and a square listed twice stays in the first building', () => {
+    const rows = [
+      row({ kind: 'building', id: 'a', col: '0', row: '0' }),
+      row({ kind: 'building', id: 'b', col: '6', row: '0' }),
+      row({ kind: 'room', id: 'GONE', building: 'a' }),
+      row({ kind: 'room', id: 'X-1', building: 'a' }),
+      row({ kind: 'room', id: 'X-1', building: 'b' }),
+    ];
+    const layout = buildTownLayout(rows, ['X-1'], extractPrefix, label)!;
+    expect(layout.roomToBuilding.has('GONE')).toBe(false);
+    expect(layout.roomToBuilding.get('X-1')).toBe('a');
+  });
+
+  it('reads streets and settings', () => {
+    const layout = buildTownLayout([
+      row({ kind: 'building', id: 'a', col: '0', row: '0' }),
+      row({ kind: 'street', id: 's1', col: '5' }),
+      row({ kind: 'street', id: 's2', row: '11' }),
+      row({ kind: 'setting', id: 'walk_ms', value: '1500' }),
+    ], [], extractPrefix, label)!;
+    expect(layout.streets).toEqual([{ axis: 'col', at: 5 }, { axis: 'row', at: 11 }]);
+    expect(layout.settings.walk_ms).toBe('1500');
+  });
+});
+
+describe('town drawing maths', () => {
+  it('projects the grid at 2:1 and lifts by height', () => {
+    expect(isoPoint(0, 0, 0, 50)).toEqual({ x: 0, y: 0 });
+    expect(isoPoint(1, 0, 0, 50)).toEqual({ x: 50, y: 25 });
+    expect(isoPoint(0, 1, 10, 50)).toEqual({ x: -50, y: 15 });
+  });
+
+  it("a block's box holds its whole footprint plus its height, and the sign hangs from the roof centre", () => {
+    const box = buildingBox({ col: 0, row: 0, width: 4, depth: 2, height: 60 }, 50);
+    expect(box.w).toBe((4 + 2) * 50);
+    expect(box.h).toBe(((4 + 2) * 50) / 2 + 60);
+    expect(box.roofY).toBe(((2 + 1) * 50) / 2 - 60);
+    expect(box.roofX).toBe((2 - 1) * 50);
+  });
+});
+
+describe('what each building shows', () => {
+  const layout = buildTownLayout(townRows(), stockSpaces(), extractPrefix, label)!;
+  const players = [
+    { id: 'p1', name: 'Ann', currentSpace: 'ENG-SCOPE-CHECK' },
+    { id: 'p2', name: 'Sam', currentSpace: 'ENG-FEE-REVIEW' },
+    { id: 'p3', name: 'Ana', currentSpace: 'BANK-FUND-REVIEW' },
+  ];
+
+  it("the current player's building is marked with their room; everyone shows where they stand", () => {
+    const v = buildingViews(layout, players, 'p1', []);
+    expect(v.get('engineer')).toMatchObject({ isCurrent: true, currentRoom: 'ENG-SCOPE-CHECK' });
+    expect(v.get('engineer')!.playersHere.map(p => p.id)).toEqual(['p1', 'p2']);
+    expect(v.get('bank')).toMatchObject({ isCurrent: false, currentRoom: null });
+    expect(v.get('bank')!.playersHere.map(p => p.id)).toEqual(['p3']);
+  });
+
+  it("next moves light their buildings and name the rooms (Check the Structure: back to the office or on to the city)", () => {
+    const v = buildingViews(layout, players, 'p1', ['PM-DECISION-CHECK', 'REG-DOB-FEE-REVIEW']);
+    expect(v.get('office')!.destinationRooms).toEqual(['PM-DECISION-CHECK']);
+    expect(v.get('dob')!.destinationRooms).toEqual(['REG-DOB-FEE-REVIEW']);
+    expect(v.get('engineer')!.destinationRooms).toEqual([]);
+  });
+
+  it('a room-to-room move inside one building lights that room in the open building', () => {
+    const v = buildingViews(layout, [{ id: 'p1', name: 'Ann', currentSpace: 'PM-DECISION-CHECK' }], 'p1', ['LEND-SCOPE-CHECK', 'ARCH-INITIATION', 'CHEAT-BYPASS']);
+    expect(v.get('office')).toMatchObject({ isCurrent: true, currentRoom: 'PM-DECISION-CHECK' });
+    expect(v.get('office')!.destinationRooms).toEqual(['LEND-SCOPE-CHECK', 'ARCH-INITIATION', 'CHEAT-BYPASS']);
+  });
+});

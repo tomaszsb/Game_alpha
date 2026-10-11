@@ -67,6 +67,17 @@ describe('HeaderMenu (one menu for the PC, the TV and the remote screen)', () =>
     expect(screen.getByTestId('header-menu')).toBeInTheDocument();
   });
 
+  it('the Board item appears only when the board has a town, says which board shows, and stays open', () => {
+    const toggle = vi.fn();
+    expect(items().some(i => i.id === 'board-style')).toBe(false);
+    render(<HeaderMenu items={items({ boardStyle: { town: false, toggle } })} buttonStyle={{}} />);
+    fireEvent.click(screen.getByTestId('header-menu-button'));
+    expect(screen.getByTestId('board-style-toggle')).toHaveTextContent('Board: Classic');
+    fireEvent.click(screen.getByTestId('board-style-toggle'));
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('header-menu')).toBeInTheDocument();
+  });
+
   it('what kind of screen this is can be changed from inside the menu', () => {
     render(<HeaderMenu items={items()} buttonStyle={{}} />);
     fireEvent.click(screen.getByTestId('header-menu-button'));

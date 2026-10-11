@@ -154,6 +154,8 @@ export interface IDataService {
   getViolationRuleRows(): import('./DataTypes').ViolationRuleCsvRow[];
   /** TROPHIES.csv — the three-trophy win rule's names, point sizes and quality events. */
   getTrophyRuleRows(): import('./DataTypes').TrophyRuleCsvRow[];
+  /** TOWN.csv — the town board's layout (look only). Optional: empty = classic board only. */
+  getTownRows?(): import('./DataTypes').TownCsvRow[];
   /** SCOPE_WORDING.csv — project types a dice throw can pick (bare nouns); empty = feature off. */
   getScopeProjectTypes(): string[];
   /** SCOPE_WORDING.csv — a work package's wording with a `{project}` blank, by base card id. */

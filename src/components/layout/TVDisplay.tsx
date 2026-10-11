@@ -6,12 +6,13 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { colors } from '../../styles/theme';
-import { BoardCanvas } from '../board/BoardCanvas';
+import { GameBoard } from '../board/GameBoard';
 import { ProjectProgress } from '../game/ProjectProgress';
 import { LiveTrophyBoard } from '../game/LiveTrophyBoard';
 import { HeaderMenu } from './HeaderMenu';
 import { buildHeaderMenuItems } from '../../utils/headerMenuItems';
 import { useGameSpeed } from '../../utils/gameSpeed';
+import { useBoardStyleMenu } from '../../utils/boardStyle';
 import { panelPalettes } from '../player/panelTheme';
 import { RulesModal } from '../modals/RulesModal';
 import { useGameContext } from '../../context/GameContext';
@@ -181,6 +182,7 @@ export function TVDisplay(): JSX.Element {
 
   // The TV's menu: the same list and wording as a PC's, plus what only a shared screen has (Standings, Connect phone).
   const [gameSpeed, setGameSpeed] = useGameSpeed();
+  const boardStyleMenu = useBoardStyleMenu();
   const playing = gamePhase === 'PLAY';
   const tvMenuItems = buildHeaderMenuItems({
     howToPlay: () => setIsRulesOpen(true),
@@ -188,6 +190,7 @@ export function TVDisplay(): JSX.Element {
     standings: { onToggle: () => setShowScoreboard(s => !s), open: showScoreboard },
     connectPhone: playing ? { onToggle: () => setShowQRPanel(v => !v), open: showQRPanel } : undefined,
     speed: { fast: gameSpeed === 'fast', toggle: () => setGameSpeed(gameSpeed === 'fast' ? 'normal' : 'fast') },
+    boardStyle: boardStyleMenu,
   });
   const onOpenScreenSize = () => {
     if (!scaleButtonUsed) {
@@ -365,7 +368,7 @@ export function TVDisplay(): JSX.Element {
             // v3.0.0 — BoardV3 retired; BoardCanvas is the only renderer.
             // TV display is read-only: no admin edit, edges always visible,
             // no per-edge hides.
-            <BoardCanvas
+            <GameBoard
               currentPlayerId={currentPlayerId}
               players={players}
               isAdmin={false}

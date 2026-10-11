@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { LiveTrophyBoard } from './LiveTrophyBoard';
 import { useGameSpeed } from '../../utils/gameSpeed';
+import { useBoardStyleMenu } from '../../utils/boardStyle';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { IDataService, IGameRulesService } from '../../types/ServiceContracts';
@@ -87,6 +88,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   const dark = mode === 'dark';
   const dp = panelPalettes.dark;
   const [speed, setSpeed] = useGameSpeed();
+  const boardStyleMenu = useBoardStyleMenu();
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
 
@@ -146,6 +148,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
     glossary: onToggleGlossary ? { onToggle: onToggleGlossary, open: isGlossaryOpen } : undefined,
     theme: { dark, toggle: toggleMode },
     speed: { fast: speed === 'fast', toggle: () => setSpeed(speed === 'fast' ? 'normal' : 'fast') },
+    boardStyle: boardStyleMenu,
     tvTheme: onToggleTVDarkMode ? { dark: !!tvDarkMode, toggle: onToggleTVDarkMode } : undefined,
   });
   const menuButtonStyle: React.CSSProperties = {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './ConnectionStatus.css';
 
 interface ConnectionStatusProps {
@@ -39,6 +39,14 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   // it this function was rebuilt every render, so listing it as a dep would
   // have torn down and recreated the interval on every render — which is why
   // the dep was omitted and the warning suppressed itself by accident.
+  // False once unmounted: a check still in flight must not set state afterwards (a test that
+  // finished, or a screen that closed, would get a React update with no page behind it).
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true; // React's development double-mount runs the cleanup once first
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const checkConnection = useCallback(async () => {
     // Empty string is valid (same-origin relative URL)
     if (serverUrl === undefined || serverUrl === null) {
@@ -54,13 +62,14 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
         signal: AbortSignal.timeout(5000) // 5 second timeout
       });
 
+      if (!mountedRef.current) return;
       if (response.ok) {
         setStatus('connected');
       } else {
         setStatus('offline');
       }
     } catch (_error) {
-      setStatus('offline');
+      if (mountedRef.current) setStatus('offline');
     }
   }, [serverUrl]);
 

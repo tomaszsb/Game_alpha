@@ -18,9 +18,11 @@ import {
   CharacterCsvRow,
   ViolationRuleCsvRow,
   TrophyRuleCsvRow,
+  TownCsvRow,
   UIStringCsvRow,
   NumbersSection
 } from '../types/DataTypes';
+import { setTownAvailable } from '../utils/boardStyle';
 import { getDataBasePath } from '../utils/dataInstance';
 
 /**
@@ -118,6 +120,8 @@ export class DataService implements IDataService {
   private violationRuleRows: ViolationRuleCsvRow[] = [];
   // TROPHIES.csv: the three-trophy win rule's names, point sizes and quality events. Optional.
   private trophyRuleRows: TrophyRuleCsvRow[] = [];
+  // TOWN.csv: the town board's layout (a look only). Optional — empty means classic board only.
+  private townRows: TownCsvRow[] = [];
   // SCOPE_WORDING.csv: the project types a dice throw can pick, and each work
   // package's wording with a {project} blank. Optional — see loadScopeWording.
   private scopeProjectTypes: string[] = [];
@@ -153,6 +157,7 @@ export class DataService implements IDataService {
           this.loadCharacters(),
           this.loadViolationRules(),
           this.loadTrophyRules(),
+          this.loadTown(),
           this.loadScopeWording(),
           this.loadUIStrings()
         ]);
@@ -209,6 +214,7 @@ export class DataService implements IDataService {
       this.loadCharacters(),
       this.loadViolationRules(),
       this.loadTrophyRules(),
+      this.loadTown(),
       this.loadScopeWording(),
       this.loadUIStrings()
     ]);
@@ -1033,6 +1039,44 @@ export class DataService implements IDataService {
 
   getTrophyRuleRows(): TrophyRuleCsvRow[] {
     return [...this.trophyRuleRows];
+  }
+
+  /**
+   * Load TOWN.csv — the town board's layout (buildings, rooms, streets). A look only: no rule
+   * reads it. Optional: a missing file leaves no rows and the game offers the classic board only.
+   */
+  private async loadTown(): Promise<void> {
+    try {
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/TOWN.csv?_=' + Date.now());
+      if (!response.ok) {
+        this.townRows = [];
+        setTownAvailable(false);
+        return;
+      }
+      this.townRows = this.parseTownCsv(await response.text());
+    } catch {
+      this.townRows = [];
+    }
+    setTownAvailable(this.townRows.some(r => r.kind === 'building'));
+  }
+
+  private parseTownCsv(csvText: string): TownCsvRow[] {
+    const lines = this.splitCsvRecords(csvText);
+    if (lines.length < 2) return [];
+    const get = this.csvFieldReader(lines[0]);
+    const cols = ['kind', 'id', 'name', 'building', 'col', 'row', 'width', 'depth', 'height', 'color', 'icon', 'value'] as const;
+    return lines.slice(1)
+      .map(line => {
+        const values = this.parseCsvLine(line);
+        const row = {} as TownCsvRow;
+        for (const c of cols) row[c] = (get(values, c) || '').trim();
+        return row;
+      })
+      .filter(r => r.kind && r.id);
+  }
+
+  getTownRows(): TownCsvRow[] {
+    return [...this.townRows];
   }
 
   /**

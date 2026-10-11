@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.6] - 2026-10-11
+
+### The town board, step A1: the still town (Tom: "Go now"; plan in docs/core/TOWN_BOARD_REVIEW.md). Starts on Classic. Not deployed.
+
+- **What a player can do:** Menu → "Board: Classic" / "Board: Town" (on PC, TV and the remote screen; set on each screen and remembered there, like Speed). On Town the board is drawn as a small town of slightly 3-D buildings; every square is a room inside one building. The rules, the squares and the roads are unchanged, and moves are still made in the player panel. Every screen starts on Classic, so nobody sees the town until they pick it.
+- **What shows:** each building shows only its name (and portrait) and the faces of the players inside. A building opens to list its rooms on hover or click (PC) or tap (remote), and by itself on a screen that follows the current player (TV, remote): the building the current player is in. The next moves light up: the destination building glows green and names the room ("→ City Filing Fee"); inside an open building the current room is ringed orange and the next rooms green. No walking yet (step A2): a piece jumps, as on the classic board.
+- **Tom's layout (data, `TOWN.csv`):** Your office = Pick Your Path, Find an Architect, Find an Engineer, Lender Review, Cut a Corner; the Owner's house; Bank; Investor; Architect's studio; Engineer's office; Buildings Department = Choose How to File (moved back, Tom: "move it back"), City Filing Fee, City Checks Plans, Self-Certify, The Audit, Final Approval; Firehouse; Construction trailer = Hire a Builder, Trouble On Site; Building site = Site Inspection (placeholder lot); Ribbon cutting = Finish. All 26 squares, each once (tested).
+- **Data, not code (the D&D rule):** `TOWN.csv` (`kind,id,name,building,col,row,width,depth,height,color,icon,value`): `building` rows place a block on the town grid, `room` rows put a square in a building, `street` rows draw streets. Optional: no file (or no buildings) = classic board only and no menu item. A square the list does not name joins its speaking character's building, else gets a lot of its own under the town, named after it (a teacher's added square). Classroom boards get the file with the rest of the stock data.
+- **Never the town:** the admin board editor and the in-game edit mode always use the classic board.
+- **Robot hooks (new, nothing renamed):** `board-style-toggle` (menu item), `town-board`, `town-building-<id>` (`data-open`, `data-current`, `data-destination`), `town-room-<SPACE>` (`data-current`, `data-destination`). The panel and header hooks are unchanged.
+- **Code:** `utils/townLayout.ts` (pure layout + what each building shows), `utils/boardStyle.ts` (the switch), `components/board/TownBoard.tsx`, `components/board/GameBoard.tsx` (picks Classic or Town; on Classic nothing new runs). `BoardCanvas` is unchanged apart from exporting its props type.
+- **Tests:** `townLayout` (12), `boardStyle` (2), `HeaderMenu` (+1), `DataService` fetch count 16 → 17. Checked in a real browser: PC 1920, TV 960×540 (the current building opens by itself), the remote strip at 390 wide, light and dark.
+- **Art is a placeholder:** plain coloured blocks; Lender / Banker / Investor still have no portraits.
+- **Fixed in passing (tests only saw it):** the "Connected" light (`ConnectionStatus`) set its state after it had closed when its server check finished late, which under a busy full test run left 11 "window is not defined" errors and a failing exit code although every test passed. It now ignores a check that finishes after it closed. Full run: 255 files / 3793 tests, exit 0; ghost gate green (11 files / 43 tests).
+
 ## [3.7.5] - 2026-10-09
 
 ### Work-package "Remove 1" / "Replace 1" rolls work now, and the 20% design-fee cap and the 300% time limit are measured against the BIGGEST plan (Tom: yes to "b"; fb:712a9859). Not deployed.

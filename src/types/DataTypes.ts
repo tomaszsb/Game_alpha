@@ -174,6 +174,28 @@ export interface TrophyRuleCsvRow {
 }
 
 /**
+ * One row of TOWN.csv — the town board's layout (a look only; the rules never read it).
+ * `building` rows place a block on the town grid (col,row,width,depth in tiles, height in px,
+ * colour, icon = a portrait role or an emoji); `room` rows put a space (id) inside a building;
+ * `street` rows draw a street along one grid line (col OR row); `setting` rows carry a value.
+ * Optional file: missing or empty = no town, the classic board only. See src/utils/townLayout.ts.
+ */
+export interface TownCsvRow {
+  kind: string;
+  id: string;
+  name: string;
+  building: string;
+  col: string;
+  row: string;
+  width: string;
+  depth: string;
+  height: string;
+  color: string;
+  icon: string;
+  value: string;
+}
+
+/**
  * 2026-08-14: CSV-portability lift, reskin item — vocabulary swap for
  * button/notification text. One row of UI_STRINGS.csv: a dot-path `key`
  * (mirrors src/constants/uiStrings.ts's export shape, e.g.

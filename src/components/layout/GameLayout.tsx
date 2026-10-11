@@ -20,7 +20,7 @@ import { PlayerPanelWrapper } from '../player/PlayerPanelWrapper';
 import { ProjectProgress } from '../game/ProjectProgress';
 import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
-import { BoardCanvas } from '../board/BoardCanvas';
+import { GameBoard } from '../board/GameBoard';
 import { BoardToggle } from '../board/BoardToggle';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
@@ -1271,7 +1271,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               borderBottom: `2px solid ${colors.secondary.light}`,
               background: colors.secondary.bg,
             }}>
-              <BoardCanvas
+              <GameBoard
                 currentPlayerId={currentPlayerId}
                 players={players}
                 isAdmin={false}
@@ -1474,7 +1474,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               className={hidePanelColumn ? undefined : 'game-board-area'}
               style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}
             >
-              <BoardCanvas
+              <GameBoard
                 currentPlayerId={currentPlayerId}
                 players={players}
                 isAdmin={boardEditMode}

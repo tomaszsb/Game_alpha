@@ -17,6 +17,8 @@ export interface HeaderMenuOptions {
   theme?: { dark: boolean; toggle: () => void };
   /** Fast / Normal for this device. */
   speed: { fast: boolean; toggle: () => void };
+  /** Classic board / town for this device; only when the board has a town (TOWN.csv). */
+  boardStyle?: { town: boolean; toggle: () => void };
   /** The shared TV screen's light / dark (admin or teacher only). */
   tvTheme?: { dark: boolean; toggle: () => void };
 }
@@ -34,6 +36,13 @@ export function buildHeaderMenuItems(o: HeaderMenuOptions): HeaderMenuItem[] {
     id: 'speed', icon: '⚡', label: `Speed: ${o.speed.fast ? 'Fast' : 'Normal'}`, onSelect: o.speed.toggle, stayOpen: true,
     testId: 'game-speed-toggle', title: 'Fast shortens the pauses, glides and pop-up notes on this screen only',
   });
+  if (o.boardStyle) {
+    items.push({
+      id: 'board-style', icon: o.boardStyle.town ? '🏘️' : '🗺️', label: `Board: ${o.boardStyle.town ? 'Town' : 'Classic'}`,
+      onSelect: o.boardStyle.toggle, stayOpen: true, testId: 'board-style-toggle',
+      title: 'Draw the board as a town or as the classic squares, on this screen only',
+    });
+  }
   if (o.tvTheme) items.push({ id: 'tv-theme', icon: '📺', label: o.tvTheme.dark ? 'TV theme: dark' : 'TV theme: light', onSelect: o.tvTheme.toggle, title: 'Switch the shared TV screen between light and dark' });
   return items;
 }

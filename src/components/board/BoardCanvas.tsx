@@ -952,7 +952,7 @@ const edgeTypes = { smart: SmartBezierEdgeTuned };
 // Component
 // ===================================================================
 
-interface BoardCanvasProps {
+export interface BoardCanvasProps {
   currentPlayerId: string | null;
   players: Player[];
   /** When true, nodes are draggable and drag-stop logs the new coords.
