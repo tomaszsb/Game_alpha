@@ -7,8 +7,8 @@ import { useBoardStyleMenu } from '../../utils/boardStyle';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { IDataService, IGameRulesService } from '../../types/ServiceContracts';
-import { ConnectionStatus } from '../common/ConnectionStatus';
-import { getBackendURL, getCurrentGameId } from '../../utils/networkDetection';
+import { getCurrentGameId } from '../../utils/networkDetection';
+import { useShareGameLink } from '../setup/ShareGameButton';
 import { FormatUtils } from '../../utils/FormatUtils';
 import { playerLifecyclePosition } from '../../utils/lifecycleProgress';
 import { friendlySpaceName } from '../../utils/logFormatting';
@@ -89,6 +89,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   const dp = panelPalettes.dark;
   const [speed, setSpeed] = useGameSpeed();
   const boardStyleMenu = useBoardStyleMenu();
+  const share = useShareGameLink();
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
 
@@ -149,6 +150,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
     theme: { dark, toggle: toggleMode },
     speed: { fast: speed === 'fast', toggle: () => setSpeed(speed === 'fast' ? 'normal' : 'fast') },
     boardStyle: boardStyleMenu,
+    invite: share.hasGame ? { code: getCurrentGameId() ?? '', copied: share.copied, onInvite: share.handleShare } : undefined,
     tvTheme: onToggleTVDarkMode ? { dark: !!tvDarkMode, toggle: onToggleTVDarkMode } : undefined,
   });
   const menuButtonStyle: React.CSSProperties = {
@@ -326,21 +328,8 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           <div style={titleStyle}>
             🚀 Progress
           </div>
-          {getCurrentGameId() && (
-            <div style={{
-              padding: '2px 6px',
-              backgroundColor: colors.primary.main,
-              color: 'white',
-              borderRadius: '4px',
-              fontSize: '0.6rem',
-              fontWeight: 'bold',
-              fontFamily: 'monospace',
-              letterSpacing: '1px'
-            }}>
-              #{getCurrentGameId()}
-            </div>
-          )}
-          <ConnectionStatus serverUrl={getBackendURL()} />
+          {/* The game code and the connection light used to sit here; the code is now "Invite a friend" in
+              the Menu and the light a dot by the version tag (Tom, 2026-10-12). */}
         </div>
         {!hideButtons && <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {renderHeaderButtons(window.innerWidth >= 768)}

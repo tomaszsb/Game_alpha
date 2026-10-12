@@ -17,6 +17,8 @@ export interface HeaderMenuOptions {
   theme?: { dark: boolean; toggle: () => void };
   /** Fast / Normal for this device. */
   speed: { fast: boolean; toggle: () => void };
+  /** The game code, with a share / copy link for a friend (it used to sit in the top bar). */
+  invite?: { code: string; copied: boolean; onInvite: () => void };
   /** Classic board / town for this device; only when the board has a town (TOWN.csv). */
   boardStyle?: { town: boolean; toggle: () => void };
   /** The shared TV screen's light / dark (admin or teacher only). */
@@ -25,6 +27,13 @@ export interface HeaderMenuOptions {
 
 export function buildHeaderMenuItems(o: HeaderMenuOptions): HeaderMenuItem[] {
   const items: HeaderMenuItem[] = [];
+  if (o.invite) {
+    items.push({
+      id: 'invite', icon: '🔗', label: o.invite.copied ? 'Link copied' : `Invite a friend · ${o.invite.code}`,
+      onSelect: o.invite.onInvite, stayOpen: true, testId: 'invite-friend',
+      title: 'Share a link so someone can join this game (on a computer it copies the link)',
+    });
+  }
   if (o.howToPlay) items.push({ id: 'how-to-play', icon: '📋', label: 'How to play', onSelect: o.howToPlay });
   if (o.gameLog) items.push({ id: 'game-log', icon: '📜', label: 'Game log', onSelect: o.gameLog.onToggle, active: o.gameLog.open });
   if (o.standings) items.push({ id: 'standings', icon: '📊', label: 'Standings', onSelect: o.standings.onToggle, active: o.standings.open });

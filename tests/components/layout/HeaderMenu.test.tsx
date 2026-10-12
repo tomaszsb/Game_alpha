@@ -78,6 +78,32 @@ describe('HeaderMenu (one menu for the PC, the TV and the remote screen)', () =>
     expect(screen.getByTestId('header-menu')).toBeInTheDocument();
   });
 
+  it('closes on its own X, on a click outside it, and on Esc', () => {
+    render(<><div data-testid="outside">board</div><HeaderMenu items={items()} buttonStyle={{}} /></>);
+    fireEvent.click(screen.getByTestId('header-menu-button'));
+    fireEvent.click(screen.getByTestId('header-menu-close'));
+    expect(screen.queryByTestId('header-menu')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('header-menu-button'));
+    fireEvent.pointerDown(screen.getByTestId('outside'));
+    expect(screen.queryByTestId('header-menu')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('header-menu-button'));
+    fireEvent.pointerDown(screen.getByText(/How to play/));
+    expect(screen.getByTestId('header-menu')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByTestId('header-menu')).not.toBeInTheDocument();
+  });
+
+  it('the game code lives in the menu as "Invite a friend", and says when the link was copied', () => {
+    const onInvite = vi.fn();
+    const { rerender } = render(<HeaderMenu items={items({ invite: { code: 'G-ABCD-1234', copied: false, onInvite } })} buttonStyle={{}} />);
+    fireEvent.click(screen.getByTestId('header-menu-button'));
+    expect(screen.getByTestId('invite-friend')).toHaveTextContent('Invite a friend · G-ABCD-1234');
+    fireEvent.click(screen.getByTestId('invite-friend'));
+    expect(onInvite).toHaveBeenCalledTimes(1);
+    rerender(<HeaderMenu items={items({ invite: { code: 'G-ABCD-1234', copied: true, onInvite } })} buttonStyle={{}} />);
+    expect(screen.getByTestId('invite-friend')).toHaveTextContent('Link copied');
+  });
+
   it('what kind of screen this is can be changed from inside the menu', () => {
     render(<HeaderMenu items={items()} buttonStyle={{}} />);
     fireEvent.click(screen.getByTestId('header-menu-button'));

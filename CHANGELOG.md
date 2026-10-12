@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.15] - 2026-10-12
+
+### A cleaner header, and a Menu you can close (Tom: "connection status is unnecessary on top of the page ... the game code ... can go into the menu with a (invite friend click ability) ... once i open the menu i see no way to close it"). Not deployed.
+
+- **Connection status:** gone from the top bar; it is now a coloured dot at the start of the version tag in the bottom corner (green = connected, yellow = checking, red = offline; the words on hover). `ConnectionStatus compact`, `VersionBadge`. Hook: `connection-dot` (`data-status`).
+- **Game code:** gone from the top bar; the Menu's first item is "Invite a friend · G-XXXX-XXXX". It opens the device's share sheet, or copies the join link where there is none and says "Link copied" (the same share helper the phones' Invite button uses). On PC, remote and TV. Hook: `invite-friend`.
+- **Closing the Menu:** an ✕ at its top, a click or tap anywhere outside it, or Esc. Hook: `header-menu-close`.
+- **Robot:** the header lost the code chip and the "Connected" words; no test hook was renamed. The Jarvis robot reads the header text only as background.
+- **Tests:** `HeaderMenu` (+2: closing three ways; invite label and "Link copied"); full run 256 files / 3817 tests, exit 0. Checked in a real browser at 1920 wide.
+
 ## [3.7.14] - 2026-10-12
 
 ### Result bubbles on the town (Tom: "when transaction is completed in the building it would be nice to see the results float up in a bubble from the building"). Only on a screen showing the town. Not deployed.

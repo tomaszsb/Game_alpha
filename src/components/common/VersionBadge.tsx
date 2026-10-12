@@ -23,6 +23,8 @@
 
 import React from 'react';
 import { getURLParams } from '../../utils/getAppScreen';
+import { ConnectionStatus } from './ConnectionStatus';
+import { getBackendURL } from '../../utils/networkDetection';
 
 function currentModeLabel(): 'PC' | 'TV' | 'Remote' | 'Phone' {
   const params = getURLParams();
@@ -65,6 +67,9 @@ export const VersionBadge: React.FC = () => {
         userSelect: 'none',
       }}
     >
+      {/* Whether this screen can reach the server: a dot, moved down here from the top bar (Tom,
+          2026-10-12: "most players will never need to know this information"). */}
+      <ConnectionStatus serverUrl={getBackendURL()} compact />{' '}
       {semver ? `v${semver}` : commit}
       {' · '}
       <span data-testid="version-badge-mode">{modeLabel}</span>

@@ -10,7 +10,7 @@
 // what it lists looks and reads the same everywhere. The always-there items (adjust screen size, what kind
 // of screen this is, full screen) are built in so no screen can forget or reword them.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ScreenSizeControl } from './ScreenSizeControl';
 import { DEVICE_ROLE } from '../../constants/uiStrings';
 import { roleUrl, setStoredDeviceRole, DeviceRole } from '../../utils/deviceRole';
@@ -72,6 +72,20 @@ export function HeaderMenu({ items, buttonStyle, align = 'right', onOpenScreenSi
   };
   const close = () => { setOpen(false); setShowRoles(false); };
 
+  // An open menu closes on a click or tap anywhere outside it, on Esc, or on its own ✕ (Tom, 2026-10-12:
+  // "once i open the menu i see no way to close it").
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) { setOpen(false); setShowRoles(false); }
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); setShowRoles(false); } };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
   const href = window.location.href;
   const hasPlayer = !!(new URL(href).searchParams.get('p') || new URL(href).searchParams.get('playerId'));
   const roles: DeviceRole[] = hasPlayer ? ['pc', 'tv', 'phone'] : ['pc', 'tv'];
@@ -79,7 +93,7 @@ export function HeaderMenu({ items, buttonStyle, align = 'right', onOpenScreenSi
   const pickRole = (role: DeviceRole) => goToRole(role, href);
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div ref={rootRef} style={{ position: 'relative', display: 'inline-block' }}>
       <button
         type="button"
         data-testid="header-menu-button"
@@ -100,6 +114,16 @@ export function HeaderMenu({ items, buttonStyle, align = 'right', onOpenScreenSi
             padding: 6, background: '#fff', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column',
           }}
         >
+          <button
+            type="button"
+            data-testid="header-menu-close"
+            aria-label="Close menu"
+            title="Close"
+            onClick={close}
+            style={{ alignSelf: 'flex-end', background: 'transparent', border: 'none', fontSize: '1.1rem', lineHeight: 1, padding: '4px 8px', cursor: 'pointer', color: '#475569' }}
+          >
+            ✕
+          </button>
           {items.map(it => (
             <button
               key={it.id}

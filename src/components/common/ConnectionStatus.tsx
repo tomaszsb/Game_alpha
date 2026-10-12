@@ -6,6 +6,8 @@ interface ConnectionStatusProps {
   serverUrl: string;
   /** Check interval in milliseconds (default: 30000 = 30s) */
   checkInterval?: number;
+  /** Just the coloured dot, with the words as its tooltip (the version tag at the bottom, 2026-10-12). */
+  compact?: boolean;
 }
 
 /**
@@ -28,7 +30,8 @@ interface ConnectionStatusProps {
  */
 export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   serverUrl,
-  checkInterval = 30000
+  checkInterval = 30000,
+  compact = false,
 }) => {
   const [status, setStatus] = useState<'connected' | 'offline' | 'checking'>('checking');
   // NOTE: a lastChecked timestamp was tracked here but never rendered, so every
@@ -95,6 +98,14 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   };
 
   const display = getStatusDisplay();
+
+  if (compact) {
+    return (
+      <span data-testid="connection-dot" data-status={status} title={display.text} aria-label={display.text}>
+        {display.icon}
+      </span>
+    );
+  }
 
   return (
     <div className={`connection-status connection-status--${display.className}`}>
