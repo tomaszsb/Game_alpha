@@ -19,5 +19,5 @@ The town board (review → previews → A1 still town 3.7.6, A2 walk 3.7.7, pop-
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
 1. **Deploy v3.7.16-19, then Tom's look** (clipboard, pop-ups over the panel, Board choice at setup, bubble chimes on the real TV, plus 3.7.14 bubbles / 3.7.15 header), then flip the confirmed reports.
-2. **Town A3 — Tom's real-device look** (default Town vs Classic; walk stays 1.5 s, decided 10-12).
+2. **Town A3 — DONE** (Tom, real TV, 10-12: names readable from the couch; walk 1.5 s; Town default via the v3.7.18 setup choice).
 3. **Job 2 (reskin leaks → data)** waits for the Manager to bring it back; pull first (headerMenuItems, HeaderMenu, LiveTrophyBoard, PlayerPanelV2, ModalBase changed).
