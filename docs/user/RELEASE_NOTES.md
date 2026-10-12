@@ -2,6 +2,13 @@
 
 ---
 
+## v3.7.14 and v3.7.15 — Results float up, and a tidier header (October 12, 2026)
+
+- **See what just happened.** On the town board, when your scope, money or days change, a small bubble rises from your building: blue for scope ("+$8.5M scope"), green for money in, red for money out or days used.
+- **A tidier top of the screen.** The "Connected" light is now a small dot next to the version tag in the bottom corner, and the game code lives in the Menu as "Invite a friend": tap it to share or copy the join link.
+- **The Menu closes the way you expect:** an ✕ at its top, a click anywhere outside it, or Esc.
+
+
 ## v3.7.6 to v3.7.13 — A town you can watch, and solo games show targets (October 12, 2026)
 
 - **The board can be a small town.** Open the Menu and pick "Board: Town" on any screen (it starts on the classic board). Each place is a building with rooms; hover or click one to look inside, and on the TV the current player's building opens by itself. Pieces walk from door to door along the streets.
