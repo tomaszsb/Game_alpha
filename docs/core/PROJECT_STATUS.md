@@ -7,7 +7,7 @@
 
 **Last Updated:** October 12, 2026 (v3.7.13)
 **Current Phase:** Beta — live in production
-**Current Version:** **v3.7.13 — PENDING DEPLOY (live was v3.7.11 `1715e745` at 03:14 UTC 10-12).** Trust `/health`, never this line.
+**Current Version:** **v3.7.15 — PENDING DEPLOY. LIVE is v3.7.13 (`/health` `6bce6516`, 2026-10-12 04:03 UTC); 3.7.14 (town result bubbles) + 3.7.15 (header: connection dot, "Invite a friend" in the Menu, Menu closes) wait for one deploy → `/health` `13d731a`.** Trust `/health`, never this line.
 
 ## Current sprint
 Town board shipped (3.7.6–3.7.8, opt-in per screen via Menu → "Board: Town"), then small fixes and plumbing: 3.7.9 end screen without the old Final score; 3.7.10 the DOB audit counts for "Best built"; 3.7.11 a `setup-player-count` handle for the Jarvis robot; 3.7.12 top bar starts folded, solo games show targets, town hover flicker fixed; 3.7.13 the production image drops its dev tools (867 → 402 MB; Check my board kept working).
