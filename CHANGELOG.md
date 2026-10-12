@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.21] - 2026-10-12
+
+### Job 2 (Tom approved): rule numbers and words that were typed in code now come from the data files. Nothing a player sees changes. Not deployed.
+
+- **Builder price and schedule (the big one):** the quality price factors (High 1.15 / Medium 1.0 / Low 0.9), the speed factors (0.8 / 1.0 / 1.3), the bid base 0.7 + 0.1 per job-size step, 10 days per step, and the 1-6 job-size range were typed into `contractorTerms.ts` and `builderBids.ts`. They are now rows in `TROPHIES.csv` (`builder_price`, `builder_speed`, and the `rule` keys `builder_base_price`, `builder_price_step`, `builder_days_per_roll`, `builder_roll_min` / `_max` / `_default`), read through `utils/trophyRules.ts` (`BuilderRules.terms`). A missing file, a missing row, a value that does not parse or a backwards job-size range keeps the stock number. **Same results as before, for every job size and quality** (tested against the old formula) and the same one random draw per bidder.
+- **Words in components:** the standings box ("their turn", "finished", "out", "No reviews yet", "No budget yet") and the mat title ("My project") now come from `UI_STRINGS.csv` (keys `TROPHY.*`, `MAT.title`) with the same text as code defaults.
+- **Left in code on purpose** (recorded in TODO): the quality/event ids (`HIGH/MED/LOW`, `review_passed`, ...: ids no player sees, and moving them touches the engine); the header-menu words (`headerMenuItems.ts`, which the robot reads); `BoardCheckStrip` (a teacher tool); `LEND-SCOPE-CHECK` in `server/spaceProtection.js` (the editor's protection list); the stock stock-name fallbacks and the `CHEAT-BYPASS` default in `trophyRules.ts` (only used when the data has no row).
+- **Robot:** no test id or button word changed.
+- **Tests:** `builderTermsData` (5, new), `standingsWordsData` (3, new); builder/contractor/trophy suites unchanged and green.
+
 ## [3.7.20] - 2026-10-12
 
 ### The bank's up-front loan fee now shows in "What you've paid" (Tom's live game: Money pop-up said "Funding raised $2.5M, Spent so far $0, Nothing paid yet" while cash was ~$228K lower). Not deployed.

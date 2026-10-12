@@ -129,3 +129,9 @@ SCOPE_APPROVAL.warn,"Careful: if this adds work to your plan, your {approval} ap
 NUMBERS.money.paid,"What you've paid"
 NUMBERS.money.paidNone,Nothing paid yet.
 CARD_DETAILS.GLOSSARY,Look up in the glossary
+TROPHY.theirTurn,their turn
+TROPHY.finished,finished
+TROPHY.out,out
+TROPHY.noReviews,No reviews yet
+TROPHY.noBudget,No budget yet
+MAT.title,My project

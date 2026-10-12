@@ -3,6 +3,7 @@
 import React from 'react';
 import type { PanelPalette } from './panelTheme';
 import type { MatTileState } from '../../utils/projectMat';
+import { getUIString } from '../../constants/uiStrings';
 
 export function ProjectMat({ tiles, palette: p }: { tiles: MatTileState[]; palette: PanelPalette }): JSX.Element | null {
   if (tiles.length === 0) return null;
@@ -10,7 +11,7 @@ export function ProjectMat({ tiles, palette: p }: { tiles: MatTileState[]; palet
   return (
     <div data-testid="project-mat" data-done={done} data-total={tiles.length}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: p.muted, marginBottom: 4 }}>
-        <span>My project</span>
+        <span>{getUIString('MAT.title')}</span>
         <span>{done} of {tiles.length}</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))', gap: 5 }}>
@@ -45,8 +46,8 @@ export function MatDots({ tiles, palette: p }: { tiles: MatTileState[]; palette:
       data-testid="project-mat-dots"
       data-done={done}
       data-total={tiles.length}
-      title={`My project: ${tiles.map(t => `${t.label} ${t.done ? '✓' : '○'}`).join(', ')}`}
-      aria-label={`My project: ${done} of ${tiles.length} steps done`}
+      title={`${getUIString('MAT.title')}: ${tiles.map(t => `${t.label} ${t.done ? '✓' : '○'}`).join(', ')}`}
+      aria-label={`${getUIString('MAT.title')}: ${done} of ${tiles.length} steps done`}
       style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
     >
       {tiles.map(t => (

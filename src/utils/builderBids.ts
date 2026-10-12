@@ -13,7 +13,7 @@
 
 import { computeContractorTerms } from './contractorTerms';
 import type { BuilderQuality, BuilderRules } from './trophyRules';
-import { BUILDER_QUALITIES } from './trophyRules';
+import { BUILDER_QUALITIES, getBuilderRules } from './trophyRules';
 
 export interface BuilderBid {
   id: string;
@@ -82,9 +82,12 @@ function pick<T>(rng: Rng, items: readonly T[]): T {
 /** One fresh bidder: quality, job size and price-hold each drawn on their own. */
 export function drawBid(ctx: BidContext, id: string): BuilderBid {
   const quality = pick(ctx.rng, BUILDER_QUALITIES);
-  const roll = 1 + Math.min(5, Math.floor(ctx.rng() * 6));
+  // The job size is drawn from the data's range (stock 1 to 6): the same one draw as before.
+  const { rollMin, rollMax } = ctx.rules.terms;
+  const sizes = rollMax - rollMin + 1;
+  const roll = rollMin + Math.min(sizes - 1, Math.floor(ctx.rng() * sizes));
   const guaranteeDays = pick(ctx.rng, ctx.rules.guaranteeDays);
-  const terms = computeContractorTerms(ctx.workCost, roll, quality);
+  const terms = computeContractorTerms(ctx.workCost, roll, quality, ctx.rules.terms);
   return {
     id,
     quality,
@@ -140,5 +143,5 @@ export function cheapestLiveBid(set: BuilderBidSet | undefined, day: number): { 
 
 /** A rough "about" figure for a player who has no bids yet: a middling builder on a middling job. */
 export function typicalQuote(workCost: number): number {
-  return computeContractorTerms(workCost, 3, 'MED').cost;
+  return computeContractorTerms(workCost, getBuilderRules().terms.rollDefault, 'MED').cost;
 }

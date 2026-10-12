@@ -43,6 +43,28 @@ export interface BuilderRules {
   guaranteeDays: number[];
   /** Per quality: the quality event hiring fires (sized in `points`) and the name shown after hiring. */
   qualities: Record<BuilderQuality, { event: string; name: string }>;
+  /** The price and schedule a builder's quality and the job's size give. */
+  terms: ContractorTermsRules;
+}
+
+/**
+ * What a builder's price and schedule are made of (see utils/contractorTerms.ts). All of it is data
+ * (TROPHIES.csv `builder_price` / `builder_speed` rows and the `builder_*` rules), so a reskin can retune
+ * the dial ("quality, cost, schedule: pick two") without code.
+ */
+export interface ContractorTermsRules {
+  /** Price factor at a job size of zero: price = estimate x (basePrice + size x priceStep) x the quality's price. */
+  basePrice: number;
+  priceStep: number;
+  /** Days added at signing per step of job size, before the quality's speed. */
+  daysPerRoll: number;
+  /** The smallest and largest job size a builder reads, and the one assumed when none is known. */
+  rollMin: number;
+  rollMax: number;
+  rollDefault: number;
+  /** Per quality: how much the price is scaled, and how much the schedule is scaled. */
+  qualityPrice: Record<BuilderQuality, number>;
+  qualitySpeed: Record<BuilderQuality, number>;
 }
 
 export interface TrophyRules {
@@ -64,6 +86,21 @@ export interface TrophyRules {
   builder: BuilderRules;
 }
 
+const DEFAULT_TERMS: ContractorTermsRules = {
+  basePrice: 0.7,
+  priceStep: 0.1,
+  daysPerRoll: 10,
+  rollMin: 1,
+  rollMax: 6,
+  rollDefault: 3,
+  qualityPrice: { HIGH: 1.15, MED: 1.0, LOW: 0.9 },
+  qualitySpeed: { HIGH: 0.8, MED: 1.0, LOW: 1.3 },
+};
+
+const cloneTerms = (t: ContractorTermsRules): ContractorTermsRules => ({
+  ...t, qualityPrice: { ...t.qualityPrice }, qualitySpeed: { ...t.qualitySpeed },
+});
+
 const DEFAULT_BUILDER: BuilderRules = {
   space: 'CON-INITIATION',
   door: 'LEND-SCOPE-CHECK',
@@ -75,6 +112,7 @@ const DEFAULT_BUILDER: BuilderRules = {
     MED: { event: 'builder_medium', name: 'Medium' },
     LOW: { event: 'builder_low', name: 'Low' },
   },
+  terms: DEFAULT_TERMS,
 };
 
 const DEFAULT_MAT: MatTile[] = [
@@ -115,7 +153,7 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
     spaceEvents: {},
     mat: [],
     timeCapPercent: DEFAULT_RULES.timeCapPercent,
-    builder: { ...DEFAULT_BUILDER, space: '', door: '', noteSpaces: [], guaranteeDays: [], qualities: { ...DEFAULT_BUILDER.qualities } },
+    builder: { ...DEFAULT_BUILDER, space: '', door: '', noteSpaces: [], guaranteeDays: [], qualities: { ...DEFAULT_BUILDER.qualities }, terms: cloneTerms(DEFAULT_TERMS) },
   };
   let sawBuilderSpace = false;
   for (const row of rows) {
@@ -137,8 +175,28 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
         } else if (key === 'bids_offered') {
           const n = parseInt(value, 10);
           if (Number.isFinite(n) && n >= 1 && n <= 6) next.builder.bidsOffered = n;
+        } else if (key.startsWith('builder_')) {
+          // The builder's price and schedule numbers; a value that does not parse keeps the stock one.
+          const n = parseFloat(value);
+          const t = next.builder.terms;
+          if (Number.isFinite(n) && n >= 0) {
+            if (key === 'builder_base_price') t.basePrice = n;
+            else if (key === 'builder_price_step') t.priceStep = n;
+            else if (key === 'builder_days_per_roll') t.daysPerRoll = n;
+            else if (key === 'builder_roll_min' && n >= 1) t.rollMin = Math.floor(n);
+            else if (key === 'builder_roll_max' && n >= 1) t.rollMax = Math.floor(n);
+            else if (key === 'builder_roll_default' && n >= 1) t.rollDefault = Math.floor(n);
+          }
         }
         break;
+      case 'builder_price':
+      case 'builder_speed': {
+        const n = parseFloat(value);
+        if ((BUILDER_QUALITIES as readonly string[]).includes(key) && Number.isFinite(n) && n > 0) {
+          next.builder.terms[row.kind === 'builder_price' ? 'qualityPrice' : 'qualitySpeed'][key as BuilderQuality] = n;
+        }
+        break;
+      }
       case 'guarantee': {
         const n = parseInt(value, 10);
         if (Number.isFinite(n) && n >= 1) next.builder.guaranteeDays.push(n);
@@ -182,6 +240,11 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
     next.builder.noteSpaces = [...DEFAULT_BUILDER.noteSpaces];
   }
   if (next.builder.guaranteeDays.length === 0) next.builder.guaranteeDays = [...DEFAULT_BUILDER.guaranteeDays];
+  // A job-size range that is backwards or leaves the default outside it keeps the stock range.
+  const tm = next.builder.terms;
+  if (tm.rollMax < tm.rollMin || tm.rollDefault < tm.rollMin || tm.rollDefault > tm.rollMax) {
+    tm.rollMin = DEFAULT_TERMS.rollMin; tm.rollMax = DEFAULT_TERMS.rollMax; tm.rollDefault = DEFAULT_TERMS.rollDefault;
+  }
   rules = next;
 }
 

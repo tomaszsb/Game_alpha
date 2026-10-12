@@ -17,6 +17,7 @@ import { PlayerAvatar } from '../common/PlayerAvatar';
 import { getTrophyRules, TROPHY_IDS, TrophyId } from '../../utils/trophyRules';
 import { ordinal, LiveRow } from '../../utils/liveTrophies';
 import { FormatUtils } from '../../utils/FormatUtils';
+import { getUIString } from '../../constants/uiStrings';
 
 export interface LiveTrophyBoardProps {
   players: Player[];
@@ -32,10 +33,10 @@ function detail(id: TrophyId, row: LiveRow): string {
   if (id === 'time') return `${r.daysUsed} of ${r.daysPlanned} planned days`;
   if (id === 'money') return r.moneyPlanned > 0
     ? `${FormatUtils.formatMoney(r.moneySpent)} of ${FormatUtils.formatMoney(r.moneyPlanned)} planned`
-    : 'No budget yet';
+    : getUIString('TROPHY.noBudget');
   return r.reviews > 0
     ? `${r.problemPoints} problem point${r.problemPoints === 1 ? '' : 's'} in ${r.reviews} review${r.reviews === 1 ? '' : 's'}`
-    : 'No reviews yet';
+    : getUIString('TROPHY.noReviews');
 }
 
 export function LiveTrophyBoard({ players, gameRulesService, currentPlayerId, mode, compact }: LiveTrophyBoardProps): JSX.Element | null {
@@ -73,9 +74,9 @@ export function LiveTrophyBoard({ players, gameRulesService, currentPlayerId, mo
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: compact ? '0.72rem' : '0.82rem', fontWeight: 600, marginBottom: 4 }}>
                 {player && <PlayerAvatar avatar={player.avatar} color={player.color} size={compact ? 16 : 20} title={row.name} />}
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
-                {isCurrent && !out && row.status !== 'finished' && <span style={{ color: p.muted, fontWeight: 400 }}>· their turn</span>}
-                {row.status === 'finished' && <span style={{ color: p.muted, fontWeight: 400 }}>· finished</span>}
-                {out && <span style={{ color: p.muted, fontWeight: 400 }}>· out</span>}
+                {isCurrent && !out && row.status !== 'finished' && <span style={{ color: p.muted, fontWeight: 400 }}>· {getUIString('TROPHY.theirTurn')}</span>}
+                {row.status === 'finished' && <span style={{ color: p.muted, fontWeight: 400 }}>· {getUIString('TROPHY.finished')}</span>}
+                {out && <span style={{ color: p.muted, fontWeight: 400 }}>· {getUIString('TROPHY.out')}</span>}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
                 {TROPHY_IDS.map(id => {

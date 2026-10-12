@@ -36,6 +36,14 @@ import type { UIStringCsvRow } from '../types/DataTypes';
  * row for them).
  */
 const DEFAULT_UI_STRINGS: Record<string, string> = {
+  // v3.7.21 (Job 2): words that were typed into the standings box and the mat. UI_STRINGS.csv carries the
+  // same text, so a reskin can reword them without a code edit.
+  'TROPHY.theirTurn': 'their turn',
+  'TROPHY.finished': 'finished',
+  'TROPHY.out': 'out',
+  'TROPHY.noReviews': 'No reviews yet',
+  'TROPHY.noBudget': 'No budget yet',
+  'MAT.title': 'My project',
   // v3.2.60: the commit control names where a picked destination leads, so the
   // control that actually moves you reads as movement. The space's own forward
   // label ("Sign off on the design") stays the subject — this only joins it to

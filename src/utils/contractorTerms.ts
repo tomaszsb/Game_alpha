@@ -20,6 +20,11 @@
 //
 // Pure + shared so the engine charge, the dice modal, and any ledger display
 // can never disagree (same pattern as projectFinances).
+//
+// v3.7.21: every number above (the quality factors, 0.7 + roll x 0.1, 10 days per roll, the 1-6 job size)
+// is now data: TROPHIES.csv `builder_price` / `builder_speed` rows and the `builder_*` rules, read through
+// utils/trophyRules.ts. The figures here are the stock values the file ships with.
+import { getBuilderRules, type ContractorTermsRules } from './trophyRules';
 
 export type ContractorQuality = 'HIGH' | 'MED' | 'LOW';
 
@@ -32,21 +37,17 @@ export interface ContractorTerms {
   priceFactor: number;
 }
 
-const QUALITY_PRICE: Record<ContractorQuality, number> = { HIGH: 1.15, MED: 1.0, LOW: 0.9 };
-const QUALITY_SPEED: Record<ContractorQuality, number> = { HIGH: 0.8, MED: 1.0, LOW: 1.3 };
-const BASE_BID = 0.7;         // roll 1 → 0.8×, roll 6 → 1.3× the estimate
-const BID_STEP = 0.1;
-const DAYS_PER_ROLL = 10;     // roll 1 MED → 10 days, roll 6 MED → 60 days
-
 export function computeContractorTerms(
   totalWorkCost: number,
   multiplier: number,
   quality: ContractorQuality,
+  terms: ContractorTermsRules = getBuilderRules().terms,
 ): ContractorTerms {
   const safeWorkCost = totalWorkCost > 0 ? totalWorkCost : 0;
-  const roll = multiplier >= 1 && multiplier <= 6 ? multiplier : 3;
-  const priceFactor = (BASE_BID + roll * BID_STEP) * (QUALITY_PRICE[quality] ?? 1.0);
+  const roll = multiplier >= terms.rollMin && multiplier <= terms.rollMax ? multiplier : terms.rollDefault;
+  // Stock data: roll 1 -> 0.8x, roll 6 -> 1.3x the estimate before quality; roll 1 MED -> 10 days, roll 6 MED -> 60.
+  const priceFactor = (terms.basePrice + roll * terms.priceStep) * (terms.qualityPrice[quality] ?? 1.0);
   const cost = Math.round(safeWorkCost * priceFactor);
-  const scheduleDays = Math.round(roll * DAYS_PER_ROLL * (QUALITY_SPEED[quality] ?? 1.0));
+  const scheduleDays = Math.round(roll * terms.daysPerRoll * (terms.qualitySpeed[quality] ?? 1.0));
   return { cost, scheduleDays, priceFactor };
 }
