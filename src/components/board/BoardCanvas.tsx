@@ -62,7 +62,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, formatEdgeLabel, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, resolveDestinationHighlight, narrowToOfferedMoves, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX, TV_TARGET_MIN_TILE_PX } from '../../utils/boardCommon';
+import { phaseColorsFor, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, buildWaypointEdgePath, maxWaypointsForLength, computeSegmentMerges, findSnapTarget, computeHandleOffset, findEdgesAtPoint, computeAnchorPoint, nearestAnchor, findEdgesAtAnchor, DEFAULT_ANCHOR_SIDE, formatEdgeLabel, type BoxAnchor, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, resolveDestinationHighlight, narrowToOfferedMoves, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX, TV_TARGET_MIN_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 import { resolveFundingAmountTokenForPreview } from '../../utils/templateInterpolation';
@@ -174,7 +174,7 @@ interface BoardNodeData {
 }
 
 function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
-  const phaseColors = PHASE_COLORS[data.phase] || { border: '#adb5bd', text: '#495057' };
+  const phaseColors = phaseColorsFor(data.phase);
   const borderColor = data.isPickedMove || data.isPreviewMove
     ? PICKED_MOVE_ACCENT
     : data.isValidMove ? '#10b981' : phaseColors.border;
@@ -1269,7 +1269,7 @@ function BoardCanvasInner({
         // 2026-08-18: "some lines that go from same space to same space").
         if (dest === mov.space_name) continue;
         const sourcePhase = phaseBySpace.get(mov.space_name) || '';
-        const strokeColor = PHASE_COLORS[sourcePhase]?.border || '#adb5bd';
+        const strokeColor = phaseColorsFor(sourcePhase).border;
         edges.push({
           id: `${mov.space_name}__${dest}`,
           source: mov.space_name,

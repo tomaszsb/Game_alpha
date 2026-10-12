@@ -69,6 +69,32 @@ export const PHASE_COLORS: Record<string, { border: string; text: string }> = {
   'END':          { border: '#009688', text: '#00695c' },
 };
 
+// Colours for a phase this table has never heard of (a reskin's own phase names). Picked by the phase's
+// name, so every screen gives the same phase the same colour, and none of them is the neutral grey.
+const UNLISTED_PHASE_PALETTE: ReadonlyArray<{ border: string; text: string }> = [
+  { border: '#795548', text: '#4e342e' },
+  { border: '#3F51B5', text: '#283593' },
+  { border: '#E91E63', text: '#ad1457' },
+  { border: '#607D8B', text: '#37474f' },
+  { border: '#8BC34A', text: '#558b2f' },
+  { border: '#00BCD4', text: '#00838f' },
+];
+const NEUTRAL_PHASE_COLORS = { border: '#adb5bd', text: '#495057' };
+
+/**
+ * The colours for a phase: the stock table's for the stock phases, a steady colour picked from the phase's
+ * name for any other, and the neutral grey only for no phase at all. (v3.7.22: a renamed phase used to
+ * render grey, because the table is keyed by the stock names.)
+ */
+export function phaseColorsFor(phase: string | undefined): { border: string; text: string } {
+  if (!phase) return NEUTRAL_PHASE_COLORS;
+  const known = PHASE_COLORS[phase];
+  if (known) return known;
+  let h = 0;
+  for (let i = 0; i < phase.length; i++) h = (h * 31 + phase.charCodeAt(i)) >>> 0;
+  return UNLISTED_PHASE_PALETTE[h % UNLISTED_PHASE_PALETTE.length];
+}
+
 /**
  * Convert a CSV space name (e.g. "ARCH-FEE-REVIEW") into the short
  * display label rendered on board tiles ("Fee Review"). Steps:

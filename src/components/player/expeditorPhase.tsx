@@ -1,5 +1,5 @@
 import React from 'react';
-import { PHASE_COLORS } from '../../utils/boardCommon';
+import { phaseColorsFor } from '../../utils/boardCommon';
 import { useGameContext } from '../../context/GameContext';
 
 /**
@@ -25,7 +25,7 @@ const titleCase = (phase: string): string => phase.charAt(0) + phase.slice(1).to
 export function expeditorPhaseInfo(phaseRestriction: string | undefined, phaseOrder: string[]): { label: string; border: string; text: string } {
   const raw = (phaseRestriction || 'Any').toUpperCase();
   if (!phaseOrder.includes(raw)) return { label: 'Any phase', ...NEUTRAL_PHASE };
-  const c = PHASE_COLORS[raw] || NEUTRAL_PHASE;
+  const c = phaseColorsFor(raw);
   return { label: titleCase(raw), border: c.border, text: c.text };
 }
 

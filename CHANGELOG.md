@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.22] - 2026-10-12
+
+### A renamed phase no longer draws as neutral grey on the board (a TODO leak from the Workstream 6 audit; no decision needed). Not deployed.
+
+- **What changed:** `phaseColorsFor(phase)` in `utils/boardCommon.ts`. The stock phases (SETUP, OWNER, FUNDING, DESIGN, REGULATORY, CONSTRUCTION, END) keep exactly their colours; any other phase name (a reskin's own) gets a steady colour picked from its name from a small palette, the same on every screen, and the grey is kept only for no phase at all. Used by the board's tiles and arrows (`BoardCanvas`) and the expeditor phase chip (`expeditorPhase.tsx`).
+- **Why this item:** cosmetic, data-agnostic, no product call, nothing that needs a real device: a D&D board with its own phase names would have drawn every tile grey.
+- **Tests:** `phaseColors` (3, new).
+
 ## [3.7.21] - 2026-10-12
 
 ### Job 2 (Tom approved): rule numbers and words that were typed in code now come from the data files. Nothing a player sees changes. Not deployed.
