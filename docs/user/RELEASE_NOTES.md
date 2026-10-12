@@ -2,6 +2,12 @@
 
 ---
 
+## v3.7.18 and v3.7.19 — Pick the board at setup, and bubbles you can hear (October 12, 2026)
+
+- **Street view or Classic, chosen by the host.** In the setup gear, under Win Condition, there is a new "Board" choice: "Street view (town)" (the default) or "Classic". Every screen in that game starts on it. The Menu's "Board" item still switches one screen.
+- **A chime with each bubble.** When a result floats up on the town, a short chime plays: rising for good news, falling for bad news, one note for plain news. Menu → "Sound: On / Off" turns it off on that screen. On a TV, a small note says "Press OK once to turn the sound on" until someone presses a button, because browsers keep pages silent until then.
+
+
 ## v3.7.16 and v3.7.17 — A clipboard for your numbers, and pop-ups over your panel (October 12, 2026)
 
 - **Your four numbers sit on a clipboard.** Money, Time, Helpers and Scope are on a sheet of paper on a clipboard, with a metal clip on top. Nothing got bigger on a phone.
