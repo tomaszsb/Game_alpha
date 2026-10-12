@@ -27,7 +27,7 @@
 3. **Tom's wording drafts + real-device looks:** `UI_STRINGS.csv` `BUILDER_BIDS.*`, trophy names, finished/out tags, Check-my-board texts, End Turn warnings; the new header Menu on a real TV/phone; the phone panel at Hire a Builder is ~105 px taller (Tom OK'd for now). Also 49-ish open feedback reports (19 triaged in TODO "Newly arrived 2026-10-08": trophy/board/etc. done; left: TV-vs-PC bar question closed by the Menu, wishlist parked, old 3.2.99 reports to confirm-and-close).
 
 ## Decisions waiting on the user
-- Time limit value (above). Tom already answered: Remove/Replace fix = yes with biggest-plan cap; FDNY = fix the flag not the path; 300% accepted for now; phone panel OK.
+- ~~Time limit value (above).~~ CLOSED: Tom said 10-09 "300% as is" (Manager record); reopen only if he does. Tom already answered: Remove/Replace fix = yes with biggest-plan cap; FDNY = fix the flag not the path; 300% accepted for now; phone panel OK.
 
 ## Flip after deploy
 fb:feedback-1790939931163-adb1cc76, -1790512043564-612fbdc4, -1790939049674-a0cecb6a, -1790939744698-8cb652c4, -1790939218940-7fbea636, plus the older ones in TODO (glow: ae480630, 11662ac3, 95624c8e; phone-as-TV: 84b491f2, ec243622, a1260bfc, dc04ea53; b38110f3, ef974f1c). Newly fixed this session (flip once 3.7.x is confirmed live and Tom has looked): fb:67a9c44b, f6aebc05 (trophy board), 496cc1c8, 8f4769cc (roads), 21473ad9 (warning), 7c8375eb, eaba5e71, fa2a2ddf (Menu), bbeb13e2 (DOB tag), 712a9859 (Remove/Replace). Flip only after Tom confirms on a real device.
