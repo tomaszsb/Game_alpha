@@ -1,13 +1,13 @@
 # Next session starter — written 2026-10-12 by /koniec
 
 ## State at handoff
-- **Version:** v3.7.15 (`13d731a`). **LIVE: `/health` = `6bce6516` (v3.7.13) at 2026-10-12 04:03 UTC. PENDING DEPLOY: 3.7.14 (town result bubbles) + 3.7.15 (connection dot by the version tag, "Invite a friend" in the Menu, Menu closes on ✕ / outside click / Esc) → `/health` `13d731a`.** Re-read `/health`; never believe this line.
+- **Version:** v3.7.15. **LIVE: `/health` = `091061e5` at 2026-10-12 04:56 UTC (Tom deployed; that commit contains 3.7.14 bubbles + 3.7.15 header). Nothing pending deploy.** Re-read `/health`; never believe this line.
 - **Branch:** master = origin/master after the wrap-up commit, clean.
 - **Shipped 10-11/12 (this session, "Pokemon board game review"):** town review + plan (`docs/core/TOWN_BOARD_REVIEW.md`), 3.7.6 still town, 3.7.7 walk, 3.7.8 pop-ups wait for the walk, 3.7.9 small fixes, 3.7.10 DOB audit counts for Best built, 3.7.12 folded top bar / solo targets / hover flicker, 3.7.14 bubbles, 3.7.15 header. The other session: 3.7.11 robot seat handle, 3.7.13 slim image.
 - **Tests (v3.7.15):** typecheck + build clean; `npm test` 256 files / 3817 green, exit 0; ghost gate green at v3.7.15 (11 files / 43 tests). Lint 0 errors.
 
 ## Top 3 open items
-1. **Deploy 3.7.14 + 3.7.15 (Tom), then read `/health` = `13d731a`.**
+1. **Tom looks at 3.7.14 + 3.7.15 live** (bubbles on the town, connection dot, "Invite a friend", Menu closing); then the flip list below once he confirms on a real device.
 2. **Approved, build in order (TODO top of "Active"):** (1) clipboard look for the four number boxes (Decision 4A; phone panel not one pixel taller; frame from data), then (2) PC "play" pop-ups over the player panel, dark cover only over the panel, reading pop-ups stay centred, phone/robot hooks unchanged. Week resets 11:00 UTC 10-12 (was 92%). Tell the Manager at start and at each push; one session in `src/` at a time.
 3. **Town A3: Tom's real-device look** — walk 1.5 vs 2 s (`TOWN.csv walk_ms`), bubbles, default Town vs Classic (`utils/boardStyle.ts`). Job 2 (reskin leaks → data) waits for the Manager to bring it back; it must pull first (headerMenuItems, HeaderMenu, LiveTrophyBoard changed in 3.7.12–3.7.15).
 
