@@ -1,3 +1,18 @@
+# Next session starter — written 2026-10-11 (Game session, town board; not a full /koniec)
+
+## State at handoff
+- **Version:** v3.7.7 (`e21987b`). **LIVE: `/health` = `e21987b3` at 2026-10-12 01:06 UTC (Tom deployed).** Re-read `/health`; never believe this line.
+- **Branch:** master = origin/master, clean.
+- **Shipped 2026-10-11:** the town board. Review + plan + Tom's decisions: `docs/core/TOWN_BOARD_REVIEW.md`. 3.7.6 = the still town (Menu → "Board: Town" per screen, starts on Classic; 11 buildings from `TOWN.csv`; rooms open on hover/click, by themselves on the TV for the current player; next moves lit). 3.7.7 = the walk (door to door along the streets, `walk_ms` 1500 / `walk_fast_ms` 400 / `hop_ms` 350; reduce-motion = none).
+- **Classrooms:** classroom-1 (the public board) has `TOWN.csv`; classroom-2 gets it on its next game creation (stock change → re-bake). A board without it shows Classic only, no menu item.
+- **Tests:** 255 files / 3798 green, exit 0; ghost gate green.
+
+## Top 3 open items
+1. **Town A3 — Tom's look on real devices** (his words: "2 s is the sweet spot; judge when built"): walk time, the PC arrival pop-up that covers the walk (TODO (b): delay it until the walk ends = turn timing, his call), default Town vs Classic (`utils/boardStyle.ts`). Still parked: clipboard numbers (Decision 4), road jokes (Decision 5), own growing building, scenes, steering. Art to list: 11 place pictures + Lender/Banker/Investor portraits.
+2. **Stopwatch on a real 3+ player game** (owed since Job 3).
+3. **Flip-after-deploy list below + the Jarvis robot's next nightly run** (it cannot see the town unless a screen is switched to Town; new hooks were sent to the Manager).
+
+## Previous handoff (2026-10-09), kept for its lists
 # Next session starter — written 2026-10-09 by /koniec
 
 ## State at handoff
