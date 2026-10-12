@@ -208,7 +208,7 @@ export function EducationalCardSelectionModal({
       emoji="📚"
       footer={footer}
       maxWidth="1000px"
-      testId="educational-card-selection-modal"
+      testId="educational-card-selection-modal" anchor="panel"
     >
       {/* Card Type Filter tabs */}
       <div style={filterContainerStyle}>

@@ -236,7 +236,7 @@ export function NegotiationModal({ isOpen, onClose, initialPartnerId }: Negotiat
   // When player is unavailable, render closed ModalBase for exit animation
   if (!currentPlayer) {
     return (
-      <ModalBase isOpen={false} onClose={onClose} title="" emoji="" testId="negotiation-modal">
+      <ModalBase isOpen={false} onClose={onClose} title="" emoji="" testId="negotiation-modal" anchor="panel">
         {null}
       </ModalBase>
     );
@@ -251,7 +251,7 @@ export function NegotiationModal({ isOpen, onClose, initialPartnerId }: Negotiat
         title="Negotiation"
         emoji={theme.emoji.negotiation}
         maxWidth="800px"
-        testId="negotiation-modal"
+        testId="negotiation-modal" anchor="panel"
       >
         <div style={{
           padding: '40px',
@@ -310,7 +310,7 @@ export function NegotiationModal({ isOpen, onClose, initialPartnerId }: Negotiat
       title={getTitle()}
       emoji={theme.emoji.negotiation}
       maxWidth="800px"
-      testId="negotiation-modal"
+      testId="negotiation-modal" anchor="panel"
     >
       {/* Partner Selection */}
       {negotiation.status === 'selecting_partner' && (

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { theme, colors } from '../../../styles/theme';
 import { panelPalettes, PanelMode } from '../../player/panelTheme';
 import type { SpeechControls } from '../../../hooks/useModalSpeech';
+import { usePanelAnchorRect, anchoredOverlayStyle } from './panelAnchor';
 
 export interface ModalBaseProps {
   isOpen: boolean;
@@ -32,6 +33,10 @@ export interface ModalBaseProps {
    *  shell, so classic callers are unaffected. An explicit `headerColor` (e.g.
    *  the card-type tint) keeps its light header + dark title in both modes. */
   mode?: PanelMode;
+  /** 'panel' = a pop-up you PLAY: on a PC screen it opens over the player panel with the dark cover only
+   *  over the panel (see panelAnchor.tsx). Anywhere without a panel beside a board (phone, remote, a
+   *  narrow window) it is centred as before. Omit it for a pop-up you READ; those stay centred. */
+  anchor?: 'panel';
 }
 
 // Check reduced motion preference once at module level
@@ -122,6 +127,7 @@ export function ModalBase({
   speechControls,
   onExitComplete,
   mode = 'light',
+  anchor,
 }: ModalBaseProps): JSX.Element | null {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -133,6 +139,8 @@ export function ModalBase({
   useEffect(() => {
     if (isOpen) openedAtRef.current = Date.now();
   }, [isOpen]);
+
+  const panelRect = usePanelAnchorRect(anchor === 'panel', isOpen);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -234,6 +242,8 @@ export function ModalBase({
   const dark = mode === 'dark';
   const dp = panelPalettes.dark;
   const headerIsLight = !!headerColor || !dark;
+  // Over the panel the pop-up gets the phone's compact spacing: the panel is narrow.
+  const compact = isMobile || !!panelRect;
   const shellHoverBg = headerIsLight ? colors.secondary.light : dp.surf2;
 
   // Responsive styles
@@ -248,16 +258,17 @@ export function ModalBase({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: theme.modal.overlay.zIndex,
-    padding: isMobile ? theme.mobile.modal.padding : theme.modal.overlay.padding,
+    padding: panelRect ? '8px' : isMobile ? theme.mobile.modal.padding : theme.modal.overlay.padding,
+    ...(panelRect ? anchoredOverlayStyle(panelRect) : null),
   };
 
   const containerStyle: React.CSSProperties = {
     backgroundColor: dark ? dp.bg : theme.modal.container.background,
     borderRadius: isMobile ? theme.mobile.modal.borderRadius : theme.modal.container.borderRadius,
     boxShadow: theme.modal.container.boxShadow,
-    maxWidth: isMobile ? `calc(100% - ${theme.mobile.modal.margin} * 2)` : maxWidth,
+    maxWidth: panelRect ? '100%' : isMobile ? `calc(100% - ${theme.mobile.modal.margin} * 2)` : maxWidth,
     width: '100%',
-    maxHeight: theme.modal.container.maxHeight,
+    maxHeight: panelRect ? '100%' : theme.modal.container.maxHeight,
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -265,7 +276,7 @@ export function ModalBase({
   };
 
   const headerStyle: React.CSSProperties = {
-    padding: isMobile ? '12px 16px' : theme.modal.header.padding,
+    padding: compact ? '12px 16px' : theme.modal.header.padding,
     backgroundColor: headerColor || (dark ? dp.surf : theme.modal.header.backgroundColor),
     borderBottom: `3px solid ${headerBorderColor || colors.primary.main}`,
     borderRadius: `${isMobile ? theme.mobile.modal.borderRadius : theme.modal.container.borderRadius} ${isMobile ? theme.mobile.modal.borderRadius : theme.modal.container.borderRadius} 0 0`,
@@ -277,7 +288,7 @@ export function ModalBase({
 
   const titleStyle: React.CSSProperties = {
     margin: 0,
-    fontSize: isMobile ? theme.mobile.typography.heading : theme.typography.heading.h3.fontSize,
+    fontSize: compact ? theme.mobile.typography.heading : theme.typography.heading.h3.fontSize,
     fontWeight: 'bold',
     color: headerIsLight ? colors.text.primary : dp.text,
     display: 'flex',
@@ -325,12 +336,12 @@ export function ModalBase({
   const bodyStyle: React.CSSProperties = {
     flex: 1,
     overflow: 'auto',
-    padding: isMobile ? '16px' : theme.modal.body.padding,
+    padding: compact ? '16px' : theme.modal.body.padding,
     WebkitOverflowScrolling: 'touch',
   };
 
   const footerStyle: React.CSSProperties = {
-    padding: isMobile ? '12px 16px' : theme.modal.footer.padding,
+    padding: compact ? '12px 16px' : theme.modal.footer.padding,
     borderTop: `1px solid ${dark ? dp.border : colors.secondary.light}`,
     display: 'flex',
     justifyContent: 'flex-end',

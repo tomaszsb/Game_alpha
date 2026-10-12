@@ -79,7 +79,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       console.error('DiceResultModal: result.effects is not a valid array', result);
     }
     return (
-      <ModalBase isOpen={false} onClose={onClose} onExitComplete={onExitComplete} title="" emoji="" testId="dice-result-modal">
+      <ModalBase isOpen={false} onClose={onClose} onExitComplete={onExitComplete} title="" emoji="" testId="dice-result-modal" anchor="panel">
         {null}
       </ModalBase>
     );
@@ -423,7 +423,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       emoji={headerEmoji}
       maxWidth="500px"
       footer={footer}
-      testId="dice-result-modal"
+      testId="dice-result-modal" anchor="panel"
       shake={hasNegativeEffect}
       speechControls={speechControls}
       mode={panelMode}

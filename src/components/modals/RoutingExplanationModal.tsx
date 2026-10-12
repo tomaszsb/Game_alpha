@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { colors } from '../../styles/theme';
+import { usePanelAnchorRect, anchoredOverlayStyle } from './shared/panelAnchor';
 
 interface RoutingExplanationModalProps {
   /** Authored reason for the routing (the deciding question's branch reason). */
@@ -19,10 +20,12 @@ interface RoutingExplanationModalProps {
 }
 
 export function RoutingExplanationModal({ message, toSpaceLabel, onClose }: RoutingExplanationModalProps): JSX.Element {
+  // A play pop-up: on a PC it opens over the player panel (see shared/panelAnchor.tsx).
+  const panelRect = usePanelAnchorRect(true, true);
   return (
     // Button-only dismissal (no backdrop close) — the explanation's whole job
     // is comprehension, so a stray tap must not dismiss it before it's read.
-    <div style={styles.overlay} role="dialog" aria-modal="true" aria-label="Where you're headed next">
+    <div style={panelRect ? { ...styles.overlay, ...anchoredOverlayStyle(panelRect), padding: '8px' } : styles.overlay} role="dialog" aria-modal="true" aria-label="Where you're headed next">
       <div style={styles.card}>
         <div style={styles.header}>🧭 Where you’re headed next</div>
         <div style={styles.destination}>

@@ -37,6 +37,7 @@ import { pushNotifications } from '../../utils/pushNotifications';
 import { PullToRefresh } from '../common/PullToRefresh';
 import { useDictionaryPanel } from '../../dictionary/context/DictionaryContext';
 import { useModalQueue } from '../../hooks/useModalQueue';
+import { PanelAnchorContext } from '../modals/shared/panelAnchor';
 import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 import { DictionaryHint } from '../../dictionary';
 import { PlayerDebug } from '../debug/PlayerDebug';
@@ -305,6 +306,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // phone/controller view (mobile branch) has no BoardCanvas on the same
   // screen to pan, so its Chronicle entries stay plain, non-interactive text.
   const focusRequestTokenRef = useRef(0);
+  // The PC player-panel column: play pop-ups open over it (modals/shared/panelAnchor.tsx).
+  const panelColumnRef = useRef<HTMLDivElement>(null);
   const [boardFocusRequest, setBoardFocusRequest] = useState<{ spaceId: string; token: number } | null>(null);
   const handleNavigateToSpace = useCallback((spaceId: string) => {
     focusRequestTokenRef.current += 1;
@@ -1227,6 +1230,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   }
 
   return (
+    <PanelAnchorContext.Provider value={panelColumnRef}>
     <div
       className="game-interface-responsive"
       style={{
@@ -1384,6 +1388,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           {/* Left Panel - Player Panels (only show during PLAY if at least one panel is visible) */}
           {gamePhase === 'PLAY' && !hidePanelColumn && (
             <div
+              ref={panelColumnRef}
+              data-testid="panel-column"
               style={{
                 gridColumn: '1',
                 gridRow: '2',
@@ -1689,5 +1695,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           fires when there's actually game text with highlighted terms. */}
       {gamePhase === 'PLAY' && <DictionaryHint />}
     </div>
+    </PanelAnchorContext.Provider>
   );
 }

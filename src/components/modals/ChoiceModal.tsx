@@ -256,7 +256,7 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
       title={customTitle || logicTitle || 'Make Your Choice'}
       emoji={theme.emoji.target}
       maxWidth="500px"
-      testId="choice-modal"
+      testId="choice-modal" anchor="panel"
       speechControls={speechControls}
       mode={panelMode}
     >

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.17] - 2026-10-12
+
+### On a PC, the pop-ups you play open over the player panel; the board stays bright (Tom: "go"). Not deployed.
+
+- **What you see:** on a PC, the dice result, life event, "where you're headed next", choice, card replacement and negotiation pop-ups open over the player panel, and the dark cover covers only the panel. The board, the walk and the result bubbles stay bright. Pop-ups you read (rules, end game, card details, the discard pile, the panel's own numbers and history) stay centred, as before.
+- **Phone, remote, TV, narrow windows:** unchanged. Only the PC layout marks where its panel column is (`PanelAnchorContext`, set in `GameLayout`'s PC branch); with no marker, or a window under 769 px wide, a pop-up is centred and full-screen as before. Checked in Edge: a phone at 360x640 and a 700 px window still get the full-screen cover; the rules pop-up on a 1280 PC is still full-screen.
+- **Robot hooks unchanged:** every `testid` (`dice-result-modal`, `…-overlay`, `choice-modal`, and the rest), `role="dialog" aria-modal="true"` and the "Close modal" button are as before; the cover just has a smaller size. The board is clickable while a play pop-up is open (it was not under the full-screen cover).
+- **How:** one option in `ModalBase` (`anchor="panel"`), set on the play pop-ups only; `modals/shared/panelAnchor.tsx` measures the marked column and follows resizes. While anchored the pop-up uses the phone's compact spacing, since the panel is 280-440 px wide.
+- **Tests:** `ModalBasePanelAnchor` (4, new: covers only the panel; full-screen when not asked, in a narrow window, or with no marker).
+
 ## [3.7.16] - 2026-10-12
 
 ### A clipboard around the four number boxes (Tom approved Decision 4A). Looks only; the phone panel is not one pixel taller. Not deployed.

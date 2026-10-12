@@ -59,7 +59,7 @@ export function CardReplacementModal({
   // When player is unavailable, render closed ModalBase for exit animation
   if (!player) {
     return (
-      <ModalBase isOpen={false} onClose={onCancel} title="" emoji="" testId="card-replacement-modal">
+      <ModalBase isOpen={false} onClose={onCancel} title="" emoji="" testId="card-replacement-modal" anchor="panel">
         {null}
       </ModalBase>
     );
@@ -203,7 +203,7 @@ export function CardReplacementModal({
       headerColor={currentCardColors.bg}
       headerBorderColor={currentCardColors.primary}
       footer={footer}
-      testId="card-replacement-modal"
+      testId="card-replacement-modal" anchor="panel"
       mode={panelMode}
     >
       {/* Instruction */}

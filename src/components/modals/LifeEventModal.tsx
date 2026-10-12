@@ -134,7 +134,7 @@ export function LifeEventModal({ isOpen, data, onClose, playerCount = 2 }: LifeE
   // the exit animation (same pattern as DiceResultModal).
   if (!data) {
     return (
-      <ModalBase isOpen={false} onClose={onClose} title="" emoji="" testId="life-event-modal">
+      <ModalBase isOpen={false} onClose={onClose} title="" emoji="" testId="life-event-modal" anchor="panel">
         {null}
       </ModalBase>
     );
@@ -154,7 +154,7 @@ export function LifeEventModal({ isOpen, data, onClose, playerCount = 2 }: LifeE
       onClose={onClose}
       title="THE DAILY PERMIT"
       emoji="📰"
-      testId="life-event-modal"
+      testId="life-event-modal" anchor="panel"
       headerColor={NEWS.parchment}
       headerBorderColor={NEWS.ink}
       shake={tone === 'setback'}
