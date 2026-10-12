@@ -58,6 +58,43 @@ function playTurnChime(): void {
   } catch { /* audio is best-effort */ }
 }
 
+/** Whether sound can play right now (the page has been tapped / pressed since it loaded). */
+export function isAudioReady(): boolean {
+  return !!_audioCtx && _audioCtx.state === 'running';
+}
+
+export type ChimeTone = 'good' | 'bad' | 'info';
+
+// The notes of each result chime: good news rises, bad news falls, plain news is one note.
+const CHIME_NOTES: Record<ChimeTone, number[]> = {
+  good: [660, 880],
+  bad: [392, 294],
+  info: [520],
+};
+
+/**
+ * A short chime for a result bubble on the town (v3.7.19). `volume` is 0..1 (0 = silent); the town
+ * data sets it. Silent unless audio was primed by a tap and is running, so the robot's headless
+ * runs and a page nobody has touched make no sound.
+ */
+export function playResultChime(tone: ChimeTone, volume: number): void {
+  if (!_audioCtx || _audioCtx.state !== 'running' || !(volume > 0)) return;
+  try {
+    const ctx = _audioCtx;
+    const now = ctx.currentTime;
+    CHIME_NOTES[tone].forEach((hz, i) => {
+      const start = now + i * 0.11;
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine';
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = hz;
+      g.gain.setValueAtTime(Math.min(volume, 1), start);
+      g.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+      o.start(start); o.stop(start + 0.18);
+    });
+  } catch { /* audio is best-effort */ }
+}
+
 /**
  * Haptic feedback patterns for different interactions.
  *

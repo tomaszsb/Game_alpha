@@ -13,6 +13,7 @@ import { HeaderMenu } from './HeaderMenu';
 import { buildHeaderMenuItems } from '../../utils/headerMenuItems';
 import { useGameSpeed } from '../../utils/gameSpeed';
 import { useBoardStyleMenu } from '../../utils/boardStyle';
+import { useSoundMenu } from '../../utils/soundSetting';
 import { useShareGameLink } from '../setup/ShareGameButton';
 import { panelPalettes } from '../player/panelTheme';
 import { RulesModal } from '../modals/RulesModal';
@@ -184,6 +185,7 @@ export function TVDisplay(): JSX.Element {
   // The TV's menu: the same list and wording as a PC's, plus what only a shared screen has (Standings, Connect phone).
   const [gameSpeed, setGameSpeed] = useGameSpeed();
   const boardStyleMenu = useBoardStyleMenu();
+  const soundMenu = useSoundMenu();
   const share = useShareGameLink();
   const playing = gamePhase === 'PLAY';
   const tvMenuItems = buildHeaderMenuItems({
@@ -193,6 +195,7 @@ export function TVDisplay(): JSX.Element {
     connectPhone: playing ? { onToggle: () => setShowQRPanel(v => !v), open: showQRPanel } : undefined,
     speed: { fast: gameSpeed === 'fast', toggle: () => setGameSpeed(gameSpeed === 'fast' ? 'normal' : 'fast') },
     boardStyle: boardStyleMenu,
+    sound: soundMenu,
     invite: share.hasGame ? { code: gameId ?? '', copied: share.copied, onInvite: share.handleShare } : undefined,
   });
   const onOpenScreenSize = () => {

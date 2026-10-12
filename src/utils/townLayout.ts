@@ -231,6 +231,13 @@ export const DEFAULT_WALK_TIMES: WalkTimes = { walkMs: 1500, fastMs: 400, hopMs:
 /** How long a result bubble floats (setting `bubble_ms`); Fast halves it like every other wait. */
 export const DEFAULT_BUBBLE_MS = 1800;
 
+/** Chime volume for result bubbles (setting `bubble_sound_volume`, 0..1, 0 = silent); bad or missing = default. */
+export const DEFAULT_BUBBLE_VOLUME = 0.2;
+export function bubbleVolume(settings: Record<string, string>): number {
+  const n = parseFloat(settings.bubble_sound_volume ?? '');
+  return Number.isFinite(n) && n >= 0 ? Math.min(n, 1) : DEFAULT_BUBBLE_VOLUME;
+}
+
 /** Walk times from the town's settings (`walk_ms`, `walk_fast_ms`, `hop_ms`); bad or missing = defaults. */
 export function walkTimes(settings: Record<string, string>): WalkTimes {
   const ms = (key: string, fallback: number) => {

@@ -45,4 +45,5 @@ setting,walk_ms,,,,,,,,,,1500
 setting,walk_fast_ms,,,,,,,,,,400
 setting,hop_ms,,,,,,,,,,350
 setting,bubble_ms,,,,,,,,,,1800
+setting,bubble_sound_volume,,,,,,,,,,0.2
 setting,panel_frame,,,,,,,,,,clipboard

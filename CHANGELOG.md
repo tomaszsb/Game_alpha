@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.19] - 2026-10-12
+
+### A short chime with each result bubble on the town (Tom: "bubbles also need sound effect so it raises awareness that something happened"). Only on a screen showing the town. Not deployed.
+
+- **What you hear:** when a result bubble appears (after the walk, if there was one), a short chime plays with it: good news (money in, days saved) is two notes going up, bad news (money out, days used) two notes going down, plain news (scope) one note. One chime per bubble, a quarter second apart like the bubbles.
+- **Reused, not new:** the same Web Audio chime path the turn notification already uses (`utils/haptics.ts`, `playResultChime`); no audio library, no second system.
+- **Data:** `TOWN.csv` `setting,bubble_sound_volume,,,,,,,,,,0.2` (0 to 1; 0 = silent). The notes themselves are in code.
+- **Mute:** Menu → "Sound: On / Off" on that screen only (new; there was no sound setting before; it shows only when the board has a town). Remembered on the device (`uc-sound`).
+- **TV:** a browser keeps a page silent until someone taps or presses a key on it, and the TV has no tap-to-enter gate. So on a TV screen a small note, "Press OK once to turn the sound on", sits at the bottom-left of the town until the first key press or tap (an OK on the remote counts), then goes away. Every screen showing the town unlocks sound the same way on its first tap or key press. Phones show no town of their own, so they make no chime.
+- **Robot:** nothing plays on a page nobody has tapped, so the Jarvis runs stay silent; no test id was renamed (new hooks `sound-toggle`, `sound-hint`).
+- **Checked in Edge:** a scope bubble on a tapped PC screen started the one-note chime; the TV hint showed on a `?mode=tv` screen and was gone after one key press. Not heard on a real TV yet.
+- **Tests:** `soundSetting` (5, new: default On, menu only with a town, header menu item, volume from data, silent before a tap).
+
 ## [3.7.18] - 2026-10-12
 
 ### The host picks the starting board on the setup screen: Street view (town) is the default, Classic is the other choice (Tom, via the Manager). Not deployed.

@@ -34,6 +34,8 @@ import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/pan
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { scaleMs, getGameSpeed } from '../../utils/gameSpeed';
 import { setTownWalking } from '../../utils/boardStyle';
+import { getSoundOn } from '../../utils/soundSetting';
+import { playResultChime, isAudioReady, primeAudio } from '../../utils/haptics';
 import {
   buildTownLayout,
   buildingBox,
@@ -44,6 +46,7 @@ import {
   walkTimes,
   resultBubbles,
   DEFAULT_BUBBLE_MS,
+  bubbleVolume,
   type PlayerNumbers,
   type ResultBubble,
   type BuildingView,
@@ -320,6 +323,8 @@ interface Bubble extends ResultBubble {
   delayMs: number;
   ms: number;
   still: boolean;
+  /** Chime volume 0..1 from the town data (`bubble_sound_volume`); 0 = silent. */
+  volume: number;
 }
 
 const BUBBLE_COLOURS = {
@@ -344,7 +349,10 @@ function FloatingBubble({ bubble, onDone }: { bubble: Bubble; onDone: (key: numb
       { duration: bubble.ms, delay: bubble.delayMs, fill: 'both', easing: 'ease-out' },
     );
     const done = window.setTimeout(() => onDone(bubble.key), bubble.delayMs + bubble.ms + 60);
-    return () => { anim?.cancel(); window.clearTimeout(done); };
+    // The chime goes with the bubble's first appearance (after the walk), so "something happened" is heard
+    // as well as seen. This device's Sound switch can turn it off; it is silent until the page is tapped.
+    const chime = window.setTimeout(() => { if (getSoundOn()) playResultChime(bubble.tone, bubble.volume); }, bubble.delayMs);
+    return () => { anim?.cancel(); window.clearTimeout(done); window.clearTimeout(chime); };
   }, [bubble, onDone]);
   const c = BUBBLE_COLOURS[bubble.tone];
   return (
@@ -499,7 +507,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
           ...r, key: seen.n * 100 + 50 + made.length, playerId: p.id,
           // Rises from the top of the building's sign, stacked so two results never sit on each other.
           buildingId: b.id, index: i,
-          delayMs: walkWait + i * 250, ms, still,
+          delayMs: walkWait + i * 250, ms, still, volume: bubbleVolume(layout.settings),
         }));
       }
       if (made.length) setBubbles(bs => [...bs, ...made]);
@@ -698,6 +706,39 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
           {walks.map(w => <Walker key={w.key} walk={w} onDone={endWalk} />)}
         </ViewportPortal>
       </ReactFlow>
+      <SoundHint volume={bubbleVolume(layout.settings)} />
+    </div>
+  );
+}
+
+/**
+ * Browsers keep a page silent until someone taps or presses a key on it. Every screen that shows the
+ * town unlocks sound on its first tap or key press (an OK on a TV remote counts). A TV has no tap
+ * gate and nobody expects to touch it, so there a small note says so until then; the first press turns
+ * sound on and the note goes away. The note shows only when sound is on and the data gives the chimes
+ * a volume.
+ */
+function SoundHint({ volume }: { volume: number }) {
+  const isTv = new URLSearchParams(window.location.search).get('mode') === 'tv';
+  const [locked, setLocked] = useState(() => !isAudioReady());
+  useEffect(() => {
+    if (!locked) return undefined;
+    const unlock = () => { primeAudio(); setLocked(false); };
+    const events = ['pointerdown', 'keydown', 'touchstart'] as const;
+    events.forEach(e => window.addEventListener(e, unlock, { once: true }));
+    return () => events.forEach(e => window.removeEventListener(e, unlock));
+  }, [locked]);
+  if (!isTv || !locked || !(volume > 0) || !getSoundOn()) return null;
+  return (
+    <div
+      data-testid="sound-hint"
+      style={{
+        position: 'absolute', left: 8, bottom: 8, zIndex: 4000, pointerEvents: 'none',
+        background: 'rgba(15,23,42,0.85)', color: '#f1f5f9', borderRadius: 999, padding: '4px 12px',
+        fontSize: 14, fontWeight: 600, fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+      }}
+    >
+      🔇 Press OK once to turn the sound on
     </div>
   );
 }
