@@ -2,6 +2,15 @@
 
 ---
 
+## v3.7.6 to v3.7.13 — A town you can watch, and solo games show targets (October 12, 2026)
+
+- **The board can be a small town.** Open the Menu and pick "Board: Town" on any screen (it starts on the classic board). Each place is a building with rooms; hover or click one to look inside, and on the TV the current player's building opens by itself. Pieces walk from door to door along the streets.
+- **Pop-ups wait for the walk.** On a town screen, news that comes with a move opens after your piece arrives, not on top of it.
+- **Playing alone?** The trophy board now shows your own targets (days, money and review results against your plan) instead of "no race yet".
+- **More room for the board on a PC:** the top bar starts folded into one line; open it when you want it, and the screen remembers.
+- **The city audit now counts for "Best built":** passing it counts as a passed review, and being sent back counts as sent back.
+- **Smaller fixes:** the end screen no longer shows an old "Final score" next to the trophies; the corner tag says "Phone" on a phone; the town no longer flickers under the mouse.
+
 ## v3.6.3 to v3.7.5 — Pick your builder, one Menu everywhere, fairer limits (October 9, 2026)
 
 - **Hire a Builder is now a choice.** Three builders each give you a price, how many days the work takes and how long that price stays good. You will not know how good a builder is until you hire one. Short on money? A door leads to the lender, and your prices wait for you until the day shown (unless your plan changes).

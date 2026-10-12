@@ -1,45 +1,32 @@
-# Next session starter — written 2026-10-11 (Game session, town board; not a full /koniec)
+# Next session starter — written 2026-10-12 by /koniec
 
 ## State at handoff
-- **Version:** v3.7.9 (`440c469`). **LIVE: `/health` = `440c469f` at 2026-10-12 01:56 UTC (Tom deployed 3.7.8 + 3.7.9 after this note was first written; 3.7.8 = pop-ups wait for the walk, which closes item 1's pop-up question; 3.7.9 = no old Final score, Phone tag, lint 0. New Tom question in TODO: DOB audit vs Best built).** Re-read `/health`; never believe this line.
+- **Version:** v3.7.13 (`6bce651`+docs). **PENDING DEPLOY:** live was v3.7.11 (`1715e745`) at 03:14 UTC; one deploy ships 3.7.12 (other game session: top bar folded, solo targets, town flicker) + 3.7.13 (production image 867 → 402 MB, first deploy on the two-stage Dockerfile). Re-read `/health`; never believe this line.
 - **Branch:** master = origin/master, clean.
-- **Shipped 2026-10-11:** the town board. Review + plan + Tom's decisions: `docs/core/TOWN_BOARD_REVIEW.md`. 3.7.6 = the still town (Menu → "Board: Town" per screen, starts on Classic; 11 buildings from `TOWN.csv`; rooms open on hover/click, by themselves on the TV for the current player; next moves lit). 3.7.7 = the walk (door to door along the streets, `walk_ms` 1500 / `walk_fast_ms` 400 / `hop_ms` 350; reduce-motion = none).
-- **Classrooms:** classroom-1 (the public board) has `TOWN.csv`; classroom-2 gets it on its next game creation (stock change → re-bake). A board without it shows Classic only, no menu item.
-- **Tests:** 255 files / 3801 green (3.7.9), exit 0; ghost gate green.
+- **Shipped this session:** 3.7.11 robot handle `setup-player-count` (+`data-players`/`data-max-players`); 3.7.13 slim image (tsx kept: Check my board runs `node --import tsx scripts/boardPlaytest.ts`). Other session: 3.7.10 DOB audit counts for Best built (Tom "a"), 3.7.12.
+- **Jarvis robot (Mac):** seat step was never broken (2/3/4-seat starts proven live with its unchanged code); 10-11 was a one-off. Installed a hardened `game_playtest.py` (reads the new handle, retries setup once, saves `start-failure-*.png/.txt`), md5 9eba14a7…, backup `.bak-seatfix-20261012`; Jarvis repo commit `0b93f51` local, NOT pushed (Jarvis session pushes). Tonight 10-12 03:00 ET = 3 seats.
+- **Tests:** see CHANGELOG / wrap line for this run; 3.7.12's run was 256 files / 3813 green with all of this in the tree.
 
 ## Top 3 open items
-1. **Town A3 — Tom's look on real devices** (his words: "2 s is the sweet spot; judge when built"): walk time, the PC arrival pop-up that covers the walk (TODO (b): delay it until the walk ends = turn timing, his call), default Town vs Classic (`utils/boardStyle.ts`). Still parked: clipboard numbers (Decision 4), road jokes (Decision 5), own growing building, scenes, steering. Art to list: 11 place pictures + Lender/Banker/Investor portraits.
-2. **Stopwatch on a real 3+ player game** (owed since Job 3).
-3. **Flip-after-deploy list below + the Jarvis robot's next nightly run** (it cannot see the town unless a screen is switched to Town; new hooks were sent to the Manager).
-
-## Previous handoff (2026-10-09), kept for its lists
-# Next session starter — written 2026-10-09 by /koniec
-
-## State at handoff
-- **Version:** v3.7.5 (`54e860c`). **LIVE: `/health` = `54e860c1` at 2026-10-09 05:03 UTC, so Tom's deploy finished (it read v3.7.2 at 04:57).** Re-read `/health`; never believe this line.
-- **Branch:** master = origin/master after the wrap-up commit, clean.
-- **Last shipped (2026-10-08/09):** 3.7.0 Job 6 (Hire a Builder = three bids, door to the lender, hidden quality); 3.7.1 feedback fixes (trophy board "no race yet", board lights only offered roads, scope-change warning, DOB tag kept, Money page lists payments, glossary label); 3.7.2 one header Menu on PC/TV/remote; 3.7.3 final review asks FDNY only when needed (+ FDNY tag needed vs not); 3.7.4 300% time limit; 3.7.5 work-package Remove/Replace rolls fixed + design cap and time limit measured against the biggest plan.
-- **Tests:** `npm test` 253 files / 3778 green; typecheck + build clean; lint unchanged (3 old errors). Ghost gate green at 3.7.5 (11 files / 43 tests; smart bot **38/50 = the floor**, 8 lost to the time limit; 45/50 with the limit off). Check my board 3/3 and 2/2 on the stock board; not yet run on a real classroom row in Docker.
-
-## Top 3 open items
-1. **The Jarvis robot (deploy already happened).** v3.7.x is live, so the nightly robot will meet the new screens: do not call it done until the robot clicks `builder-bid-hire` (not the old dice), opens the header Menu (`header-menu-button`) instead of loose header buttons, and handles the two pick-a-card pop-ups (`choice-option` for Remove; `card-replacement-modal` / `card-replacement-pick` for Replace). The Manager has all ids (contract in `E:\Documents\People\AI\Manager\handouts\2026-10-08-jarvis-robot-bid-choice-FINAL-CONTRACT.md`). First run after is a new baseline.
-2. **Time limit: 300% / 500% / off — Tom's call after a few real games.** 300% costs the smart bot ~7 finished games (games run ~16% longer since the Remove/Replace fix). I suggested 500% (one number, `TROPHIES.csv` `rule,time_cap_percent`); not yet run at 500%. The Manager still thinks it is "parked" — it is built and pushed since 3.7.4.
-3. **Tom's wording drafts + real-device looks:** `UI_STRINGS.csv` `BUILDER_BIDS.*`, trophy names, finished/out tags, Check-my-board texts, End Turn warnings; the new header Menu on a real TV/phone; the phone panel at Hire a Builder is ~105 px taller (Tom OK'd for now). Also 49-ish open feedback reports (19 triaged in TODO "Newly arrived 2026-10-08": trophy/board/etc. done; left: TV-vs-PC bar question closed by the Menu, wishlist parked, old 3.2.99 reports to confirm-and-close).
+1. **Deploy 3.7.12 + 3.7.13 (Tom), then read `/health` = the pushed HEAD.** First two-stage build: if it fails, `git revert 1b33cf4` restores the old Dockerfile.
+2. **Job 2: reskin leaks → data** (Tom: yes; Manager + other session agreed). Scope: `contractorTerms.ts` numbers → `TROPHIES.csv` rule rows; fixed words (ProjectMat/MAT_CHECKS, TvMenu, LiveTrophyBoard incl. 3.7.12's solo lines, BoardCheckStrip) → `UI_STRINGS.csv`, defaults byte-identical, new rows APPENDED at the end; `LEND-SCOPE-CHECK` in `server/spaceProtection.js` + `trophyRules.ts` fallbacks/CHEAT-BYPASS from data. Leave HIGH/MED/LOW + event ids. Not the closed-union items. Test: a changed CSV value changes the game. **Wait for the weekly reset (11:00 UTC 10-12); week was 89%.** One session in `src/` at a time.
+3. **Read the robot's 10-12 report** (`~/.hermes/playtest-reports/playtest-2026-10-12.txt` via `ssh hermes`): did the 3-seat game start? Any `start-failure-*` file? The second robot job (never finishes; never reaches Hire a Builder) belongs to the Jarvis session.
 
 ## Decisions waiting on the user
-- ~~Time limit value (above).~~ CLOSED: Tom said 10-09 "300% as is" (Manager record); reopen only if he does. Tom already answered: Remove/Replace fix = yes with biggest-plan cap; FDNY = fix the flag not the path; 300% accepted for now; phone panel OK.
+- Town A3 (his real-device look): walk 1.5 vs 2 s, default Town vs Classic. Parked: clipboard (D4), road jokes (D5), art.
+- Unraid cleanup, his call: `docker rmi game_alpha-game-alpha:latest` (609 MB), `docker builder prune` (23.4 GB).
+- Time limit is CLOSED at 300% (Tom 10-09).
 
 ## Flip after deploy
-fb:feedback-1790939931163-adb1cc76, -1790512043564-612fbdc4, -1790939049674-a0cecb6a, -1790939744698-8cb652c4, -1790939218940-7fbea636, plus the older ones in TODO (glow: ae480630, 11662ac3, 95624c8e; phone-as-TV: 84b491f2, ec243622, a1260bfc, dc04ea53; b38110f3, ef974f1c). Newly fixed this session (flip once 3.7.x is confirmed live and Tom has looked): fb:67a9c44b, f6aebc05 (trophy board), 496cc1c8, 8f4769cc (roads), 21473ad9 (warning), 7c8375eb, eaba5e71, fa2a2ddf (Menu), bbeb13e2 (DOB tag), 712a9859 (Remove/Replace). Flip only after Tom confirms on a real device.
+Unchanged from 10-09, flip only after Tom confirms on a real device: fb adb1cc76, 612fbdc4, a0cecb6a, 8cb652c4, 7fbea636, ae480630, 11662ac3, 95624c8e, 84b491f2, ec243622, a1260bfc, dc04ea53, b38110f3, ef974f1c, 67a9c44b, f6aebc05, 496cc1c8, 8f4769cc, 21473ad9, 7c8375eb, eaba5e71, fa2a2ddf, bbeb13e2, 712a9859.
 
 ## Suggested first move
-Read `/health`, then ask the Manager whether the Jarvis robot was updated before tonight's run (the game is live without that gate); then ask Tom for his time-limit choice (and offer the 500% run, ~18 min).
+Read `/health`; if 3.7.13 is live, check the robot's 10-12 report, then (after the weekly reset) start Job 2.
 
 ## Suggested model for next session
-Sonnet 5 — remaining work is data tuning, the robot hand-off and small fixes; raise effort before a bigger model.
+Sonnet 5 — Job 2 is mechanical moving of words/numbers into CSVs with tests.
 
 ## Reminders
-- **Deploy stays Tom's** (`ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`, PowerShell); confirm with `/health`.
-- A new player field the turn snapshot copies must be written with `updateTempState`, and tests must END THE TURN before looking (CLAUDE.md TACTICAL, charter 3.99).
-- Tom's rules: all screens look identical and menus hide (new header controls go in `HeaderMenu`); phone panel never bigger without his OK; his real go in chat (a relayed one is not enough for risky steps).
-- Commands for Tom go in PowerShell. Edit CRLF files with a script that keeps EOL (the Edit tool flips them).
+- Deploy stays Tom's: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"` (PowerShell).
+- Two game sessions share this folder: commit files BY NAME, never `git add -A`; coordinate version numbers by message.
+- Edit CRLF files (Dockerfile, TownBoard.tsx…) with a script that keeps EOL.
