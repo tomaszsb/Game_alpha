@@ -1,12 +1,16 @@
-// boardStyle - the "Board: Classic / Town" switch (Tom, 2026-10-11, town board first build). A
-// per-device setting, remembered on this device only, like the Fast switch (gameSpeed.ts). It starts
-// on Classic: nobody sees the town until they choose it. It never changes rules or other screens.
+// boardStyle - the "Board: Classic / Town" switch (Tom, 2026-10-11, town board first build). The HOST
+// picks the starting board on the setup screen (Town = "street view", the default; 2026-10-12) and it
+// rides on the game's state to every screen. A screen's own Menu switch is remembered on that device
+// FOR THAT GAME and wins over the host's pick; a new game starts from the host's pick again. An older
+// game with no pick starts on Classic. It never changes rules or other screens.
+import { getCurrentGameId } from './networkDetection';
 
 import { useSyncExternalStore } from 'react';
 
 export type BoardStyle = 'classic' | 'town';
 
 const KEY = 'uc-board-style';
+const storageKey = (): string => `${KEY}:${getCurrentGameId() ?? ''}`;
 
 const listeners = new Set<() => void>();
 
@@ -24,17 +28,26 @@ export function isTownAvailable(): boolean {
   return townAvailable;
 }
 
+// The board the host picked for this game (from the game state); undefined = none picked.
+let gameBoardStyle: BoardStyle | undefined;
+
+export function setGameBoardStyle(style: BoardStyle | undefined): void {
+  if (gameBoardStyle === style) return;
+  gameBoardStyle = style;
+  listeners.forEach(l => l());
+}
+
 export function getBoardStyle(): BoardStyle {
   try {
-    return localStorage.getItem(KEY) === 'town' ? 'town' : 'classic';
-  } catch {
-    return 'classic';
-  }
+    const own = localStorage.getItem(storageKey());
+    if (own === 'town' || own === 'classic') return own;
+  } catch { /* fall through to the host's pick */ }
+  return gameBoardStyle ?? 'classic';
 }
 
 export function setBoardStyle(style: BoardStyle): void {
   try {
-    localStorage.setItem(KEY, style);
+    localStorage.setItem(storageKey(), style);
   } catch { /* private window: the choice lasts until reload */ }
   listeners.forEach(l => l());
 }
@@ -46,6 +59,15 @@ export function useBoardStyle(): [BoardStyle, (s: BoardStyle) => void] {
     () => 'classic' as BoardStyle,
   );
   return [style, setBoardStyle];
+}
+
+/** Whether this board has a town at all, as a hook (the setup screen offers the choice only then). */
+export function useTownAvailable(): boolean {
+  return useSyncExternalStore(
+    cb => { listeners.add(cb); return () => { listeners.delete(cb); }; },
+    isTownAvailable,
+    () => false,
+  );
 }
 
 /** The menu's Town / Classic item, or undefined when this board has no town. */

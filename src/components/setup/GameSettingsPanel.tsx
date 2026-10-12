@@ -1,5 +1,6 @@
 // src/components/setup/GameSettingsPanel.tsx
 
+import { useTownAvailable } from '../../utils/boardStyle';
 import React from 'react';
 import { colors } from '../../styles/theme';
 import { GameSettings } from './usePlayerValidation';
@@ -22,6 +23,8 @@ export function GameSettingsPanel({
   onChangeGameSettings,
   onOpenCardSelection,
 }: GameSettingsPanelProps): JSX.Element {
+  // The Board choice is offered only when this game's data has a town (TOWN.csv).
+  const townAvailable = useTownAvailable();
   return (
     <div style={styles.settingsBlock}>
       <h3 style={{ ...styles.sectionTitleSmall, display: 'flex', alignItems: 'center', gap: '0.4em' }}>
@@ -47,6 +50,23 @@ export function GameSettingsPanel({
             <option value="HIGHEST_SCORE">Highest Score</option>
           </select>
         </div>
+        {townAvailable && (
+          <div data-testid="setup-board-style">
+            <label style={styles.label}>Board</label>
+            <select
+              value={gameSettings.boardStyle ?? 'town'}
+              onChange={(e) => onChangeGameSettings({
+                ...gameSettings,
+                boardStyle: e.target.value === 'classic' ? 'classic' : 'town'
+              })}
+              style={styles.select}
+              aria-label="Board every screen starts on"
+            >
+              <option value="town">Street view (town)</option>
+              <option value="classic">Classic</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Same Starting Point Mode */}

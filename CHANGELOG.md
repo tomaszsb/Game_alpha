@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.18] - 2026-10-12
+
+### The host picks the starting board on the setup screen: Street view (town) is the default, Classic is the other choice (Tom, via the Manager). Not deployed.
+
+- **What you see:** in the setup screen's gear drawer, under Win Condition, a new "Board" choice: "Street view (town)" (selected) or "Classic". It shows only when the game's data has a town (`TOWN.csv`). The drawer is closed by default, so the phone setup is no taller (page height 640 and 900 px before and after the drawer opens and closes, checked in Edge).
+- **Every screen starts on it:** the pick is stored on the game (`GameState.boardStyle`), so the PC, the TV and phones all open on it. Checked with a second screen (`?mode=tv`) joined to a PC game: both on Town by default, both on Classic when the host picked Classic.
+- **The Menu switch stays:** "Board: Town / Classic" on a screen still changes just that screen. That choice is now remembered per game on that device (key `uc-board-style:<game>`), not for ever, so a new game starts from its host's pick again. A game with no pick (an older game) starts on Classic. Anyone who chose a board in the Menu before is back on the host's pick for new games.
+- **Settles** "should every screen start on Town?": yes, through this setting.
+- **Robot:** setup test ids (`setup-player-count` etc.) unchanged; the nightly Jarvis run will now start on the town board (default), so watch its first report after deploy.
+- **Code:** `utils/boardStyle.ts` (`setGameBoardStyle`, `useTownAvailable`), `useSyncedGameState` pushes the game's pick into it for every screen, `GameSettingsPanel`, `GameLayout.onStartGame` stores it.
+- **Tests:** `boardStyle` (+1), `GameSettingsBoardChoice` (2, new).
+
 ## [3.7.17] - 2026-10-12
 
 ### On a PC, the pop-ups you play open over the player panel; the board stays bright (Tom: "go"). Not deployed.

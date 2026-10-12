@@ -1,16 +1,28 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { getBoardStyle, setBoardStyle, setTownAvailable, useBoardStyleMenu, setTownWalking, useTownWalking } from '../../src/utils/boardStyle';
+import { getBoardStyle, setBoardStyle, setGameBoardStyle, setTownAvailable, useBoardStyleMenu, setTownWalking, useTownWalking } from '../../src/utils/boardStyle';
 
 describe('boardStyle (the Board: Classic / Town switch)', () => {
-  beforeEach(() => { localStorage.clear(); setBoardStyle('classic'); setTownAvailable(false); });
+  beforeEach(() => { localStorage.clear(); setGameBoardStyle(undefined); setTownAvailable(false); });
 
   it('starts on Classic, and Town is remembered on this device', () => {
     localStorage.clear();
     expect(getBoardStyle()).toBe('classic');
     setBoardStyle('town');
     expect(getBoardStyle()).toBe('town');
-    expect(localStorage.getItem('uc-board-style')).toBe('town');
+    expect(localStorage.getItem('uc-board-style:')).toBe('town');
+  });
+
+  it("starts on the host's pick for the game, and the screen's own Menu choice wins", () => {
+    setGameBoardStyle('town');
+    expect(getBoardStyle()).toBe('town');
+    setBoardStyle('classic');
+    expect(getBoardStyle()).toBe('classic');
+    setGameBoardStyle('classic');
+    localStorage.clear();
+    expect(getBoardStyle()).toBe('classic');
+    setGameBoardStyle(undefined);
+    expect(getBoardStyle()).toBe('classic');
   });
 
   it('the menu offers the switch only when the board has a town', () => {

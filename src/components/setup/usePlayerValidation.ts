@@ -54,6 +54,8 @@ export interface GameSettings {
   sameStartingPoint?: boolean;
   startingMode?: 'QUICK_START' | 'EDUCATIONAL';
   preSelectedHand?: string[];  // For Educational mode
+  /** The board every screen starts on (Town = street view, the default). Only offered when the board has a town. */
+  boardStyle?: 'town' | 'classic';
 }
 
 /**

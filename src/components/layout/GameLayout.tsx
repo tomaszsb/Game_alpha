@@ -21,7 +21,7 @@ import { ProjectProgress } from '../game/ProjectProgress';
 import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
 import { GameBoard } from '../board/GameBoard';
-import { useTownWalking } from '../../utils/boardStyle';
+import { useTownWalking, isTownAvailable } from '../../utils/boardStyle';
 import { isProgressBarRememberedOpen, rememberProgressBarOpen } from '../../utils/progressBarFold';
 import { BoardToggle } from '../board/BoardToggle';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
@@ -1548,6 +1548,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
             // Actually start the game through StateService
             stateService.startGame(gameModeSettings);
+            // The host's board pick (Town = street view by default) goes on the game for every screen.
+            stateService.updateGameState({ boardStyle: isTownAvailable() ? (settings.boardStyle ?? 'town') : 'classic' });
 
             // Place players on starting spaces (no effects processing)
             try {

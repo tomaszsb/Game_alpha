@@ -107,7 +107,8 @@ export function PlayerSetup({
     winCondition: 'FIRST_TO_FINISH',
     difficulty: 'normal',
     sameStartingPoint: false,
-    startingMode: 'QUICK_START'
+    startingMode: 'QUICK_START',
+    boardStyle: 'town'
   });
 
   const [isStarting, setIsStarting] = useState(false);

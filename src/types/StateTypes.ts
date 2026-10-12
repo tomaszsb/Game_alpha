@@ -424,6 +424,9 @@ export interface GameState {
   // + defaults to false/light so existing saved games and test fixtures
   // load without migration.
   tvDarkMode?: boolean;
+  /** The board every screen starts on, chosen by the host at setup (Town = street view). A screen's own
+   *  Menu switch still wins on that screen; a game without it (older games) starts on Classic. */
+  boardStyle?: 'town' | 'classic';
 }
 
 export interface PlayerAction {

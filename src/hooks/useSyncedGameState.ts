@@ -21,7 +21,8 @@
 // i.e. once per real change, matching how the existing subscribe pattern
 // already behaved.
 
-import { useCallback, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { setGameBoardStyle } from '../utils/boardStyle';
 import { IStateService } from '../types/ServiceContracts';
 import { GameState } from '../types/StateTypes';
 
@@ -42,5 +43,10 @@ export function useSyncedGameState(stateService: IStateService): GameState {
     return cachedRef.current;
   }, [stateService]);
 
-  return useSyncExternalStore(subscribe, getSnapshot);
+  const state = useSyncExternalStore(subscribe, getSnapshot);
+  // The host's board pick (Town / Classic) rides on the game state to every screen that reads it,
+  // the PC layout and the TV alike (utils/boardStyle.ts keeps it as the screen's starting board).
+  const hostBoardStyle = state.boardStyle;
+  useEffect(() => { setGameBoardStyle(hostBoardStyle); }, [hostBoardStyle]);
+  return state;
 }
