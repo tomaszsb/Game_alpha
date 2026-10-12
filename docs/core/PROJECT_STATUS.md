@@ -13,7 +13,7 @@
 Town board shipped (3.7.6–3.7.8, opt-in per screen via Menu → "Board: Town"), then small fixes and plumbing: 3.7.9 end screen without the old Final score; 3.7.10 the DOB audit counts for "Best built"; 3.7.11 a `setup-player-count` handle for the Jarvis robot; 3.7.12 top bar starts folded, solo games show targets, town hover flicker fixed; 3.7.13 the production image drops its dev tools (867 → 402 MB; Check my board kept working).
 
 ## Health
-- **Tests (v3.7.13):** typecheck + build clean; npm test: still running at wrap-up; ghost gate: still running at wrap-up
+- **Tests (v3.7.13):** typecheck + build clean; `npm test` 256 files / 3812 of 3813 (1 Windows-only EPERM rename flake in `instanceResolver` "swaps atomically" while the ghost gate ran; 43/43 alone, see CLAUDE.md TACTICAL); ghost gate 11 files / 43 green (1 skipped), 939 s.
 - **Feedback dashboard:** ~49 open; all tracked in TODO.
 - **Machine:** Node 24.10.0 (matches Dockerfile).
 

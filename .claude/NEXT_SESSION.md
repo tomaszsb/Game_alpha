@@ -5,7 +5,7 @@
 - **Branch:** master = origin/master, clean.
 - **Shipped this session:** 3.7.11 robot handle `setup-player-count` (+`data-players`/`data-max-players`); 3.7.13 slim image (tsx kept: Check my board runs `node --import tsx scripts/boardPlaytest.ts`). Other session: 3.7.10 DOB audit counts for Best built (Tom "a"), 3.7.12.
 - **Jarvis robot (Mac):** seat step was never broken (2/3/4-seat starts proven live with its unchanged code); 10-11 was a one-off. Installed a hardened `game_playtest.py` (reads the new handle, retries setup once, saves `start-failure-*.png/.txt`), md5 9eba14a7…, backup `.bak-seatfix-20261012`; Jarvis repo commit `0b93f51` local, NOT pushed (Jarvis session pushes). Tonight 10-12 03:00 ET = 3 seats.
-- **Tests:** see CHANGELOG / wrap line for this run; 3.7.12's run was 256 files / 3813 green with all of this in the tree.
+- **Tests (v3.7.13):** typecheck + build clean; `npm test` 3812/3813 (1 Windows-only EPERM flake in `instanceResolver` "swaps atomically", passes 43/43 alone); ghost gate 43 green, 939 s (slow: other session busy on the PC).
 
 ## Top 3 open items
 1. **Deploy 3.7.12 + 3.7.13 (Tom), then read `/health` = the pushed HEAD.** First two-stage build: if it fails, `git revert 1b33cf4` restores the old Dockerfile.
