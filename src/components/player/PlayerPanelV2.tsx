@@ -17,6 +17,7 @@ import { showScopeApprovalWarning } from '../../utils/scopeChangeWarning';
 import { getDobLabel, DOB_EXAM_SPACE, FDNY_EXAM_SPACE } from '../../services/ApprovalService';
 import { usePhoneWidth } from '../../hooks/usePhoneWidth';
 import { computeMat } from '../../utils/projectMat';
+import { panelFrameName, panelFrameStyles } from '../../utils/panelFrame';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import React, { useEffect, useRef, useState } from 'react';
 import { PlayerPanelProps } from './panelTypes';
@@ -759,6 +760,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // At-a-glance boxes (fb:adad1561). The whole box is the button — no separate
   // "details" control (Tom, 2026-09-17: "can't we just press the area?"). The
   // › marks it as tappable.
+  // The frame around the four boxes is picked in the data (TOWN.csv `panel_frame`); a look only.
+  const frameLook = panelFrameStyles(panelFrameName(gameServices.dataService.getTownRows?.()), p, mode);
   const glanceTile: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
@@ -775,6 +778,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     color: p.text,
     font: 'inherit',
     cursor: 'pointer',
+    ...frameLook.tile,
   };
   const glanceLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, width: '100%', fontSize: 11, color: p.muted };
   const glanceArrow: React.CSSProperties = { marginLeft: 'auto', fontSize: 13, color: p.muted };
@@ -889,7 +893,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       <div style={pad}>
         {/* The four number boxes and their "?" share one outline (Tom, 2026-10-02: "?
             should be within each area, not outside"). */}
-        <div style={{ border: `1px solid ${p.border}`, borderRadius: 11, padding: '4px 7px 7px', boxSizing: 'border-box' }}>
+        <div data-testid="glance-frame" style={{ borderRadius: 11, padding: '4px 7px 7px', boxSizing: 'border-box', ...frameLook.frame }}>
+        {frameLook.clip && <span aria-hidden data-testid="glance-clip" style={frameLook.clip} />}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
           <HelpButton
             kind="glance"
@@ -901,7 +906,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             minHeight={26}
           />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 7 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 7, ...frameLook.sheet }}>
           <button type="button" data-testid="glance-money" onClick={() => setNumbersPage('money')} style={isPhone ? glanceTile : { ...glanceTile, gridColumn: '1 / -1', minHeight: 74 }}
             aria-label={`${NUMBERS.TILE_MONEY}: $${player.money.toLocaleString()}${moneyCue.word ? `, ${moneyCue.word}` : ''}`}>
             <span style={glanceLabel}><span aria-hidden>💰</span> {NUMBERS.TILE_MONEY}<span aria-hidden style={glanceArrow}>›</span></span>

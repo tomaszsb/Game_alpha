@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.16] - 2026-10-12
+
+### A clipboard around the four number boxes (Tom approved Decision 4A). Looks only; the phone panel is not one pixel taller. Not deployed.
+
+- **What you see:** Money, Time, Helpers and Scope now sit on a sheet of paper on a clipboard: a brown board, a metal clip over the top edge, dashed ruled lines between the boxes. Light and dark mode both have their own colours. The numbers and what each box opens are unchanged.
+- **Phone, measured before and after** (Edge, a PC game at phone width): the panel card is 648.59 px tall at both 360x640 and 390x844 before and after; the frame is 166 px and each box 58 px, both times. The clip floats over the border (`position:absolute`), and the frame's padding, border width and gap are untouched.
+- **Frame picked in data:** `TOWN.csv` `setting,panel_frame,,,,,,,,,,clipboard` (`plain` or `none` brings back the bare outline; no row = clipboard). `utils/panelFrame.ts` holds the looks; a frame may only paint, never resize (tested).
+- **Hooks:** `glance-frame`, `glance-clip`; the four `glance-*` ids are unchanged.
+- **Tests:** `panelFrame` (3, new); the panel and component tests (73 files / 795) green.
+
 ## [3.7.15] - 2026-10-12
 
 ### A cleaner header, and a Menu you can close (Tom: "connection status is unnecessary on top of the page ... the game code ... can go into the menu with a (invite friend click ability) ... once i open the menu i see no way to close it"). Not deployed.
