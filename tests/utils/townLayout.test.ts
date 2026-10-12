@@ -188,3 +188,23 @@ describe('the walk (step A2)', () => {
     expect(pointAlong([{ x: 5, y: 5 }], 0.7)).toEqual({ x: 5, y: 5 });
   });
 });
+
+describe('result bubbles (money, scope, days)', () => {
+  it('a change makes one bubble per number that moved, scope first, with the sign and the right tone', async () => {
+    const { resultBubbles } = await import('../../src/utils/townLayout');
+    expect(resultBubbles({ money: 0, days: 10, scope: 0 }, { money: 500000, days: 15, scope: 680000 })).toEqual([
+      { kind: 'scope', text: '+$680K scope', tone: 'info' },
+      { kind: 'money', text: '+$500K', tone: 'good' },
+      { kind: 'days', text: '+5 days', tone: 'bad' },
+    ]);
+  });
+
+  it('a fee is red, days given back are green, one day is singular, and nothing moving makes nothing', async () => {
+    const { resultBubbles } = await import('../../src/utils/townLayout');
+    expect(resultBubbles({ money: 100000, days: 20, scope: 1 }, { money: 46000, days: 19, scope: 1 })).toEqual([
+      { kind: 'money', text: '−$54K', tone: 'bad' },
+      { kind: 'days', text: '−1 day', tone: 'good' },
+    ]);
+    expect(resultBubbles({ money: 5, days: 5, scope: 5 }, { money: 5, days: 5, scope: 5 })).toEqual([]);
+  });
+});

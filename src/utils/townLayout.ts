@@ -4,6 +4,7 @@
 // building. Pure functions here (no React) so the layout rules are unit-tested; TownBoard draws them.
 
 import type { TownCsvRow } from '../types/DataTypes';
+import { FormatUtils } from './FormatUtils';
 
 export interface TownBuilding {
   id: string;
@@ -227,6 +228,9 @@ export interface WalkTimes {
 
 export const DEFAULT_WALK_TIMES: WalkTimes = { walkMs: 1500, fastMs: 400, hopMs: 350 };
 
+/** How long a result bubble floats (setting `bubble_ms`); Fast halves it like every other wait. */
+export const DEFAULT_BUBBLE_MS = 1800;
+
 /** Walk times from the town's settings (`walk_ms`, `walk_fast_ms`, `hop_ms`); bad or missing = defaults. */
 export function walkTimes(settings: Record<string, string>): WalkTimes {
   const ms = (key: string, fallback: number) => {
@@ -320,4 +324,40 @@ export function pointAlong(points: Array<{ x: number; y: number }>, t: number): 
     left -= seg[i];
   }
   return points[points.length - 1];
+}
+
+// -------------------------------------------------------------------------------------------------
+// Result bubbles (Tom, 2026-10-12: "when transaction is completed in the building it would be nice to
+// see the results float up in a bubble from the building"). Money, scope and days: the three things
+// the trophies measure. The numbers are the player's own, before and after; no words are typed in.
+// -------------------------------------------------------------------------------------------------
+
+export interface PlayerNumbers {
+  money: number;
+  days: number;
+  scope: number;
+}
+
+export interface ResultBubble {
+  kind: 'scope' | 'money' | 'days';
+  text: string;
+  /** good = green (money in, days back), bad = red (money out, days used), info = scope changed. */
+  tone: 'good' | 'bad' | 'info';
+}
+
+const money = (n: number) => FormatUtils.formatMoney(Math.abs(n), { compact: true });
+
+/** The bubbles one change of a player's numbers makes, in reading order (scope, money, days). */
+export function resultBubbles(before: PlayerNumbers, after: PlayerNumbers): ResultBubble[] {
+  const out: ResultBubble[] = [];
+  const dScope = Math.round(after.scope - before.scope);
+  const dMoney = Math.round(after.money - before.money);
+  const dDays = Math.round(after.days - before.days);
+  if (dScope !== 0) out.push({ kind: 'scope', text: `${dScope > 0 ? '+' : '−'}${money(dScope)} scope`, tone: 'info' });
+  if (dMoney !== 0) out.push({ kind: 'money', text: `${dMoney > 0 ? '+' : '−'}${money(dMoney)}`, tone: dMoney > 0 ? 'good' : 'bad' });
+  if (dDays !== 0) {
+    const n = Math.abs(dDays);
+    out.push({ kind: 'days', text: `${dDays > 0 ? '+' : '−'}${n} day${n === 1 ? '' : 's'}`, tone: dDays > 0 ? 'bad' : 'good' });
+  }
+  return out;
 }

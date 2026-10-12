@@ -42,6 +42,10 @@ import {
   pointAlong,
   walkPath,
   walkTimes,
+  resultBubbles,
+  DEFAULT_BUBBLE_MS,
+  type PlayerNumbers,
+  type ResultBubble,
   type BuildingView,
   type TownBuilding,
   type TownLayout,
@@ -138,6 +142,8 @@ interface BuildingData extends Record<string, unknown> {
   labels: Record<string, string>;
   portrait: string | null;
   mode: PanelMode;
+  bubbles: Bubble[];
+  onBubbleDone: (key: number) => void;
 }
 
 function Block({ b, ox, oy }: { b: TownBuilding; ox: number; oy: number }) {
@@ -169,7 +175,7 @@ function Block({ b, ox, oy }: { b: TownBuilding; ox: number; oy: number }) {
 }
 
 function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
-  const { building: b, view, open, ox, oy, w, h, roofX, roofY, labels, portrait, mode } = data;
+  const { building: b, view, open, ox, oy, w, h, roofX, roofY, labels, portrait, mode, bubbles, onBubbleDone } = data;
   const pal = panelPalettes[mode];
   const isDest = view.destinationRooms.length > 0;
   const ring = view.isCurrent ? HERE : isDest ? DEST : pal.borderStrong;
@@ -206,6 +212,7 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
           width: 'max-content',
         }}
       >
+        {bubbles.map(bb => <FloatingBubble key={bb.key} bubble={bb} onDone={onBubbleDone} />)}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {icon}
           <span style={{ fontSize: 20, fontWeight: 800, whiteSpace: 'nowrap' }}>{b.name}</span>
@@ -302,6 +309,64 @@ function Walker({ walk, onDone }: { walk: Walk; onDone: (key: number) => void })
   );
 }
 
+interface Bubble extends ResultBubble {
+  key: number;
+  playerId: string;
+  /** The building it rises from; it starts at the top edge of that building's sign. */
+  buildingId: string;
+  /** Stack position among the bubbles of one change (0 = lowest). */
+  index: number;
+  /** Waits for the walk to end, and for the bubbles above it in the same change. */
+  delayMs: number;
+  ms: number;
+  still: boolean;
+}
+
+const BUBBLE_COLOURS = {
+  good: { bg: '#dcfce7', fg: '#166534', border: '#16a34a' },
+  bad: { bg: '#fee2e2', fg: '#991b1b', border: '#dc2626' },
+  info: { bg: '#dbeafe', fg: '#1e3a8a', border: '#2563eb' },
+};
+
+/** A result floating up from a building and fading (Web Animations, so it stays smooth and ends on time). */
+function FloatingBubble({ bubble, onDone }: { bubble: Bubble; onDone: (key: number) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    const rise = bubble.still ? 0 : 70;
+    const anim = el?.animate?.(
+      [
+        { transform: 'translate(-50%, -100%) translateY(0px)', opacity: 0 },
+        { transform: `translate(-50%, -100%) translateY(${-rise * 0.2}px)`, opacity: 1, offset: 0.15 },
+        { transform: `translate(-50%, -100%) translateY(${-rise * 0.75}px)`, opacity: 1, offset: 0.75 },
+        { transform: `translate(-50%, -100%) translateY(${-rise}px)`, opacity: 0 },
+      ],
+      { duration: bubble.ms, delay: bubble.delayMs, fill: 'both', easing: 'ease-out' },
+    );
+    const done = window.setTimeout(() => onDone(bubble.key), bubble.delayMs + bubble.ms + 60);
+    return () => { anim?.cancel(); window.clearTimeout(done); };
+  }, [bubble, onDone]);
+  const c = BUBBLE_COLOURS[bubble.tone];
+  return (
+    <div
+      ref={ref}
+      data-testid={`town-bubble-${bubble.playerId}`}
+      data-kind={bubble.kind}
+      data-key={bubble.key}
+      data-tone={bubble.tone}
+      style={{
+        position: 'absolute', left: '50%', top: -8 - bubble.index * 36, zIndex: 3500, pointerEvents: 'none', opacity: 0,
+        transform: 'translate(-50%, -100%)', whiteSpace: 'nowrap',
+        background: c.bg, color: c.fg, border: `2px solid ${c.border}`, borderRadius: 999,
+        padding: '4px 12px', fontSize: 20, fontWeight: 800, fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+        boxShadow: '0 4px 10px rgba(0,0,0,0.25)',
+      }}
+    >
+      {bubble.text}
+    </div>
+  );
+}
+
 const prefersReducedMotion = (): boolean => {
   try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
 };
@@ -348,7 +413,7 @@ export function useTownLayout(): TownLayout | null {
 }
 
 function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mode: modeProp, focusRequest, layout }: TownBoardProps) {
-  const { stateService, movementService } = useGameContext();
+  const { stateService, movementService, gameRulesService } = useGameContext();
   const { fitView, setCenter, getViewport, setViewport } = useReactFlow();
   const mode: PanelMode = modeProp ?? getStoredPanelMode();
   const labels = useTownLabels();
@@ -380,10 +445,15 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   const [walks, setWalks] = useState<Walk[]>([]);
   // The squares as last seen. Compared while rendering (React's "adjust state when a prop changes"
   // pattern), so a walk starts in the same paint as the move instead of one effect later.
-  const [seen, setSeen] = useState<{ players: Player[]; spaces: Map<string, string> | null; n: number }>({ players: [], spaces: null, n: 0 });
+  const [bubbles, setBubbles] = useState<Bubble[]>([]);
+  // Scope as the panel shows it (summed from the player's work packages). The stored projectScope
+  // field can read 0 for a moment at a turn change, which made a false "−$5.2M scope" bubble.
+  const numbersOf = (p: Player): PlayerNumbers => ({ money: p.money ?? 0, days: p.timeSpent ?? 0, scope: gameRulesService.calculateProjectScope(p.id) });
+  const [seen, setSeen] = useState<{ players: Player[]; spaces: Map<string, string> | null; numbers: Map<string, PlayerNumbers> | null; n: number }>({ players: [], spaces: null, numbers: null, n: 0 });
   if (seen.players !== players) {
     const before = seen.spaces;
-    setSeen({ players, spaces: new Map(players.map(p => [p.id, p.currentSpace])), n: seen.n + 1 });
+    const beforeNumbers = seen.numbers;
+    setSeen({ players, spaces: new Map(players.map(p => [p.id, p.currentSpace])), numbers: new Map(players.map(p => [p.id, numbersOf(p)])), n: seen.n + 1 });
     if (before && !prefersReducedMotion()) {
       const times = walkTimes(layout.settings);
       const fast = getGameSpeed() === 'fast';
@@ -406,7 +476,36 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       }
       if (started.length) setWalks(w => [...w.filter(x => !started.some(s => s.playerId === x.playerId)), ...started]);
     }
+    // Results float up from the building the player is in (after their walk, if they walked).
+    if (beforeNumbers) {
+      const still = prefersReducedMotion();
+      const fastNow = getGameSpeed() === 'fast';
+      const times = walkTimes(layout.settings);
+      const baseMs = parseFloat(layout.settings.bubble_ms ?? '') || DEFAULT_BUBBLE_MS;
+      const ms = fastNow ? baseMs / 2 : baseMs;
+      const made: Bubble[] = [];
+      for (const p of players) {
+        const was = beforeNumbers.get(p.id);
+        if (!was) continue;
+        const list = resultBubbles(was, numbersOf(p));
+        if (list.length === 0) continue;
+        const bid = layout.roomToBuilding.get(p.currentSpace);
+        const b = bid ? layout.buildings.find(x => x.id === bid) : undefined;
+        if (!b) continue;
+        const moved = before?.get(p.id) !== undefined && before?.get(p.id) !== p.currentSpace && !still;
+        const from = moved ? layout.roomToBuilding.get(before!.get(p.id)!) : undefined;
+        const walkWait = !moved ? 0 : from === bid ? times.hopMs : fastNow ? times.fastMs : times.walkMs;
+        list.forEach((r, i) => made.push({
+          ...r, key: seen.n * 100 + 50 + made.length, playerId: p.id,
+          // Rises from the top of the building's sign, stacked so two results never sit on each other.
+          buildingId: b.id, index: i,
+          delayMs: walkWait + i * 250, ms, still,
+        }));
+      }
+      if (made.length) setBubbles(bs => [...bs, ...made]);
+    }
   }
+  const endBubble = useCallback((key: number) => setBubbles(bs => bs.filter(x => x.key !== key)), []);
   const endWalk = useCallback((key: number) => setWalks(w => w.filter(x => x.key !== key)), []);
   // Tell the rest of this screen a walk is on, so arriving pop-ups wait for it (boardStyle.ts).
   useEffect(() => {
@@ -454,7 +553,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       out.push({
         id: b.id, type: 'townBuilding', position: { x: ox, y: oy },
         // Back to front, so nearer blocks cover farther ones; an open sign sits above everything.
-        zIndex: open ? 2000 : 10 + Math.round((b.col + b.row) * 10),
+        zIndex: open ? 2000 : bubbles.some(x => x.buildingId === b.id) ? 1900 : 10 + Math.round((b.col + b.row) * 10),
         draggable: false,
         // Only the drawn block and its sign catch the mouse, not the node's whole rectangle: the
         // rectangles overlap neighbours and streets, which opened the wrong building and made signs
@@ -463,11 +562,12 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         data: {
           building: b, view, open, ox, oy, w: box.w, h: box.h + SIGN_SPACE,
           roofX: box.roofX, roofY: box.roofY, labels, portrait: portraitFor(b.icon), mode,
+          bubbles: bubbles.filter(x => x.buildingId === b.id), onBubbleDone: endBubble,
         } satisfies BuildingData,
       });
     }
     return out;
-  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, mode]);
+  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, mode, bubbles, endBubble]);
 
   // Follow the current player (TV, remote): first frame their building and its next moves, then
   // only glide at the zoom the viewer has, the same steady camera the classic board keeps.

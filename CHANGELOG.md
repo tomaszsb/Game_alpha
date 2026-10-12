@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.14] - 2026-10-12
+
+### Result bubbles on the town (Tom: "when transaction is completed in the building it would be nice to see the results float up in a bubble from the building"). Only on a screen showing the town. Not deployed.
+
+- **What shows:** when a player's scope, money or days change, a small bubble rises from the top of their building's sign and fades: "+$8.5M scope" (blue), "+$7.2M" / "−$54K" (green / red), "+1 day" (red) or "−3 days" (green). One bubble per number that moved, stacked, a quarter second apart; after a move they wait for the walk to end. The numbers are the player's own, before and after; scope is the same sum of work packages the panel shows (the stored `projectScope` field can read 0 for a moment at a turn change, which first made a false "−$5.2M scope").
+- **Timing (data):** `TOWN.csv` `setting,bubble_ms,1800`; Fast halves it; "reduce motion" fades in place without rising.
+- **Hook:** `town-bubble-<playerId>` (`data-kind` scope/money/days, `data-tone` good/bad/info). Wording is a first draft for Tom.
+- **Code:** `utils/townLayout.ts` `resultBubbles` (pure, tested), `TownBoard.tsx` (`FloatingBubble`, Web Animations).
+- **Tests:** `townLayout` 17 → 19; full run 256 files / 3815 tests, exit 0. Watched on a TV-size screen while a PC played three turns: scope when the owner named the work, then the owner's money, then a day per move; no false bubble.
+
 ## [3.7.13] - 2026-10-12
 
 ### The server image is less than half the size: build and test tools no longer ship to production (Tom: "1", after the Manager and the other game session agreed). Not deployed.
