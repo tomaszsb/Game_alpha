@@ -26,6 +26,8 @@ export interface FeesBreakdown {
   regulatory: number;
   expeditor: number;
   investmentFee: number;
+  /** The bank's up-front loan fee; absent in older fixtures. */
+  loanFee?: number;
   miscellaneous: number;
   totalFees: number;
 }
@@ -134,12 +136,13 @@ export function buildEndGameStats(player: Player, opts: BuildStatsOptions): EndG
     regulatory: c.regulatory,
     expeditor: c.expeditor,
     investmentFee: c.investmentFee,
+    loanFee: c.loanFee || 0,
     miscellaneous: c.miscellaneous,
     // The "total fees" we display is the sum of *fee* categories — bank and
     // investor are funding repayment, not fees, so they don't belong here.
     totalFees:
       c.architectural + c.engineering + c.regulatory +
-      c.expeditor + c.investmentFee + c.miscellaneous,
+      c.expeditor + c.investmentFee + (c.loanFee || 0) + c.miscellaneous,
   };
 
   // === Total spent (sum of full cost history) ===

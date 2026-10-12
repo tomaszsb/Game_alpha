@@ -226,7 +226,12 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
       // to. See TurnService.endTurnWithMovement, which checks once, at
       // turn-commit, for every mandatory fee — the one place a bankruptcy
       // caused by this turn is actually final.
-      success = this.resourceService.spendMoney(playerId, Math.abs(amount), source, reason, undefined, true);
+      // A deduction flagged with a cost category (the bank's up-front loan fee) goes through
+      // recordCost so it lands in the player's paid list and "Spent so far"; other bills are
+      // charged as before.
+      success = payload.costCategory
+        ? this.resourceService.recordCost(playerId, payload.costCategory, Math.abs(amount), reason || 'Fee', source, true)
+        : this.resourceService.spendMoney(playerId, Math.abs(amount), source, reason, undefined, true);
       if (success) {
         this.logMoneyChange(playerId, amount, reason);
         this.notifyFeeDeducted(playerId, amount, payload);

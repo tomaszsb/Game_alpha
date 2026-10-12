@@ -42,6 +42,9 @@ export type Effect =
         sourceType?: 'bank' | 'investment' | 'owner' | 'other';  // Money source category
         percentageOfScope?: number;  // For design fees: percentage of project scope to deduct
         feeCategory?: 'architectural' | 'engineering' | 'construction';  // Category for cost tracking
+        // A money deduction that must show up in the player's paid list and "Spent so far" (the bank's
+        // up-front loan fee). Charged through ResourceService.recordCost instead of a bare spend.
+        costCategory?: 'loanFee';
         // v3.0.41 — Kid C follow-up. When this effect is registered as an
         // active (multi-turn) effect, applyActiveEffects re-checks the
         // affected player's current phase each turn before applying.

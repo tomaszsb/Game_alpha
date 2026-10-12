@@ -198,7 +198,7 @@ export class ResourceService implements IResourceService {
     // Update costs breakdown
     const updatedCosts = {
       ...costs,
-      [category]: costs[category] + amount,
+      [category]: (costs[category] || 0) + amount, // `|| 0`: a game saved before a category existed has no key
       total: costs.total + amount
     };
 
@@ -239,6 +239,11 @@ export class ResourceService implements IResourceService {
         return 'fees';
       case 'miscellaneous':
         return null;  // Miscellaneous costs don't map to expenditures
+      case 'loanFee':
+        // Financing cost, not project spending: it must NOT feed `expenditures.fees`, which the Money
+        // pop-up reads as "Regulatory & filings" against a 5%-of-scope budget (a 10% loan fee would
+        // show as a huge overrun). It shows in the paid list and the end-game fees table instead.
+        return null;
       default:
         return null;
     }
@@ -601,12 +606,18 @@ export class ResourceService implements IResourceService {
       }
 
       // Transaction 2: Deduct interest fee (separate transaction for clarity)
-      const feeSuccess = this.spendMoney(
-        playerId,
-        interestFee,
-        'loan_interest',
-        `Loan interest fee (${(interestRate * 100).toFixed(1)}%): $${interestFee.toLocaleString()}`
-      );
+      // recordCost, not a bare spend: the fee goes in the player's paid list and "Spent so far"
+      // (it was invisible there, so cash and the paid list disagreed). A mandatory bill: allowNegative.
+      const feeSuccess = interestFee > 0
+        ? this.recordCost(
+          playerId,
+          'loanFee',
+          interestFee,
+          `Loan interest fee (${(interestRate * 100).toFixed(1)}%): $${interestFee.toLocaleString()}`,
+          'loan_interest',
+          true,
+        )
+        : true;
 
       if (!feeSuccess) {
         // Rollback both loan and money if fee deduction failed

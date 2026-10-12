@@ -556,6 +556,7 @@ function EndGameStatsPanel({ stats, gameEndTime, journeyOpen, onToggleJourney }:
         <FeeRow label="Regulatory" value={stats.feesBreakdown.regulatory} total={stats.feesBreakdown.totalFees} />
         <FeeRow label="Expeditors" value={stats.feesBreakdown.expeditor} total={stats.feesBreakdown.totalFees} />
         <FeeRow label="Investment fees" value={stats.feesBreakdown.investmentFee} total={stats.feesBreakdown.totalFees} />
+        <FeeRow label="Loan fees" value={stats.feesBreakdown.loanFee || 0} total={stats.feesBreakdown.totalFees} />
         <FeeRow label="Miscellaneous" value={stats.feesBreakdown.miscellaneous} total={stats.feesBreakdown.totalFees} />
       </div>
 

@@ -1770,6 +1770,7 @@ export class CardService implements ICardService {
                 amount: -interestFee,
                 source: cardSource,
                 sourceType: 'other',
+                costCategory: 'loanFee',
                 reason: `${card.card_name}: Interest fee (${card.loan_rate}%): -$${interestFee.toLocaleString()}`
               }
             });

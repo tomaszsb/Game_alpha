@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.20] - 2026-10-12
+
+### The bank's up-front loan fee now shows in "What you've paid" (Tom's live game: Money pop-up said "Funding raised $2.5M, Spent so far $0, Nothing paid yet" while cash was ~$228K lower). Not deployed.
+
+- **Cause (found, reproduced):** a bank loan pays its interest up front, taken off the loan the moment it is drawn. That charge was a bare spend: cash dropped but no payment record was written, so the paid list stayed empty and cash and the list disagreed. Played the same opening locally: at the bank, cash 7.55M -> 8.90M on a 1.5M loan, a 150K fee, paid list empty.
+- **Fix:** the fee is now charged through the same cost recorder the investor fee uses (`ResourceService.recordCost`, new category `loanFee`), via a new optional `costCategory` on the money effect. It appears in "What you've paid" ("...: Interest fee (10%)") and as a "Loan fees" row in the end-game fees table. It does NOT go into the project-spending buckets: "Spent so far" and "Regulatory & filings" are unchanged, because a 10% loan fee would otherwise read as a huge overrun of the 5%-of-scope filings budget. A push-back that takes the loan back takes the record back too (tested).
+- **Older games:** a game saved before this has no `loanFee` key; the cost recorder treats it as 0, so nothing breaks mid-game.
+- **Not the reported missing scope.** Tom's other symptom (Scope "Nothing yet", paid list empty, 8 empty progress dots, Money/Time/Helpers right) was NOT reproduced; see TODO "Money/scope bug". Tried: PC game and phone controller (`?p=P1&mode=tv`) on a local server with the server's own copy of the state read after every step; the opening as Owner (helpers, two scope cards, owner money), PM check, lender, bank, to the Find an Architect / Cut a Corner / Owner Decides choice at 20 days; a 10-second offline cycle for the phone between turns; a full page reload mid-turn (scope drawn, not committed) and after a commit. In every case the phone, the server and a second screen agreed and the scope stayed.
+- **Tests:** `BankLoanFeeRecorded` (2, new); the 77 regression/service/stats files (1225 tests) green.
+
 ## [3.7.19] - 2026-10-12
 
 ### A short chime with each result bubble on the town (Tom: "bubbles also need sound effect so it raises awareness that something happened"). Only on a screen showing the town. Not deployed.

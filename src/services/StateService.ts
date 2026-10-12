@@ -1635,6 +1635,7 @@ export class StateService implements IStateService {
         engineering: 0,
         regulatory: 0,
         investmentFee: 0,
+        loanFee: 0,
         miscellaneous: 0,
         total: 0
       }

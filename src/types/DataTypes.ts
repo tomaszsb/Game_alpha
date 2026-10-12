@@ -425,7 +425,7 @@ export interface Expenditures {
 }
 
 // Expense categories (costs/fees paid OUT)
-export type ExpenseCategory = 'expeditor' | 'architectural' | 'engineering' | 'regulatory' | 'investmentFee' | 'miscellaneous';
+export type ExpenseCategory = 'expeditor' | 'architectural' | 'engineering' | 'regulatory' | 'investmentFee' | 'loanFee' | 'miscellaneous';
 
 // Income sources (funds received IN) - matches money source types
 export type IncomeCategory = 'bank' | 'investor' | 'owner' | 'other';
@@ -454,6 +454,8 @@ export interface CostBreakdown {
   engineering: number;
   regulatory: number;
   investmentFee: number;
+  /** The bank's up-front loan fee (v3.7.20). Optional: games saved before it have none. */
+  loanFee?: number;
   miscellaneous: number;
   total: number;
 }
