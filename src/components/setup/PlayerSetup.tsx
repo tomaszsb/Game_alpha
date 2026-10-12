@@ -988,6 +988,9 @@ export function PlayerSetup({
               we know either. */}
           {entryMode === 'new' && (
             <>
+              {/* `setup-player-count` (+ data-players / data-max-players) is the Jarvis
+                  robot's handle for how many seats are filled (Manager 2026-10-12: its
+                  2-seat run failed on "the setup screen shows no seat count"). */}
               {/* TV mode: "👥 Players" heading + the count summary merged into
                   one compact line (instead of styles.sectionTitle's vh-based
                   heading + styles.playerCount's own vh-based paragraph below
@@ -995,7 +998,7 @@ export function PlayerSetup({
                   so 4 player tiles fit without scrolling. fb: TV real-hardware
                   feedback, 2026-07-15. */}
               {selectedMode === 'tv' ? (
-                <p style={{
+                <p data-testid="setup-player-count" data-players={players.length} data-max-players={gameSettings.maxPlayers} style={{
                   color: colors.success.text,
                   fontSize: '0.95rem',
                   fontWeight: 700,
@@ -1011,7 +1014,7 @@ export function PlayerSetup({
                   <h3 style={{ ...styles.sectionTitle, display: 'flex', alignItems: 'center', gap: '0.4em' }}>
                     <IconPeople size="1em" /> Players
                   </h3>
-                  <p style={styles.playerCount}>
+                  <p data-testid="setup-player-count" data-players={players.length} data-max-players={gameSettings.maxPlayers} style={styles.playerCount}>
                     {validation.getPlayerCountSummary()}
                   </p>
                 </>

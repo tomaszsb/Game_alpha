@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.11] - 2026-10-12
+
+### The setup screen's player count gets a handle for the Jarvis robot (Tom: "yes add"). Not deployed.
+
+- **Why:** the robot's 2-seat run on 10-11 stopped at "the setup screen shows no seat count" (Manager, from the Mac report). The setup screen never had a seat picker: players are added one at a time, and the only count is the text line "N/4 players added". It had no test id.
+- **Now:** that line carries `data-testid="setup-player-count"` with `data-players` (players added) and `data-max-players` (the limit), on both the PC/Remote line and the one-line TV version. Nothing on screen changes. It shows only on the New game side.
+- **Checked in a real browser (dev):** PC line 1/4, TV line 1/4, then 2/4 after Add Player, attributes matching the text.
+- **Tests:** setup tests 8 files / 54 green; lint 0 errors on the file; the 3.7.10 full run (256 files / 3813, ghost gate, build) ran with this edit already in the tree.
+
 ## [3.7.10] - 2026-10-12
 
 ### The DOB audit counts as a review for "Best built" (Tom: "a is review"). Not deployed.
