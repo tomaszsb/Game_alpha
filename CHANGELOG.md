@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.13] - 2026-10-12
+
+### The server image is less than half the size: build and test tools no longer ship to production (Tom: "1", after the Manager and the other game session agreed). Not deployed.
+
+- **Before:** one Docker stage installed every dev tool (vite, vitest, eslint, playwright, puppeteer, sharp...) and kept them in the running image: 867 MB, 514 MB of it `node_modules`.
+- **Now:** two stages (commit `1b33cf4`). The build stage installs everything, builds, then `npm prune --omit=dev`; the final image gets only that pruned `/app`. **402 MB** (`node_modules` 228 MB). `tsx` moved into `dependencies` because "Check my board" runs `node --import tsx scripts/boardPlaytest.ts` (the TypeScript game services in `src/headless`) at runtime; `@eslint/js` and `globals` moved to `devDependencies` (lint only). No player-visible change.
+- **Checked on Unraid** under a separate tag, on a spare port with the live run flags (read-only, `/tmp` noexec, cap-drop ALL), no `.env`, and a scratch copy of classroom-1 with a test token: `/health` 200, page 200, `GAME_CONFIG.csv` served, **Check my board 2 games done** (1 finished, 1 lost = normal play). The game data (`dist/data` + `public/data`) has the same fingerprint as the live image. Live container untouched; test image and data removed.
+- **Tom's call, not done:** `docker rmi game_alpha-game-alpha:latest` (an old 609 MB image) and `docker builder prune` (23.4 GB of build cache).
+- **Tests:** the 3.7.12 full run (256 files / 3813, exit 0) ran with this change in the tree.
+
 ## [3.7.12] - 2026-10-12
 
 ### Tom's three PC findings: a folded top bar, solo targets, and no more flicker over the town (Tom: "1a, 2a and fix the flicker"). Not deployed.
