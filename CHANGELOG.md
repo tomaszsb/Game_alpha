@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.12] - 2026-10-12
+
+### Tom's three PC findings: a folded top bar, solo targets, and no more flicker over the town (Tom: "1a, 2a and fix the flicker"). Not deployed.
+
+- **The top bar starts folded on every screen** (1a). Open it was about 195 of 1000 px on a 1920x1000 PC; folded it is the one-line strip (47 px) and the board gains 148 px (765 → 913 tall). The TV already started folded. Opening it is remembered on that device (`utils/progressBarFold.ts`, `GameLayout`).
+- **A solo game shows targets, not a race** (2a). The trophy board said "no race yet" three times in a one-player game, where finishing wins and trophies decide nothing. Each box now shows the player's number against their own plan: "138 of 330 planned days", "$300K of $1M planned" ("No budget yet" before there is a plan), "2 problem points in 4 reviews" ("No reviews yet"). Two or more players: unchanged. Hook: `solo-target-<time|money|quality>`.
+- **The town no longer flickers under the mouse** (Tom's guess was vector drawing; measured, it was not: ~2,000 frames while sweeping the mouse, slowest 17 ms). The cause was each building's hover area being its whole rectangle, which overlaps neighbours and streets, so signs popped open and shut and the wrong building opened. Now only the drawn block and its sign catch the mouse, and a sign waits 0.4 s (was 0.15 s) before opening. Measured on the same sweep: pop open/shut 46 → 18, wrong or no building open 10 of 53 spots → 1 of 50; clicking a building and dragging the town still work. PC only; the TV has no mouse.
+- **Tests:** `ProjectProgress` (solo targets); full run 256 files / 3813 tests, exit 0; typecheck clean.
+
 ## [3.7.11] - 2026-10-12
 
 ### The setup screen's player count gets a handle for the Jarvis robot (Tom: "yes add"). Not deployed.

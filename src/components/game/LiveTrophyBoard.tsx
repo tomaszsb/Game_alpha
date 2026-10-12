@@ -30,7 +30,9 @@ export interface LiveTrophyBoardProps {
 function detail(id: TrophyId, row: LiveRow): string {
   const r = row.row;
   if (id === 'time') return `${r.daysUsed} of ${r.daysPlanned} planned days`;
-  if (id === 'money') return `${FormatUtils.formatMoney(r.moneySpent)} of ${FormatUtils.formatMoney(r.moneyPlanned)} planned`;
+  if (id === 'money') return r.moneyPlanned > 0
+    ? `${FormatUtils.formatMoney(r.moneySpent)} of ${FormatUtils.formatMoney(r.moneyPlanned)} planned`
+    : 'No budget yet';
   return r.reviews > 0
     ? `${r.problemPoints} problem point${r.problemPoints === 1 ? '' : 's'} in ${r.reviews} review${r.reviews === 1 ? '' : 's'}`
     : 'No reviews yet';
@@ -42,6 +44,10 @@ export function LiveTrophyBoard({ players, gameRulesService, currentPlayerId, mo
   const board = gameRulesService.computeLiveBoard();
   const names = getTrophyRules().names;
   const pad = compact ? '4px 6px' : '6px 8px';
+  // A solo game has no race (finishing wins), so each box shows the player's own number against
+  // their plan instead of a place (Tom, 2026-10-12, answer 2a: "trophies in one player game ...
+  // do not make sense as there is no race").
+  const solo = board.rows.length === 1;
 
   return (
     <div data-testid="live-trophy-board" style={{ display: 'flex', flexDirection: 'column', gap: 6, color: p.text, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -86,6 +92,8 @@ export function LiveTrophyBoard({ players, gameRulesService, currentPlayerId, mo
                       <div style={{ color: p.muted }}>{names[id]}</div>
                       {out || race.place === null ? (
                         <div>—</div>
+                      ) : solo ? (
+                        <div data-testid={`solo-target-${id}`} style={{ fontWeight: 700 }}>{detail(id, row)}</div>
                       ) : !race.contested ? (
                         // Nobody is ahead yet (a solo player, or everyone level): no place, no trophy.
                         <>

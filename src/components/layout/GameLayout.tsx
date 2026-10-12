@@ -22,6 +22,7 @@ import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
 import { GameBoard } from '../board/GameBoard';
 import { useTownWalking } from '../../utils/boardStyle';
+import { isProgressBarRememberedOpen, rememberProgressBarOpen } from '../../utils/progressBarFold';
 import { BoardToggle } from '../board/BoardToggle';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
@@ -366,7 +367,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setTabRequest({ tab, playerId: currentPlayerId, id: Date.now() });
   }, [isDiceResultModalOpen, diceResult, currentPlayerId]);
   const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState<boolean>(false);
-  const [isProgressCollapsed, setIsProgressCollapsed] = useState<boolean>(false);
+  // Starts folded on every screen (Tom, 2026-10-12, 1a); opening it is remembered on this device.
+  const [isProgressCollapsed, setIsProgressCollapsed] = useState<boolean>(() => !isProgressBarRememberedOpen());
   const [visiblePanels, setVisiblePanels] = useState<Record<string, boolean>>(() => {
     // Load from localStorage on mount
     try {
@@ -1367,7 +1369,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 onOpenRulesModal={handleToggleRulesModal}
                 onOpenDisplaySettings={() => setIsDisplaySettingsOpen(true)}
                 collapsed={isProgressCollapsed}
-                onToggleCollapsed={() => setIsProgressCollapsed(prev => !prev)}
+                onToggleCollapsed={() => setIsProgressCollapsed(prev => { rememberProgressBarOpen(prev); return !prev; })}
                 isRulesOpen={isRulesModalOpen}
                 isGameLogOpen={isGameLogVisible}
                 isDisplaySettingsOpen={isDisplaySettingsOpen}

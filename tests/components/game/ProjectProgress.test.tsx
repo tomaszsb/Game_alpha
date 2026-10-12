@@ -215,9 +215,13 @@ describe('ProjectProgress', () => {
     const card = screen.getByTestId('player-progress-card');
     expect(card.getAttribute('data-player-name')).toBe('Alice');
     expect(screen.getByTitle('Alice').querySelector('img')).toBeInTheDocument();
-    // Alone at the table there is no race: no "1st", no trophy, no "leading" (fb:67a9c44b).
+    // Alone at the table there is no race: no "1st", no trophy, no "leading" (fb:67a9c44b). Each box shows
+    // the player's own number against the plan instead (Tom, 2026-10-12, 2a).
     expect(screen.queryByText('leading')).toBeNull();
-    expect(screen.getAllByText('no race yet')).toHaveLength(3);
+    expect(screen.queryByText('no race yet')).toBeNull();
+    expect(screen.getByTestId('solo-target-time').textContent).toMatch(/^\d+ of \d+ planned days$/);
+    expect(screen.getByTestId('solo-target-money').textContent).toMatch(/ of .* planned$|No budget yet/);
+    expect(screen.getByTestId('solo-target-quality').textContent).toMatch(/review|No reviews yet/);
   });
 
   it('should handle no players gracefully', () => {

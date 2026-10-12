@@ -51,6 +51,9 @@ import {
 export const TOWN_TILE = 50;
 /** Room above each block for its name sign, so fitting the view keeps the signs on screen. */
 const SIGN_SPACE = 90;
+/** How long the mouse rests on a building before its rooms open, so passing over one does not pop it
+ *  open and shut (Tom, 2026-10-12: "a lot of flickering"). */
+const HOVER_OPEN_MS = 400;
 /** A screen that follows the current player never zooms out past this (names stay readable). */
 const FOLLOW_MIN_ZOOM = 0.75;
 
@@ -180,10 +183,10 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
       data-open={open ? 'true' : 'false'}
       data-current={view.isCurrent ? 'true' : 'false'}
       data-destination={isDest ? 'true' : 'false'}
-      style={{ position: 'relative', width: w, height: h, cursor: 'pointer' }}
+      style={{ position: 'relative', width: w, height: h, cursor: 'pointer', pointerEvents: 'none' }}
     >
-      <svg width={w} height={h} style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible' }} aria-hidden="true">
-        <Block b={b} ox={ox} oy={oy} />
+      <svg width={w} height={h} style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }} aria-hidden="true">
+        <g style={{ pointerEvents: 'visiblePainted' }}><Block b={b} ox={ox} oy={oy} /></g>
       </svg>
       <div
         style={{
@@ -191,6 +194,7 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
           left: roofX - ox,
           top: roofY - oy - 10,
           transform: 'translate(-50%, -100%)',
+          pointerEvents: 'auto',
           background: pal.bg,
           color: pal.text,
           border: `3px solid ${ring}`,
@@ -438,7 +442,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     const gx = Math.min(...corners.map(c => c.x)), gy = Math.min(...corners.map(c => c.y));
     const gw = Math.max(...corners.map(c => c.x)) - gx, gh = Math.max(...corners.map(c => c.y)) - gy;
     out.push({
-      id: 'town-ground', type: 'townGround', position: { x: gx, y: gy }, zIndex: 0,
+      id: 'town-ground', type: 'townGround', position: { x: gx, y: gy }, zIndex: 0, style: { pointerEvents: 'none' },
       draggable: false, selectable: false, focusable: false,
       data: { w: gw, h: gh, ox: gx, oy: gy, layout, mode } satisfies GroundData,
     });
@@ -452,6 +456,10 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         // Back to front, so nearer blocks cover farther ones; an open sign sits above everything.
         zIndex: open ? 2000 : 10 + Math.round((b.col + b.row) * 10),
         draggable: false,
+        // Only the drawn block and its sign catch the mouse, not the node's whole rectangle: the
+        // rectangles overlap neighbours and streets, which opened the wrong building and made signs
+        // pop open and shut as the mouse moved (measured 2026-10-12: wrong building at 10 of 53 spots).
+        style: { pointerEvents: 'none' },
         data: {
           building: b, view, open, ox, oy, w: box.w, h: box.h + SIGN_SPACE,
           roofX: box.roofX, roofY: box.roofY, labels, portrait: portraitFor(b.icon), mode,
@@ -541,7 +549,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   const onEnter = useCallback((_: React.MouseEvent, n: Node) => {
     if (n.type !== 'townBuilding') return;
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
-    hoverTimer.current = setTimeout(() => setHovered(n.id), 150);
+    hoverTimer.current = setTimeout(() => setHovered(n.id), HOVER_OPEN_MS);
   }, []);
   const onLeave = useCallback(() => {
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
