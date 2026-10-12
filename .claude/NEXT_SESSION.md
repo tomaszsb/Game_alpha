@@ -1,30 +1,31 @@
 # Next session starter — written 2026-10-12 by /koniec
 
 ## State at handoff
-- **Version:** v3.7.15. **LIVE: `/health` = `091061e5` at 2026-10-12 04:56 UTC (Tom deployed; that commit contains 3.7.14 bubbles + 3.7.15 header). Nothing pending deploy.** Re-read `/health`; never believe this line.
+- **Version:** v3.7.17 — **PENDING DEPLOY** (committed + pushed). Live when last read was v3.7.15 (`/health` `091061e5`). Re-read `/health`; never believe this line.
 - **Branch:** master = origin/master after the wrap-up commit, clean.
-- **Shipped 10-11/12 (this session, "Pokemon board game review"):** town review + plan (`docs/core/TOWN_BOARD_REVIEW.md`), 3.7.6 still town, 3.7.7 walk, 3.7.8 pop-ups wait for the walk, 3.7.9 small fixes, 3.7.10 DOB audit counts for Best built, 3.7.12 folded top bar / solo targets / hover flicker, 3.7.14 bubbles, 3.7.15 header. The other session: 3.7.11 robot seat handle, 3.7.13 slim image.
-- **Tests (v3.7.15):** typecheck + build clean; `npm test` 256 files / 3817 green, exit 0; ghost gate green at v3.7.15 (11 files / 43 tests). Lint 0 errors.
+- **Shipped this session:** v3.7.16 clipboard look for the four number boxes (frame picked in `TOWN.csv` `panel_frame`; phone card measured 648.59 px at 360x640 and 390x844 before AND after); v3.7.17 PC "play" pop-ups open over the player panel (`ModalBase anchor="panel"` + `PanelAnchorContext` from GameLayout's PC branch; reading pop-ups, phone, remote, windows <769 px unchanged; robot test ids untouched). Town walk stays 1.5 s (Tom 10-12), not touched.
+- **Tests (v3.7.17):** typecheck + build clean; `npm test` 258 files / 3824 green, exit 0; ghost gate green (11 files / 43 tests, 1 skipped); lint 0 errors.
 
 ## Top 3 open items
-1. **Tom looks at 3.7.14 + 3.7.15 live** (bubbles on the town, connection dot, "Invite a friend", Menu closing); then the flip list below once he confirms on a real device.
-2. **Approved, build in order (TODO top of "Active"):** (1) clipboard look for the four number boxes (Decision 4A; phone panel not one pixel taller; frame from data), then (2) PC "play" pop-ups over the player panel, dark cover only over the panel, reading pop-ups stay centred, phone/robot hooks unchanged. Week resets 11:00 UTC 10-12 (was 92%). Tell the Manager at start and at each push; one session in `src/` at a time.
-3. **Town A3: Tom's real-device look** — walk 1.5 vs 2 s (`TOWN.csv walk_ms`), bubbles, default Town vs Classic (`utils/boardStyle.ts`). Job 2 (reskin leaks → data) waits for the Manager to bring it back; it must pull first (headerMenuItems, HeaderMenu, LiveTrophyBoard changed in 3.7.12–3.7.15).
+1. **Tom deploys 3.7.16 + 3.7.17, then looks:** clipboard on a real phone (clip must not cover the "?"), PC pop-ups over the panel (dice, life event, choice, negotiation) vs rules / card details staying centred; plus 3.7.14 bubbles and 3.7.15 header. Then the flip list below once he confirms on a real device.
+2. **Town A3: Tom's real-device look** — bubbles, default Town vs Classic (`utils/boardStyle.ts`). Walk is settled at 1.5 s.
+3. **Job 2 (reskin leaks → data)** waits for the Manager to bring it back; pull first (headerMenuItems, HeaderMenu, LiveTrophyBoard, PlayerPanelV2, ModalBase, GameLayout changed).
 
 ## Decisions waiting on the user
-- Town A3 (above). Parked: TV news cards (Tom "lets wait", TODO trigger), own growing building, road jokes (D5), art (list in the review doc).
+- Parked: TV news cards ("lets wait"), own growing building, road jokes (D5), art (list in `docs/core/TOWN_BOARD_REVIEW.md`).
 - Unraid cleanup, his call: `docker rmi game_alpha-game-alpha:latest` (609 MB), `docker builder prune` (23.4 GB).
+- Side effect to confirm: the board is now clickable while a play pop-up is open on a PC (the old full-screen cover blocked it). Tell me if that bites.
 
 ## Flip after deploy
 Unchanged, flip only after Tom confirms on a real device: fb adb1cc76, 612fbdc4, a0cecb6a, 8cb652c4, 7fbea636, ae480630, 11662ac3, 95624c8e, 84b491f2, ec243622, a1260bfc, dc04ea53, b38110f3, ef974f1c, 67a9c44b, f6aebc05, 496cc1c8, 8f4769cc, 21473ad9, 7c8375eb, eaba5e71, fa2a2ddf, bbeb13e2, 712a9859.
 
 ## Suggested first move
-Read `/health`. If the week has reset and Tom's word stands, tell the Manager you are starting and build the clipboard look (measure the phone card at 360×640 and 390×844 before and after), then the PC pop-ups.
+Read `/health`. If 3.7.17 is live, ask Tom what he saw on the clipboard and the pop-ups; otherwise hand him the deploy command.
 
 ## Suggested model for next session
-Sonnet 5 — two bounded UI jobs with clear rules; raise effort before a bigger model.
+Sonnet 5 — small look-and-feel follow-ups; raise effort before a bigger model.
 
 ## Reminders
-- Deploy stays Tom's: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"` (PowerShell). Never write a deploy claim without reading `/health` (this session got it wrong once).
+- Deploy stays Tom's: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"` (PowerShell). Never write a deploy claim without reading `/health`.
 - Two game sessions can share this folder: commit files BY NAME, never `git add -A`; agree version numbers by message.
-- Animated or game-driven checks: Playwright with `channel: "msedge"` (CLAUDE.md TACTICAL 2026-10-12).
+- Phone-panel measuring recipe (PC game at 360/390 px wide) is in CLAUDE.md TACTICAL; animated checks use Playwright `channel: "msedge"`.

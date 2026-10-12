@@ -2,6 +2,12 @@
 
 ---
 
+## v3.7.16 and v3.7.17 — A clipboard for your numbers, and pop-ups over your panel (October 12, 2026)
+
+- **Your four numbers sit on a clipboard.** Money, Time, Helpers and Scope are on a sheet of paper on a clipboard, with a metal clip on top. Nothing got bigger on a phone.
+- **On a PC, the pop-ups you play open over your panel.** The dice result, life event, "where you're headed next", choices and negotiation dim only your panel, so the board and the walk stay bright. Pop-ups you read (rules, card details, the end screen) stay in the middle as before. Phones are unchanged.
+
+
 ## v3.7.14 and v3.7.15 — Results float up, and a tidier header (October 12, 2026)
 
 - **See what just happened.** On the town board, when your scope, money or days change, a small bubble rises from your building: blue for scope ("+$8.5M scope"), green for money in, red for money out or days used.
