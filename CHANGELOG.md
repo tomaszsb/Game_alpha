@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.10] - 2026-10-12
+
+### The DOB audit counts as a review for "Best built" (Tom: "a is review"). Not deployed.
+
+- **Before:** only the audit's two "back to the plan exam" rolls counted (as sent back, through the approval outcome); its "back to the architect" rolls and its passes counted nothing, so the audit could only ever hurt a player's quality score.
+- **Now:** every audit roll counts once. A roll that sends the project back (to the plan exam, or to an earlier stage such as the architect) is "sent back"; any other roll is "passed". "Earlier stage" is read from the board's own stage order (`GAME_CONFIG` phases), so a reskin keeps the rule. The approval itself is unchanged (only the plan-exam rolls put DOB approval on hold, as before).
+- **Code:** `DiceRollProcessor.handleDiceBasedMovement`. Rides the turn's TEMP ledger like every review, so a push-back takes it back.
+- **Tests:** `AuditReview` (12: all six rolls, first and return visit, each counted exactly once); full run 256 files / 3813 tests, exit 0; ghost gate green (11 files / 43 tests); build clean.
+
 ## [3.7.9] - 2026-10-12
 
 ### Small fixes while Tom is away ("work on the other bugs"). Not deployed.

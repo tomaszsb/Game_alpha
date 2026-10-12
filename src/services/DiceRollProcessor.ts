@@ -467,6 +467,8 @@ export class DiceRollProcessor {
     // The roll-to-status mapping lives in ApprovalService; the destination
     // routing is unchanged (the existing dice table still drives where the
     // player physically moves).
+    // Whether this roll already counted as a review for the "best built" trophy (see the audit below).
+    let reviewRecorded = false;
     if (this.approvalService) {
       const outcome = this.approvalService.resolveDiceOutcome(
         currentPlayer.currentSpace,
@@ -507,6 +509,7 @@ export class DiceRollProcessor {
           eventId: outcome.kind === 'approved' ? 'review_passed' : 'review_sent_back',
           spaceName: currentPlayer.currentSpace,
         });
+        reviewRecorded = true;
       }
     }
 
@@ -573,6 +576,24 @@ export class DiceRollProcessor {
       diceRoll,
       playerId  // Pass playerId to filter choices based on path memory
     );
+
+    // The DOB audit is a review too (Tom, 2026-10-12: "a is review"). Its rolls that revoke the
+    // approval were already counted as sent back above; the rest count here: a roll that sends the
+    // player to an EARLIER stage (back to the architect) is sent back, any other is a pass. The
+    // stage order is the board's own (GAME_CONFIG phases), so a reskin keeps the rule.
+    if (currentPlayer.currentSpace === DOB_AUDIT_SPACE && !reviewRecorded && destinations.length > 0) {
+      const order = this.dataService.getPhaseOrder?.() ?? [];
+      const stage = (space: string) => order.indexOf(this.dataService.getGameConfigBySpace(space)?.phase || '');
+      const here = stage(currentPlayer.currentSpace);
+      const sentBack = here >= 0 && destinations.every(d => { const i = stage(d); return i >= 0 && i < here; });
+      this.stateService.emitGameEvent({
+        type: 'quality_event',
+        playerId,
+        playerName: currentPlayer.name,
+        eventId: sentBack ? 'review_sent_back' : 'review_passed',
+        spaceName: currentPlayer.currentSpace,
+      });
+    }
 
     if (destinations.length === 1) {
       // Single destination - auto-select
