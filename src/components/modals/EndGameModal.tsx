@@ -135,7 +135,7 @@ export function EndGameModal(): JSX.Element {
     syncFromState(stateService.getGameState());
 
     return unsubscribe;
-  }, [stateService]);
+  }, [stateService, gameRulesService]);
 
   const handlePlayAgain = () => {
     // Navigate to root landing page instead of resetting in-place
@@ -542,8 +542,8 @@ function EndGameStatsPanel({ stats, gameEndTime, journeyOpen, onToggleJourney }:
             tooltip="Total individual turns you took across the whole game (every time it became your move)." />
           <Stat label="🔁 Rounds" value={String(stats.rounds)} testid="stat-rounds"
             tooltip="Full rounds of play completed — one round is every player taking a turn once." />
-          <Stat label="🎯 Final score" value={stats.finalScore.toLocaleString()} testid="stat-score"
-            tooltip="Cash on hand + project scope, minus 5,000 per loan and 1,000 per day spent." />
+          {/* The old "Final score" line is gone (v3.7.9): the three trophies decide the winner since
+              v3.4.0, and a second, different number beside them read as the result. */}
           <Stat label="🏗️ Work packages" value={String(stats.construction.workCardCount)} testid="stat-workcards" />
         </div>
       </div>

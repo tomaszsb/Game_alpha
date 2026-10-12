@@ -38,7 +38,7 @@ export function DeviceSettingsPanel(): JSX.Element {
         </span>
       </label>
       <p style={{ margin: '0.25rem 0 0 1.6rem', color: colors.text.secondary, fontSize: '0.8rem', lineHeight: 1.4 }}>
-        Keeps your answer (PC, TV or phone) for next time on this device, so it doesn't ask
+        Keeps your answer (PC, TV or phone) for next time on this device, so it doesn&apos;t ask
         again. Turn it off and it asks each time. Whether a game is played together or in
         different places is chosen for each game and is never remembered.
       </p>

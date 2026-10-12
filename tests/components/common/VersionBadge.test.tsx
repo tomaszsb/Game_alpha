@@ -63,6 +63,18 @@ describe('VersionBadge', () => {
       expect(screen.getByTestId('version-badge-mode')).toHaveTextContent('PC');
     });
 
+    it('shows Phone for a player link (a phone controller)', () => {
+      window.history.pushState({}, '', '/?g=G-1&token=t&p=P1&role=phone');
+      render(<VersionBadge />);
+      expect(screen.getByTestId('version-badge-mode')).toHaveTextContent('Phone');
+    });
+
+    it('a player link on the Remote style still says Remote', () => {
+      window.history.pushState({}, '', '/?g=G-1&p=P1&mode=remote');
+      render(<VersionBadge />);
+      expect(screen.getByTestId('version-badge-mode')).toHaveTextContent('Remote');
+    });
+
     it('defaults to PC for an explicit ?mode=pc', () => {
       window.history.pushState({}, '', '/?mode=pc');
       render(<VersionBadge />);

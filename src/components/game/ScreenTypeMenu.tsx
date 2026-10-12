@@ -40,7 +40,7 @@ export function ScreenTypeMenu({ buttonStyle, showLabel }: ScreenTypeMenuProps):
 
   const pick = (role: DeviceRole) => {
     setStoredDeviceRole(role);
-    window.location.href = roleUrl(role, href);
+    window.location.assign(roleUrl(role, href));
   };
 
   return (

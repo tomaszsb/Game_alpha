@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.9] - 2026-10-12
+
+### Small fixes while Tom is away ("work on the other bugs"). Not deployed.
+
+- **The end screen no longer prints the old "Final score".** The three trophies decide the winner since v3.4.0; the leftover number (cash + scope − 5,000 per loan − 1,000 per day) sat beside them and read as the result. The number is still computed (`calculatePlayerScore`), only not shown. The Jarvis robot reads the end screen by `end-game-stats` / `end-game-loss-title`, not this line (checked in `game_playtest.py`).
+- **The corner version tag says "Phone" on a phone.** A phone controller read "v3.7.8 · PC" because the tag only looked at `?mode=`; a player link (`?p=` / `role=phone`) now reads Phone. TV and Remote unchanged.
+- **Lint is clean of errors for the first time in a while (3 → 0):** `ScreenTypeMenu` changes page with `location.assign` (same effect), `EndGameModal` lists `gameRulesService` in its effect, one apostrophe in `DeviceSettingsPanel` written as `&apos;` (same text on screen).
+- **Checked, not bugs:** (1) the phone panel no longer runs past a narrow screen: measured at 360, 375 and 390 wide (Edge, phone emulation), nothing crosses the edge and the commit button's words fit (the 2026-09-19 report predates the 3.6.2 width fix). (2) Coming back to Hire a Builder from the bank DOES re-run that space's arrival roll (a life event on a 3): every turn start runs the arrival effects of the space the player stands on, and the desk stays a first visit until a builder is hired (`TurnService.startTurn`, `MovementService` "stillShopping").
+- **Tests:** `VersionBadge` (+2); full run 255 files / 3801 tests, exit 0; typecheck, build clean; lint 0 errors.
+
 ## [3.7.8] - 2026-10-12
 
 ### On a screen showing the town, pop-ups that come with a move wait until the walk has played (Tom: "continue" while in transit). Not deployed.

@@ -24,10 +24,14 @@
 import React from 'react';
 import { getURLParams } from '../../utils/getAppScreen';
 
-function currentModeLabel(): 'PC' | 'TV' | 'Remote' {
-  const mode = getURLParams().get('mode');
+function currentModeLabel(): 'PC' | 'TV' | 'Remote' | 'Phone' {
+  const params = getURLParams();
+  const mode = params.get('mode');
   if (mode === 'tv') return 'TV';
   if (mode === 'remote') return 'Remote';
+  // A player's own link (?p= / ?playerId=) is a phone controller (2026-10-12: a phone read
+  // "v3.7.8 · PC"); `role=phone` is the "What is this screen?" pick saying the same.
+  if (params.get('role') === 'phone' || params.get('p') || params.get('playerId')) return 'Phone';
   return 'PC';
 }
 
