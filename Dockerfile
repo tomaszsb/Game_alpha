@@ -2,7 +2,13 @@
 # Build: docker build --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) -t game-alpha .
 # Run: docker run -p 3000:3000 -p 3001:3001 -v game-data:/app/data game-alpha
 
-FROM node:24-alpine
+# Two stages (2026-10-12): `build` installs everything and builds; the final image gets the same
+# /app with dev tools pruned out (vite, vitest, eslint, playwright, puppeteer, sharp, typescript...).
+# The live image was 867 MB with 514 MB of node_modules, almost all of it build/test tooling.
+# KEPT AT RUNTIME ON PURPOSE: tsx (a "dependency", not dev) and src/ + scripts/ - "Check my board"
+# (server/boardPlaytest.js) spawns `node --import tsx scripts/boardPlaytest.ts`, which runs the
+# TypeScript game services in src/headless. Prune those and that feature fails silently.
+FROM node:24-alpine AS build
 
 # Unraid Docker UI metadata — replaces the generic third-party cog with the
 # project logo and gives the container a clickable Web UI link. The icon is
@@ -51,6 +57,17 @@ RUN VITE_GIT_COMMIT=${GIT_COMMIT} npm run build
 
 # Copy SOURCE_FILES as immutable baseline for reset functionality
 RUN cp -r dist/data/SOURCE_FILES dist/data/BASELINE
+
+# Drop the dev tools now the build is done; only this pruned /app reaches the final image.
+RUN npm prune --omit=dev
+
+FROM node:24-alpine
+
+LABEL net.unraid.docker.icon="https://game.unravelcodes.com/images/logo.png"       net.unraid.docker.webui="https://game.unravelcodes.com"       org.opencontainers.image.title="Unravel Codes: The Game"       org.opencontainers.image.description="Multi-player board game simulating NYC construction permitting"       org.opencontainers.image.url="https://game.unravelcodes.com"       org.opencontainers.image.source="https://github.com/tomaszsb/Game_alpha"
+
+ARG GIT_COMMIT=unknown
+WORKDIR /app
+COPY --from=build /app /app
 
 # Create data directory for persistence
 RUN mkdir -p /app/data
