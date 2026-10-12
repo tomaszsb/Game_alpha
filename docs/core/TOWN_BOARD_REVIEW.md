@@ -62,6 +62,26 @@ That is all 26 squares, each in one place. ("Quick Play" is never entered, so it
 
 **Art to list, not to make** (the preview art is only a layout placeholder): a picture for each of the 11 places, and portraits for the Lender, the Banker and the Investor (they have none today). The first build uses plain coloured blocks with names, like preview 2.
 
+### Art list (to make later; nothing made yet)
+The town now uses plain coloured blocks and the game's existing portraits. When art is wanted, this is the whole list:
+
+| # | Picture | What it shows | Where it plugs in |
+|---|---|---|---|
+| 1 | Your office | a small office with a desk and drawings | `TOWN.csv` building `office` |
+| 2 | The Owner's house | the owner's home or office | `owner` |
+| 3 | Bank | a bank front | `bank` |
+| 4 | Investor | a glass office | `investor` |
+| 5 | Architect's studio | a studio with big windows | `architect` |
+| 6 | Engineer's office | an office with plans and a hard hat | `engineer` |
+| 7 | Buildings Department | a city building with steps | `dob` |
+| 8 | Firehouse | a fire station | `firehouse` |
+| 9 | Construction trailer | a site trailer | `trailer` |
+| 10 | Building site | four stages: empty lot, stakes, frame, finished (the stage picture is Step 3, not approved) | `site` |
+| 11 | Ribbon cutting | a ribbon and a small crowd | `finish` |
+| 12-14 | Portraits: the Lender, the Banker, the Investor | 4 looks × 2 genders each, like the 72 existing portraits | `CHARACTERS.csv` image roles (today empty) |
+
+Each picture is drawn from the same slightly-3-D angle as the blocks, so it can replace a block one at a time. The names stay as flat signs above the pictures, so the art never makes a name smaller. Whether it is pixel art (PixelLab can make it) or flat drawings is Tom's choice when art starts.
+
 ### What could break, and how each step is tested
 
 | Step | What could break | How it is tested |
