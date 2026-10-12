@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.7] - 2026-10-11
+
+### The town board, step A2: the walk (Tom: "Go now ... max out what is left this week"). Only on a screen showing the town. Not deployed.
+
+- **What a player sees:** after a move, the player's face walks the streets from the old building to the new one: out of the door, along the street, round the corners, in at the other door. A move from one room to another inside the same building is a small hop. The rules and game days are untouched; the walk is only a picture.
+- **How long (data, tuned by play):** `TOWN.csv` `setting` rows: `walk_ms` 1500 (Normal), `walk_fast_ms` 400 (Fast = a quick hop), `hop_ms` 350 (room to room). Tom: "2 s is the sweet spot; judge when built" - one number to change. The device's "reduce motion" setting turns the walk off (the piece jumps, as before).
+- **On a screen that follows the player (TV, remote):** the camera glides to the middle of the route so the whole walk is on screen, then settles on the current building as before.
+- **Sturdy:** the walk runs by the clock, not by frame count, so a slow TV still ends on time; a screen that gives no animation frames at all still ends the walk on time. A screen that joins late shows everyone where they are, no walk. While a player walks, their face is on the street, not yet in the building they are going to.
+- **Seen, not fixed (for Tom):** on the PC, a pop-up that arrives with the move (for example a "Daily Permit" news item) opens at the same moment and covers the walk. The TV shows the walk in full.
+- **Robot hook (new):** `town-walker-<playerId>` while a face walks. Nothing renamed.
+- **Code:** `utils/townLayout.ts` (`walkPath` along the street grid, `pointAlong`, `walkTimes`), `TownBoard.tsx` (the walker).
+- **Tests:** `townLayout` 12 → 17 (routes stay on streets and go door to door; steady pace; settings defaults). Full run 255 files / 3798 tests, exit 0. Watched in a real browser on a TV-size screen while a PC played: a hop inside the Owner's house, then a walk from the Owner's house to Your office.
+
 ## [3.7.6] - 2026-10-11
 
 ### The town board, step A1: the still town (Tom: "Go now"; plan in docs/core/TOWN_BOARD_REVIEW.md). Starts on Classic. Not deployed.

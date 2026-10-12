@@ -41,3 +41,6 @@ room,CON-INITIATION,,trailer,,,,,,,,
 room,CON-ISSUES,,trailer,,,,,,,,
 room,CON-INSPECT,,site,,,,,,,,
 room,FINISH,,finish,,,,,,,,
+setting,walk_ms,,,,,,,,,,1500
+setting,walk_fast_ms,,,,,,,,,,400
+setting,hop_ms,,,,,,,,,,350

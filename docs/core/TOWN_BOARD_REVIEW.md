@@ -6,7 +6,9 @@ Everything Tom needs is in parts 1 to 9, in plain words. Part 10 is for whoever 
 
 ---
 
-## First-build plan (added 2026-10-11, after preview 2). PLAN ONLY, nothing is built.
+## First-build plan (added 2026-10-11, after preview 2)
+
+**Status (2026-10-11, late):** A1 (the still town) is built as v3.7.6 and A2 (the walk) as v3.7.7. Neither is deployed yet; A3 (Tom's look on real devices and tuning) is next. Details in CHANGELOG 3.7.6 / 3.7.7.
 
 **What Tom approved to plan:** the town look plus a short walk the game does for you (review Steps 1 and 2). Not in this plan: the clipboard look, your own growing building, little scenes, steering, and the road jokes.
 

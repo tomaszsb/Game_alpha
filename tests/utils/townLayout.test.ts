@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { buildTownLayout, buildingBox, buildingViews, isoPoint } from '../../src/utils/townLayout';
+import { buildTownLayout, buildingBox, buildingViews, isoPoint, walkPath, pointAlong, walkTimes, DEFAULT_WALK_TIMES } from '../../src/utils/townLayout';
 import { extractPrefix } from '../../src/constants/characters';
 import type { TownCsvRow } from '../../src/types/DataTypes';
 
@@ -144,5 +144,47 @@ describe('what each building shows', () => {
     const v = buildingViews(layout, [{ id: 'p1', name: 'Ann', currentSpace: 'PM-DECISION-CHECK' }], 'p1', ['LEND-SCOPE-CHECK', 'ARCH-INITIATION', 'CHEAT-BYPASS']);
     expect(v.get('office')).toMatchObject({ isCurrent: true, currentRoom: 'PM-DECISION-CHECK' });
     expect(v.get('office')!.destinationRooms).toEqual(['LEND-SCOPE-CHECK', 'ARCH-INITIATION', 'CHEAT-BYPASS']);
+  });
+});
+
+describe('the walk (step A2)', () => {
+  const layout = buildTownLayout(townRows(), stockSpaces(), extractPrefix, label)!;
+  const onStreet = (p: { col: number; row: number }) =>
+    layout.streets.some(s => (s.axis === 'col' ? p.col === s.at + 0.5 : p.row === s.at + 0.5));
+
+  it('walk times come from the town list, with safe defaults', () => {
+    expect(walkTimes(layout.settings)).toEqual({ walkMs: 1500, fastMs: 400, hopMs: 350 });
+    expect(walkTimes({})).toEqual(DEFAULT_WALK_TIMES);
+    expect(walkTimes({ walk_ms: 'soon', walk_fast_ms: '-5', hop_ms: '0' })).toEqual({ ...DEFAULT_WALK_TIMES, hopMs: 0 });
+  });
+
+  it('a room-to-room move inside one building is a hop, not a walk', () => {
+    expect(walkPath(layout, 'office', 'office')).toEqual([]);
+  });
+
+  it('a walk leaves from the building, follows only streets, and ends in the other building', () => {
+    for (const [a, b] of [['owner', 'office'], ['engineer', 'dob'], ['office', 'bank'], ['trailer', 'office'], ['architect', 'finish'], ['bank', 'investor']]) {
+      const pts = walkPath(layout, a, b);
+      const A = layout.buildings.find(x => x.id === a)!, B = layout.buildings.find(x => x.id === b)!;
+      expect(pts[0]).toEqual({ col: A.col + A.width / 2, row: A.row + A.depth / 2 });
+      expect(pts[pts.length - 1]).toEqual({ col: B.col + B.width / 2, row: B.row + B.depth / 2 });
+      // every point between the two doors is on a street, and every leg is straight along the grid
+      pts.slice(1, -1).forEach(p => expect(onStreet(p)).toBe(true));
+      pts.slice(1).forEach((p, i) => expect(p.col === pts[i].col || p.row === pts[i].row).toBe(true));
+    }
+  });
+
+  it('with no streets the piece walks straight across', () => {
+    const bare = { ...layout, streets: [] };
+    expect(walkPath(bare, 'owner', 'office')).toHaveLength(2);
+  });
+
+  it('points along the route are spaced by length, so the walk keeps a steady pace', () => {
+    const line = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 300 }];
+    expect(pointAlong(line, 0)).toEqual({ x: 0, y: 0 });
+    expect(pointAlong(line, 0.25)).toEqual({ x: 100, y: 0 });
+    expect(pointAlong(line, 0.5)).toEqual({ x: 100, y: 100 });
+    expect(pointAlong(line, 1)).toEqual({ x: 100, y: 300 });
+    expect(pointAlong([{ x: 5, y: 5 }], 0.7)).toEqual({ x: 5, y: 5 });
   });
 });

@@ -210,3 +210,114 @@ export function buildingViews(
   }
   return views;
 }
+
+// -------------------------------------------------------------------------------------------------
+// The walk (step A2): after a move the piece walks along the streets to the next building. A look
+// only; it never costs game days. Times are data (TOWN.csv `setting` rows), tuned by play.
+// -------------------------------------------------------------------------------------------------
+
+export interface WalkTimes {
+  /** A walk between two buildings on Normal speed. */
+  walkMs: number;
+  /** The same walk on Fast: a quick hop. */
+  fastMs: number;
+  /** A move from one room to another inside the same building. */
+  hopMs: number;
+}
+
+export const DEFAULT_WALK_TIMES: WalkTimes = { walkMs: 1500, fastMs: 400, hopMs: 350 };
+
+/** Walk times from the town's settings (`walk_ms`, `walk_fast_ms`, `hop_ms`); bad or missing = defaults. */
+export function walkTimes(settings: Record<string, string>): WalkTimes {
+  const ms = (key: string, fallback: number) => {
+    const n = parseFloat(settings[key] ?? '');
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  };
+  return {
+    walkMs: ms('walk_ms', DEFAULT_WALK_TIMES.walkMs),
+    fastMs: ms('walk_fast_ms', DEFAULT_WALK_TIMES.fastMs),
+    hopMs: ms('hop_ms', DEFAULT_WALK_TIMES.hopMs),
+  };
+}
+
+export interface GridPoint {
+  col: number;
+  row: number;
+}
+
+const centre = (b: TownBuilding): GridPoint => ({ col: b.col + b.width / 2, row: b.row + b.depth / 2 });
+
+/** The street a building's door opens onto (the nearest one), and the door point on it. */
+function doorOf(b: TownBuilding, streets: TownStreet[]): { street: TownStreet; door: GridPoint } | null {
+  let best: { street: TownStreet; door: GridPoint; d: number } | null = null;
+  for (const s of streets) {
+    const lane = s.at + 0.5;
+    const [lo, hi] = s.axis === 'col' ? [b.col, b.col + b.width] : [b.row, b.row + b.depth];
+    const d = lane < lo ? lo - lane : lane > hi ? lane - hi : 0;
+    if (!best || d < best.d) {
+      const c = centre(b);
+      best = { street: s, door: s.axis === 'col' ? { col: lane, row: c.row } : { col: c.col, row: lane }, d };
+    }
+  }
+  return best ? { street: best.street, door: best.door } : null;
+}
+
+/**
+ * The route from one building to another along the streets: out of the door, along the street,
+ * round at most two corners, in at the other door. Empty when both are the same building (a room-
+ * to-room move: a hop, not a walk). A straight line when the town has no streets.
+ */
+export function walkPath(layout: TownLayout, fromId: string, toId: string): GridPoint[] {
+  if (fromId === toId) return [];
+  const a = layout.buildings.find(b => b.id === fromId);
+  const b = layout.buildings.find(x => x.id === toId);
+  if (!a || !b) return [];
+  const da = doorOf(a, layout.streets);
+  const db = doorOf(b, layout.streets);
+  const pts: GridPoint[] = [centre(a)];
+  if (da && db) {
+    pts.push(da.door);
+    const sa = da.street, sb = db.street;
+    const laneA = sa.at + 0.5, laneB = sb.at + 0.5;
+    if (sa.axis === sb.axis && sa.at === sb.at) {
+      // Same street: straight along it.
+    } else if (sa.axis !== sb.axis) {
+      pts.push(sa.axis === 'col' ? { col: laneA, row: laneB } : { col: laneB, row: laneA });
+    } else {
+      // Two parallel streets: cross on the street of the other kind that makes the shortest trip.
+      const cross = layout.streets.filter(s => s.axis !== sa.axis);
+      const along = (p: GridPoint) => (sa.axis === 'col' ? p.row : p.col);
+      const pick = cross.reduce<TownStreet | null>((best, s) => {
+        const cost = (x: TownStreet) => Math.abs(along(da.door) - (x.at + 0.5)) + Math.abs(along(db.door) - (x.at + 0.5));
+        return !best || cost(s) < cost(best) ? s : best;
+      }, null);
+      if (pick) {
+        const lane = pick.at + 0.5;
+        pts.push(sa.axis === 'col' ? { col: laneA, row: lane } : { col: lane, row: laneA });
+        pts.push(sa.axis === 'col' ? { col: laneB, row: lane } : { col: lane, row: laneB });
+      }
+    }
+    pts.push(db.door);
+  }
+  pts.push(centre(b));
+  return pts.filter((p, i) => i === 0 || p.col !== pts[i - 1].col || p.row !== pts[i - 1].row);
+}
+
+/** The point a share `t` (0..1) of the way along a polyline, by length. */
+export function pointAlong(points: Array<{ x: number; y: number }>, t: number): { x: number; y: number } {
+  if (points.length === 0) return { x: 0, y: 0 };
+  if (points.length === 1 || t <= 0) return points[0];
+  if (t >= 1) return points[points.length - 1];
+  const seg = points.slice(1).map((p, i) => Math.hypot(p.x - points[i].x, p.y - points[i].y));
+  const total = seg.reduce((s, l) => s + l, 0);
+  if (total === 0) return points[0];
+  let left = t * total;
+  for (let i = 0; i < seg.length; i++) {
+    if (left <= seg[i]) {
+      const f = seg[i] === 0 ? 0 : left / seg[i];
+      return { x: points[i].x + (points[i + 1].x - points[i].x) * f, y: points[i].y + (points[i + 1].y - points[i].y) * f };
+    }
+    left -= seg[i];
+  }
+  return points[points.length - 1];
+}

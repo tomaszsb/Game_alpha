@@ -19,6 +19,7 @@ import {
   ControlButton,
   useReactFlow,
   getNodesBounds,
+  ViewportPortal,
   type Node,
   type NodeProps,
 } from '@xyflow/react';
@@ -31,12 +32,15 @@ import { extractPrefix, getNpcImagePath, type NpcImageRole } from '../../constan
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
 import { PlayerAvatar } from '../common/PlayerAvatar';
-import { scaleMs } from '../../utils/gameSpeed';
+import { scaleMs, getGameSpeed } from '../../utils/gameSpeed';
 import {
   buildTownLayout,
   buildingBox,
   buildingViews,
   isoPoint,
+  pointAlong,
+  walkPath,
+  walkTimes,
   type BuildingView,
   type TownBuilding,
   type TownLayout,
@@ -252,6 +256,52 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
 const nodeTypes = { townGround: TownGround, townBuilding: TownBuildingNode };
 
 // -------------------------------------------------------------------------------------------------
+// The walk (step A2): a player's face walks the streets from the old building to the new one.
+// -------------------------------------------------------------------------------------------------
+
+interface Walk {
+  key: number;
+  playerId: string;
+  name: string;
+  avatar?: string;
+  color?: string;
+  /** Board pixels along the streets; a single point = a hop inside one building. */
+  points: Array<{ x: number; y: number }>;
+  ms: number;
+}
+
+/** Moves its face along the route by the clock (not by frame count, so a slow TV still ends on time). */
+function Walker({ walk, onDone }: { walk: Walk; onDone: (key: number) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const start = performance.now();
+    let raf = 0;
+    const place = (now: number) => {
+      const t = Math.min(1, (now - start) / Math.max(1, walk.ms));
+      const p = pointAlong(walk.points, t);
+      // A hop (one point) is a small jump; a walk bobs a little with each step.
+      const lift = walk.points.length === 1 ? Math.sin(Math.PI * t) * 26 : Math.abs(Math.sin(t * Math.PI * 8)) * 5;
+      if (ref.current) ref.current.style.transform = `translate(${p.x}px, ${p.y - lift}px) translate(-50%, -100%)`;
+      if (t < 1) raf = requestAnimationFrame(place);
+    };
+    place(start);
+    raf = requestAnimationFrame(place);
+    // Some screens (a hidden tab, a weak TV) give no animation frames: the walk still ends on time.
+    const done = window.setTimeout(() => onDone(walk.key), walk.ms + 60);
+    return () => { cancelAnimationFrame(raf); window.clearTimeout(done); };
+  }, [walk, onDone]);
+  return (
+    <div ref={ref} data-testid={`town-walker-${walk.playerId}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 3000, pointerEvents: 'none', filter: 'drop-shadow(0 6px 6px rgba(0,0,0,0.35))' }}>
+      <PlayerAvatar avatar={walk.avatar} color={walk.color} size={44} title={walk.name} />
+    </div>
+  );
+}
+
+const prefersReducedMotion = (): boolean => {
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
+};
+
+// -------------------------------------------------------------------------------------------------
 // The board
 // -------------------------------------------------------------------------------------------------
 
@@ -320,9 +370,50 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
 
   useEffect(() => () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
 
+  // A player whose square changed walks from the old building to the new one. Only changes seen
+  // while this board is showing walk; a screen that joins late just shows everyone where they are.
+  const [walks, setWalks] = useState<Walk[]>([]);
+  // The squares as last seen. Compared while rendering (React's "adjust state when a prop changes"
+  // pattern), so a walk starts in the same paint as the move instead of one effect later.
+  const [seen, setSeen] = useState<{ players: Player[]; spaces: Map<string, string> | null; n: number }>({ players: [], spaces: null, n: 0 });
+  if (seen.players !== players) {
+    const before = seen.spaces;
+    setSeen({ players, spaces: new Map(players.map(p => [p.id, p.currentSpace])), n: seen.n + 1 });
+    if (before && !prefersReducedMotion()) {
+      const times = walkTimes(layout.settings);
+      const fast = getGameSpeed() === 'fast';
+      const started: Walk[] = [];
+      for (const p of players) {
+        const was = before.get(p.id);
+        if (!was || was === p.currentSpace) continue;
+        const from = layout.roomToBuilding.get(was);
+        const to = layout.roomToBuilding.get(p.currentSpace);
+        if (!from || !to) continue;
+        const hop = from === to;
+        const target = layout.buildings.find(x => x.id === to)!;
+        const route = hop ? [{ col: target.col + target.width / 2, row: target.row + target.depth / 2 }] : walkPath(layout, from, to);
+        const ms = hop ? times.hopMs : fast ? times.fastMs : times.walkMs;
+        if (route.length === 0 || ms <= 0) continue;
+        started.push({
+          key: seen.n * 100 + started.length, playerId: p.id, name: p.name, avatar: p.avatar, color: p.color, ms,
+          points: route.map(g => isoPoint(g.col, g.row, 0, TOWN_TILE)),
+        });
+      }
+      if (started.length) setWalks(w => [...w.filter(x => !started.some(s => s.playerId === x.playerId)), ...started]);
+    }
+  }
+  const endWalk = useCallback((key: number) => setWalks(w => w.filter(x => x.key !== key)), []);
+  const walking = useMemo(() => new Set(walks.map(w => w.playerId)), [walks]);
+
+  // A walking player shows on the street, not yet in the building they are walking to.
   const views = useMemo(
-    () => buildingViews(layout, players.map(p => ({ id: p.id, name: p.name, color: p.color, avatar: p.avatar, currentSpace: p.currentSpace })), currentPlayerId, validMoves),
-    [layout, players, currentPlayerId, validMoves],
+    () => buildingViews(
+      layout,
+      players.filter(p => !walking.has(p.id)).map(p => ({ id: p.id, name: p.name, color: p.color, avatar: p.avatar, currentSpace: p.currentSpace })),
+      currentPlayerId,
+      validMoves,
+    ),
+    [layout, players, walking, currentPlayerId, validMoves],
   );
 
   const portraitFor = useCallback((icon: string): string | null => {
@@ -402,6 +493,16 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   }, [sizeTick, centerOnCurrent, fitView]);
   useEffect(() => {
     if (!centerOnCurrent || !currentBuilding) return;
+    if (walks.length > 0) {
+      // Watch the walk: glide to the middle of the newest walker's whole route, so the walk is on
+      // screen from door to door (its face stands a little above the street, hence the lift).
+      const w = walks[walks.length - 1];
+      const xs = w.points.map(p => p.x), ys = w.points.map(p => p.y);
+      const midX = (Math.min(...xs) + Math.max(...xs)) / 2;
+      const midY = (Math.min(...ys) + Math.max(...ys)) / 2 - 30;
+      setCenter(midX, midY, { zoom: getViewport().zoom, duration: Math.min(w.ms, scaleMs(500)) });
+      return;
+    }
     const ids = [...new Set([currentBuilding, ...destBuildings])];
     const t = window.setTimeout(() => {
       const focus = nodes.filter(n => ids.includes(n.id));
@@ -417,7 +518,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       setCenter(bb.x + bb.width / 2, bb.y + bb.height / 2, { zoom: getViewport().zoom, duration: scaleMs(350) });
     }, 100);
     return () => window.clearTimeout(t);
-  }, [centerOnCurrent, currentBuilding, destBuildings, nodes, fitView, setCenter, getViewport, sizeTick]);
+  }, [centerOnCurrent, currentBuilding, destBuildings, nodes, fitView, setCenter, getViewport, sizeTick, walks]);
 
   // A jump asked for by the game log (PC): glide to that square's building at the current zoom.
   useEffect(() => {
@@ -479,6 +580,9 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
           <ControlButton onClick={() => panBy(-PAN, 0)} title="Pan right"><span aria-hidden="true">→</span></ControlButton>
           <ControlButton onClick={() => panBy(0, -PAN)} title="Pan down"><span aria-hidden="true">↓</span></ControlButton>
         </Controls>
+        <ViewportPortal>
+          {walks.map(w => <Walker key={w.key} walk={w} onDone={endWalk} />)}
+        </ViewportPortal>
       </ReactFlow>
     </div>
   );
