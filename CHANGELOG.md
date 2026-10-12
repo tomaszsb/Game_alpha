@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - **Why:** the robot's 2-seat run on 10-11 stopped at "the setup screen shows no seat count" (Manager, from the Mac report). The setup screen never had a seat picker: players are added one at a time, and the only count is the text line "N/4 players added". It had no test id.
 - **Now:** that line carries `data-testid="setup-player-count"` with `data-players` (players added) and `data-max-players` (the limit), on both the PC/Remote line and the one-line TV version. Nothing on screen changes. It shows only on the New game side.
 - **Checked in a real browser (dev):** PC line 1/4, TV line 1/4, then 2/4 after Add Player, attributes matching the text.
+- **TODO housekeeping (2026-10-12):** closed "confirm the robot half landed" (the robot reads the game's hooks: 10-10 report "board=hook, panel=hook, popup=hook ..."); closed the time-limit question (Tom 10-09: "300% as is"); the Job 6 line now says LIVE and that the robot has never reached Hire a Builder.
 - **Tests:** setup tests 8 files / 54 green; lint 0 errors on the file; the 3.7.10 full run (256 files / 3813, ghost gate, build) ran with this edit already in the tree.
 
 ## [3.7.10] - 2026-10-12
