@@ -2,6 +2,11 @@
 
 ---
 
+## v3.7.20 — The bank's fee shows up (October 12, 2026)
+
+- **"What you've paid" now lists the bank's loan fee.** The bank takes its interest off the loan the moment you take it, and that used to come out of your cash without showing in the list, so cash looked lower than what you'd raised with nothing paid. It now appears as "Interest fee" in the list (and as "Loan fees" on the end screen).
+
+
 ## v3.7.18 and v3.7.19 — Pick the board at setup, and bubbles you can hear (October 12, 2026)
 
 - **Street view or Classic, chosen by the host.** In the setup gear, under Win Condition, there is a new "Board" choice: "Street view (town)" (the default) or "Classic". Every screen in that game starts on it. The Menu's "Board" item still switches one screen.
