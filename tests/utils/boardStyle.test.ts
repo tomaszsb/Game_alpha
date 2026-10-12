@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { getBoardStyle, setBoardStyle, setTownAvailable, useBoardStyleMenu } from '../../src/utils/boardStyle';
+import { getBoardStyle, setBoardStyle, setTownAvailable, useBoardStyleMenu, setTownWalking, useTownWalking } from '../../src/utils/boardStyle';
 
 describe('boardStyle (the Board: Classic / Town switch)', () => {
   beforeEach(() => { localStorage.clear(); setBoardStyle('classic'); setTownAvailable(false); });
@@ -23,5 +23,14 @@ describe('boardStyle (the Board: Classic / Town switch)', () => {
     expect(getBoardStyle()).toBe('town');
     act(() => result.current!.toggle());
     expect(getBoardStyle()).toBe('classic');
+  });
+
+  it('a town walk tells the screen to hold its pop-ups, and lets go when it ends', () => {
+    const { result } = renderHook(() => useTownWalking());
+    expect(result.current).toBe(false);
+    act(() => setTownWalking(true));
+    expect(result.current).toBe(true);
+    act(() => setTownWalking(false));
+    expect(result.current).toBe(false);
   });
 });

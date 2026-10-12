@@ -59,3 +59,27 @@ export function useBoardStyleMenu(): { town: boolean; toggle: () => void } | und
   if (!available) return undefined;
   return { town: style === 'town', toggle: () => setStyle(style === 'town' ? 'classic' : 'town') };
 }
+
+// Whether a town walk is playing on this screen right now (TownBoard sets it). Pop-ups that arrive
+// with a move wait for it, so a news item or a result does not open on top of the walk (seen on the
+// PC, 2026-10-11). Only a screen showing the town ever walks, so the classic board never waits.
+let townWalking = false;
+const walkListeners = new Set<() => void>();
+
+export function setTownWalking(active: boolean): void {
+  if (townWalking === active) return;
+  townWalking = active;
+  walkListeners.forEach(l => l());
+}
+
+export function isTownWalking(): boolean {
+  return townWalking;
+}
+
+export function useTownWalking(): boolean {
+  return useSyncExternalStore(
+    cb => { walkListeners.add(cb); return () => { walkListeners.delete(cb); }; },
+    isTownWalking,
+    () => false,
+  );
+}

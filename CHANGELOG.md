@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.8] - 2026-10-12
+
+### On a screen showing the town, pop-ups that come with a move wait until the walk has played (Tom: "continue" while in transit). Not deployed.
+
+- **The problem (found building 3.7.7):** on the PC, a pop-up that arrives with a move (a "Daily Permit" news item, an examiner's result, the "why am I here" note) opened at the same moment as the walk and covered it.
+- **The fix:** while a walk plays, the screen's pop-up queue holds; the pop-up opens as soon as the walk ends (1.5 s at most on Normal). Only a screen showing the town ever walks, so the classic board, the phones and the Jarvis robot's screens never wait. `utils/boardStyle.ts` (`setTownWalking` / `useTownWalking`), `TownBoard` sets it, `GameLayout` holds the result queue, the life-event and the routing pop-ups.
+- **Checked in a real browser:** 4 moves on a Town PC screen; the news item opened right after a hop ended and never during a walk.
+- **Tests:** `boardStyle` (+1); full run 255 files / 3799 tests, exit 0; build clean. Ghost gate not re-run (it has no screen, and nothing it runs changed).
+
 ## [3.7.7] - 2026-10-11
 
 ### The town board, step A2: the walk (Tom: "Go now ... max out what is left this week"). Only on a screen showing the town. Not deployed.

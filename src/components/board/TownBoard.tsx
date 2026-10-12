@@ -33,6 +33,7 @@ import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { scaleMs, getGameSpeed } from '../../utils/gameSpeed';
+import { setTownWalking } from '../../utils/boardStyle';
 import {
   buildTownLayout,
   buildingBox,
@@ -403,6 +404,11 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     }
   }
   const endWalk = useCallback((key: number) => setWalks(w => w.filter(x => x.key !== key)), []);
+  // Tell the rest of this screen a walk is on, so arriving pop-ups wait for it (boardStyle.ts).
+  useEffect(() => {
+    setTownWalking(walks.length > 0);
+  }, [walks.length]);
+  useEffect(() => () => setTownWalking(false), []);
   const walking = useMemo(() => new Set(walks.map(w => w.playerId)), [walks]);
 
   // A walking player shows on the street, not yet in the building they are walking to.

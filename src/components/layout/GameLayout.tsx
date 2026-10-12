@@ -21,6 +21,7 @@ import { ProjectProgress } from '../game/ProjectProgress';
 import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
 import { GameBoard } from '../board/GameBoard';
+import { useTownWalking } from '../../utils/boardStyle';
 import { BoardToggle } from '../board/BoardToggle';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
@@ -333,7 +334,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // only open once the previous modal has fully animated out. Same pattern
   // as the life-event queue above. Blocked while the LifeEventModal is up so
   // the two never stack.
-  const diceResultQueue = useModalQueue<TurnEffectResult>({ blocked: isLifeEventModalOpen });
+  // A town walk on this screen holds the queue too: a result that arrives with a move waits until
+  // the walk has played instead of opening on top of it (only screens showing the town ever walk).
+  const townWalking = useTownWalking();
+  const diceResultQueue = useModalQueue<TurnEffectResult>({ blocked: isLifeEventModalOpen || townWalking });
   const { current: diceResult, isOpen: isDiceResultModalOpen } = diceResultQueue;
   // Per-player one-shot request to switch the panel's active reference tab.
   // Set when a result modal opens so the matching tab (Ledger / Expeditors /
@@ -694,6 +698,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   useEffect(() => {
     if (
       pendingLifeEvent &&
+      !townWalking &&
       !isLifeEventModalOpen &&
       !isDiceResultModalOpen &&
       !diceResultQueue.isExiting &&
@@ -701,7 +706,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     ) {
       setIsLifeEventModalOpen(true);
     }
-  }, [pendingLifeEvent, isLifeEventModalOpen, isDiceResultModalOpen, diceResultQueue.isExiting, diceResultQueue.pendingCount]);
+  }, [pendingLifeEvent, townWalking, isLifeEventModalOpen, isDiceResultModalOpen, diceResultQueue.isExiting, diceResultQueue.pendingCount]);
 
   // Routing-explanation queue flush (fb:f1bc011b). Same one-at-a-time rule as
   // the life event, and it also waits behind the life event so the player
@@ -709,6 +714,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   useEffect(() => {
     if (
       pendingRouting &&
+      !townWalking &&
       !isRoutingModalOpen &&
       !isLifeEventModalOpen &&
       !pendingLifeEvent &&
@@ -718,7 +724,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     ) {
       setIsRoutingModalOpen(true);
     }
-  }, [pendingRouting, isRoutingModalOpen, isLifeEventModalOpen, pendingLifeEvent, isDiceResultModalOpen, diceResultQueue.isExiting, diceResultQueue.pendingCount]);
+  }, [pendingRouting, townWalking, isRoutingModalOpen, isLifeEventModalOpen, pendingLifeEvent, isDiceResultModalOpen, diceResultQueue.isExiting, diceResultQueue.pendingCount]);
 
   // Persist visiblePanels to localStorage whenever it changes
   useEffect(() => {
