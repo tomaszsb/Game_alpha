@@ -101,8 +101,12 @@ export class ChoiceService implements IChoiceService {
 
     // Cancel any existing pending choice before creating a new one
     // This prevents orphaned promises that timeout with console errors
+    // The turn's destination list is NOT cancelled by a question (card replace / discard):
+    // StateService sets it aside and puts it back once the question is answered, so its
+    // promise stays pending. Only another destination choice replaces it.
     const existingChoice = this.getActiveChoice();
-    if (existingChoice && this.pendingChoices.has(existingChoice.id)) {
+    const keepsDestinationList = existingChoice?.type === 'MOVEMENT' && type !== 'MOVEMENT';
+    if (existingChoice && !keepsDestinationList && this.pendingChoices.has(existingChoice.id)) {
       const pending = this.pendingChoices.get(existingChoice.id)!;
       this.pendingChoices.delete(existingChoice.id);
       pending.resolve(''); // Resolve with empty to indicate cancellation
@@ -268,7 +272,7 @@ export class ChoiceService implements IChoiceService {
 
     // Clear any banner/modal that was waiting on a choice.
     if (this.getActiveChoice()) {
-      this.stateService.clearAwaitingChoice();
+      this.stateService.clearAwaitingChoice({ discardSuspended: true });
     }
 
     if (reason) {
@@ -307,7 +311,7 @@ export class ChoiceService implements IChoiceService {
     this.pendingChoices.clear();
     
     // Clear game state
-    this.stateService.clearAwaitingChoice();
+    this.stateService.clearAwaitingChoice({ discardSuspended: true });
     
   }
 }

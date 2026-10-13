@@ -669,7 +669,22 @@ export class StateService implements IStateService {
   // server-side at the storage layer rather than on every client init.
 
 
+  // The destination list ("where do you go next") set aside while a card question
+  // (replace / discard) is on screen. There is ONE awaitingChoice slot, and the
+  // turn's destination choice is created when the turn STARTS, so any question a
+  // space's own actions raise used to overwrite it: after the answer nothing put the
+  // list back, "Lock the scope" stayed gated on "Pick where you're going first" and
+  // the player was stuck (fb:f9ab4c3a, Lender Review; LEND-SCOPE-CHECK's "See what the
+  // plan covers" raised a replace/discard question in 9 of 25 seeded runs).
+  private suspendedMovementChoice: Choice | null = null;
+
   setAwaitingChoice(choice: Choice): GameState {
+    const active = this.currentState.awaitingChoice;
+    if (choice.type === 'MOVEMENT') {
+      this.suspendedMovementChoice = null; // a fresh destination list replaces any set-aside one
+    } else if (active && active.type === 'MOVEMENT') {
+      this.suspendedMovementChoice = active; // a question interrupts the list: keep it for afterwards
+    }
 
     this.currentState = {
       ...this.currentState,
@@ -684,10 +699,22 @@ export class StateService implements IStateService {
     return this.currentState;
   }
 
-  clearAwaitingChoice(): GameState {
+  /**
+   * Clear the active choice. If that choice was a question that interrupted the
+   * destination list, the list comes back instead of an empty slot.
+   *  - `discardSuspended`: the turn is over or the move is made, so the set-aside list is stale.
+   *  - `keepMovement`: for a caller that is only tidying up after ITS OWN question; if the
+   *    active choice is already the restored destination list, leave it alone.
+   */
+  clearAwaitingChoice(options?: { discardSuspended?: boolean; keepMovement?: boolean }): GameState {
+    const active = this.currentState.awaitingChoice;
+    if (options?.keepMovement && active?.type === 'MOVEMENT') return this.currentState;
+    const restore =
+      !options?.discardSuspended && active && active.type !== 'MOVEMENT' ? this.suspendedMovementChoice : null;
+    this.suspendedMovementChoice = null;
     this.currentState = {
       ...this.currentState,
-      awaitingChoice: null
+      awaitingChoice: restore
     };
 
     // Recalculate action counts when a choice is cleared. Same

@@ -240,7 +240,7 @@ export class CardEffectService implements ICardEffectService {
         debugLog(`Player skipped card replacement`);
       }
 
-      this.stateService.clearAwaitingChoice();
+      this.stateService.clearAwaitingChoice({ keepMovement: true });
     }
 
     return {
@@ -306,7 +306,7 @@ export class CardEffectService implements ICardEffectService {
           if (selectedCardId && selectedCardId !== '') {
             cardsToReturn.push(selectedCardId);
           }
-          this.stateService.clearAwaitingChoice();
+          this.stateService.clearAwaitingChoice({ keepMovement: true });
         }
       }
     }
@@ -383,7 +383,7 @@ export class CardEffectService implements ICardEffectService {
       if (selectedCardId && selectedCardId !== '') {
         cardToGive = selectedCardId;
       }
-      this.stateService.clearAwaitingChoice();
+      this.stateService.clearAwaitingChoice({ keepMovement: true });
     }
 
     if (cardToGive) {
@@ -453,7 +453,7 @@ export class CardEffectService implements ICardEffectService {
       if (selectedCardId && selectedCardId !== '') {
         cardToTransfer = selectedCardId;
       }
-      this.stateService.clearAwaitingChoice();
+      this.stateService.clearAwaitingChoice({ keepMovement: true });
     }
 
     if (cardToTransfer) {

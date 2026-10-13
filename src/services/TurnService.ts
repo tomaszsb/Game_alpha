@@ -727,7 +727,7 @@ export class TurnService implements ITurnService {
     this.assertDependenciesReady();
 
     // Clear any old choices from the previous turn
-    this.stateService.clearAwaitingChoice();
+    this.stateService.clearAwaitingChoice({ discardSuspended: true });
 
     try {
       const player = this.stateService.getPlayer(playerId);

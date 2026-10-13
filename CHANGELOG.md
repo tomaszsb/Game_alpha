@@ -15,6 +15,16 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.24] - 2026-10-13
+
+### "Lock the scope" (and every other hold-to-confirm button) could be stuck for good, because a card question wiped out the destination list. Not deployed.
+
+- **What Tom saw (fb:f9ab4c3a, live v3.7.23, PC with a mouse, Lender Review):** tap shows the cost, long hold does nothing. The screenshot shows the button's second line "Pick where you're going first" and **no destination list anywhere**. A hold on a gated button is ignored by design, so the hold code was never the problem: the button was waiting for a destination that could not be picked.
+- **Cause (proven):** a turn has ONE choice slot and the destination choice is created when the turn starts. A space's own action can raise a card question (replace / discard); that question overwrote the destination list, and clearing it left the slot empty. At LEND-SCOPE-CHECK the "See what the plan covers" roll does this: in a seeded sweep of 25 games, 9 raised such a question and **all 9 lost the list** (afterwards: no choice at all). Same for any space with a choice move plus a card roll, which is why it looked like "the accept button in later spaces". Not a mouse-versus-finger problem. (The v3.2.88 note "createChoice overwrites any existing choice" was this, flagged then as "no flow known".) The earlier ENG-SCOPE-CHECK test passed because that roll raises no question.
+- **Fix:** `StateService` sets the destination list aside when a question interrupts it and puts it back when the question is answered or skipped (`setAwaitingChoice` / `clearAwaitingChoice`). `ChoiceService.createChoice` no longer cancels the list's promise for a question. The card services' own tidy-up clears use `keepMovement` so they cannot wipe the restored list; the end of a move, a new turn and cancel-all use `discardSuspended` so a stale list never comes back.
+- **Checked:** same 25-game sweep after the fix: 10 questions raised, the list was back every time, 0 empty. `DestinationListSurvivesQuestions` (7 new; 4 fail on the old code). typecheck clean; `npm test` 266 files / 3857 green.
+- **Not done:** I did not run this through the UI with a mouse or finger (the built-in browser fires no animation frames, Claude in Chrome was not connected); it is proven at the service level with the real services. Tom's check: reach Lender Review, do "See what the plan covers" until a card question appears, answer it, and the destination list should be there.
+
 ## [3.7.23] - 2026-10-12
 
 ### The owner's seed money range moves from code to the data file (Manager's last order; no player-visible change). Not deployed.

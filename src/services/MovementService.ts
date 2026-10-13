@@ -708,7 +708,7 @@ export class MovementService implements IMovementService {
 
           // Phase 3: Post-movement delay (UI settling)
           setTimeout(() => {
-            this.stateService.clearAwaitingChoice();
+            this.stateService.clearAwaitingChoice({ discardSuspended: true });
 
             // Final phase: Clear moving flag and resolve
             setTimeout(() => {
@@ -719,7 +719,7 @@ export class MovementService implements IMovementService {
 
         } catch (error) {
           console.error(`❌ MOVEMENT ERROR:`, error);
-          this.stateService.clearAwaitingChoice();
+          this.stateService.clearAwaitingChoice({ discardSuspended: true });
           this.stateService.setMoving(false);
           reject(error);
         }

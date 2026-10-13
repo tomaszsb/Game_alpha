@@ -499,7 +499,7 @@ export class CardEffectHandler implements ICardEffectHandler {
       );
 
       if (selectedCardId && selectedCardId !== '') {
-        this.stateService.clearAwaitingChoice();
+        this.stateService.clearAwaitingChoice({ keepMovement: true });
         return { cardIds: [selectedCardId] };
       } else {
         return { cardIds: [], skipped: true };
