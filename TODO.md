@@ -1,7 +1,7 @@
 # TODO - Game Alpha
 
 **Last Updated:** October 13, 2026 (cleaned up; the whole old file is kept in [docs/archive/TODO-full-2026-10-13.md](docs/archive/TODO-full-2026-10-13.md)).
-**Status:** Beta — v3.7.23 LIVE (3.7.24 committed, not deployed) (`/health` `9628288a`, 2026-10-13 04:47 UTC). **Re-read `/health`, never this line.**
+**Status:** Beta — v3.7.24 LIVE (`/health` `bdbef7b4`, 2026-10-13 15:50 UTC). **Re-read `/health`, never this line.**
 
 ---
 
@@ -16,7 +16,7 @@
 
 ## 🔎 Active — bugs & investigations
 
-- [ ] **ResizeObserver loop error, in all 5 new reports (2-8 each, fb:f9ab4c3a and the others), NOT found yet.** The built-in browser fires no animation frames, so the error cannot occur there; Claude in Chrome was not connected. Suspects: React Flow's own node observers on the town board, `panelAnchor.tsx` (sets state straight from its observer). Next: reproduce in a real Chrome (wrap `ResizeObserver` to log which callback runs when the error fires), then quiet that one callback. Who: session. Trigger: next session with Chrome connected.
+- [ ] **ResizeObserver loop error, in all 5 new reports (2-8 each, fb:f9ab4c3a and the others), NOT found yet.** The built-in browser fires no animation frames, so the error cannot occur there; Claude in Chrome was not connected. Suspects: React Flow's own node observers on the town board, `panelAnchor.tsx` (sets state straight from its observer). Next: reproduce in a real Chrome (wrap `ResizeObserver` to log which callback runs when the error fires), then quiet that one callback. Who: session. Trigger: next session with Chrome connected. **Parked** (Manager 10-13).
 - [ ] **Parked design ideas from Tom's 10-13 reports (his call on order):** fb:5b8a060c two bubbles from two buildings when accepting owner money (reproduce only if cheap) · fb:5617effb Funding check should show partial funding, orange with a percentage · fb:aec545c4 town board redesign (buildings revealed as the game goes, two construction sites, trailer on the site, no ribbon cutting before the building exists, several owners and offices in multiplayer) · fb:4e8a8550 clipboard redesign (My project as flipping tabs, pop-ups on the clipboard, a Life events tab, player-colour tint). Inventory what exists and unify before proposing. <!-- fb:feedback-1791901573827-5b8a060c --> <!-- fb:feedback-1791901448969-5617effb --> <!-- fb:feedback-1791902857820-aec545c4 --> <!-- fb:feedback-1791900859467-4e8a8550 -->
 - [ ] **Money/scope bug (Tom, live v3.7.15, 10-12): the scope vanished on his phone, NOT reproduced; the ~$228K cash gap was found and fixed (v3.7.20).** Next: Tom fully reloads the phone and looks at the same player on another screen; empty there too = the state lost it, fine there = stale phone copy. Who: Tom via the Manager, then a session. Detail: CHANGELOG 3.7.20, evidence `E:\Documents\People\AI\Manager\evidence\2026-10-12-money-scope\`.
 - [ ] **The Jarvis robot has never reached Hire a Builder, so `builder-bid-hire` is unconfirmed** (10-10 report: bids on screen, hire pressed 0 times). Who: Jarvis session. Trigger: next nightly report. Detail: CHANGELOG 3.7.0.

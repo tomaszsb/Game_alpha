@@ -1,38 +1,38 @@
 # Next session starter — written 2026-10-13 by /koniec
 
 ## State at handoff
-- **Version:** v3.7.23. **LIVE: `/health` = `9628288a` at 2026-10-13 04:47 UTC (Tom deployed). Nothing pending deploy.** Re-read `/health`; never believe this line.
+- **Version:** v3.7.24. **LIVE: `/health` = `bdbef7b4` at 2026-10-13 15:50 UTC (Tom deployed). Nothing pending deploy.** Re-read `/health`; never believe this line.
 - **Branch:** master = origin/master after the wrap-up commit, clean.
-- **Shipped (Manager's brief, Tom's words):** 3.7.16 clipboard look; 3.7.17 PC pop-ups over the player panel; 3.7.18 setup "Board: Street view (town) / Classic" (default Town, every screen starts on the host's pick); 3.7.19 chime per town result bubble. While Tom was away (Manager's order, budget line 20% of the week, ended ~8%): **3.7.20** the bank loan's up-front fee is now recorded in "What you've paid" (cash and the paid list agree; found by reproducing the ~$228K gap); **3.7.21** Job 2 in part: builder price/schedule numbers -> `TROPHIES.csv`, standings words + "My project" -> `UI_STRINGS.csv`, results identical (the rest is parked on purpose, see TODO); **3.7.22** a renamed phase gets its own board colour instead of grey (`phaseColorsFor`).
-- **Tests (v3.7.23):** typecheck + build clean; `npm test` 265 files / 3850 green, exit 0; ghost gate green (11 files / 43 tests). The 10-12 `TrophyFlow` flake is SOLVED (test randomness, not a game bug): at PM-DECISION-CHECK a return visit rolls a 2 (1 in 6) and draws a random life-event card; a Notice of Violation adds 2 problem points (5 instead of 3). The test now pins the roll and a deterministic test covers the violation draw.
+- **Shipped this session (Manager's brief "hold-to-confirm"):** 3.7.24: "Lock the scope" long hold did nothing (fb:f9ab4c3a, Tom's PC). The hold code was fine; the button was gated on "Pick where you're going first" and the destination list had vanished: the card question that "See what the plan covers" can raise (replace/discard) overwrote the one choice slot, and clearing it left it empty (proven: 9 of 25 seeded games at Lender Review). `StateService` now sets the list aside and puts it back (`keepMovement` / `discardSuspended`, CHANGELOG 3.7.24, CLAUDE.md TACTICAL "One choice slot"). **Tom won a full game on live 3.7.24, which settles the earlier "not clicked through with a real mouse" caveat. fb:f9ab4c3a is flipped resolved.**
+- **Tests (v3.7.24):** typecheck + build clean; `npm test` 266 files / 3857 green; ghost gate: green (11 files / 43 tests, 1 skipped).
 
 ## Top 3 open items
-1. **3.7.16-23 are LIVE; Tom looks at all of it (the list is in TODO "Tom's checks after deploy"):** clipboard on a real phone (clip must not cover the "?"); PC pop-ups over the panel vs rules/card details centred; setup gear Board choice; bubble chimes BY EAR on the real TV ("Press OK once…" then sound); the paid list after taking a bank loan ("Interest fee"). Plus 3.7.14 bubbles / 3.7.15 header. Then the flip list below.
-2. **Money/scope bug (Tom, live v3.7.15): scope NOT reproduced** (full account in TODO and CHANGELOG 3.7.20: PC + phone controller on a local server, server state read after every step, offline cycles, reloads, all consistent; the live server logged no rejected/invalid pushes and just replaces the whole state). Waiting on Tom's full-reload result + a look at the same player on another screen (via the Manager). Other screen empty too -> the state lost the work packages; other screen fine -> the phone had a stale copy (hypotheses, unverified). Do not guess a fix.
-3. **Job 2 remainder, only if a real reskin needs it** (the owner seed-money range is now data too, 3.7.23; project-length constants remain): quality/event ids, header-menu words (robot reads them), `BoardCheckStrip`, server `spaceProtection` list, stock-name fallbacks (all in TODO).
+1. **Tom looks at 3.7.16-23 (all live; list in TODO "Tom's checks after deploy"):** clipboard on a real phone (clip must not cover the "?"); PC pop-ups over the panel; setup gear Board choice; bubble chimes by ear on the real TV; the paid list after a bank loan ("Interest fee"); plus 3.7.14 bubbles / 3.7.15 header. The 3.7.20-23 flip list below stays UNFLIPPED until he confirms (Manager 10-13).
+2. **Money/scope bug (Tom, live v3.7.15): scope NOT reproduced.** Waiting on Tom's full-reload result + a look at the same player on another screen (via the Manager). Do not guess a fix.
+3. **Job 2 remainder, only if a real reskin needs it** (project-length constants, quality/event ids, header-menu words, `BoardCheckStrip`, server `spaceProtection` list, stock-name fallbacks; all in TODO).
+
+## PARKED on purpose (Manager 10-13; do not start)
+- **ResizeObserver "loop completed with undelivered notifications" (in all 5 of Tom's new reports, 2-8 each): source NOT found, parked until a session with Claude in Chrome connected exists.** The built-in browser fires no animation frames so the error cannot occur there. Suspects (hypothesis, unverified): React Flow node observers on the town board; `panelAnchor.tsx` sets state straight from its observer. Plan is in TODO.
+- **Four design reports, logged in TODO, Tom decides order:** fb:5b8a060c (two bubbles from two buildings when accepting owner money), fb:5617effb (Funding check shows partial funding, orange with a percentage), fb:aec545c4 (town board redesign), fb:4e8a8550 (clipboard redesign). Inventory what exists and unify before proposing anything.
+- **Three newer open reports NOT triaged (filed 10-13 after the last count):** fb:a49b598f (16:18 UTC), fb:f9e897b0 (16:14), fb:bf9dd267 (15:52). Run `/start full` or triage when asked.
 
 ## Decisions waiting on the user
 - Parked: TV news cards ("lets wait"), own growing building, road jokes (D5), art (list in `docs/core/TOWN_BOARD_REVIEW.md`).
 - Unraid cleanup, his call: `docker rmi game_alpha-game-alpha:latest` (609 MB), `docker builder prune` (23.4 GB).
-- Side effects to confirm: the board is clickable while a play pop-up is open on a PC; the Jarvis 03:00 run now starts on the town board (watch its first report after deploy).
+- Side effects to confirm: the board is clickable while a play pop-up is open on a PC; the Jarvis 03:00 run now starts on the town board (watch its first report).
 
 ## Flip after deploy
-NOTHING flipped by me (Manager's rule 2026-10-13). Fixed in 3.7.x, flip only after Tom confirms on a real device; new in this list: fb c0d3bfb8 (scope box now shows its cost; the diagonal layout half is Tom's call). Whole list: fb adb1cc76, c0d3bfb8, 612fbdc4, a0cecb6a, 8cb652c4, 7fbea636, ae480630, 11662ac3, 95624c8e, 84b491f2, ec243622, a1260bfc, dc04ea53, b38110f3, ef974f1c, 67a9c44b, f6aebc05, 496cc1c8, 8f4769cc, 21473ad9, 7c8375eb, eaba5e71, fa2a2ddf, bbeb13e2, 712a9859.
+NOTHING else flipped (Manager's rule). Fixed in 3.7.x, flip only after Tom confirms on a real device: fb adb1cc76, c0d3bfb8, 612fbdc4, a0cecb6a, 8cb652c4, 7fbea636, ae480630, 11662ac3, 95624c8e, 84b491f2, ec243622, a1260bfc, dc04ea53, b38110f3, ef974f1c, 67a9c44b, f6aebc05, 496cc1c8, 8f4769cc, 21473ad9, 7c8375eb, eaba5e71, fa2a2ddf, bbeb13e2, 712a9859. (fb:f9ab4c3a already flipped 10-13.)
 
 ## Suggested first move
-Read `/health`. If 3.7.22 is live, ask Tom what he saw and heard; if the Manager passed his money/scope reload result, start there (the two-screen recipe is in CLAUDE.md TACTICAL).
+Read `/health`. No new brief is queued by the Manager. Ask Tom what he saw on 3.7.16-24 (and heard on the TV chimes); if the Manager passes his money/scope reload result, start there (two-screen recipe in CLAUDE.md TACTICAL).
 
 ## Suggested model for next session
-Sonnet 5 — look-and-feel follow-ups plus a state-sync investigation that needs reading, not a bigger model; raise effort first.
-
-## Feedback sweep 2026-10-13 (Manager's order)
-- **No new reports since 10-08** (49 open, all tracked in TODO, newest 10-08 03:06). Old v3.2.99 reports checked (TODO has the verdicts): c0d3bfb8 ready to flip after a phone look; 1c6980b4 and adbcf2e5 vague, still open. The "ARCH-FEE-REVIEW 50 days a press" item is superseded (push-back is 0.5% + 5 days) and was removed.
-
-## 2026-10-13: TODO.md was cleaned up
-- 218 lines / 86 KB down to ~90 lines / 17 KB; one line per open item (next action, who, trigger, pointer). The whole old file is `docs/archive/TODO-full-2026-10-13.md`. Settled decisions moved to `docs/core/PRODUCT_CHARTER.md`, history to CHANGELOG ("Housekeeping 2026-10-13"), harness lessons to CLAUDE.md TACTICAL, design notes to their design docs. All 34 `fb:feedback-...` markers kept on their items.
+Sonnet 5, since look-and-feel follow-ups plus a state-sync investigation need reading, not a bigger model; raise effort first.
 
 ## Reminders
 - Deploy stays Tom's: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"` (PowerShell). Never write a deploy claim without reading `/health`.
-- Two game sessions can share this folder: commit files BY NAME, never `git add -A`; agree version numbers by message.
-- A bare spend never writes a payment record: use `ResourceService.recordCost` for anything the player should see paid (CLAUDE.md TACTICAL).
-- `rm -rf .tmp/*` is blocked by the safety check in this setup; leave `.tmp/` (gitignored) or ask Tom to clear it.
+- Two game sessions can share this folder: commit files BY NAME, never `git add -A`.
+- A bare spend never writes a payment record: use `ResourceService.recordCost` (CLAUDE.md TACTICAL).
+- A held button that "does nothing" is first a gated button: check `data-actionable` and the sub-line before suspecting the hold code.
+- `sed -i` on CRLF files in Git Bash can flip them to LF; edit with node (`fs`) and check `git diff --stat` stays small.

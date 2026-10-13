@@ -2,6 +2,10 @@
 
 ---
 
+## v3.7.24 — "Lock the scope" no longer gets stuck (October 13, 2026)
+
+- **Fixed a stuck turn at Lender Review.** If "See what the plan covers" asked you which card to replace or let go, the list of places to go next could disappear afterwards, and the main button stayed grey saying "Pick where you're going first" with nothing to pick. The list now comes back as soon as you answer the card question. The same fix covers every other space that asks about a card and lets you choose where to go.
+
 ## v3.7.20 — The bank's fee shows up (October 12, 2026)
 
 - **"What you've paid" now lists the bank's loan fee.** The bank takes its interest off the loan the moment you take it, and that used to come out of your cash without showing in the list, so cash looked lower than what you'd raised with nothing paid. It now appears as "Interest fee" in the list (and as "Loan fees" on the end screen).
