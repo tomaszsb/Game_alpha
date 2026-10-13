@@ -2,6 +2,16 @@
 
 ---
 
+## v3.7.25 to v3.7.33 — A busier town, a clipboard with tabs, and results beside the buttons (October 13, 2026)
+
+- **One tap, one bubble.** The little result bubbles used to rise from several buildings at once after a single tap. Now everything one player did in that tap comes up as one bubble per kind (scope, money, days), from the building they end up in. With several players, each bubble carries a dot in its player's colour.
+- **"Funded" shows part-way funding.** It turns orange and says how far you are, like "Funded 78%". The bank's up-front loan fee now stands out in red in "What you've paid".
+- **The town reveals itself.** Every building stands from the start, but names are earned: at first only your office and the owner's house are named, the rest show a "?" until someone gets there. The construction trailer now stands on its building site, and there are two sites, one for a new building and one for a renovation. Your scope picks yours and its name appears; the other fades.
+- **Everyone gets their own place.** In a game with several players, each player has their own owner's house, office and construction site, marked with their colour. The bank, the city and the rest are shared.
+- **The clipboard grew tabs.** Down the clipboard's right edge: Money, Time, Expeditors, Scope and a new Life events page. Tap one and the page swings down onto the clipboard. The clipboard wears your colour, and the pop-ups you play on a PC (dice results, life events, choices) open as pages of it. On a phone, Money and Scope now sit side by side.
+- **Your eight project steps are little round icons** wearing the picture of their building (the owner, the bank, the architect, the examiners...). Green with a check when done, orange with a percent part way, faded when not yet. Tap one to read its name.
+- **"This turn" has two columns.** The button on the left; on the right, what it is expected to do ("+3 Expeditors", "Varies" for a roll, a fee in dollars). Once it is done, the right side shows what actually happened.
+
 ## v3.7.24 — "Lock the scope" no longer gets stuck (October 13, 2026)
 
 - **Fixed a stuck turn at Lender Review.** If "See what the plan covers" asked you which card to replace or let go, the list of places to go next could disappear afterwards, and the main button stayed grey saying "Pick where you're going first" with nothing to pick. The list now comes back as soon as you answer the card question. The same fix covers every other space that asks about a card and lets you choose where to go.
