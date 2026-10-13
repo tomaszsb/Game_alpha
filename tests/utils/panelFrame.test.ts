@@ -37,4 +37,12 @@ describe('panelFrame', () => {
       }
     }
   });
+
+  // 10-13 (fb:4e8a8550): the clipboard carries the player's colour so the players are easy to tell apart.
+  it("tints the board with the player's colour, and only paints", () => {
+    const f = panelFrameStyles("clipboard", panelPalettes.light, "light", "#2563eb");
+    expect(String(f.frame.background)).toContain("#2563eb");
+    expect(String(panelFrameStyles("clipboard", panelPalettes.light, "light").frame.background)).not.toContain("color-mix");
+    expect(Object.keys(f.frame).filter(k => /^(padding|margin|gap|borderWidth|width|height)/.test(k))).toEqual([]);
+  });
 });

@@ -15,6 +15,16 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.29] - 2026-10-13
+
+### Clipboard, first small pieces: Money and Scope side by side on a phone, and the clipboard wears the player's colour. Not deployed.
+
+- **Tom (10-13):** "Money and Scope boxes: side by side on a phone, not in opposite corners"; and (fb:4e8a8550) tint the panel or clipboard with the player's colour so players are easy to tell apart. The bigger parts of fb:4e8a8550 (tabs on the clipboard, pop-ups on the clipboard, a Life events tab) wait for Tom's answers.
+- **Side by side:** on a phone the four boxes keep their 2x2 grid but are ordered Money, Scope, Time, Expeditors, so Money and Scope share the top row. PC / TV are unchanged (Money is already the wide box on its own row there).
+- **Colour:** the clipboard's board (the wood behind the paper) is the wood colour with 55% of the player's colour mixed in (`panelFrameStyles` takes the player's colour; paint only, no size keys, guarded by the existing "never changes size" test).
+- **Phone size, measured in the real browser (card height by `getBoundingClientRect`):** 360 x 640: 649 px before, 649 px after. 390 x 844: 649 px after (same structure; I did not take a before at this size). Card width 352 / 382, unchanged.
+- **Tests:** `panelFrame` (1 new). typecheck clean; `npm test` 268 files / 3872 green.
+
 ## [3.7.28] - 2026-10-13
 
 ### Town board: two construction sites (new building / renovation); your scope picks yours, and its name shows. Not deployed.

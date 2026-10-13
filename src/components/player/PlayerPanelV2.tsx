@@ -761,7 +761,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // "details" control (Tom, 2026-09-17: "can't we just press the area?"). The
   // › marks it as tappable.
   // The frame around the four boxes is picked in the data (TOWN.csv `panel_frame`); a look only.
-  const frameLook = panelFrameStyles(panelFrameName(gameServices.dataService.getTownRows?.()), p, mode);
+  const frameLook = panelFrameStyles(panelFrameName(gameServices.dataService.getTownRows?.()), p, mode, player.color);
+  // On a phone Money and Scope sit side by side in the top row (Tom, 10-13: not in opposite corners); the grid has
+  // no extra rows, so the panel is no taller. PC / TV keep the wide Money box on its own row.
+  const phoneOrder = (n: number): React.CSSProperties => (isPhone ? { order: n } : {});
   const glanceTile: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
@@ -907,20 +910,20 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 7, ...frameLook.sheet }}>
-          <button type="button" data-testid="glance-money" onClick={() => setNumbersPage('money')} style={isPhone ? glanceTile : { ...glanceTile, gridColumn: '1 / -1', minHeight: 74 }}
+          <button type="button" data-testid="glance-money" onClick={() => setNumbersPage('money')} style={isPhone ? { ...glanceTile, ...phoneOrder(0) } : { ...glanceTile, gridColumn: '1 / -1', minHeight: 74 }}
             aria-label={`${NUMBERS.TILE_MONEY}: $${player.money.toLocaleString()}${moneyCue.word ? `, ${moneyCue.word}` : ''}`}>
             <span style={glanceLabel}><span aria-hidden>💰</span> {NUMBERS.TILE_MONEY}<span aria-hidden style={glanceArrow}>›</span></span>
             <span style={{ ...glanceValue, ...(isPhone ? {} : { fontSize: 30, lineHeight: 1.15 }), color: moneyCue.color }}>${player.money.toLocaleString()}</span>
             {moneyCue.word && <span style={{ ...glanceSub, color: moneyCue.color, fontWeight: 700 }}>{moneyCue.word}</span>}
           </button>
-          <button type="button" data-testid="glance-time" onClick={() => setShowChronicle(true)} style={glanceTile}
+          <button type="button" data-testid="glance-time" onClick={() => setShowChronicle(true)} style={{ ...glanceTile, ...phoneOrder(2) }}
             aria-label={`${NUMBERS.TILE_TIME}: ${NUMBERS.days(player.timeSpent)}`}>
             <span style={glanceLabel}><span aria-hidden>🕐</span> {NUMBERS.TILE_TIME}<span aria-hidden style={glanceArrow}>›</span></span>
             <span style={glanceValue}>{NUMBERS.days(player.timeSpent)}</span>
           </button>
           <button type="button" data-testid="glance-expeditors" onClick={() => setNumbersPage('expeditors')}
             className={playableExpeditors.length > 0 && playingCardId === null ? 'uc-hint-glow' : undefined}
-            style={glanceTile}
+            style={{ ...glanceTile, ...phoneOrder(3) }}
             aria-label={`${NUMBERS.TILE_EXPEDITORS}: ${expeditorPageCount}${playableExpeditors.length > 0 ? `, ${NUMBERS.ready(playableExpeditors.length)}` : ''}`}>
             <span style={glanceLabel}><span aria-hidden>⚡</span> {NUMBERS.TILE_EXPEDITORS}<span aria-hidden style={glanceArrow}>›</span></span>
             <span style={glanceValue}>{expeditorPageCount > 0 ? expeditorPageCount : NUMBERS.NONE}</span>
@@ -928,7 +931,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               <span style={{ ...glanceSub, color: p.accent, fontWeight: 700 }}>{NUMBERS.ready(playableExpeditors.length)}</span>
             )}
           </button>
-          <button type="button" data-testid="glance-scope" onClick={() => setNumbersPage('scope')} style={glanceTile}
+          <button type="button" data-testid="glance-scope" onClick={() => setNumbersPage('scope')} style={{ ...glanceTile, ...phoneOrder(1) }}
             aria-label={`${NUMBERS.TILE_SCOPE}: ${fin.workPackages.length}, ${FormatUtils.formatMoney(fin.scopeTotal)}`}>
             <span style={glanceLabel}><span aria-hidden>🏢</span> {NUMBERS.TILE_SCOPE}<span aria-hidden style={glanceArrow}>›</span></span>
             <span style={glanceValue}>{fin.workPackages.length > 0 ? fin.workPackages.length : NUMBERS.NONE}</span>
