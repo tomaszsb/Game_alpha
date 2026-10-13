@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.23] - 2026-10-12
+
+### The owner's seed money range moves from code to the data file (Manager's last order; no player-visible change). Not deployed.
+
+- **What:** the owner puts in a random 80-120% of the project scope at OWNER-FUND-INITIATION, rounded to $10,000. Those three numbers were typed into `ownerSeedMoney.ts`; they are now `TROPHIES.csv` rows `rule,owner_seed_min,0.8`, `rule,owner_seed_max,1.2`, `rule,owner_seed_round,10000`, read through `utils/trophyRules.ts` (`getOwnerSeedRules`). A missing row, a value that does not parse or a backwards range keeps the stock numbers.
+- **Why this file:** no general game-rule file exists, and `TROPHIES.csv` is where the other game-wide rule numbers already live (`trophies_to_win`, `time_cap_percent`, the builder numbers from 3.7.21), so I followed that pattern instead of inventing a new file.
+- **Identical amounts:** tested against the old `0.8 + random x 0.4` for five scopes and 101 random values each (the spread is rounded so 1.2 - 0.8 is exactly 0.4, not floating point's 0.3999...).
+- **Tests:** `ownerSeedData` (4, new); the old `ownerSeedMoney` tests unchanged and green.
+
 ## [3.7.22] - 2026-10-12
 
 ### A renamed phase no longer draws as neutral grey on the board (a TODO leak from the Workstream 6 audit; no decision needed). Not deployed.

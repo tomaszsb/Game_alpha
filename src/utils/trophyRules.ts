@@ -67,6 +67,17 @@ export interface ContractorTermsRules {
   qualitySpeed: Record<BuilderQuality, number>;
 }
 
+/** The owner's seed money at OWNER-FUND-INITIATION: a random share of the project scope, rounded (all data). */
+export interface OwnerSeedRules {
+  /** Lowest and highest share of scope the owner puts in (stock 0.8 and 1.2). */
+  min: number;
+  max: number;
+  /** The amount is rounded to the nearest multiple of this many dollars (stock 10,000). */
+  round: number;
+}
+
+const DEFAULT_OWNER_SEED: OwnerSeedRules = { min: 0.8, max: 1.2, round: 10000 };
+
 export interface TrophyRules {
   /** The milestones on each player's mat, in order. */
   mat: MatTile[];
@@ -84,6 +95,8 @@ export interface TrophyRules {
   timeCapPercent: number;
   /** Builder bids: where, how many, how long a price is held, and what quality each hire counts as. */
   builder: BuilderRules;
+  /** The owner's seed money range and rounding. */
+  ownerSeed: OwnerSeedRules;
 }
 
 const DEFAULT_TERMS: ContractorTermsRules = {
@@ -135,6 +148,7 @@ const DEFAULT_RULES: TrophyRules = {
   spaceEvents: { 'CHEAT-BYPASS': 'cut_corner' },
   timeCapPercent: 300,
   builder: DEFAULT_BUILDER,
+  ownerSeed: DEFAULT_OWNER_SEED,
 };
 
 let rules: TrophyRules = DEFAULT_RULES;
@@ -153,6 +167,7 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
     spaceEvents: {},
     mat: [],
     timeCapPercent: DEFAULT_RULES.timeCapPercent,
+    ownerSeed: { ...DEFAULT_OWNER_SEED },
     builder: { ...DEFAULT_BUILDER, space: '', door: '', noteSpaces: [], guaranteeDays: [], qualities: { ...DEFAULT_BUILDER.qualities }, terms: cloneTerms(DEFAULT_TERMS) },
   };
   let sawBuilderSpace = false;
@@ -175,6 +190,14 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
         } else if (key === 'bids_offered') {
           const n = parseInt(value, 10);
           if (Number.isFinite(n) && n >= 1 && n <= 6) next.builder.bidsOffered = n;
+        } else if (key === 'owner_seed_min' || key === 'owner_seed_max' || key === 'owner_seed_round') {
+          // A value that does not parse (or is not above zero) keeps the stock number.
+          const n = parseFloat(value);
+          if (Number.isFinite(n) && n > 0) {
+            if (key === 'owner_seed_min') next.ownerSeed.min = n;
+            else if (key === 'owner_seed_max') next.ownerSeed.max = n;
+            else next.ownerSeed.round = n;
+          }
         } else if (key.startsWith('builder_')) {
           // The builder's price and schedule numbers; a value that does not parse keeps the stock one.
           const n = parseFloat(value);
@@ -240,6 +263,8 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
     next.builder.noteSpaces = [...DEFAULT_BUILDER.noteSpaces];
   }
   if (next.builder.guaranteeDays.length === 0) next.builder.guaranteeDays = [...DEFAULT_BUILDER.guaranteeDays];
+  // A seed range that is backwards keeps the stock range.
+  if (next.ownerSeed.max < next.ownerSeed.min) next.ownerSeed = { ...DEFAULT_OWNER_SEED, round: next.ownerSeed.round };
   // A job-size range that is backwards or leaves the default outside it keeps the stock range.
   const tm = next.builder.terms;
   if (tm.rollMax < tm.rollMin || tm.rollDefault < tm.rollMin || tm.rollDefault > tm.rollMax) {
@@ -250,6 +275,11 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
 
 export function getTrophyRules(): TrophyRules {
   return rules;
+}
+
+/** The owner's seed money range and rounding (TROPHIES.csv `owner_seed_*`). */
+export function getOwnerSeedRules(): OwnerSeedRules {
+  return rules.ownerSeed;
 }
 
 /** The builder-bid rules (where, how many, how long a price is held, quality names and events). */
