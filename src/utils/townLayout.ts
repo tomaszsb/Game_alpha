@@ -21,13 +21,16 @@ export interface TownBuilding {
   icon: string;
   /** Space ids inside, in TOWN.csv order. */
   rooms: string[];
+  /** Rooms that are in this building only for a player of one project kind (`variant` rows); also in another building's `rooms`. */
+  altRooms: string[];
   /** True for a lot made up for a square the town list does not place (a teacher's new square). */
   isNewPlace?: boolean;
   /**
    * When its name shows (TOWN.csv `value` on the building row): 'shown' = from the start, 'scope' = once a
-   * player has a scope, anything else = once a player has been there or is offered a move there (fb:aec545c4).
+   * player has a scope, 'scope_new' / 'scope_existing' = once a player's scope is of that kind (see projectKind.ts),
+   * anything else = once a player has been there or is offered a move there (fb:aec545c4).
    */
-  reveal: 'shown' | 'scope' | 'visit';
+  reveal: 'shown' | 'scope' | 'scope_new' | 'scope_existing' | 'visit';
 }
 
 export interface TownStreet {
@@ -40,6 +43,8 @@ export interface TownLayout {
   streets: TownStreet[];
   /** Space id -> building id, for every placed space. */
   roomToBuilding: Map<string, string>;
+  /** Space id -> (project kind -> building id): where a room is for a player of that kind (TOWN.csv `variant` rows). */
+  roomVariants: Map<string, Map<string, string>>;
   /** Grid bounds of everything placed (for the ground). */
   bounds: { minCol: number; minRow: number; maxCol: number; maxRow: number };
   settings: Record<string, string>;
@@ -86,7 +91,8 @@ export function buildTownLayout(
         color: r.color || '#cfd8dc',
         icon: r.icon,
         rooms: [],
-        reveal: r.value === 'shown' || r.value === 'scope' ? r.value : 'visit',
+        altRooms: [],
+        reveal: (['shown', 'scope', 'scope_new', 'scope_existing'] as const).find(v => v === r.value) ?? 'visit',
       };
       buildings.push(b);
       byId.set(b.id, b);
@@ -107,6 +113,18 @@ export function buildTownLayout(
     if (!b) continue;
     b.rooms.push(r.id);
     roomToBuilding.set(r.id, b.id);
+  }
+
+  // A room that is in a different building for a player of a given project kind (the two construction sites).
+  const roomVariants = new Map<string, Map<string, string>>();
+  for (const r of rows) {
+    if (r.kind !== 'variant' || !onBoard.has(r.id) || !r.value) continue;
+    const b = byId.get(r.building);
+    if (!b || !roomToBuilding.has(r.id)) continue;
+    if (!roomVariants.has(r.id)) roomVariants.set(r.id, new Map());
+    if (roomVariants.get(r.id)!.has(r.value)) continue;
+    roomVariants.get(r.id)!.set(r.value, b.id);
+    b.altRooms.push(r.id);
   }
 
   const placedBottom = Math.max(...buildings.map(b => b.row + b.depth));
@@ -132,6 +150,7 @@ export function buildTownLayout(
       color: NEW_PLACE.color,
       icon: NEW_PLACE.icon,
       rooms: [space],
+      altRooms: [],
       isNewPlace: true,
       reveal: 'visit',
     };
@@ -147,7 +166,12 @@ export function buildTownLayout(
     maxCol: Math.max(...buildings.map(b => b.col + b.width)),
     maxRow: Math.max(...buildings.map(b => b.row + b.depth)),
   };
-  return { buildings, streets, roomToBuilding, bounds, settings };
+  return { buildings, streets, roomToBuilding, roomVariants, bounds, settings };
+}
+
+/** The building a room is in for a player of this project kind (the same building for every kind unless a `variant` row says otherwise). */
+export function buildingOfRoom(layout: TownLayout, space: string, kind?: string): string | undefined {
+  return (kind ? layout.roomVariants.get(space)?.get(kind) : undefined) ?? layout.roomToBuilding.get(space);
 }
 
 /** Isometric (2:1) projection of a town grid point to board pixels. `tile` = px per grid tile. */
@@ -169,7 +193,7 @@ export function buildingBox(b: Pick<TownBuilding, 'col' | 'row' | 'width' | 'dep
   const y = Math.min(...ys) - b.height;
   // A big flat lot (the building site) hangs its sign from the back edge, so a building standing on it
   // (the trailer) can have its own sign in the middle without the two landing on each other.
-  const roofRow = b.height === 0 && b.depth > 5 ? b.row + 1.2 : b.row + b.depth / 2;
+  const roofRow = b.height === 0 && b.depth > 4 ? b.row + 0.4 : b.row + b.depth / 2;
   const roof = isoPoint(b.col + b.width / 2, roofRow, b.height, tile);
   return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y, roofX: roof.x, roofY: roof.y };
 }
@@ -180,6 +204,8 @@ export interface TownPlayerMark {
   color?: string;
   avatar?: string;
   currentSpace: string;
+  /** new building or existing one (projectKind.ts), once the player has a scope. */
+  projectKind?: string;
 }
 
 export interface BuildingView {
@@ -199,13 +225,15 @@ export function buildingViews(
   players: TownPlayerMark[],
   currentPlayerId: string | null | undefined,
   validMoves: string[],
+  /** The project kind of the current player, so the next moves land in THEIR construction site. */
+  currentKind?: string,
 ): Map<string, BuildingView> {
   const views = new Map<string, BuildingView>();
   for (const b of layout.buildings) {
     views.set(b.id, { isCurrent: false, currentRoom: null, destinationRooms: [], playersHere: [] });
   }
   for (const p of players) {
-    const bid = layout.roomToBuilding.get(p.currentSpace);
+    const bid = buildingOfRoom(layout, p.currentSpace, p.projectKind);
     const v = bid ? views.get(bid) : undefined;
     if (!v) continue;
     v.playersHere.push(p);
@@ -215,7 +243,7 @@ export function buildingViews(
     }
   }
   for (const m of validMoves) {
-    const bid = layout.roomToBuilding.get(m);
+    const bid = buildingOfRoom(layout, m, currentKind);
     const v = bid ? views.get(bid) : undefined;
     if (v && !v.destinationRooms.includes(m)) v.destinationRooms.push(m);
   }
@@ -391,19 +419,45 @@ export function mergedResultBubbles(changes: Array<{ before: PlayerNumbers; afte
 /**
  * Which buildings have earned their name (fb:aec545c4: "the building names do not have to show up right
  * away"). The buildings are always drawn; only the name and the room list are held back. A building is named when
- * its data says 'shown', when its data says 'scope' and some player has a scope, or when any player has been in
- * it or is offered a move into it.
+ * its data says 'shown', when its data says 'scope' and some player has a scope (or 'scope_new' / 'scope_existing'
+ * and some player's scope is of that kind), or when any player has been in it or is offered a move into it.
  */
 export function revealedBuildings(
   layout: TownLayout,
-  state: { visitedSpaces: Iterable<string>; offeredSpaces: Iterable<string>; scopeExists: boolean },
+  state: {
+    /** Rooms players have been in, each with that player's project kind. */
+    visited: Iterable<{ space: string; kind?: string }>;
+    /** Rooms the current player can move to next, and their project kind. */
+    offered: { spaces: Iterable<string>; kind?: string };
+    /** The project kinds of the players who have a scope. */
+    scopeKinds: Iterable<string>;
+  },
 ): Set<string> {
   const reached = new Set<string>();
-  for (const s of state.visitedSpaces) { const b = layout.roomToBuilding.get(s); if (b) reached.add(b); }
-  for (const s of state.offeredSpaces) { const b = layout.roomToBuilding.get(s); if (b) reached.add(b); }
+  for (const v of state.visited) { const b = buildingOfRoom(layout, v.space, v.kind); if (b) reached.add(b); }
+  for (const s of state.offered.spaces) { const b = buildingOfRoom(layout, s, state.offered.kind); if (b) reached.add(b); }
+  const kinds = new Set(state.scopeKinds);
   const out = new Set<string>();
   for (const b of layout.buildings) {
-    if (b.reveal === 'shown' || reached.has(b.id) || (b.reveal === 'scope' && state.scopeExists)) out.add(b.id);
+    const byScope = b.reveal === 'scope' ? kinds.size > 0
+      : b.reveal === 'scope_new' ? kinds.has('new')
+      : b.reveal === 'scope_existing' ? kinds.has('existing')
+      : false;
+    if (b.reveal === 'shown' || reached.has(b.id) || byScope) out.add(b.id);
+  }
+  return out;
+}
+
+/**
+ * Buildings that are built for one project kind and are not the kind of anyone's scope: the other construction
+ * site. They stay standing but fade, so the player's own site stands out (Tom: "the other site stays unlabelled or fades").
+ */
+export function fadedBuildings(layout: TownLayout, scopeKinds: Iterable<string>): Set<string> {
+  const kinds = new Set(scopeKinds);
+  const out = new Set<string>();
+  if (kinds.size === 0) return out;
+  for (const b of layout.buildings) {
+    if ((b.reveal === 'scope_new' && !kinds.has('new')) || (b.reveal === 'scope_existing' && !kinds.has('existing'))) out.add(b.id);
   }
   return out;
 }

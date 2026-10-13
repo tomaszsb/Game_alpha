@@ -34,6 +34,7 @@ import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/pan
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { scaleMs, getGameSpeed } from '../../utils/gameSpeed';
 import { setTownWalking } from '../../utils/boardStyle';
+import { projectKindOf } from '../../utils/projectKind';
 import { getSoundOn } from '../../utils/soundSetting';
 import { playResultChime, isAudioReady, primeAudio } from '../../utils/haptics';
 import {
@@ -47,6 +48,8 @@ import {
   resultBubbles,
   mergedResultBubbles,
   revealedBuildings,
+  fadedBuildings,
+  buildingOfRoom,
   DEFAULT_BUBBLE_MS,
   bubbleVolume,
   type PlayerNumbers,
@@ -146,6 +149,8 @@ interface BuildingData extends Record<string, unknown> {
   roofY: number;
   labels: Record<string, string>;
   portrait: string | null;
+  /** The construction site that is not this game's kind of project: it stays standing, faded. */
+  faded: boolean;
   /** False until the building has earned its name (revealedBuildings): it still stands, with a "?" for a name. */
   named: boolean;
   mode: PanelMode;
@@ -182,7 +187,7 @@ function Block({ b, ox, oy }: { b: TownBuilding; ox: number; oy: number }) {
 }
 
 function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
-  const { building: b, view, open, ox, oy, w, h, roofX, roofY, labels, portrait, named, mode, bubbles, onBubbleDone } = data;
+  const { building: b, view, open, ox, oy, w, h, roofX, roofY, labels, portrait, named, faded, mode, bubbles, onBubbleDone } = data;
   const pal = panelPalettes[mode];
   const isDest = view.destinationRooms.length > 0;
   const ring = view.isCurrent ? HERE : isDest ? DEST : pal.borderStrong;
@@ -194,10 +199,11 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
     <div
       data-testid={`town-building-${b.id}`}
       data-named={named ? 'true' : 'false'}
+      data-faded={faded ? 'true' : 'false'}
       data-open={open ? 'true' : 'false'}
       data-current={view.isCurrent ? 'true' : 'false'}
       data-destination={isDest ? 'true' : 'false'}
-      style={{ position: 'relative', width: w, height: h, cursor: 'pointer', pointerEvents: 'none' }}
+      style={{ position: 'relative', width: w, height: h, cursor: 'pointer', pointerEvents: 'none', opacity: faded ? 0.5 : 1 }}
     >
       <svg width={w} height={h} style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }} aria-hidden="true">
         <g style={{ pointerEvents: 'visiblePainted' }}><Block b={b} ox={ox} oy={oy} /></g>
@@ -241,9 +247,9 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
             ))}
           </div>
         )}
-        {named && open && b.rooms.length > 0 && (
+        {named && open && b.rooms.length + b.altRooms.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 7 }}>
-            {b.rooms.map(r => {
+            {[...b.rooms, ...b.altRooms].map(r => {
               const here = view.currentRoom === r;
               const dest = view.destinationRooms.includes(r);
               return (
@@ -483,6 +489,9 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   const [pending, setPending] = useState<PendingResult[]>([]);
   // Scope as the panel shows it (summed from the player's work packages). The stored projectScope
   // field can read 0 for a moment at a turn change, which made a false "−$5.2M scope" bubble.
+  const { dataService } = useGameContext();
+  // new building or existing one, once a player has a scope (projectKind.ts): decides which construction site is theirs.
+  const kindOf = useCallback((p: Player) => projectKindOf(p, dataService), [dataService]);
   const numbersOf = (p: Player): PlayerNumbers => ({ money: p.money ?? 0, days: p.timeSpent ?? 0, scope: gameRulesService.calculateProjectScope(p.id) });
   const [seen, setSeen] = useState<{ players: Player[]; spaces: Map<string, string> | null; numbers: Map<string, PlayerNumbers> | null; n: number }>({ players: [], spaces: null, numbers: null, n: 0 });
   if (seen.players !== players) {
@@ -496,8 +505,8 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       for (const p of players) {
         const was = before.get(p.id);
         if (!was || was === p.currentSpace) continue;
-        const from = layout.roomToBuilding.get(was);
-        const to = layout.roomToBuilding.get(p.currentSpace);
+        const from = buildingOfRoom(layout, was, kindOf(p));
+        const to = buildingOfRoom(layout, p.currentSpace, kindOf(p));
         if (!from || !to) continue;
         const hop = from === to;
         const target = layout.buildings.find(x => x.id === to)!;
@@ -526,8 +535,8 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         const nowNumbers = numbersOf(p);
         const moved = before?.get(p.id) !== undefined && before?.get(p.id) !== p.currentSpace && !still;
         if (resultBubbles(was, nowNumbers).length === 0 && !moved) continue;
-        const bid = layout.roomToBuilding.get(p.currentSpace);
-        const from = moved ? layout.roomToBuilding.get(before!.get(p.id)!) : undefined;
+        const bid = buildingOfRoom(layout, p.currentSpace, kindOf(p));
+        const from = moved ? buildingOfRoom(layout, before!.get(p.id)!, kindOf(p)) : undefined;
         const walkMs = !moved ? 0 : from === bid ? times.hopMs : fastNow ? times.fastMs : times.walkMs;
         held.push({ playerId: p.id, at: now, before: was, after: nowNumbers, space: p.currentSpace, walkMs });
       }
@@ -549,11 +558,11 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       for (const pid of new Set(batch.map(x => x.playerId))) {
         const mine = batch.filter(x => x.playerId === pid);
         const list = mergedResultBubbles(mine);
-        const bid = layout.roomToBuilding.get(mine[mine.length - 1].space);
+        const player = players.find(p => p.id === pid);
+        const bid = buildingOfRoom(layout, mine[mine.length - 1].space, player ? kindOf(player) : undefined);
         const b = bid ? layout.buildings.find(x => x.id === bid) : undefined;
         if (!b || list.length === 0) continue;
         const walkWait = Math.max(0, ...mine.map(x => x.walkMs - (Date.now() - x.at)));
-        const player = players.find(p => p.id === pid);
         list.forEach((r, i) => made.push({
           ...r, key: ++bubbleKey.current, playerId: pid,
           // Rises from the top of the building's sign, stacked so two results never sit on each other.
@@ -565,7 +574,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       if (made.length) setBubbles(bs => [...bs, ...made]);
     }, BUBBLE_SETTLE_MS);
     return () => window.clearTimeout(timer);
-  }, [pending, layout, players]);
+  }, [pending, layout, players, kindOf]);
   const endBubble = useCallback((key: number) => setBubbles(bs => bs.filter(x => x.key !== key)), []);
   const endWalk = useCallback((key: number) => setWalks(w => w.filter(x => x.key !== key)), []);
   // Tell the rest of this screen a walk is on, so arriving pop-ups wait for it (boardStyle.ts).
@@ -579,11 +588,12 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   const views = useMemo(
     () => buildingViews(
       layout,
-      players.filter(p => !walking.has(p.id)).map(p => ({ id: p.id, name: p.name, color: p.color, avatar: p.avatar, currentSpace: p.currentSpace })),
+      players.filter(p => !walking.has(p.id)).map(p => ({ id: p.id, name: p.name, color: p.color, avatar: p.avatar, currentSpace: p.currentSpace, projectKind: kindOf(p) })),
       currentPlayerId,
       validMoves,
+      currentPlayerId ? kindOf(players.find(p => p.id === currentPlayerId) ?? ({} as Player)) : undefined,
     ),
-    [layout, players, walking, currentPlayerId, validMoves],
+    [layout, players, walking, currentPlayerId, validMoves, kindOf],
   );
 
   const portraitFor = useCallback((icon: string): string | null => {
@@ -594,11 +604,17 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
 
   // Names are earned (fb:aec545c4): the buildings all stand from the start; a name shows once a player has been in
   // the building or is offered a move into it, or by the town list's own rule ('shown' / 'scope').
+  const scopeKinds = useMemo(
+    () => players.flatMap(p => { const k = kindOf(p); return k && gameRulesService.calculateProjectScope(p.id) > 0 ? [k] : []; }),
+    [players, kindOf, gameRulesService],
+  );
+  const currentKind = useMemo(() => { const c = players.find(p => p.id === currentPlayerId); return c ? kindOf(c) : undefined; }, [players, currentPlayerId, kindOf]);
   const named = useMemo(() => revealedBuildings(layout, {
-    visitedSpaces: players.flatMap(p => [...(p.visitedSpaces ?? []), p.currentSpace]),
-    offeredSpaces: validMoves,
-    scopeExists: players.some(p => gameRulesService.calculateProjectScope(p.id) > 0),
-  }), [layout, players, validMoves, gameRulesService]);
+    visited: players.flatMap(p => [...(p.visitedSpaces ?? []), p.currentSpace].map(space => ({ space, kind: kindOf(p) }))),
+    offered: { spaces: validMoves, kind: currentKind },
+    scopeKinds,
+  }), [layout, players, validMoves, kindOf, currentKind, scopeKinds]);
+  const faded = useMemo(() => fadedBuildings(layout, scopeKinds), [layout, scopeKinds]);
 
   const nodes = useMemo(() => {
     const out: Node[] = [];
@@ -630,21 +646,21 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         style: { pointerEvents: 'none' },
         data: {
           building: b, view, open, ox, oy, w: box.w, h: box.h + SIGN_SPACE,
-          roofX: box.roofX, roofY: box.roofY, labels, portrait: portraitFor(b.icon), named: named.has(b.id), mode,
+          roofX: box.roofX, roofY: box.roofY, labels, portrait: portraitFor(b.icon), named: named.has(b.id), faded: faded.has(b.id), mode,
           bubbles: bubbles.filter(x => x.buildingId === b.id), onBubbleDone: endBubble,
         } satisfies BuildingData,
       });
     }
     return out;
-  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, named, mode, bubbles, endBubble]);
+  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, named, faded, mode, bubbles, endBubble]);
 
   // Follow the current player (TV, remote): first frame their building and its next moves, then
   // only glide at the zoom the viewer has, the same steady camera the classic board keeps.
   const current = currentPlayerId ? players.find(p => p.id === currentPlayerId) : undefined;
-  const currentBuilding = current ? layout.roomToBuilding.get(current.currentSpace) : undefined;
+  const currentBuilding = current ? buildingOfRoom(layout, current.currentSpace, currentKind) : undefined;
   const destBuildings = useMemo(
-    () => [...new Set(validMoves.map(m => layout.roomToBuilding.get(m)).filter((x): x is string => !!x))],
-    [validMoves, layout],
+    () => [...new Set(validMoves.map(m => buildingOfRoom(layout, m, currentKind)).filter((x): x is string => !!x))],
+    [validMoves, layout, currentKind],
   );
   const framed = useRef(false);
   // Re-frame when the board's box changes size (a window resize, the panel column settling after
@@ -706,7 +722,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   // A jump asked for by the game log (PC): glide to that square's building at the current zoom.
   useEffect(() => {
     if (!focusRequest) return;
-    const bid = layout.roomToBuilding.get(focusRequest.spaceId);
+    const bid = buildingOfRoom(layout, focusRequest.spaceId, currentKind);
     const n = bid ? nodes.find(x => x.id === bid) : undefined;
     if (!n) return;
     const bb = getNodesBounds([n]);

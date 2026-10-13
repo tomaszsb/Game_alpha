@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { buildTownLayout, buildingBox, buildingViews, isoPoint, walkPath, pointAlong, walkTimes, DEFAULT_WALK_TIMES, revealedBuildings } from '../../src/utils/townLayout';
+import { buildTownLayout, buildingBox, buildingViews, isoPoint, walkPath, pointAlong, walkTimes, DEFAULT_WALK_TIMES, revealedBuildings, fadedBuildings, buildingOfRoom } from '../../src/utils/townLayout';
 import { extractPrefix } from '../../src/constants/characters';
 import type { TownCsvRow } from '../../src/types/DataTypes';
 
@@ -236,30 +236,54 @@ describe('one tap, one bubble per kind (fb:5b8a060c)', () => {
   });
 });
 
-// fb:aec545c4 (Tom, 10-13): the buildings all stand from the start; their NAMES are earned. The trailer stands on the building site.
+// fb:aec545c4 (Tom, 10-13): the buildings all stand from the start; their NAMES are earned. The trailer stands on its construction site,
+// and there are two sites (new building / existing building); a player's own project kind picks theirs.
 describe('names are earned, buildings always stand (fb:aec545c4)', () => {
   const layout = buildTownLayout(townRows(), stockSpaces(), extractPrefix, label)!;
-  const named = (visited: string[] = [], offered: string[] = [], scopeExists = false) =>
-    revealedBuildings(layout, { visitedSpaces: visited, offeredSpaces: offered, scopeExists });
+  const named = (visited: Array<[string, string?]> = [], offered: string[] = [], scopeKinds: string[] = [], kind?: string) =>
+    revealedBuildings(layout, {
+      visited: visited.map(([space, k]) => ({ space, kind: k })),
+      offered: { spaces: offered, kind },
+      scopeKinds,
+    });
 
-  it('at the start only the player\'s office and the owner are named', () => {
-    expect([...named(['OWNER-SCOPE-INITIATION'])].sort()).toEqual(['office', 'owner']);
+  it("at the start only the player's office and the owner are named", () => {
+    expect([...named([['OWNER-SCOPE-INITIATION']])].sort()).toEqual(['office', 'owner']);
     expect(layout.buildings.length).toBeGreaterThan(2); // the rest still stand, just unnamed
   });
 
-  it('the trailer and the building site are named once a scope exists, and not before', () => {
-    expect(named().has('trailer')).toBe(false);
-    expect(named().has('site')).toBe(false);
-    const after = named([], [], true);
-    expect(after.has('trailer') && after.has('site')).toBe(true);
-    expect(after.has('finish')).toBe(false); // the ribbon cutting waits until somebody gets there
+  it("once the scope is of a kind, THAT kind's trailer and site are named and the other pair is not (and fades)", () => {
+    expect(named().has('site') || named().has('site_new')).toBe(false);
+    const reno = named([], [], ['existing']);
+    expect(['site', 'trailer'].every(b => reno.has(b))).toBe(true);
+    expect(['site_new', 'trailer_new'].some(b => reno.has(b))).toBe(false);
+    const fresh = named([], [], ['new']);
+    expect(['site_new', 'trailer_new'].every(b => fresh.has(b))).toBe(true);
+    expect(['site', 'trailer'].some(b => fresh.has(b))).toBe(false);
+    expect(reno.has('finish')).toBe(false); // the ribbon cutting waits until somebody gets there
+    expect([...fadedBuildings(layout, ['existing'])].sort()).toEqual(['site_new', 'trailer_new']);
+    expect([...fadedBuildings(layout, ['new'])].sort()).toEqual(['site', 'trailer']);
+    expect([...fadedBuildings(layout, ['new', 'existing'])]).toEqual([]);
+    expect([...fadedBuildings(layout, [])]).toEqual([]); // no scope yet: both sites stand plain
+  });
+
+  it("the build rooms are in the player's own site: the trailer and the inspection", () => {
+    expect(buildingOfRoom(layout, 'CON-INITIATION', 'existing')).toBe('trailer');
+    expect(buildingOfRoom(layout, 'CON-INITIATION', 'new')).toBe('trailer_new');
+    expect(buildingOfRoom(layout, 'CON-ISSUES', 'new')).toBe('trailer_new');
+    expect(buildingOfRoom(layout, 'CON-INSPECT', 'new')).toBe('site_new');
+    expect(buildingOfRoom(layout, 'CON-INSPECT', undefined)).toBe('site');
+    expect(buildingOfRoom(layout, 'BANK-FUND-REVIEW', 'new')).toBe('bank');
+    expect(layout.buildings.find(b => b.id === 'site_new')!.altRooms).toContain('CON-INSPECT');
   });
 
   it('a building is named once a player has been in it or is offered a move into it', () => {
-    expect(named(['BANK-FUND-REVIEW']).has('bank')).toBe(true);
+    expect(named([['BANK-FUND-REVIEW']]).has('bank')).toBe(true);
     expect(named([], ['ARCH-FEE-REVIEW']).has('architect')).toBe(true);
-    expect(named(['FINISH']).has('finish')).toBe(true);
-    expect(named(['BANK-FUND-REVIEW']).has('investor')).toBe(false);
+    expect(named([['FINISH']]).has('finish')).toBe(true);
+    expect(named([['BANK-FUND-REVIEW']]).has('investor')).toBe(false);
+    expect(named([['CON-INITIATION', 'new']]).has('trailer_new')).toBe(true);
+    expect(named([['CON-INITIATION', 'new']]).has('trailer')).toBe(false);
   });
 
   it('a town list with no reveal column names a building only once it is reached', () => {
@@ -269,14 +293,16 @@ describe('names are earned, buildings always stand (fb:aec545c4)', () => {
       row({ kind: 'room', id: 'S1', building: 'a' }),
       row({ kind: 'room', id: 'S2', building: 'b' }),
     ], ['S1', 'S2'], extractPrefix, label)!;
-    expect([...revealedBuildings(bare, { visitedSpaces: ['S1'], offeredSpaces: [], scopeExists: true })]).toEqual(['a']);
+    expect([...revealedBuildings(bare, { visited: [{ space: 'S1' }], offered: { spaces: [] }, scopeKinds: ['new'] })]).toEqual(['a']);
   });
 
-  it('the trailer stands on the building site, not beside it', () => {
-    const site = layout.buildings.find(b => b.id === 'site')!, trailer = layout.buildings.find(b => b.id === 'trailer')!;
-    expect(trailer.col).toBeGreaterThanOrEqual(site.col);
-    expect(trailer.col + trailer.width).toBeLessThanOrEqual(site.col + site.width);
-    expect(trailer.row).toBeGreaterThanOrEqual(site.row);
-    expect(trailer.row + trailer.depth).toBeLessThanOrEqual(site.row + site.depth);
+  it('each trailer stands on its own site, not beside it', () => {
+    for (const [s, tr] of [['site', 'trailer'], ['site_new', 'trailer_new']]) {
+      const site = layout.buildings.find(b => b.id === s)!, trailer = layout.buildings.find(b => b.id === tr)!;
+      expect(trailer.col).toBeGreaterThanOrEqual(site.col);
+      expect(trailer.col + trailer.width).toBeLessThanOrEqual(site.col + site.width);
+      expect(trailer.row).toBeGreaterThanOrEqual(site.row);
+      expect(trailer.row + trailer.depth).toBeLessThanOrEqual(site.row + site.depth);
+    }
   });
 });

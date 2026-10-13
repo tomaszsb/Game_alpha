@@ -160,6 +160,8 @@ export interface IDataService {
   getScopeProjectTypes(): string[];
   /** SCOPE_WORDING.csv — a work package's wording with a `{project}` blank, by base card id. */
   getCardScopeTemplate(baseCardId: string): string | undefined;
+  /** SCOPE_WORDING.csv `card_kind` rows ('new' = builds something new); optional so older fakes still fit. */
+  getCardScopeKind?(baseCardId: string): string | undefined;
   getUIStringRows(): import('./DataTypes').UIStringCsvRow[];
   getMinWCardsToLeave(spaceName: string): number;
   getFeeCalculationMethod(spaceName: string): 'flat' | 'percentage_of_scope';

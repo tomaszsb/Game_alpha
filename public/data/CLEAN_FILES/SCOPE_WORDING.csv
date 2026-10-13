@@ -181,3 +181,14 @@ card_template,W173,Installation of a dual-fuel boiler system for increased resil
 card_template,W174,Creation of kinetic facade signage for the {project}
 card_template,W175,"Installation of a solar canopy over the parking lot of the {project}, with EV charging stations"
 card_template,W176,Upgrade of the standpipe system in the {project} to support higher pressure requirements
+card_kind,W005,new
+card_kind,W008,new
+card_kind,W016,new
+card_kind,W020,new
+card_kind,W022,new
+card_kind,W105,new
+card_kind,W134,new
+card_kind,W136,new
+card_kind,W139,new
+card_kind,W142,new
+card_kind,W145,new

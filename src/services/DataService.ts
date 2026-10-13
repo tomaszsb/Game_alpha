@@ -126,6 +126,7 @@ export class DataService implements IDataService {
   // package's wording with a {project} blank. Optional — see loadScopeWording.
   private scopeProjectTypes: string[] = [];
   private cardScopeTemplates: Map<string, string> = new Map();
+  private cardScopeKinds: Map<string, string> = new Map();
   // 2026-08-14: CSV-portability lift — reskin hook for button/notification text vocabulary.
   private uiStringRows: UIStringCsvRow[] = [];
   private loaded = false;
@@ -1103,6 +1104,7 @@ export class DataService implements IDataService {
   private parseScopeWordingCsv(csvText: string): void {
     this.scopeProjectTypes = [];
     this.cardScopeTemplates = new Map();
+    this.cardScopeKinds = new Map();
     const lines = this.splitCsvRecords(csvText);
     if (lines.length < 2) return;
     const get = this.csvFieldReader(lines[0]);
@@ -1114,12 +1116,18 @@ export class DataService implements IDataService {
       if (!kind || !key || !text) continue;
       if (kind === 'project_type') this.scopeProjectTypes.push(text);
       else if (kind === 'card_template') this.cardScopeTemplates.set(key, text);
+      else if (kind === 'card_kind') this.cardScopeKinds.set(key, text);
     }
   }
 
   /** The project types a dice throw can pick (bare nouns), in file order. Empty = feature off. */
   getScopeProjectTypes(): string[] {
     return [...this.scopeProjectTypes];
+  }
+
+  /** SCOPE_WORDING.csv `card_kind` rows: 'new' for a work package that builds something new; absent = work on an existing building. */
+  getCardScopeKind(baseCardId: string): string | undefined {
+    return this.cardScopeKinds.get(baseCardId);
   }
 
   /** A work package's wording with a `{project}` blank, by BASE card id (W001), or undefined. */

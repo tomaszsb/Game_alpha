@@ -15,6 +15,16 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.28] - 2026-10-13
+
+### Town board: two construction sites (new building / renovation); your scope picks yours, and its name shows. Not deployed.
+
+- **Tom's answer (10-13, "say X"):** decide the site from the scope itself. Multiplayer (several owners, offices, sites) is still waiting on his word.
+- **The rule:** `SCOPE_WORDING.csv` gets `card_kind` rows; a work package tagged `new` builds something new, no tag = work on an existing building. `projectKindOf` (new `utils/projectKind.ts`) adds up the scope dollars by kind; more new than existing = a new building, a tie = existing, no scope = no kind. I tagged 11 of 176 from their wording (W005 W008 W016 W020 W022 W105 W134 W136 W139 W142 W145: additions, new halls and centers, a new foundation, bridges, new housing, a car wash). Tom can add or remove `card_kind` rows; nothing else reads them.
+- **The town:** the one building site is now two lots, each with its own trailer standing on it: "Renovation site" and "New building site" (the new-building lot is a different colour). The inspection and builder rooms are in YOUR kind's site (`variant` rows in `TOWN.csv`; `buildingOfRoom` in `townLayout.ts`): walks, the next-move lights, bubbles and the camera all use it. Before any scope both sites stand plain and unnamed. Once a player has a scope, that kind's site and trailer are named and the other pair fades to half strength (a look I picked; one line to change). A town list with no `variant` rows has one site and works as before.
+- **Checked live (one fresh game):** before the scope, nothing but the owner and the office named; after drawing a scope, "Renovation site" and "Construction trailer" named and the new-building pair faded. The new-building path (a mostly-new scope) is covered by tests, not played.
+- **Tests:** `townLayout` (reworked, 7), `projectKind` (3 new). typecheck clean.
+
 ## [3.7.27] - 2026-10-13
 
 ### Town board: building NAMES are earned as the game goes, and the trailer stands on the building site. Part of job 3; the two-site and multiplayer parts wait for Tom. Not deployed.

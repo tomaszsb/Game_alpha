@@ -2,11 +2,13 @@ kind,id,name,building,col,row,width,depth,height,color,icon,value
 building,owner,The Owner's house,,0.4,0.4,4.2,4.2,70,#64b5f6,owner,shown
 building,architect,Architect's studio,,6.4,0.4,4.2,4.2,80,#ce93d8,architect,
 building,dob,Buildings Department,,12.4,0.4,4.2,4.2,120,#ef9a9a,dob_examiner,
-building,site,Building site,,18.4,0.4,5.2,9.4,0,#a1887f,🏗️,scope
+building,site,Renovation site,,18.4,0.4,5.2,4.6,0,#a1887f,🏗️,scope_existing
 building,office,Your office,,0.4,6.4,4.2,4.2,90,#90caf9,🧑‍💼,shown
 building,engineer,Engineer's office,,6.4,6.4,4.2,4.2,80,#ffcc80,engineer,
 building,firehouse,Firehouse,,12.4,6.4,4.2,4.2,75,#f48fb1,fdny_examiner,
-building,trailer,Construction trailer,,19.2,5.8,3.6,2.4,40,#e0e0e0,contractor,scope
+building,trailer,Construction trailer,,20.6,3.2,2.4,1.6,40,#e0e0e0,contractor,scope_existing
+building,site_new,New building site,,18.4,6.4,5.2,4.4,0,#b0a47a,🏗️,scope_new
+building,trailer_new,Construction trailer,,20.6,9.0,2.4,1.6,40,#e0e0e0,contractor,scope_new
 building,bank,Bank,,0.6,12.6,3.8,2.8,55,#80cbc4,🏦,
 building,investor,Investor,,6.6,12.6,3.8,2.8,50,#9fa8da,💼,
 building,finish,Ribbon cutting,,18.6,12.6,3.8,2.8,0,#fff59d,🎀,
@@ -40,6 +42,9 @@ room,REG-FDNY-PLAN-EXAM,,firehouse,,,,,,,,
 room,CON-INITIATION,,trailer,,,,,,,,
 room,CON-ISSUES,,trailer,,,,,,,,
 room,CON-INSPECT,,site,,,,,,,,
+variant,CON-INITIATION,,trailer_new,,,,,,,,new
+variant,CON-ISSUES,,trailer_new,,,,,,,,new
+variant,CON-INSPECT,,site_new,,,,,,,,new
 room,FINISH,,finish,,,,,,,,
 setting,walk_ms,,,,,,,,,,1500
 setting,walk_fast_ms,,,,,,,,,,400
