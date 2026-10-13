@@ -12,7 +12,7 @@
 // detailed-card/modal restyle are later increments.
 
 import { ProjectMat, MatDots } from './ProjectMat';
-import { ClipboardTabs, PageTabsRow, type PanelPageId } from './ClipboardTabs';
+import { ClipboardTabs, type PanelPageId } from './ClipboardTabs';
 import { BuildingIcon } from '../common/BuildingIcon';
 import { matIcon, portraitSrc as iconPortraitSrc } from '../../utils/buildingIcon';
 import { BuilderBidsCard, BuilderMoneyLine, isShoppingForBuilder } from './BuilderBidsCard';
@@ -777,7 +777,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     setShowChronicle(id === 'time' || id === 'life');
     setChronicleFocus(id === 'life' ? 'life' : 'all');
   };
-  const pageTabs = <PageTabsRow active={activePage} onSelect={openPage} palette={p} />;
+  // An open page is a page of THIS clipboard: the board in the player's colour, the same tabs down its edge.
+  const pageClipboard = { color: player.color, tabs: <ClipboardTabs active={activePage} onSelect={openPage} palette={p} /> };
   // Each project step wears the picture of its building (TOWN.csv `mat_icon` rows + the building's icon).
   const townRows = gameServices.dataService.getTownRows?.();
   const renderMatIcon = (tileId: string, size: number): React.ReactNode => {
@@ -1535,7 +1536,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         isOpen={numbersPage !== null}
         onClose={() => setNumbersPage(null)}
         page={numbersPage ?? 'money'}
-        topSlot={pageTabs}
+        clipboard={pageClipboard}
         onOpenCard={setDetailCardId}
         playableCardIds={playableExpeditors.map((x) => x.id)}
         onActivate={handlePlayExpeditor}
@@ -1550,7 +1551,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         isOpen={showChronicle}
         onClose={() => setShowChronicle(false)}
         focus={chronicleFocus}
-        topSlot={pageTabs}
+        clipboard={pageClipboard}
         historyCards={historyCardIds.map((id) => {
           const card = gameServices.dataService.getCardById(id);
           return { id, name: card?.card_name ?? id, type: card?.card_type ?? '' };

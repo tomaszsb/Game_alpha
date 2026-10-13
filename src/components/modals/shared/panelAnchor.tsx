@@ -9,6 +9,9 @@
 
 import React, { createContext, useContext, useLayoutEffect, useState } from 'react';
 
+/** Whose clipboard a pop-up over the panel is a page of: the current player's colour (GameLayout provides it beside the panel). */
+export const ClipboardLookContext = createContext<{ color?: string } | null>(null);
+
 export const PanelAnchorContext = createContext<React.RefObject<HTMLElement | null> | null>(null);
 
 export interface AnchorRect {

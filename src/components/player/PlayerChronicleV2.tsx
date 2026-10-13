@@ -44,8 +44,8 @@ export interface PlayerChronicleV2Props {
   onOpenCard?: (cardId: string) => void;
   /** 'life' shows only the life-event cards (the clipboard's Life events page); default is the whole history. */
   focus?: 'all' | 'life';
-  /** Shown at the top of the page (the clipboard's page tabs). */
-  topSlot?: React.ReactNode;
+  /** The page is a page of this player's clipboard: their colour, and the page tabs down its edge. */
+  clipboard?: { color?: string; tabs?: React.ReactNode };
 }
 
 export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
@@ -58,7 +58,7 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
   historyCards = [],
   onOpenCard,
   focus = 'all',
-  topSlot,
+  clipboard,
 }) => {
   const p = panelPalettes[mode];
   // Opens on "just me" — the panel's frame of reference — but it's a chip, not
@@ -95,8 +95,8 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
       footer={footer}
       testId="player-chronicle-v2"
       mode={mode}
+      clipboard={clipboard}
     >
-      {topSlot}
       {focus === 'life' && historyCards.length === 0 && (
         <p data-testid="life-events-empty" style={{ fontSize: 13, color: p.muted, margin: 0 }}>{NUMBERS.LIFE_NONE}</p>
       )}

@@ -37,7 +37,7 @@ import { pushNotifications } from '../../utils/pushNotifications';
 import { PullToRefresh } from '../common/PullToRefresh';
 import { useDictionaryPanel } from '../../dictionary/context/DictionaryContext';
 import { useModalQueue } from '../../hooks/useModalQueue';
-import { PanelAnchorContext } from '../modals/shared/panelAnchor';
+import { PanelAnchorContext, ClipboardLookContext } from '../modals/shared/panelAnchor';
 import { useSyncedGameState } from '../../hooks/useSyncedGameState';
 import { DictionaryHint } from '../../dictionary';
 import { PlayerDebug } from '../debug/PlayerDebug';
@@ -1231,6 +1231,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
   return (
     <PanelAnchorContext.Provider value={panelColumnRef}>
+    <ClipboardLookContext.Provider value={{ color: players.find(p => p.id === currentPlayerId)?.color }}>
     <div
       className="game-interface-responsive"
       style={{
@@ -1697,6 +1698,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           fires when there's actually game text with highlighted terms. */}
       {gamePhase === 'PLAY' && <DictionaryHint />}
     </div>
+    </ClipboardLookContext.Provider>
     </PanelAnchorContext.Provider>
   );
 }

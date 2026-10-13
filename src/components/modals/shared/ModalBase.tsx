@@ -2,12 +2,13 @@
 // Shared modal wrapper component with consistent styling and mobile-friendly design
 // Uses framer-motion for entry, exit, and shake animations
 
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback, useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { theme, colors } from '../../../styles/theme';
 import { panelPalettes, PanelMode } from '../../player/panelTheme';
 import type { SpeechControls } from '../../../hooks/useModalSpeech';
-import { usePanelAnchorRect, anchoredOverlayStyle } from './panelAnchor';
+import { usePanelAnchorRect, anchoredOverlayStyle, ClipboardLookContext } from './panelAnchor';
+import { clipboardBoard } from '../../../utils/panelFrame';
 
 export interface ModalBaseProps {
   isOpen: boolean;
@@ -37,6 +38,13 @@ export interface ModalBaseProps {
    *  over the panel (see panelAnchor.tsx). Anywhere without a panel beside a board (phone, remote, a
    *  narrow window) it is centred as before. Omit it for a pop-up you READ; those stay centred. */
   anchor?: 'panel';
+  /**
+   * Draw the pop-up as a page of the player's clipboard: the wooden board in their colour with the clip, the pop-up as the
+   * paper on it, the page tabs down the board's right edge (`tabs`), and a flip (the page swings down from the clip) in
+   * place of the plain fade. A pop-up you PLAY that opens over the panel gets the board in the current player's colour by
+   * itself (ClipboardLookContext), without tabs.
+   */
+  clipboard?: { color?: string; tabs?: React.ReactNode };
 }
 
 // Check reduced motion preference once at module level
@@ -90,6 +98,15 @@ const modalVariants = {
   exit: { opacity: 0, scale: 0.95, y: 10 },
 };
 
+// A page of the clipboard swings down from the clip on the way in and back up on the way out (Tom: "build the flip").
+const flipVariants = prefersReducedMotion
+  ? modalVariants
+  : {
+    hidden: { opacity: 0, rotateX: -75, transformPerspective: 900 },
+    visible: { opacity: 1, rotateX: 0, transformPerspective: 900 },
+    exit: { opacity: 0, rotateX: -75, transformPerspective: 900 },
+  };
+
 const shakeTransition = prefersReducedMotion
   ? {}
   : {
@@ -128,6 +145,7 @@ export function ModalBase({
   onExitComplete,
   mode = 'light',
   anchor,
+  clipboard,
 }: ModalBaseProps): JSX.Element | null {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -141,6 +159,9 @@ export function ModalBase({
   }, [isOpen]);
 
   const panelRect = usePanelAnchorRect(anchor === 'panel', isOpen);
+  const clipboardLook = useContext(ClipboardLookContext);
+  // A page of the clipboard: asked for outright, or any pop-up you play that opens over the panel.
+  const board = clipboard ?? (panelRect && clipboardLook ? { color: clipboardLook.color } : undefined);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -333,6 +354,33 @@ export function ModalBase({
     transition: theme.transitions.fast,
   };
 
+  // The clipboard page: the board is the animated, dialog element; the paper (the pop-up as it always was) sits on it.
+  const boardLook = board ? clipboardBoard(mode, board.color) : null;
+  const boardStyle: React.CSSProperties = {
+    ...containerStyle,
+    ...(boardLook?.board ?? null),
+    backgroundColor: undefined,
+    padding: board?.tabs ? '12px 32px 8px 8px' : '12px 8px 8px 8px',
+    borderRadius: 12,
+    overflow: 'visible',
+    boxSizing: 'border-box',
+    transformOrigin: 'top center',
+  };
+  const paperStyle: React.CSSProperties = {
+    ...containerStyle,
+    boxShadow: 'none',
+    borderRadius: 6,
+    maxWidth: 'none',
+    maxHeight: 'none',
+    width: 'auto',
+    flex: '1 1 auto',
+    minHeight: 0,
+    overflow: 'hidden',
+  };
+
+  // The paper is only a wrapper on the clipboard; anywhere else the pop-up's parts sit directly in the dialog, as they always did.
+  const wrapPaper = (kids: React.ReactNode) => (board ? <div style={paperStyle}>{kids}</div> : <>{kids}</>);
+
   const bodyStyle: React.CSSProperties = {
     flex: 1,
     overflow: 'auto',
@@ -377,19 +425,22 @@ export function ModalBase({
             {/* Modal container */}
             <motion.div
               ref={modalRef}
-              style={containerStyle}
+              style={board ? boardStyle : containerStyle}
               onClick={(e) => e.stopPropagation()}
               tabIndex={-1}
               role="dialog"
               aria-modal="true"
               aria-labelledby="modal-title"
               data-testid={testId}
-              variants={modalVariants}
+              variants={board ? flipVariants : modalVariants}
               initial="hidden"
               animate={modalAnimate}
               exit="exit"
               transition={modalTransition}
             >
+              {board && <span aria-hidden data-testid="clipboard-clip" style={boardLook!.clip} />}
+              {board?.tabs}
+              {wrapPaper(<>
               {/* Header */}
               <div style={headerStyle}>
                 <h2 id="modal-title" style={titleStyle}>
@@ -449,6 +500,7 @@ export function ModalBase({
                   {footer}
                 </div>
               )}
+              </>)}
             </motion.div>
           </motion.div>
         </>

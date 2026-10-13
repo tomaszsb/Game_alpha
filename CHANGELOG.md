@@ -15,6 +15,17 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.32] - 2026-10-13
+
+### Clipboard: the pages flip, and the pop-ups you play are pages of the clipboard. Not deployed.
+
+- **Tom (10-13): "build the flip and the popups".**
+- **Pages are clipboard pages:** the Money, Time, Expeditors, Scope and Life events pop-ups are now drawn as a page of the player's clipboard: the wooden board in the player's colour with the clip, the pop-up as the paper on it, and the same five tabs down the board's right edge (the open page's tab raised), so a player flips from one page to the next from the page itself. This replaces the row of tabs I put at the top of each page in 3.7.31 (removed).
+- **The flip:** a page swings down from the clip on the way in and back up on the way out (`ModalBase` `flipVariants`, framer-motion, 0.2 s, a plain fade when the device asks for reduced motion). Flipping from one page to another is the old page swinging up while the new one swings down.
+- **Pop-ups you play:** the dice result (add / remove an expeditor and every other result), life event, choice, card replacement, negotiation and card selection pop-ups that open over the panel on a PC are pages of the current player's clipboard too (`ClipboardLookContext`, provided by `GameLayout` beside the panel anchor; no tabs on these). On a phone, remote or narrow window they stay centred as before, and pop-ups you READ (rules, card details, discard pile, end game) are unchanged. Test ids, `role="dialog"`, `aria-modal` and the "Close modal" button are unchanged for the robot.
+- **Checked:** at a PC width, the Scope page and the "Add a team member" result both drew as clipboard pages (clip, blue board, tabs on the page, the open tab raised). **Not checked:** the animation itself: the built-in browser fires no animation frames, so I could not watch the flip (or confirm the old page is gone once it has swung up; its exit never finishes there). Tom's eyes on a real browser.
+- **Tests:** `ModalBaseClipboard` (3 new), `ClipboardTabs` (3). typecheck clean; `npm test` 271 files / 3891 green.
+
 ## [3.7.31] - 2026-10-13
 
 ### Clipboard: page tabs on its edge, and the project steps as round icons that wear their building's picture. Not deployed.

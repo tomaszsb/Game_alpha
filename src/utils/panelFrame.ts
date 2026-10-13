@@ -8,7 +8,7 @@
 
 import type React from 'react';
 import type { TownCsvRow } from '../types/DataTypes';
-import type { PanelPalette, PanelMode } from '../components/player/panelTheme';
+import { panelPalettes, type PanelPalette, type PanelMode } from '../components/player/panelTheme';
 
 export type PanelFrameName = 'clipboard' | 'plain';
 
@@ -74,4 +74,13 @@ export function panelFrameStyles(name: PanelFrameName, p: PanelPalette, mode: Pa
       pointerEvents: 'none',
     },
   };
+}
+
+/**
+ * The clipboard as a page you flip to: the same wooden board (in the player's colour) and clip the panel wears, for
+ * a pop-up drawn as a page of the player's clipboard (ModalBase `clipboard`; Tom, 2026-10-13: "build the flip and the popups").
+ */
+export function clipboardBoard(mode: PanelMode, playerColor?: string): { board: React.CSSProperties; clip: React.CSSProperties } {
+  const look = panelFrameStyles('clipboard', panelPalettes[mode], mode, playerColor);
+  return { board: look.frame, clip: look.clip as React.CSSProperties };
 }

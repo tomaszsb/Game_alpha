@@ -45,8 +45,8 @@ export interface PlayerNumbersV2Props {
   onActivate?: (cardId: string) => void;
   /** The card currently being activated, if any. */
   playingCardId?: string | null;
-  /** Shown at the top of the page (the clipboard's page tabs, so the player can flip to another page). */
-  topSlot?: React.ReactNode;
+  /** The page is a page of this player's clipboard: their colour, and the page tabs down its edge so they can flip to another page. */
+  clipboard?: { color?: string; tabs?: React.ReactNode };
 }
 
 export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
@@ -60,7 +60,7 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
   playableCardIds = [],
   onActivate,
   playingCardId = null,
-  topSlot,
+  clipboard,
 }) => {
   const p = panelPalettes[mode];
   // Glossary terms in the ledger are taught on demand, not stripped (redesign §1
@@ -314,9 +314,9 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
       footer={footer}
       testId="player-numbers-v2"
       mode={mode}
+      clipboard={clipboard}
     >
       <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: p.text }}>
-        {topSlot}
         {/* Scope — what you're building, and what each piece cost */}
         {page === 'scope' && (
         <div style={{ marginBottom: 12 }}>
