@@ -443,10 +443,20 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
               <p style={{ fontSize: 12, color: p.muted, margin: 0 }}>{NUMBERS.MONEY_PAID_NONE}</p>
             ) : (
               [...(player.costHistory ?? [])].reverse().map((c) => (
+                c.category === 'loanFee' ? (
+                  // The bank's up-front fee: it is real money out, so it gets the same red "money out" look as
+                  // "Still to raise" instead of reading like any other line (Tom, 10-13: "hardly noticeable").
+                  <div key={c.id} style={{ ...row, background: p.badSurf, border: `1px solid ${p.badBorder}` }} data-testid="money-paid-row" data-kind="loanFee">
+                    <span aria-hidden style={{ width: 18, textAlign: 'center' }}>🏦</span>
+                    <span style={{ flex: 1, minWidth: 0, color: p.bad, fontWeight: 600 }}>{c.description}</span>
+                    <span style={{ fontWeight: 700, color: p.bad }}>−${Math.round(c.amount).toLocaleString()}</span>
+                  </div>
+                ) : (
                 <div key={c.id} style={row} data-testid="money-paid-row">
                   <span style={{ flex: 1, minWidth: 0 }}>{c.description}</span>
                   <span style={{ fontWeight: 600 }}>${Math.round(c.amount).toLocaleString()}</span>
                 </div>
+                )
               ))
             )}
           </div>

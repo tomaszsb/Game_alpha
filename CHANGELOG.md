@@ -15,6 +15,15 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.26] - 2026-10-13
+
+### The "Funded" check shows part-way funding (orange, with a percent), and the bank's loan fee stands out in the paid list. Not deployed.
+
+- **What Tom saw (fb:5617effb, plus his 10-13 note on the live loan fee):** "I got some funding already, but the funding checkmark did not change. it could be orange and say partial funding or percentage funded." And the bank-loan fee line was "hardly noticeable" in the paid list (the amount was recorded right since 3.7.20; the look was the problem).
+- **Funding:** `computeMat` gives the Funded tile a `percent` while it is part done: (what the project commits the player to, minus the money still to raise) over what it commits them to, rounded down, never 0 or 100. It is the same `fundingGap` that decides when the tile turns green, so the two cannot disagree. The percent is computed, not typed into wording. `ProjectMat` draws that tile orange with a half-filled circle and "Funded 62%"; the phone header dots use the same orange; the screen-reader text says "partly done".
+- **Loan fee:** `PlayerNumbersV2` draws a `loanFee` line in the red "money out" look "Still to raise" already uses, with a bank icon, bold text and a minus sign. Same height as the other lines, so the phone panel is not taller.
+- **Tests:** `projectMat` (2 new), `ProjectMatPartial` (1 new). typecheck clean.
+
 ## [3.7.25] - 2026-10-13
 
 ### One tap now makes one bubble per kind, from the building you end in, with your colour on it when others are playing. Not deployed.

@@ -37,4 +37,19 @@ describe('computeMat', () => {
     expect(computeMat(player({ contractor: {} }), { scopeTotal: 0, fundingGap: 0 }).map(t => [t.label, t.done]))
       .toEqual([['Guild joined', true], ['Quest done', false]]);
   });
+
+  // fb:5617effb (Tom, live): "I got some funding already, but the funding checkmark did not change."
+  it("part funded shows how far, from the money numbers (never typed wording), and never reads 0 or 100", () => {
+    const fund = (gap: number) => computeMat(player(), { scopeTotal: 500_000, commitments: 1_000_000, fundingGap: gap }).find(t => t.id === "funded")!;
+    expect(fund(380_000)).toMatchObject({ done: false, percent: 62 });
+    expect(fund(1)).toMatchObject({ done: false, percent: 99 });
+    expect(fund(1_000_000).percent).toBeUndefined();
+    expect(fund(0)).toMatchObject({ done: true });
+    expect(fund(0).percent).toBeUndefined();
+  });
+
+  it("only the funded tile can be part done", () => {
+    const tiles = computeMat(player(), { scopeTotal: 500_000, commitments: 1_000_000, fundingGap: 500_000 });
+    expect(tiles.filter(t => t.percent !== undefined).map(t => t.id)).toEqual(["funded"]);
+  });
 });

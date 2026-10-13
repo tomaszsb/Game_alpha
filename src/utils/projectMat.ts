@@ -7,7 +7,13 @@ import type { Player } from '../types/DataTypes';
 import type { ProjectFinances } from './projectFinances';
 import { getTrophyRules, MatCheck } from './trophyRules';
 
-export interface MatTileState { id: string; label: string; done: boolean }
+export interface MatTileState {
+  id: string;
+  label: string;
+  done: boolean;
+  /** Whole percent (1-99) of the way there, for a tile that can be part done (funding); absent otherwise. */
+  percent?: number;
+}
 
 function isDone(check: MatCheck, player: Player, fin: Pick<ProjectFinances, 'scopeTotal' | 'fundingGap'>): boolean {
   switch (check) {
@@ -22,6 +28,21 @@ function isDone(check: MatCheck, player: Player, fin: Pick<ProjectFinances, 'sco
   }
 }
 
-export function computeMat(player: Player, fin: Pick<ProjectFinances, 'scopeTotal' | 'fundingGap'>): MatTileState[] {
-  return getTrophyRules().mat.map(t => ({ id: t.id, label: t.label, done: isDone(t.check, player, fin) }));
+/**
+ * How far funding has got, from the same numbers that decide "Funded": what the player has raised against what the
+ * project commits them to (fb:5617effb). Never 0 or 100: nothing raised is "not yet", everything raised is "done".
+ */
+function fundingPercent(fin: Pick<ProjectFinances, 'scopeTotal' | 'fundingGap'> & { commitments?: number }): number | undefined {
+  const total = fin.commitments ?? 0;
+  if (fin.scopeTotal <= 0 || fin.fundingGap <= 0 || total <= 0) return undefined;
+  const pct = Math.floor(((total - fin.fundingGap) / total) * 100);
+  return pct >= 1 ? Math.min(99, pct) : undefined;
+}
+
+export function computeMat(player: Player, fin: Pick<ProjectFinances, 'scopeTotal' | 'fundingGap'> & { commitments?: number }): MatTileState[] {
+  return getTrophyRules().mat.map(t => {
+    const done = isDone(t.check, player, fin);
+    const percent = t.check === 'funded' && !done ? fundingPercent(fin) : undefined;
+    return percent === undefined ? { id: t.id, label: t.label, done } : { id: t.id, label: t.label, done, percent };
+  });
 }
