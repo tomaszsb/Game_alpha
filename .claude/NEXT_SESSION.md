@@ -1,7 +1,7 @@
 # Next session starter — written 2026-10-12 by /koniec
 
 ## State at handoff
-- **Version:** v3.7.23. **LIVE at last read: `/health` = `453191f4` = v3.7.22 (2026-10-13 00:25 UTC). PENDING DEPLOY: 3.7.23 (owner seed money range in `TROPHIES.csv`, amounts identical; no visible change).** Re-read `/health`; never believe this line.
+- **Version:** v3.7.23. **LIVE: `/health` = `9628288a` at 2026-10-13 04:47 UTC (Tom deployed). Nothing pending deploy.** Re-read `/health`; never believe this line.
 - **Branch:** master = origin/master after the wrap-up commit, clean.
 - **Shipped (Manager's brief, Tom's words):** 3.7.16 clipboard look; 3.7.17 PC pop-ups over the player panel; 3.7.18 setup "Board: Street view (town) / Classic" (default Town, every screen starts on the host's pick); 3.7.19 chime per town result bubble. While Tom was away (Manager's order, budget line 20% of the week, ended ~8%): **3.7.20** the bank loan's up-front fee is now recorded in "What you've paid" (cash and the paid list agree; found by reproducing the ~$228K gap); **3.7.21** Job 2 in part: builder price/schedule numbers -> `TROPHIES.csv`, standings words + "My project" -> `UI_STRINGS.csv`, results identical (the rest is parked on purpose, see TODO); **3.7.22** a renamed phase gets its own board colour instead of grey (`phaseColorsFor`).
 - **Tests (v3.7.23):** typecheck + build clean; `npm test` 265 files / 3850 green, exit 0; ghost gate green (11 files / 43 tests). The 10-12 `TrophyFlow` flake is SOLVED (test randomness, not a game bug): at PM-DECISION-CHECK a return visit rolls a 2 (1 in 6) and draws a random life-event card; a Notice of Violation adds 2 problem points (5 instead of 3). The test now pins the roll and a deterministic test covers the violation draw.
@@ -27,6 +27,9 @@ Sonnet 5 — look-and-feel follow-ups plus a state-sync investigation that needs
 
 ## Feedback sweep 2026-10-13 (Manager's order)
 - **No new reports since 10-08** (49 open, all tracked in TODO, newest 10-08 03:06). Old v3.2.99 reports checked (TODO has the verdicts): c0d3bfb8 ready to flip after a phone look; 1c6980b4 and adbcf2e5 vague, still open. The "ARCH-FEE-REVIEW 50 days a press" item is superseded (push-back is 0.5% + 5 days) and was removed.
+
+## 2026-10-13: TODO.md was cleaned up
+- 218 lines / 86 KB down to ~90 lines / 17 KB; one line per open item (next action, who, trigger, pointer). The whole old file is `docs/archive/TODO-full-2026-10-13.md`. Settled decisions moved to `docs/core/PRODUCT_CHARTER.md`, history to CHANGELOG ("Housekeeping 2026-10-13"), harness lessons to CLAUDE.md TACTICAL, design notes to their design docs. All 34 `fb:feedback-...` markers kept on their items.
 
 ## Reminders
 - Deploy stays Tom's: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"` (PowerShell). Never write a deploy claim without reading `/health`.

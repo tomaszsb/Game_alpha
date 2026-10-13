@@ -5,9 +5,9 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** October 12, 2026 (v3.7.23)
+**Last Updated:** October 13, 2026 (v3.7.23)
 **Current Phase:** Beta — live in production
-**Current Version:** **v3.7.23 — PENDING DEPLOY (committed + pushed). LIVE at last read `/health` `453191f4` = v3.7.22 (2026-10-13 00:25 UTC).** Trust `/health`, never this line.
+**Current Version:** **v3.7.23 — LIVE (`/health` `9628288a`, 2026-10-13 04:47 UTC).** Trust `/health`, never this line.
 
 ## Current sprint
 The town board (review → previews → A1 still town 3.7.6, A2 walk 3.7.7, pop-ups wait for the walk 3.7.8), then Tom's PC findings (3.7.12: folded top bar, solo targets, hover flicker fixed), result bubbles (3.7.14) and a tidier header (3.7.15). Then the two approved jobs: v3.7.16 the clipboard look for the four number boxes (Decision 4A; phone panel measured unchanged) v3.7.17 PC "play" pop-ups over the player panel, v3.7.18 the setup screen's Board choice (Street view default; every screen starts on the host's pick) v3.7.19 a chime with each town result bubble, then, while Tom was away (Manager's order): v3.7.20 the bank loan's up-front fee now shows in "What you've paid", v3.7.21 Job 2 (builder numbers and standings words moved to the data files) and v3.7.22 a renamed phase gets its own board colour.
