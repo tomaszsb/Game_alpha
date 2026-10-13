@@ -1,6 +1,6 @@
 // The three-trophy win rule as it plays: a finish no longer ends the game, money trouble takes one
 // player out, and the trophies pick the winner once everyone is finished or out.
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { bootstrapHeadlessServices, HeadlessServices } from '../ghost/bootstrapServices';
 import { configureTrophyRules } from '../../src/utils/trophyRules';
 
@@ -15,7 +15,16 @@ async function newGame(names: string[]): Promise<string[]> {
   ids.forEach(id => s.stateService.updatePlayer({ id, currentSpace: 'PM-DECISION-CHECK', visitType: 'Subsequent' }));
   s.stateService.setCurrentPlayer(ids[0]);
   s.stateService.startGame();
-  await s.turnService.startTurn(ids[0]);
+  // PM-DECISION-CHECK (a return visit) draws a life-event card on a roll of 2, and a Notice of Violation
+  // adds 2 problem points: with real randomness this file failed about one run in ten ("5 problem points,
+  // expected 3", found 2026-10-12). Pin the roll to a 6 so no life event is drawn; the violation itself
+  // is covered, deterministically, by its own test below.
+  const rng = vi.spyOn(Math, 'random').mockReturnValue(0.99);
+  try {
+    await s.turnService.startTurn(ids[0]);
+  } finally {
+    rng.mockRestore();
+  }
   return ids;
 }
 
@@ -94,6 +103,25 @@ describe('three-trophy flow', () => {
     expect(g.isGameOver).toBe(true);
     expect(g.winner).toBe(a);
     expect(g.gameEndReason).toBeUndefined();
+  });
+
+  it('a Notice of Violation drawn at turn start counts as a violation (the cause of the old flake)', async () => {
+    s = await bootstrapHeadlessServices();
+    configureTrophyRules(s.dataService.getTrophyRuleRows());
+    s.stateService.addPlayer('Ann');
+    const a = s.stateService.getAllPlayers()[0].id;
+    s.stateService.updatePlayer({ id: a, currentSpace: 'PM-DECISION-CHECK', visitType: 'Subsequent' });
+    s.stateService.setCurrentPlayer(a);
+    s.stateService.startGame();
+    // A roll of 2 at this space draws one life-event card; make it the violation card.
+    s.stateService.updateGameState({ decks: { ...s.stateService.getGameState().decks, L: ['L050'] } });
+    const rng = vi.spyOn(Math, 'random').mockReturnValue(0.2);
+    try {
+      await s.turnService.startTurn(a);
+    } finally {
+      rng.mockRestore();
+    }
+    expect(player(a).trophyRecord).toMatchObject({ problemPoints: 2, counts: { violation: 1 } });
   });
 
   it('quality events land in the ledger, and a Try Again takes them back', async () => {
