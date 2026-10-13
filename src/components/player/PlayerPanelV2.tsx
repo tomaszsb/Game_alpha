@@ -12,6 +12,9 @@
 // detailed-card/modal restyle are later increments.
 
 import { ProjectMat, MatDots } from './ProjectMat';
+import { ClipboardTabs, PageTabsRow, type PanelPageId } from './ClipboardTabs';
+import { BuildingIcon } from '../common/BuildingIcon';
+import { matIcon, portraitSrc as iconPortraitSrc } from '../../utils/buildingIcon';
 import { BuilderBidsCard, BuilderMoneyLine, isShoppingForBuilder } from './BuilderBidsCard';
 import { showScopeApprovalWarning } from '../../utils/scopeChangeWarning';
 import { getDobLabel, DOB_EXAM_SPACE, FDNY_EXAM_SPACE } from '../../services/ApprovalService';
@@ -132,6 +135,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const [numbersPage, setNumbersPage] = useState<NumbersPage | null>(null);
   // "What's happened" history (Pile 3 Chronicle, first slice).
   const [showChronicle, setShowChronicle] = useState(false);
+  // 'life' = the same pop-up showing only the life-event cards (the clipboard's Life events tab).
+  const [chronicleFocus, setChronicleFocus] = useState<'all' | 'life'>('all');
   // Movement destinations — collapsed behind one "Move" row instead of N
   // separate buttons, so a choice space doesn't visually inflate the action
   // count (fb:feedback-1782843206015-8edd02b4). Once expanded, every option
@@ -765,6 +770,20 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // On a phone Money and Scope sit side by side in the top row (Tom, 10-13: not in opposite corners); the grid has
   // no extra rows, so the panel is no taller. PC / TV keep the wide Money box on its own row.
   const phoneOrder = (n: number): React.CSSProperties => (isPhone ? { order: n } : {});
+  // The page tabs on the clipboard's edge and the row of the same tabs on an open page: one page open at a time.
+  const activePage: PanelPageId | null = numbersPage ?? (showChronicle ? (chronicleFocus === 'life' ? 'life' : 'time') : null);
+  const openPage = (id: PanelPageId) => {
+    setNumbersPage(id === 'money' || id === 'expeditors' || id === 'scope' ? id : null);
+    setShowChronicle(id === 'time' || id === 'life');
+    setChronicleFocus(id === 'life' ? 'life' : 'all');
+  };
+  const pageTabs = <PageTabsRow active={activePage} onSelect={openPage} palette={p} />;
+  // Each project step wears the picture of its building (TOWN.csv `mat_icon` rows + the building's icon).
+  const townRows = gameServices.dataService.getTownRows?.();
+  const renderMatIcon = (tileId: string, size: number): React.ReactNode => {
+    const icon = matIcon(townRows, tileId);
+    return icon ? <BuildingIcon icon={icon} portrait={iconPortraitSrc(icon, gameState.npcAppearances)} size={size} /> : null;
+  };
   const glanceTile: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
@@ -866,7 +885,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               <span style={{ width: 11, height: 11, borderRadius: '50%', background: player.color || p.accent, flexShrink: 0 }} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.name}</span>
             </div>
-            <MatDots tiles={matTiles} palette={p} />
+            <MatDots tiles={matTiles} palette={p} renderIcon={renderMatIcon} />
           </>
         ) : (
           /* PC / TV: the player's face, big enough to read across the table (Job 5), in their colour. */
@@ -896,8 +915,9 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       <div style={pad}>
         {/* The four number boxes and their "?" share one outline (Tom, 2026-10-02: "?
             should be within each area, not outside"). */}
-        <div data-testid="glance-frame" style={{ borderRadius: 11, padding: '4px 7px 7px', boxSizing: 'border-box', ...frameLook.frame }}>
+        <div data-testid="glance-frame" style={{ borderRadius: 11, padding: '4px 30px 7px 7px', boxSizing: 'border-box', ...frameLook.frame }}>
         {frameLook.clip && <span aria-hidden data-testid="glance-clip" style={frameLook.clip} />}
+        <ClipboardTabs active={activePage} onSelect={openPage} palette={p} />
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
           <HelpButton
             kind="glance"
@@ -916,7 +936,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             <span style={{ ...glanceValue, ...(isPhone ? {} : { fontSize: 30, lineHeight: 1.15 }), color: moneyCue.color }}>${player.money.toLocaleString()}</span>
             {moneyCue.word && <span style={{ ...glanceSub, color: moneyCue.color, fontWeight: 700 }}>{moneyCue.word}</span>}
           </button>
-          <button type="button" data-testid="glance-time" onClick={() => setShowChronicle(true)} style={{ ...glanceTile, ...phoneOrder(2) }}
+          <button type="button" data-testid="glance-time" onClick={() => openPage('time')} style={{ ...glanceTile, ...phoneOrder(2) }}
             aria-label={`${NUMBERS.TILE_TIME}: ${NUMBERS.days(player.timeSpent)}`}>
             <span style={glanceLabel}><span aria-hidden>🕐</span> {NUMBERS.TILE_TIME}<span aria-hidden style={glanceArrow}>›</span></span>
             <span style={glanceValue}>{NUMBERS.days(player.timeSpent)}</span>
@@ -942,7 +962,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         {/* The mat: milestones fill in as the project moves (Job 5). */}
         {!isPhone && (
           <div style={{ marginTop: 8 }}>
-            <ProjectMat tiles={matTiles} palette={p} />
+            <ProjectMat tiles={matTiles} palette={p} renderIcon={renderMatIcon} />
           </div>
         )}
         {openHelp === 'glance' && (
@@ -1515,6 +1535,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         isOpen={numbersPage !== null}
         onClose={() => setNumbersPage(null)}
         page={numbersPage ?? 'money'}
+        topSlot={pageTabs}
         onOpenCard={setDetailCardId}
         playableCardIds={playableExpeditors.map((x) => x.id)}
         onActivate={handlePlayExpeditor}
@@ -1528,6 +1549,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       <PlayerChronicleV2
         isOpen={showChronicle}
         onClose={() => setShowChronicle(false)}
+        focus={chronicleFocus}
+        topSlot={pageTabs}
         historyCards={historyCardIds.map((id) => {
           const card = gameServices.dataService.getCardById(id);
           return { id, name: card?.card_name ?? id, type: card?.card_type ?? '' };

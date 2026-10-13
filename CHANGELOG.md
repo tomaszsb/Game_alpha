@@ -15,6 +15,18 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.31] - 2026-10-13
+
+### Clipboard: page tabs on its edge, and the project steps as round icons that wear their building's picture. Not deployed.
+
+- **Tom (10-13, fb:4e8a8550):** "I like yours" (page tabs), then "the boxes are large, maybe iconography?" and "icons, go build it, use the same icons on the buildings".
+- **Tabs:** five small icon tabs down the clipboard's right edge: Money, Time, Expeditors, Scope, Life events (`ClipboardTabs`). Each opens the page its box already opens (Time = the history; Life events = the same pop-up showing only the life-event cards, with a plain line when there are none). The open page shows the same five as a row at its top (`PageTabsRow`), so the player flips from page to page without going back. The four number boxes stay as they were. The strip is placed absolutely; the clipboard's right padding grew 7 to 30 px, so each box is about 12-15 px narrower on a phone.
+- **Icons:** the eight project steps are round icons (`ProjectMat`): done = green with a check, part way = orange with its percent, not yet = faded and dashed. PC / TV: one row under the clipboard (32 px). Phone: the same eight in the header where the dots were (22 px, with a -3 px margin so the header row stays its old height). Tapping an icon floats its name and state ("Funded 78%: part way") over the panel without adding height; a tap again hides it.
+- **Same icons as the buildings:** the icon is the building's own picture, shared code (`BuildingIcon`, `utils/buildingIcon.ts`; the town signs use it too): scope = the owner's portrait, funded = the bank, architect, engineer, DOB = its examiner, FDNY = the fire examiner, builder = the contractor, finished = the ribbon. Which step wears which building is data: `mat_icon` rows in `TOWN.csv` (a step with no row keeps the plain mark).
+- **Phone size, measured in the browser (card height):** 360 x 640 = 649 px (was 649); 390 x 844 = 649 px; card width 352 / 382 (unchanged). The first try was 652 px (the 22 px icons made the header 3 px taller); the negative margin fixed it.
+- **Not checked / not done:** the built-in browser fires no animation frames, so the pop-ups' exit animation never finished there; I could not confirm that flipping from one page to the next closes the old pop-up in a real browser (the code closes it in the same update). Pop-ups such as add / remove expeditor opening ON the clipboard page, and a real flip animation, are not built: those pages are still the existing pop-ups (which on a PC already open over the panel).
+- **Tests:** `ClipboardTabs` (4), `buildingIcon` (4), `ProjectMatPartial` reworked (3); typecheck clean; `npm test` 270 files / 3889 green.
+
 ## [3.7.30] - 2026-10-13
 
 ### Town board for several players: each player has their own owner house, office and construction site. Not deployed.

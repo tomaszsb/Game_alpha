@@ -44,6 +44,9 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'TROPHY.noReviews': 'No reviews yet',
   'TROPHY.noBudget': 'No budget yet',
   'MAT.title': 'My project',
+  'MAT.done': 'done',
+  'MAT.part': 'part way',
+  'MAT.notyet': 'not yet',
   // v3.2.60: the commit control names where a picked destination leads, so the
   // control that actually moves you reads as movement. The space's own forward
   // label ("Sign off on the design") stays the subject — this only joins it to
@@ -80,6 +83,8 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'NUMBERS.tile.time': 'Time',
   'NUMBERS.tile.expeditors': 'Expeditors',
   'NUMBERS.tile.scope': 'Scope',
+  'NUMBERS.tile.life': 'Life events',
+  'LIFE.none': 'No life events yet. When one happens to your project, it will be here.',
   'NUMBERS.tile.days': '{days} days',
   'NUMBERS.tile.ready': '{n} you can use now',
   'NUMBERS.tile.none': 'Nothing yet',
@@ -367,6 +372,8 @@ export const NUMBERS = {
   get TILE_TIME() { return getUIString('NUMBERS.tile.time'); },
   get TILE_EXPEDITORS() { return getUIString('NUMBERS.tile.expeditors'); },
   get TILE_SCOPE() { return getUIString('NUMBERS.tile.scope'); },
+  get TILE_LIFE() { return getUIString('NUMBERS.tile.life'); },
+  get LIFE_NONE() { return getUIString('LIFE.none'); },
   days: (days: number) => getUIString('NUMBERS.tile.days', { days }),
   ready: (n: number) => getUIString('NUMBERS.tile.ready', { n }),
   get NONE() { return getUIString('NUMBERS.tile.none'); },

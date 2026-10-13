@@ -96,6 +96,8 @@ ACTION_ROW.header,This turn
 NUMBERS.tile.money,Money
 NUMBERS.tile.time,Time
 NUMBERS.tile.expeditors,Expeditors
+NUMBERS.tile.life,Life events
+LIFE.none,"No life events yet. When one happens to your project, it will be here."
 NUMBERS.tile.scope,Scope
 NUMBERS.tile.days,{days} days
 NUMBERS.tile.ready,{n} you can use now
@@ -135,3 +137,6 @@ TROPHY.out,out
 TROPHY.noReviews,No reviews yet
 TROPHY.noBudget,No budget yet
 MAT.title,My project
+MAT.done,done
+MAT.part,part way
+MAT.notyet,not yet

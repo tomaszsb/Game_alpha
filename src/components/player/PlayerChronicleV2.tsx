@@ -20,6 +20,7 @@ import { HistoryFeed, HistoryFeedFilters } from '../game/HistoryFeed';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { panelPalettes, PanelMode } from './panelTheme';
 import { getCardTypeName } from '../../utils/cardTypeNames';
+import { NUMBERS } from '../../constants/uiStrings';
 import { colors } from '../../styles/theme';
 
 export interface PlayerChronicleV2Props {
@@ -41,6 +42,10 @@ export interface PlayerChronicleV2Props {
    *  Shown above the feed, grouped by family, each tappable for details. */
   historyCards?: Array<{ id: string; name: string; type: string }>;
   onOpenCard?: (cardId: string) => void;
+  /** 'life' shows only the life-event cards (the clipboard's Life events page); default is the whole history. */
+  focus?: 'all' | 'life';
+  /** Shown at the top of the page (the clipboard's page tabs). */
+  topSlot?: React.ReactNode;
 }
 
 export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
@@ -52,6 +57,8 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
   onNavigateToSpace,
   historyCards = [],
   onOpenCard,
+  focus = 'all',
+  topSlot,
 }) => {
   const p = panelPalettes[mode];
   // Opens on "just me" — the panel's frame of reference — but it's a chip, not
@@ -82,13 +89,17 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
-      title="What's happened"
-      emoji="📜"
+      title={focus === 'life' ? NUMBERS.TILE_LIFE : "What's happened"}
+      emoji={focus === 'life' ? '📰' : '📜'}
       maxWidth="420px"
       footer={footer}
       testId="player-chronicle-v2"
       mode={mode}
     >
+      {topSlot}
+      {focus === 'life' && historyCards.length === 0 && (
+        <p data-testid="life-events-empty" style={{ fontSize: 13, color: p.muted, margin: 0 }}>{NUMBERS.LIFE_NONE}</p>
+      )}
       {historyCards.length > 0 && (
         <div data-testid="chronicle-history-cards" style={{ marginBottom: 12 }}>
           {[...new Set(historyCards.map((c) => c.type))].map((type) => {
@@ -121,7 +132,7 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
           })}
         </div>
       )}
-      <HistoryFeed
+      {focus !== 'life' && <HistoryFeed
         gameServices={gameServices}
         mode={mode}
         filters={filters}
@@ -138,7 +149,7 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
               }
             : undefined
         }
-      />
+      />}
     </ModalBase>
   );
 };

@@ -32,6 +32,8 @@ import { extractPrefix, getNpcImagePath, type NpcImageRole } from '../../constan
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
 import { PlayerAvatar } from '../common/PlayerAvatar';
+import { BuildingIcon } from '../common/BuildingIcon';
+import { portraitSrc } from '../../utils/buildingIcon';
 import { scaleMs, getGameSpeed } from '../../utils/gameSpeed';
 import { setTownWalking } from '../../utils/boardStyle';
 import { projectKindOf } from '../../utils/projectKind';
@@ -70,7 +72,6 @@ const HOVER_OPEN_MS = 400;
 /** A screen that follows the current player never zooms out past this (names stay readable). */
 const FOLLOW_MIN_ZOOM = 0.75;
 
-const PORTRAIT_ROLES = new Set(['owner', 'architect', 'engineer', 'dob_examiner', 'dob_clerk', 'fdny_examiner', 'fdny_clerk', 'contractor', 'inspector']);
 
 const GROUND = {
   light: { water: '#8fd0f0', grass: '#86c46f', edge: '#4d8a3d', street: '#626a76', line: '#f4f1e6' },
@@ -194,9 +195,7 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
   const pal = panelPalettes[mode];
   const isDest = view.destinationRooms.length > 0;
   const ring = view.isCurrent ? HERE : isDest ? DEST : pal.borderStrong;
-  const icon = portrait
-    ? <img src={portrait} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flex: 'none' }} />
-    : <span aria-hidden="true" style={{ fontSize: 28, lineHeight: '40px', width: 40, textAlign: 'center', flex: 'none' }}>{b.icon || '🏢'}</span>;
+  const icon = <BuildingIcon icon={b.icon} portrait={portrait} size={40} />;
 
   return (
     <div
@@ -604,11 +603,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     [layout, players, walking, currentPlayerId, validMoves, whoOf, currentWho],
   );
 
-  const portraitFor = useCallback((icon: string): string | null => {
-    if (!PORTRAIT_ROLES.has(icon)) return null;
-    const a = appearances?.[icon as NpcImageRole];
-    return a ? getNpcImagePath(icon as NpcImageRole, a) : null;
-  }, [appearances]);
+  const portraitFor = useCallback((icon: string): string | null => portraitSrc(icon, appearances), [appearances]);
 
   // Names are earned (fb:aec545c4): the buildings all stand from the start; a name shows once a player has been in
   // the building or is offered a move into it, or by the town list's own rule ('shown' / 'scope').
