@@ -1,4 +1,4 @@
-# Next session starter — written 2026-10-12 by /koniec
+# Next session starter — written 2026-10-13 by /koniec
 
 ## State at handoff
 - **Version:** v3.7.23. **LIVE: `/health` = `9628288a` at 2026-10-13 04:47 UTC (Tom deployed). Nothing pending deploy.** Re-read `/health`; never believe this line.
@@ -7,7 +7,7 @@
 - **Tests (v3.7.23):** typecheck + build clean; `npm test` 265 files / 3850 green, exit 0; ghost gate green (11 files / 43 tests). The 10-12 `TrophyFlow` flake is SOLVED (test randomness, not a game bug): at PM-DECISION-CHECK a return visit rolls a 2 (1 in 6) and draws a random life-event card; a Notice of Violation adds 2 problem points (5 instead of 3). The test now pins the roll and a deterministic test covers the violation draw.
 
 ## Top 3 open items
-1. **3.7.16-22 are LIVE; Tom looks at all of it:** clipboard on a real phone (clip must not cover the "?"); PC pop-ups over the panel vs rules/card details centred; setup gear Board choice; bubble chimes BY EAR on the real TV ("Press OK once…" then sound); the paid list after taking a bank loan ("Interest fee"). Plus 3.7.14 bubbles / 3.7.15 header. Then the flip list below.
+1. **3.7.16-23 are LIVE; Tom looks at all of it (the list is in TODO "Tom's checks after deploy"):** clipboard on a real phone (clip must not cover the "?"); PC pop-ups over the panel vs rules/card details centred; setup gear Board choice; bubble chimes BY EAR on the real TV ("Press OK once…" then sound); the paid list after taking a bank loan ("Interest fee"). Plus 3.7.14 bubbles / 3.7.15 header. Then the flip list below.
 2. **Money/scope bug (Tom, live v3.7.15): scope NOT reproduced** (full account in TODO and CHANGELOG 3.7.20: PC + phone controller on a local server, server state read after every step, offline cycles, reloads, all consistent; the live server logged no rejected/invalid pushes and just replaces the whole state). Waiting on Tom's full-reload result + a look at the same player on another screen (via the Manager). Other screen empty too -> the state lost the work packages; other screen fine -> the phone had a stale copy (hypotheses, unverified). Do not guess a fix.
 3. **Job 2 remainder, only if a real reskin needs it** (the owner seed-money range is now data too, 3.7.23; project-length constants remain): quality/event ids, header-menu words (robot reads them), `BoardCheckStrip`, server `spaceProtection` list, stock-name fallbacks (all in TODO).
 
