@@ -45,6 +45,7 @@ import {
   walkPath,
   walkTimes,
   resultBubbles,
+  mergedResultBubbles,
   DEFAULT_BUBBLE_MS,
   bubbleVolume,
   type PlayerNumbers,
@@ -325,7 +326,27 @@ interface Bubble extends ResultBubble {
   still: boolean;
   /** Chime volume 0..1 from the town data (`bubble_sound_volume`); 0 = silent. */
   volume: number;
+  /** The player's colour, shown as a dot when more than one player is in the game so a result can be told apart. */
+  tag?: string;
 }
+
+/**
+ * What one change of a player's numbers did, held back briefly (BUBBLE_SETTLE_MS) so the several changes
+ * a single tap makes (the space left, the next space entered) become ONE bubble per kind instead of
+ * one from each building (fb:5b8a060c).
+ */
+interface PendingResult {
+  playerId: string;
+  at: number;
+  before: PlayerNumbers;
+  after: PlayerNumbers;
+  /** The building the player is in after this change. */
+  space: string;
+  /** How long after this change the player's walk ends (0 = no walk). */
+  walkMs: number;
+}
+
+const BUBBLE_SETTLE_MS = 350;
 
 const BUBBLE_COLOURS = {
   good: { bg: '#dcfce7', fg: '#166534', border: '#16a34a' },
@@ -370,6 +391,7 @@ function FloatingBubble({ bubble, onDone }: { bubble: Bubble; onDone: (key: numb
         boxShadow: '0 4px 10px rgba(0,0,0,0.25)',
       }}
     >
+      {bubble.tag && <span aria-hidden style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: bubble.tag, border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.35)', marginRight: 8, verticalAlign: 'middle' }} />}
       {bubble.text}
     </div>
   );
@@ -454,6 +476,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   // The squares as last seen. Compared while rendering (React's "adjust state when a prop changes"
   // pattern), so a walk starts in the same paint as the move instead of one effect later.
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
+  const [pending, setPending] = useState<PendingResult[]>([]);
   // Scope as the panel shows it (summed from the player's work packages). The stored projectScope
   // field can read 0 for a moment at a turn change, which made a false "−$5.2M scope" bubble.
   const numbersOf = (p: Player): PlayerNumbers => ({ money: p.money ?? 0, days: p.timeSpent ?? 0, scope: gameRulesService.calculateProjectScope(p.id) });
@@ -491,28 +514,54 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       const times = walkTimes(layout.settings);
       const baseMs = parseFloat(layout.settings.bubble_ms ?? '') || DEFAULT_BUBBLE_MS;
       const ms = fastNow ? baseMs / 2 : baseMs;
-      const made: Bubble[] = [];
+      const now = Date.now();
+      const held: PendingResult[] = [];
       for (const p of players) {
         const was = beforeNumbers.get(p.id);
         if (!was) continue;
-        const list = resultBubbles(was, numbersOf(p));
-        if (list.length === 0) continue;
-        const bid = layout.roomToBuilding.get(p.currentSpace);
-        const b = bid ? layout.buildings.find(x => x.id === bid) : undefined;
-        if (!b) continue;
+        const nowNumbers = numbersOf(p);
         const moved = before?.get(p.id) !== undefined && before?.get(p.id) !== p.currentSpace && !still;
+        if (resultBubbles(was, nowNumbers).length === 0 && !moved) continue;
+        const bid = layout.roomToBuilding.get(p.currentSpace);
         const from = moved ? layout.roomToBuilding.get(before!.get(p.id)!) : undefined;
-        const walkWait = !moved ? 0 : from === bid ? times.hopMs : fastNow ? times.fastMs : times.walkMs;
+        const walkMs = !moved ? 0 : from === bid ? times.hopMs : fastNow ? times.fastMs : times.walkMs;
+        held.push({ playerId: p.id, at: now, before: was, after: nowNumbers, space: p.currentSpace, walkMs });
+      }
+      if (held.length) setPending(ps => [...ps, ...held]);
+    }
+  }
+  // One tap can change a player's numbers several times in a row (the space they leave, the one they
+  // enter). Wait a moment, then make ONE bubble per kind per player from the building they ended in.
+  const bubbleKey = useRef(0);
+  useEffect(() => {
+    if (pending.length === 0) return;
+    const timer = window.setTimeout(() => {
+      const batch = pending;
+      setPending([]);
+      const baseMs = parseFloat(layout.settings.bubble_ms ?? '') || DEFAULT_BUBBLE_MS;
+      const ms = getGameSpeed() === 'fast' ? baseMs / 2 : baseMs;
+      const still = prefersReducedMotion();
+      const made: Bubble[] = [];
+      for (const pid of new Set(batch.map(x => x.playerId))) {
+        const mine = batch.filter(x => x.playerId === pid);
+        const list = mergedResultBubbles(mine);
+        const bid = layout.roomToBuilding.get(mine[mine.length - 1].space);
+        const b = bid ? layout.buildings.find(x => x.id === bid) : undefined;
+        if (!b || list.length === 0) continue;
+        const walkWait = Math.max(0, ...mine.map(x => x.walkMs - (Date.now() - x.at)));
+        const player = players.find(p => p.id === pid);
         list.forEach((r, i) => made.push({
-          ...r, key: seen.n * 100 + 50 + made.length, playerId: p.id,
+          ...r, key: ++bubbleKey.current, playerId: pid,
           // Rises from the top of the building's sign, stacked so two results never sit on each other.
           buildingId: b.id, index: i,
           delayMs: walkWait + i * 250, ms, still, volume: bubbleVolume(layout.settings),
+          tag: players.length > 1 ? player?.color : undefined,
         }));
       }
       if (made.length) setBubbles(bs => [...bs, ...made]);
-    }
-  }
+    }, BUBBLE_SETTLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [pending, layout, players]);
   const endBubble = useCallback((key: number) => setBubbles(bs => bs.filter(x => x.key !== key)), []);
   const endWalk = useCallback((key: number) => setWalks(w => w.filter(x => x.key !== key)), []);
   // Tell the rest of this screen a walk is on, so arriving pop-ups wait for it (boardStyle.ts).

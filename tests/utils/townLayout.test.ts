@@ -208,3 +208,30 @@ describe('result bubbles (money, scope, days)', () => {
     expect(resultBubbles({ money: 5, days: 5, scope: 5 }, { money: 5, days: 5, scope: 5 })).toEqual([]);
   });
 });
+
+// fb:5b8a060c (Tom, live v3.7.23): accepting the owner's money made two bubbles rise from two buildings.
+// One tap leaves a space (+1 day at the owner's) and enters the next (+5 days at the office); the
+// board now adds the changes of one tap together and shows one bubble per kind.
+describe('one tap, one bubble per kind (fb:5b8a060c)', () => {
+  const n = (money: number, days: number, scope = 0) => ({ money, days, scope });
+
+  it('days from the space left and the space entered become a single "+6 days"', async () => {
+    const { mergedResultBubbles } = await import('../../src/utils/townLayout');
+    expect(mergedResultBubbles([
+      { before: n(1000000, 0), after: n(1000000, 1) },
+      { before: n(1000000, 1), after: n(1000000, 6) },
+    ])).toEqual([{ kind: 'days', text: '+6 days', tone: 'bad' }]);
+  });
+
+  it('money and days stay separate kinds, and a change that cancels out makes no bubble', async () => {
+    const { mergedResultBubbles } = await import('../../src/utils/townLayout');
+    expect(mergedResultBubbles([
+      { before: n(0, 0), after: n(500000, 0) },
+      { before: n(500000, 0), after: n(500000, 2) },
+    ]).map(b => b.kind)).toEqual(['money', 'days']);
+    expect(mergedResultBubbles([
+      { before: n(100, 0), after: n(0, 0) },
+      { before: n(0, 0), after: n(100, 0) },
+    ])).toEqual([]);
+  });
+});

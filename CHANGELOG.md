@@ -15,6 +15,16 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.25] - 2026-10-13
+
+### One tap now makes one bubble per kind, from the building you end in, with your colour on it when others are playing. Not deployed.
+
+- **What Tom saw (fb:5b8a060c, live v3.7.23):** "when i accepted money from the owner two bubbles popped up from two different buildings." (His screenshot was the wrong one; the text is the report.)
+- **Cause (reproduced in the real game, two players, local):** the board made a bubble for every separate change of a player's numbers, from the building the player stood in at that moment. One tap makes several: "Take the check" charges the owner's day, then the turn moves on and the next space charges its own days. So a day bubble rose from the owner's house and another from the office, and with two players the next player's own start-of-turn result (their owner money) rose beside it with nothing to say whose it was. I could not see Tom's own game (its state lives only in his browser), so I matched his words to what the real game does; this is the mechanism I could prove, not a replay of his session.
+- **Fix:** `TownBoard` holds each change for 350 ms, adds up everything one player did in that window (`mergedResultBubbles` in `townLayout.ts`) and makes ONE bubble per kind (scope, money, days) from the building the player ended in, after their walk. When more than one player is in the game the bubble carries a dot in that player's colour. Checked live: a player who moved on made a single "+5 days" at the office; the other player's accept made a single "+1 day".
+- **Not done:** two players' bubbles at a turn hand-off still appear together (now told apart by colour); if Tom wants them one after the other, that is a small follow-up. Not run with a real phone or TV.
+- **Tests:** `townLayout` (2 new). typecheck clean.
+
 ## [3.7.24] - 2026-10-13
 
 ### "Lock the scope" (and every other hold-to-confirm button) could be stuck for good, because a card question wiped out the destination list. Not deployed.

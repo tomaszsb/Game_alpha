@@ -368,3 +368,12 @@ export function resultBubbles(before: PlayerNumbers, after: PlayerNumbers): Resu
   }
   return out;
 }
+
+/**
+ * The bubbles for several changes that belong together (one tap leaves a space and enters the next):
+ * the changes are added up first, so the player sees ONE bubble per kind, not one per change (fb:5b8a060c).
+ */
+export function mergedResultBubbles(changes: Array<{ before: PlayerNumbers; after: PlayerNumbers }>): ResultBubble[] {
+  const sum = (k: keyof PlayerNumbers) => changes.reduce((s, c) => s + (c.after[k] - c.before[k]), 0);
+  return resultBubbles({ money: 0, days: 0, scope: 0 }, { money: sum('money'), days: sum('days'), scope: sum('scope') });
+}
