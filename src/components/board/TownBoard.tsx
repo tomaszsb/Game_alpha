@@ -46,6 +46,7 @@ import {
   walkTimes,
   resultBubbles,
   mergedResultBubbles,
+  revealedBuildings,
   DEFAULT_BUBBLE_MS,
   bubbleVolume,
   type PlayerNumbers,
@@ -145,6 +146,8 @@ interface BuildingData extends Record<string, unknown> {
   roofY: number;
   labels: Record<string, string>;
   portrait: string | null;
+  /** False until the building has earned its name (revealedBuildings): it still stands, with a "?" for a name. */
+  named: boolean;
   mode: PanelMode;
   bubbles: Bubble[];
   onBubbleDone: (key: number) => void;
@@ -179,7 +182,7 @@ function Block({ b, ox, oy }: { b: TownBuilding; ox: number; oy: number }) {
 }
 
 function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
-  const { building: b, view, open, ox, oy, w, h, roofX, roofY, labels, portrait, mode, bubbles, onBubbleDone } = data;
+  const { building: b, view, open, ox, oy, w, h, roofX, roofY, labels, portrait, named, mode, bubbles, onBubbleDone } = data;
   const pal = panelPalettes[mode];
   const isDest = view.destinationRooms.length > 0;
   const ring = view.isCurrent ? HERE : isDest ? DEST : pal.borderStrong;
@@ -190,6 +193,7 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
   return (
     <div
       data-testid={`town-building-${b.id}`}
+      data-named={named ? 'true' : 'false'}
       data-open={open ? 'true' : 'false'}
       data-current={view.isCurrent ? 'true' : 'false'}
       data-destination={isDest ? 'true' : 'false'}
@@ -219,7 +223,7 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
         {bubbles.map(bb => <FloatingBubble key={bb.key} bubble={bb} onDone={onBubbleDone} />)}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {icon}
-          <span style={{ fontSize: 20, fontWeight: 800, whiteSpace: 'nowrap' }}>{b.name}</span>
+          <span style={{ fontSize: 20, fontWeight: 800, whiteSpace: 'nowrap', opacity: named ? 1 : 0.5 }}>{named ? b.name : '?'}</span>
           {view.playersHere.length > 0 && (
             <span style={{ display: 'flex', gap: 3, marginLeft: 4 }}>
               {view.playersHere.map(p => (
@@ -228,7 +232,7 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
             </span>
           )}
         </div>
-        {!open && isDest && (
+        {named && !open && isDest && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
             {view.destinationRooms.map(r => (
               <span key={r} data-testid={`town-room-${r}`} data-destination="true" style={{ fontSize: 16, fontWeight: 700, color: DEST, whiteSpace: 'nowrap' }}>
@@ -237,7 +241,7 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
             ))}
           </div>
         )}
-        {open && b.rooms.length > 0 && (
+        {named && open && b.rooms.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 7 }}>
             {b.rooms.map(r => {
               const here = view.currentRoom === r;
@@ -588,6 +592,14 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     return a ? getNpcImagePath(icon as NpcImageRole, a) : null;
   }, [appearances]);
 
+  // Names are earned (fb:aec545c4): the buildings all stand from the start; a name shows once a player has been in
+  // the building or is offered a move into it, or by the town list's own rule ('shown' / 'scope').
+  const named = useMemo(() => revealedBuildings(layout, {
+    visitedSpaces: players.flatMap(p => [...(p.visitedSpaces ?? []), p.currentSpace]),
+    offeredSpaces: validMoves,
+    scopeExists: players.some(p => gameRulesService.calculateProjectScope(p.id) > 0),
+  }), [layout, players, validMoves, gameRulesService]);
+
   const nodes = useMemo(() => {
     const out: Node[] = [];
     const { minCol, minRow, maxCol, maxRow } = layout.bounds;
@@ -618,13 +630,13 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         style: { pointerEvents: 'none' },
         data: {
           building: b, view, open, ox, oy, w: box.w, h: box.h + SIGN_SPACE,
-          roofX: box.roofX, roofY: box.roofY, labels, portrait: portraitFor(b.icon), mode,
+          roofX: box.roofX, roofY: box.roofY, labels, portrait: portraitFor(b.icon), named: named.has(b.id), mode,
           bubbles: bubbles.filter(x => x.buildingId === b.id), onBubbleDone: endBubble,
         } satisfies BuildingData,
       });
     }
     return out;
-  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, mode, bubbles, endBubble]);
+  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, named, mode, bubbles, endBubble]);
 
   // Follow the current player (TV, remote): first frame their building and its next moves, then
   // only glide at the zoom the viewer has, the same steady camera the classic board keeps.

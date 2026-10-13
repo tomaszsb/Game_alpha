@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { buildTownLayout, buildingBox, buildingViews, isoPoint, walkPath, pointAlong, walkTimes, DEFAULT_WALK_TIMES } from '../../src/utils/townLayout';
+import { buildTownLayout, buildingBox, buildingViews, isoPoint, walkPath, pointAlong, walkTimes, DEFAULT_WALK_TIMES, revealedBuildings } from '../../src/utils/townLayout';
 import { extractPrefix } from '../../src/constants/characters';
 import type { TownCsvRow } from '../../src/types/DataTypes';
 
@@ -233,5 +233,50 @@ describe('one tap, one bubble per kind (fb:5b8a060c)', () => {
       { before: n(100, 0), after: n(0, 0) },
       { before: n(0, 0), after: n(100, 0) },
     ])).toEqual([]);
+  });
+});
+
+// fb:aec545c4 (Tom, 10-13): the buildings all stand from the start; their NAMES are earned. The trailer stands on the building site.
+describe('names are earned, buildings always stand (fb:aec545c4)', () => {
+  const layout = buildTownLayout(townRows(), stockSpaces(), extractPrefix, label)!;
+  const named = (visited: string[] = [], offered: string[] = [], scopeExists = false) =>
+    revealedBuildings(layout, { visitedSpaces: visited, offeredSpaces: offered, scopeExists });
+
+  it('at the start only the player\'s office and the owner are named', () => {
+    expect([...named(['OWNER-SCOPE-INITIATION'])].sort()).toEqual(['office', 'owner']);
+    expect(layout.buildings.length).toBeGreaterThan(2); // the rest still stand, just unnamed
+  });
+
+  it('the trailer and the building site are named once a scope exists, and not before', () => {
+    expect(named().has('trailer')).toBe(false);
+    expect(named().has('site')).toBe(false);
+    const after = named([], [], true);
+    expect(after.has('trailer') && after.has('site')).toBe(true);
+    expect(after.has('finish')).toBe(false); // the ribbon cutting waits until somebody gets there
+  });
+
+  it('a building is named once a player has been in it or is offered a move into it', () => {
+    expect(named(['BANK-FUND-REVIEW']).has('bank')).toBe(true);
+    expect(named([], ['ARCH-FEE-REVIEW']).has('architect')).toBe(true);
+    expect(named(['FINISH']).has('finish')).toBe(true);
+    expect(named(['BANK-FUND-REVIEW']).has('investor')).toBe(false);
+  });
+
+  it('a town list with no reveal column names a building only once it is reached', () => {
+    const bare = buildTownLayout([
+      row({ kind: 'building', id: 'a', name: 'A', col: '0', row: '0', width: '2', depth: '2', height: '10' }),
+      row({ kind: 'building', id: 'b', name: 'B', col: '4', row: '0', width: '2', depth: '2', height: '10' }),
+      row({ kind: 'room', id: 'S1', building: 'a' }),
+      row({ kind: 'room', id: 'S2', building: 'b' }),
+    ], ['S1', 'S2'], extractPrefix, label)!;
+    expect([...revealedBuildings(bare, { visitedSpaces: ['S1'], offeredSpaces: [], scopeExists: true })]).toEqual(['a']);
+  });
+
+  it('the trailer stands on the building site, not beside it', () => {
+    const site = layout.buildings.find(b => b.id === 'site')!, trailer = layout.buildings.find(b => b.id === 'trailer')!;
+    expect(trailer.col).toBeGreaterThanOrEqual(site.col);
+    expect(trailer.col + trailer.width).toBeLessThanOrEqual(site.col + site.width);
+    expect(trailer.row).toBeGreaterThanOrEqual(site.row);
+    expect(trailer.row + trailer.depth).toBeLessThanOrEqual(site.row + site.depth);
   });
 });

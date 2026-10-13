@@ -23,6 +23,11 @@ export interface TownBuilding {
   rooms: string[];
   /** True for a lot made up for a square the town list does not place (a teacher's new square). */
   isNewPlace?: boolean;
+  /**
+   * When its name shows (TOWN.csv `value` on the building row): 'shown' = from the start, 'scope' = once a
+   * player has a scope, anything else = once a player has been there or is offered a move there (fb:aec545c4).
+   */
+  reveal: 'shown' | 'scope' | 'visit';
 }
 
 export interface TownStreet {
@@ -81,6 +86,7 @@ export function buildTownLayout(
         color: r.color || '#cfd8dc',
         icon: r.icon,
         rooms: [],
+        reveal: r.value === 'shown' || r.value === 'scope' ? r.value : 'visit',
       };
       buildings.push(b);
       byId.set(b.id, b);
@@ -127,6 +133,7 @@ export function buildTownLayout(
       icon: NEW_PLACE.icon,
       rooms: [space],
       isNewPlace: true,
+      reveal: 'visit',
     };
     newPlaces++;
     buildings.push(b);
@@ -160,7 +167,10 @@ export function buildingBox(b: Pick<TownBuilding, 'col' | 'row' | 'width' | 'dep
   const ys = corners.map(c => c.y);
   const x = Math.min(...xs);
   const y = Math.min(...ys) - b.height;
-  const roof = isoPoint(b.col + b.width / 2, b.row + b.depth / 2, b.height, tile);
+  // A big flat lot (the building site) hangs its sign from the back edge, so a building standing on it
+  // (the trailer) can have its own sign in the middle without the two landing on each other.
+  const roofRow = b.height === 0 && b.depth > 5 ? b.row + 1.2 : b.row + b.depth / 2;
+  const roof = isoPoint(b.col + b.width / 2, roofRow, b.height, tile);
   return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y, roofX: roof.x, roofY: roof.y };
 }
 
@@ -376,4 +386,24 @@ export function resultBubbles(before: PlayerNumbers, after: PlayerNumbers): Resu
 export function mergedResultBubbles(changes: Array<{ before: PlayerNumbers; after: PlayerNumbers }>): ResultBubble[] {
   const sum = (k: keyof PlayerNumbers) => changes.reduce((s, c) => s + (c.after[k] - c.before[k]), 0);
   return resultBubbles({ money: 0, days: 0, scope: 0 }, { money: sum('money'), days: sum('days'), scope: sum('scope') });
+}
+
+/**
+ * Which buildings have earned their name (fb:aec545c4: "the building names do not have to show up right
+ * away"). The buildings are always drawn; only the name and the room list are held back. A building is named when
+ * its data says 'shown', when its data says 'scope' and some player has a scope, or when any player has been in
+ * it or is offered a move into it.
+ */
+export function revealedBuildings(
+  layout: TownLayout,
+  state: { visitedSpaces: Iterable<string>; offeredSpaces: Iterable<string>; scopeExists: boolean },
+): Set<string> {
+  const reached = new Set<string>();
+  for (const s of state.visitedSpaces) { const b = layout.roomToBuilding.get(s); if (b) reached.add(b); }
+  for (const s of state.offeredSpaces) { const b = layout.roomToBuilding.get(s); if (b) reached.add(b); }
+  const out = new Set<string>();
+  for (const b of layout.buildings) {
+    if (b.reveal === 'shown' || reached.has(b.id) || (b.reveal === 'scope' && state.scopeExists)) out.add(b.id);
+  }
+  return out;
 }

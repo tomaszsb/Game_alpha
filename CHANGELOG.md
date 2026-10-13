@@ -15,6 +15,17 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.27] - 2026-10-13
+
+### Town board: building NAMES are earned as the game goes, and the trailer stands on the building site. Part of job 3; the two-site and multiplayer parts wait for Tom. Not deployed.
+
+- **What Tom asked (fb:aec545c4, and his 10-13 corrections):** the trailer belongs ON the construction site; the ribbon cutting must not announce itself before the building is built; building names should reveal as the game goes (first only the player's office and the owner, then the trailer and site once there is a scope). Correction: the BUILDINGS stay on the board from the start; only the names are held back.
+- **Names:** every building is drawn from the start; one that has not earned its name shows its icon and a faint "?" instead, and does not list its rooms. A name shows (`revealedBuildings` in `townLayout.ts`) when the town list says so (`value` column of the building row in `TOWN.csv`: `shown` = from the start, `scope` = once any player has a scope), or when any player has been in the building or is offered a move into it. Stock data: Your office and the Owner's house `shown`; the trailer and the building site `scope`; every other building, including the ribbon cutting, by reaching it. A town list with no such column (a teacher's board) simply names a building when it is reached.
+- **Trailer on the site:** the building site is now one big flat lot (5.2 x 9.4 tiles) and the trailer stands on it. A big flat lot hangs its sign from its back edge so the two signs do not land on each other. Room mapping unchanged (CON-INITIATION and CON-ISSUES in the trailer, CON-INSPECT on the site), so the walks and every rule are as before.
+- **Checked live (one fresh game):** at the start only `owner` and `office` are named, the other nine stand with "?" signs, and the trailer sits on the brown site lot with separate signs.
+- **Not done, waiting on Tom:** the second construction site (new building vs renovation) and several owners, offices and sites in multiplayer. The game has no "new building or renovation" fact anywhere: a scope is a set of work packages on one project type (school, hotel, ...), so there is nothing yet for "once the scope is created you know which site applies" to read. The question for Tom is in the session report.
+- **Tests:** `townLayout` (5 new). typecheck clean.
+
 ## [3.7.26] - 2026-10-13
 
 ### The "Funded" check shows part-way funding (orange, with a percent), and the bank's loan fee stands out in the paid list. Not deployed.
