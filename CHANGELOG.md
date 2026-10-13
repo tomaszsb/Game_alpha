@@ -15,6 +15,16 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.30] - 2026-10-13
+
+### Town board for several players: each player has their own owner house, office and construction site. Not deployed.
+
+- **Tom (10-13: "each player gets their own", after "in multiplayer there should be multiple owner buildings and offices and construction sites"):** my reading, said back before building: each player gets their own owner house, office and site with its trailer; bank, investor, architect, engineer, Buildings Department, firehouse and ribbon cutting stay shared.
+- **How:** `TOWN.csv` marks those buildings with `perplayer` rows (owner, office, site, trailer, site_new, trailer_new) and one `seat_drow` setting (16.4). `buildTownLayout(..., seats)` keeps seat 1 where it is and draws a copy of each for every other player in a band of town further down, with the avenues repeated. A one-player town is exactly the old town (tested). `buildingOfRoom` now takes who is asking (project kind AND seat), so walks, bubbles, next-move lights, names and the camera all use the player's own copy; the shared rooms are the same for everybody. A building that belongs to one player is named by THAT player's scope only, and fades only when that player's kind is the other one. Every own building shows a dot in its player's colour (several players only). `GameBoard` passes the number of players.
+- **Checked live:** four players on one screen: 4 owner houses and 4 offices named from the start, the 6 shared places unnamed, 24 colour dots, each seat band complete. It is a long diagonal town; the middle of each lower band is empty grass (the shared places stand only once). The look is a placeholder; seat spacing is one data number.
+- **Not done:** walking two players at once across the long town on a real TV; the new-building path with a real mostly-new scope; two players on the same seat band never happens (one band per player).
+- **Tests:** `townLayout` (6 new, the older ones moved to the new signatures). typecheck clean; `npm test` 268 files / 3879 green.
+
 ## [3.7.29] - 2026-10-13
 
 ### Clipboard, first small pieces: Money and Scope side by side on a phone, and the clipboard wears the player's colour. Not deployed.

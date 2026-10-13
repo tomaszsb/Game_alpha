@@ -9,7 +9,7 @@ import { TownBoard, useTownLayout } from './TownBoard';
 import { useBoardStyle } from '../../utils/boardStyle';
 
 function TownOrClassic(props: BoardCanvasProps) {
-  const layout = useTownLayout();
+  const layout = useTownLayout(props.players.length);
   if (!layout) return <BoardCanvas {...props} />;
   return (
     <TownBoard

@@ -244,8 +244,9 @@ describe('names are earned, buildings always stand (fb:aec545c4)', () => {
     revealedBuildings(layout, {
       visited: visited.map(([space, k]) => ({ space, kind: k })),
       offered: { spaces: offered, kind },
-      scopeKinds,
+      scopeKinds: scopeKinds.map(k => ({ kind: k })),
     });
+  const faded = (kinds: string[]) => fadedBuildings(layout, kinds.map(k => ({ kind: k })));
 
   it("at the start only the player's office and the owner are named", () => {
     expect([...named([['OWNER-SCOPE-INITIATION']])].sort()).toEqual(['office', 'owner']);
@@ -261,19 +262,19 @@ describe('names are earned, buildings always stand (fb:aec545c4)', () => {
     expect(['site_new', 'trailer_new'].every(b => fresh.has(b))).toBe(true);
     expect(['site', 'trailer'].some(b => fresh.has(b))).toBe(false);
     expect(reno.has('finish')).toBe(false); // the ribbon cutting waits until somebody gets there
-    expect([...fadedBuildings(layout, ['existing'])].sort()).toEqual(['site_new', 'trailer_new']);
-    expect([...fadedBuildings(layout, ['new'])].sort()).toEqual(['site', 'trailer']);
-    expect([...fadedBuildings(layout, ['new', 'existing'])]).toEqual([]);
-    expect([...fadedBuildings(layout, [])]).toEqual([]); // no scope yet: both sites stand plain
+    expect([...faded(['existing'])].sort()).toEqual(['site_new', 'trailer_new']);
+    expect([...faded(['new'])].sort()).toEqual(['site', 'trailer']);
+    expect([...faded(['new', 'existing'])]).toEqual([]);
+    expect([...faded([])]).toEqual([]); // no scope yet: both sites stand plain
   });
 
   it("the build rooms are in the player's own site: the trailer and the inspection", () => {
-    expect(buildingOfRoom(layout, 'CON-INITIATION', 'existing')).toBe('trailer');
-    expect(buildingOfRoom(layout, 'CON-INITIATION', 'new')).toBe('trailer_new');
-    expect(buildingOfRoom(layout, 'CON-ISSUES', 'new')).toBe('trailer_new');
-    expect(buildingOfRoom(layout, 'CON-INSPECT', 'new')).toBe('site_new');
+    expect(buildingOfRoom(layout, 'CON-INITIATION', { kind: 'existing' })).toBe('trailer');
+    expect(buildingOfRoom(layout, 'CON-INITIATION', { kind: 'new' })).toBe('trailer_new');
+    expect(buildingOfRoom(layout, 'CON-ISSUES', { kind: 'new' })).toBe('trailer_new');
+    expect(buildingOfRoom(layout, 'CON-INSPECT', { kind: 'new' })).toBe('site_new');
     expect(buildingOfRoom(layout, 'CON-INSPECT', undefined)).toBe('site');
-    expect(buildingOfRoom(layout, 'BANK-FUND-REVIEW', 'new')).toBe('bank');
+    expect(buildingOfRoom(layout, 'BANK-FUND-REVIEW', { kind: 'new' })).toBe('bank');
     expect(layout.buildings.find(b => b.id === 'site_new')!.altRooms).toContain('CON-INSPECT');
   });
 
@@ -293,7 +294,7 @@ describe('names are earned, buildings always stand (fb:aec545c4)', () => {
       row({ kind: 'room', id: 'S1', building: 'a' }),
       row({ kind: 'room', id: 'S2', building: 'b' }),
     ], ['S1', 'S2'], extractPrefix, label)!;
-    expect([...revealedBuildings(bare, { visited: [{ space: 'S1' }], offered: { spaces: [] }, scopeKinds: ['new'] })]).toEqual(['a']);
+    expect([...revealedBuildings(bare, { visited: [{ space: 'S1' }], offered: { spaces: [] }, scopeKinds: [{ kind: 'new' }] })]).toEqual(['a']);
   });
 
   it('each trailer stands on its own site, not beside it', () => {
@@ -304,5 +305,78 @@ describe('names are earned, buildings always stand (fb:aec545c4)', () => {
       expect(trailer.row).toBeGreaterThanOrEqual(site.row);
       expect(trailer.row + trailer.depth).toBeLessThanOrEqual(site.row + site.depth);
     }
+  });
+});
+
+// fb:aec545c4, multiplayer (Tom, 10-13: "each player gets their own"): every player has their own owner house, office and
+// construction site with its trailer; the other places are shared.
+describe('each player has their own owner house, office and site (fb:aec545c4)', () => {
+  const solo = buildTownLayout(townRows(), stockSpaces(), extractPrefix, label, 1)!;
+  const four = buildTownLayout(townRows(), stockSpaces(), extractPrefix, label, 4)!;
+  const own = ['owner', 'office', 'site', 'trailer', 'site_new', 'trailer_new'];
+
+  it('a one-player town is exactly the plain town', () => {
+    expect(solo.seats).toBe(1);
+    expect(solo.buildings.some(b => b.id.includes('@'))).toBe(false);
+    expect(solo.buildings.map(b => b.id)).toEqual(four.buildings.filter(b => !b.id.includes('@')).map(b => b.id));
+  });
+
+  it('with four players each own building has a copy per seat, and the rest are shared', () => {
+    expect(four.seats).toBe(4);
+    for (const id of own) {
+      for (const s of [1, 2, 3]) expect(four.buildings.some(b => b.id === id + '@' + s && b.seat === s)).toBe(true);
+      expect(four.buildings.find(b => b.id === id)!.seat).toBe(0);
+    }
+    for (const id of ['bank', 'investor', 'architect', 'engineer', 'dob', 'firehouse', 'finish']) {
+      expect(four.buildings.find(b => b.id === id)!.seat).toBeUndefined();
+      expect(four.buildings.some(b => b.id.startsWith(id + '@'))).toBe(false);
+    }
+  });
+
+  it("a room is in the player's own copy; shared rooms are the same for everybody", () => {
+    expect(buildingOfRoom(four, 'OWNER-FUND-INITIATION', { seat: 0 })).toBe('owner');
+    expect(buildingOfRoom(four, 'OWNER-FUND-INITIATION', { seat: 2 })).toBe('owner@2');
+    expect(buildingOfRoom(four, 'PM-DECISION-CHECK', { seat: 3 })).toBe('office@3');
+    expect(buildingOfRoom(four, 'CON-INSPECT', { seat: 1, kind: 'new' })).toBe('site_new@1');
+    expect(buildingOfRoom(four, 'CON-INITIATION', { seat: 1, kind: 'existing' })).toBe('trailer@1');
+    expect(buildingOfRoom(four, 'BANK-FUND-REVIEW', { seat: 3 })).toBe('bank');
+    expect(buildingOfRoom(solo, 'OWNER-FUND-INITIATION', { seat: 2 })).toBe('owner'); // no copy in a one-player town
+  });
+
+  it('the copies stand in their own band, clear of the shared town and of each other', () => {
+    const boxes = four.buildings.map(b => ({ id: b.id, c0: b.col, c1: b.col + b.width, r0: b.row, r1: b.row + b.depth }));
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i], b = boxes[j];
+      const overlap = a.c0 < b.c1 && b.c0 < a.c1 && a.r0 < b.r1 && b.r0 < a.r1;
+      // the trailer standing on its own site is meant to overlap it
+      const onSite = (a.id.startsWith('trailer') && b.id.startsWith('site') && a.id.replace('trailer', 'site') === b.id) || (b.id.startsWith('trailer') && a.id.startsWith('site') && b.id.replace('trailer', 'site') === a.id);
+      if (!onSite) expect(overlap, a.id + ' / ' + b.id).toBe(false);
+    }
+  });
+
+  it("walks between a seat's own office and a shared building still follow the streets", () => {
+    const onStreet = (p: { col: number; row: number }) => four.streets.some(s => (s.axis === 'col' ? p.col === s.at + 0.5 : p.row === s.at + 0.5));
+    for (const [a, b] of [['office@2', 'bank'], ['owner@3', 'office@3'], ['trailer@1', 'office@1'], ['office@1', 'architect']]) {
+      const pts = walkPath(four, a, b);
+      expect(pts.length).toBeGreaterThan(1);
+      pts.slice(1, -1).forEach(p => expect(onStreet(p)).toBe(true));
+      pts.slice(1).forEach((p, i) => expect(p.col === pts[i].col || p.row === pts[i].row).toBe(true));
+    }
+  });
+
+  it("a seat's own site and trailer are named by THAT player's scope only", () => {
+    const named = revealedBuildings(four, {
+      visited: [], offered: { spaces: [] },
+      scopeKinds: [{ kind: 'new', seat: 1 }, { kind: 'existing', seat: 0 }],
+    });
+    expect(['site', 'trailer', 'site_new@1', 'trailer_new@1'].every(b => named.has(b))).toBe(true);
+    expect(['site_new', 'site@1', 'site@2', 'site_new@2', 'site@3'].some(b => named.has(b))).toBe(false);
+    const f = fadedBuildings(four, [{ kind: 'new', seat: 1 }]);
+    expect([...f].sort()).toEqual(['site@1', 'trailer@1']);
+  });
+
+  it("everyone's own office and owner house are named from the start", () => {
+    const named = revealedBuildings(four, { visited: [], offered: { spaces: [] }, scopeKinds: [] });
+    for (const s of ['', '@1', '@2', '@3']) expect(named.has('owner' + s) && named.has('office' + s)).toBe(true);
   });
 });

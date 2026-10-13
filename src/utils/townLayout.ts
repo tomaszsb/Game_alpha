@@ -19,6 +19,12 @@ export interface TownBuilding {
   color: string;
   /** A portrait role (owner, architect, ...) or an emoji. */
   icon: string;
+  /**
+   * Which player's own building this is (0 = the first player), or undefined for a place everybody shares. A town list
+   * marks the buildings each player gets their own of with `perplayer` rows; the town is then drawn with one copy
+   * per player in the game (fb:aec545c4: "in multiplayer there should be multiple owner buildings and offices and sites").
+   */
+  seat?: number;
   /** Space ids inside, in TOWN.csv order. */
   rooms: string[];
   /** Rooms that are in this building only for a player of one project kind (`variant` rows); also in another building's `rooms`. */
@@ -36,9 +42,13 @@ export interface TownBuilding {
 export interface TownStreet {
   axis: 'col' | 'row';
   at: number;
+  /** A copy made for another player's band of the town. */
+  copy?: boolean;
 }
 
 export interface TownLayout {
+  /** How many players the town was drawn for (1 = the plain town). */
+  seats: number;
   buildings: TownBuilding[];
   streets: TownStreet[];
   /** Space id -> building id, for every placed space. */
@@ -72,11 +82,14 @@ export function buildTownLayout(
   spaceNames: string[],
   prefixOf: (spaceName: string) => string,
   labelOf: (spaceName: string) => string,
+  /** One copy of each `perplayer` building per player: how many players the town is drawn for. */
+  seats = 1,
 ): TownLayout | null {
   const buildings: TownBuilding[] = [];
   const byId = new Map<string, TownBuilding>();
   const streets: TownStreet[] = [];
   const settings: Record<string, string> = {};
+  const perPlayer = new Set<string>();
 
   for (const r of rows) {
     if (r.kind === 'building' && !byId.has(r.id)) {
@@ -101,6 +114,8 @@ export function buildTownLayout(
       else if (r.row !== '') streets.push({ axis: 'row', at: num(r.row) });
     } else if (r.kind === 'setting') {
       settings[r.id] = r.value;
+    } else if (r.kind === 'perplayer') {
+      perPlayer.add(r.id);
     }
   }
   if (buildings.length === 0) return null;
@@ -125,6 +140,30 @@ export function buildTownLayout(
     if (roomVariants.get(r.id)!.has(r.value)) continue;
     roomVariants.get(r.id)!.set(r.value, b.id);
     b.altRooms.push(r.id);
+  }
+
+  // One copy of each per-player building for every player after the first, in a band of town further down (the
+  // copies carry the same rooms for display; where a room's walkers stand is decided by buildingOfRoom).
+  const seatCount = Math.max(1, Math.floor(seats));
+  const bandRows = num(settings.seat_drow ?? '', 16.4);
+  const bandCols = num(settings.seat_dcol ?? '', 0);
+  for (const b of [...buildings]) {
+    if (perPlayer.has(b.id)) b.seat = 0;
+  }
+  for (let s = 1; s < seatCount; s++) {
+    for (const base of [...buildings]) {
+      if (base.seat !== 0 || base.id.includes('@')) continue;
+      const copy: TownBuilding = {
+        ...base, id: `${base.id}@${s}`, seat: s,
+        col: base.col + s * bandCols, row: base.row + s * bandRows,
+        rooms: [...base.rooms], altRooms: [...base.altRooms],
+      };
+      buildings.push(copy);
+      byId.set(copy.id, copy);
+    }
+    for (const st of [...streets]) {
+      if (st.axis === 'row' && !st.copy) streets.push({ axis: 'row', at: st.at + s * bandRows, copy: true });
+    }
   }
 
   const placedBottom = Math.max(...buildings.map(b => b.row + b.depth));
@@ -166,12 +205,24 @@ export function buildTownLayout(
     maxCol: Math.max(...buildings.map(b => b.col + b.width)),
     maxRow: Math.max(...buildings.map(b => b.row + b.depth)),
   };
-  return { buildings, streets, roomToBuilding, roomVariants, bounds, settings };
+  return { seats: seatCount, buildings, streets, roomToBuilding, roomVariants, bounds, settings };
 }
 
-/** The building a room is in for a player of this project kind (the same building for every kind unless a `variant` row says otherwise). */
-export function buildingOfRoom(layout: TownLayout, space: string, kind?: string): string | undefined {
-  return (kind ? layout.roomVariants.get(space)?.get(kind) : undefined) ?? layout.roomToBuilding.get(space);
+/** Who is asking where a room is: their project kind (new / existing) and which player's seat they hold. */
+export interface Who {
+  kind?: string;
+  seat?: number;
+}
+
+/**
+ * The building a room is in for this player: their project kind picks the construction site (`variant` rows), and if
+ * that building is one each player has their own of, it is the copy in THEIR seat's band of the town.
+ */
+export function buildingOfRoom(layout: TownLayout, space: string, who?: Who): string | undefined {
+  const base = (who?.kind ? layout.roomVariants.get(space)?.get(who.kind) : undefined) ?? layout.roomToBuilding.get(space);
+  if (!base || !who?.seat || who.seat < 1) return base;
+  const copy = `${base}@${who.seat}`;
+  return layout.buildings.some(b => b.id === copy) ? copy : base;
 }
 
 /** Isometric (2:1) projection of a town grid point to board pixels. `tile` = px per grid tile. */
@@ -206,6 +257,8 @@ export interface TownPlayerMark {
   currentSpace: string;
   /** new building or existing one (projectKind.ts), once the player has a scope. */
   projectKind?: string;
+  /** Which seat the player holds (0 = first), for the buildings each player has their own of. */
+  seat?: number;
 }
 
 export interface BuildingView {
@@ -225,15 +278,15 @@ export function buildingViews(
   players: TownPlayerMark[],
   currentPlayerId: string | null | undefined,
   validMoves: string[],
-  /** The project kind of the current player, so the next moves land in THEIR construction site. */
-  currentKind?: string,
+  /** The current player's kind and seat, so the next moves land in THEIR construction site and rooms. */
+  currentWho?: Who,
 ): Map<string, BuildingView> {
   const views = new Map<string, BuildingView>();
   for (const b of layout.buildings) {
     views.set(b.id, { isCurrent: false, currentRoom: null, destinationRooms: [], playersHere: [] });
   }
   for (const p of players) {
-    const bid = buildingOfRoom(layout, p.currentSpace, p.projectKind);
+    const bid = buildingOfRoom(layout, p.currentSpace, { kind: p.projectKind, seat: p.seat });
     const v = bid ? views.get(bid) : undefined;
     if (!v) continue;
     v.playersHere.push(p);
@@ -243,7 +296,7 @@ export function buildingViews(
     }
   }
   for (const m of validMoves) {
-    const bid = buildingOfRoom(layout, m, currentKind);
+    const bid = buildingOfRoom(layout, m, currentWho);
     const v = bid ? views.get(bid) : undefined;
     if (v && !v.destinationRooms.includes(m)) v.destinationRooms.push(m);
   }
@@ -425,23 +478,25 @@ export function mergedResultBubbles(changes: Array<{ before: PlayerNumbers; afte
 export function revealedBuildings(
   layout: TownLayout,
   state: {
-    /** Rooms players have been in, each with that player's project kind. */
-    visited: Iterable<{ space: string; kind?: string }>;
-    /** Rooms the current player can move to next, and their project kind. */
-    offered: { spaces: Iterable<string>; kind?: string };
-    /** The project kinds of the players who have a scope. */
-    scopeKinds: Iterable<string>;
+    /** Rooms players have been in, each with that player's kind and seat. */
+    visited: Iterable<{ space: string } & Who>;
+    /** Rooms the current player can move to next, and their kind and seat. */
+    offered: { spaces: Iterable<string> } & Who;
+    /** The project kind and seat of each player who has a scope. */
+    scopeKinds: Iterable<{ kind: string; seat?: number }>;
   },
 ): Set<string> {
   const reached = new Set<string>();
-  for (const v of state.visited) { const b = buildingOfRoom(layout, v.space, v.kind); if (b) reached.add(b); }
-  for (const s of state.offered.spaces) { const b = buildingOfRoom(layout, s, state.offered.kind); if (b) reached.add(b); }
-  const kinds = new Set(state.scopeKinds);
+  for (const v of state.visited) { const b = buildingOfRoom(layout, v.space, v); if (b) reached.add(b); }
+  for (const s of state.offered.spaces) { const b = buildingOfRoom(layout, s, state.offered); if (b) reached.add(b); }
+  const scoped = [...state.scopeKinds];
   const out = new Set<string>();
   for (const b of layout.buildings) {
-    const byScope = b.reveal === 'scope' ? kinds.size > 0
-      : b.reveal === 'scope_new' ? kinds.has('new')
-      : b.reveal === 'scope_existing' ? kinds.has('existing')
+    // A building that belongs to one player only counts that player's scope; a shared one counts anybody's.
+    const mine = scoped.filter(k => b.seat === undefined || (k.seat ?? 0) === b.seat);
+    const byScope = b.reveal === 'scope' ? mine.length > 0
+      : b.reveal === 'scope_new' ? mine.some(k => k.kind === 'new')
+      : b.reveal === 'scope_existing' ? mine.some(k => k.kind === 'existing')
       : false;
     if (b.reveal === 'shown' || reached.has(b.id) || byScope) out.add(b.id);
   }
@@ -452,12 +507,14 @@ export function revealedBuildings(
  * Buildings that are built for one project kind and are not the kind of anyone's scope: the other construction
  * site. They stay standing but fade, so the player's own site stands out (Tom: "the other site stays unlabelled or fades").
  */
-export function fadedBuildings(layout: TownLayout, scopeKinds: Iterable<string>): Set<string> {
-  const kinds = new Set(scopeKinds);
+export function fadedBuildings(layout: TownLayout, scopeKinds: Iterable<{ kind: string; seat?: number }>): Set<string> {
+  const scoped = [...scopeKinds];
   const out = new Set<string>();
-  if (kinds.size === 0) return out;
   for (const b of layout.buildings) {
-    if ((b.reveal === 'scope_new' && !kinds.has('new')) || (b.reveal === 'scope_existing' && !kinds.has('existing'))) out.add(b.id);
+    // Each player's own pair fades only once THAT player has a scope; a shared site waits for anybody's.
+    const mine = scoped.filter(k => b.seat === undefined || (k.seat ?? 0) === b.seat);
+    if (mine.length === 0) continue;
+    if ((b.reveal === 'scope_new' && !mine.some(k => k.kind === 'new')) || (b.reveal === 'scope_existing' && !mine.some(k => k.kind === 'existing'))) out.add(b.id);
   }
   return out;
 }

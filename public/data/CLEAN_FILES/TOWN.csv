@@ -52,3 +52,10 @@ setting,hop_ms,,,,,,,,,,350
 setting,bubble_ms,,,,,,,,,,1800
 setting,bubble_sound_volume,,,,,,,,,,0.2
 setting,panel_frame,,,,,,,,,,clipboard
+perplayer,owner,,,,,,,,,,
+perplayer,office,,,,,,,,,,
+perplayer,site,,,,,,,,,,
+perplayer,trailer,,,,,,,,,,
+perplayer,site_new,,,,,,,,,,
+perplayer,trailer_new,,,,,,,,,,
+setting,seat_drow,,,,,,,,,,16.4
