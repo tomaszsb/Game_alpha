@@ -15,6 +15,17 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.33] - 2026-10-13
+
+### "This turn": every action row is two columns, the button on the left and its proposed result on the right. Not deployed.
+
+- **Tom (10-13):** "where the action buttons are, can we make that two columns? the left column the button and the right column the answer or the action result?" then "proposed result I mean".
+- **Left:** the button exactly as before (with its "?"; the `action-button` test id and everything the robot reads are unchanged). **Right:** what pressing it is expected to do, in a few words, from the same per-effect rules the End Turn preview uses: "+3 Expeditors", "Varies" for a dice roll (never a guessed number), a fixed fee as dollars, and a dash when there is nothing to say. Once an action is done it moves to "Already done this turn" with a tick on the left and, on the right, what actually happened ("+3 Expeditors"; a dice draw reads the real cards, a fee reads what was charged).
+- **How:** `effectFragment` (new, `utils/costPreview.ts`) is the body that `getEndTurnCostPreview` has always run for each effect, lifted out unchanged, and `getActionResultText` joins the results of the effects one button runs (a merged dice button joins both). The End Turn preview now calls the same function, so the row and the preview cannot disagree (its 69 tests pass untouched). The row is a two-column grid (`ACTION_ROW.noResult` is the dash, in `UI_STRINGS.csv`).
+- **Phone size, measured in the browser (card height):** 360 x 640 = 647 px and 390 x 844 = 647 px (was 649). Two columns narrow the button, so on a phone the label is 12 px with snug padding and a 36 px minimum height: a long label (tested with the 34-character "See how long the second read takes") wraps to two lines and the row is still 36 px, so no row is taller than before. My first try (13 px labels) was 679 px.
+- **Checked live:** at game start the two rows read "Add a team member | +3 Expeditors" and "See what he wants built | Varies"; after pressing the first it sits under "Already done this turn" with "+3 Expeditors".
+- **Tests:** `actionResultText` (5 new); `PlayerPanelV2` "Varies" test updated (it now shows in two places). typecheck clean; `npm test` green.
+
 ## [3.7.32] - 2026-10-13
 
 ### Clipboard: the pages flip, and the pop-ups you play are pages of the clipboard. Not deployed.

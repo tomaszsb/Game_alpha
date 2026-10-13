@@ -24,6 +24,7 @@ import { panelFrameName, panelFrameStyles } from '../../utils/panelFrame';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import React, { useEffect, useRef, useState } from 'react';
 import { PlayerPanelProps } from './panelTypes';
+import type { SpaceEffect } from '../../types/DataTypes';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { PanelMode, panelPalettes } from './panelTheme';
 import { HelpButton } from '../help/HelpButton';
@@ -36,7 +37,7 @@ import { PlayerNumbersV2, NumbersPage } from './PlayerNumbersV2';
 import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { TurnCommitControl } from './TurnCommitControl';
 import { getEndTurnWarning } from '../../utils/endTurnWarning';
-import { getEndTurnCostPreview, getTryAgainCostPreview, getLoanOnTheTable, isManualEffectCompleted, perAmountUnit, timeRowDays } from '../../utils/costPreview';
+import { getEndTurnCostPreview, getTryAgainCostPreview, getLoanOnTheTable, isManualEffectCompleted, perAmountUnit, timeRowDays, getActionResultText } from '../../utils/costPreview';
 import { ACTION_ROW, COMMIT, NUMBERS, GLANCE_HELP, SCOPE_APPROVAL } from '../../constants/uiStrings';
 import { setDestinationPreview } from '../../utils/destinationPreview';
 import { getBuilderRules } from '../../utils/trophyRules';
@@ -810,6 +811,16 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // A finished one-shot action: grayed, checked, not interactive. Shares
   // actionBtn's geometry so a used action keeps the exact same footprint as the
   // live button it replaced (fb:44df6d5d) — only the colors/cursor differ.
+  // Two columns on every action row (Tom, 2026-10-13): the button on the left, its PROPOSED result on the right
+  // ("+3 Expeditors", "Varies", "-$5,000"); once the action is done the row's right side reads what actually happened.
+  const actionGrid: React.CSSProperties = {
+    display: 'grid', gridTemplateColumns: 'minmax(0, 2.4fr) minmax(0, 1fr)', gap: 6, alignItems: 'center', marginBottom: 7,
+  };
+  // On a phone the left cell is narrow, so a long label wraps to a second line; a tighter label (12 px, snug padding)
+  // keeps a two-line row no taller than the one-line row was (the phone panel may not grow).
+  const phoneLabel: React.CSSProperties = isPhone ? { padding: '3px 8px', fontSize: 12, lineHeight: 1.15, minHeight: 36 } : {};
+  const resultCell: React.CSSProperties = { fontSize: 12, fontWeight: 600, lineHeight: 1.25, color: p.text, overflowWrap: 'anywhere' };
+  const resultText = (effects: SpaceEffect[]): string => getActionResultText(gameServices, effects, playerId, completedActions);
   const doneActionRow: React.CSSProperties = {
     ...actionBtn,
     background: p.surf2,
@@ -1150,8 +1161,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             const helpId = `action:${a.effectKey}`;
             const helpCardId = `help-card-${a.effectKey.replace(/[^A-Za-z0-9_-]/g, '-')}`;
             const isOpen = openHelp === helpId;
+            const proposed = resultText([a.effect, ...(a.mergedFrom?.map((m) => m.effect) ?? [])]);
             return (
               <div key={a.effectKey}>
+                <div style={actionGrid}>
                 {/* One shared outline round the action AND its "?" (Tom, 2026-10-02:
                     "? should be within each area, not outside"). HelpButton must stay a
                     SIBLING of the button, never a child (a glossary link inside a button
@@ -1160,7 +1173,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                 <div style={{
                   display: 'flex', alignItems: 'stretch', gap: 4, boxSizing: 'border-box',
                   background: p.surf, border: `1px solid ${p.borderStrong}`, borderRadius: 9,
-                  marginBottom: 7, paddingRight: 6,
+                  paddingRight: 6,
                 }}>
                   <button
                     // Structural handle for the playtest robot. It finds real
@@ -1176,7 +1189,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                     data-testid="action-button"
                     data-effect-key={a.effectKey}
                     className={firstVisitHint ? 'uc-hint-glow' : undefined}
-                    style={{ ...actionBtn, flex: 1, width: 'auto', background: 'transparent', border: 'none', marginBottom: 0 }}
+                    style={{ ...actionBtn, flex: 1, width: 'auto', background: 'transparent', border: 'none', marginBottom: 0, ...phoneLabel }}
                     disabled={a.isDiceEffect && isRollingDice}
                     onClick={() =>
                       a.isDiceEffect && onRollDice ? handleDiceRoll() : handleManualEffect(a.effectKey)
@@ -1205,6 +1218,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                     palette={p}
                     style={{ alignSelf: 'center' }}
                   />
+                </div>
+                <div data-testid="action-result" aria-label={proposed ? `Result: ${proposed}` : undefined} style={{ ...resultCell, color: proposed ? p.text : p.muted }}>
+                  {proposed || ACTION_ROW.NO_RESULT}
+                </div>
                 </div>
                 {isOpen && (
                   <HelpCard
@@ -1384,13 +1401,17 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             // Outcome actions carry the resolved result as a hover/long-press
             // tooltip (fb:b53864af — "show the fee once it's determined"); the
             // exact amounts also land on the commit spine's this-turn line.
-            <div
-              key={`done-${a.effectKey}`}
-              style={doneActionRow}
-              aria-label={`Done: ${a.label}`}
-              title={a.isDiceEffect && completedActions.diceRoll ? completedActions.diceRoll : undefined}
-            >
-              ✓ {a.label.replace(/^🎲\s*/, '')}
+            <div key={`done-${a.effectKey}`} style={actionGrid}>
+              <div
+                style={{ ...doneActionRow, marginBottom: 0, ...phoneLabel }}
+                aria-label={`Done: ${a.label}`}
+                title={a.isDiceEffect && completedActions.diceRoll ? completedActions.diceRoll : undefined}
+              >
+                ✓ {a.label.replace(/^🎲\s*/, '')}
+              </div>
+              <div data-testid="action-result" style={resultCell}>
+                {resultText([a.effect, ...(a.mergedFrom?.map((m) => m.effect) ?? [])]) || ACTION_ROW.NO_RESULT}
+              </div>
             </div>
           ))}
         </div>

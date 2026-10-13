@@ -93,6 +93,7 @@ COMMIT.ending,Ending…
 COMMIT.endTurn,End turn
 ACTION_ROW.optional,optional
 ACTION_ROW.header,This turn
+ACTION_ROW.noResult,—
 NUMBERS.tile.money,Money
 NUMBERS.tile.time,Time
 NUMBERS.tile.expeditors,Expeditors

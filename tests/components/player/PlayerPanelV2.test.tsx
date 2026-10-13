@@ -1099,8 +1099,10 @@ describe('PlayerPanelV2 — End Turn cost preview drops already-completed action
 
   it('shows "Varies" for the Work row before the dice roll happens', () => {
     renderPanel({ diceRoll: undefined, manualActions: {} });
-    // End Turn is the default (first-shown) tab of the toggle.
-    expect(screen.getByText('Varies')).toBeInTheDocument();
+    // End Turn is the default (first-shown) tab of the toggle. "Varies" now shows twice: in that preview and as the
+    // dice action row's own proposed result (the right-hand column of the action rows).
+    expect(screen.getAllByText('Varies').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByTestId('action-result').some((e) => e.textContent === 'Varies')).toBe(true);
   });
 
   it('drops the Work row\'s "Varies" value once the roll already resolved this turn', () => {

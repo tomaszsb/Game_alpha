@@ -75,6 +75,7 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // header claimed a category that didn't fit everything below it. Tom's
   // pick: a neutral umbrella that doesn't claim to be any one of the three.
   'ACTION_ROW.header': 'This turn',
+  'ACTION_ROW.noResult': '—',
   // v3.2.62 (fb:adad1561, Tom 2026-09-17): "What's affecting you" folded into
   // the numbers — four tappable glance boxes, each opening its own page.
   // Placeholder wording taken from Tom's brief; every label is his to rename
@@ -437,6 +438,7 @@ export const COMMIT_HELP = {
 export const ACTION_ROW = {
   get OPTIONAL() { return getUIString('ACTION_ROW.optional'); },
   get HEADER() { return getUIString('ACTION_ROW.header'); },
+  get NO_RESULT() { return getUIString('ACTION_ROW.noResult'); },
 };
 
 // --- Dice roll button labels ---

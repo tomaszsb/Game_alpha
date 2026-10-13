@@ -441,6 +441,98 @@ export function toFullRowSet(rows: CostPreviewRow[], emptyValue: string = '—')
 }
 
 /**
+ * What ONE space effect will do (or, once its manual action is done, what it did), as a bucket and a short fragment, or
+ * null when it has nothing to show. This is the body getEndTurnCostPreview has always run per effect, lifted out so the
+ * action rows can show their own proposed / actual result (Tom, 2026-10-13: "the right column is the proposed result").
+ */
+export function effectFragment(
+  effect: SpaceEffect,
+  gameServices: IServiceContainer,
+  playerId: string,
+  completedActions: CompletedActions = { manualActions: {} },
+): { bucket: CostPreviewRowKey; text: string } | null {
+  const one = (bucket: CostPreviewRowKey, text: string | null) => (text ? { bucket, text } : null);
+  // An already-completed manual action (e.g. the player already pressed
+  // "Get Work Packages" and it resolved to 3 cards) is no longer a
+  // remaining cost of pressing End Turn — the CSV row is a static
+  // per-visit declaration, not a per-turn one, so without this check it
+  // would keep showing "Varies" for something that already happened
+  // (fb:feedback-1783922070233-49395e17). But going blank ("—") once it's
+  // done isn't right either (maintainer feedback 2026-08-18): show what
+  // actually happened instead — "+3 Work Packages", "-$34,000", etc. —
+  // not nothing.
+  if (effect.trigger_type === 'manual' && isManualEffectCompleted(effect, completedActions)) {
+    if (effect.effect_type === 'cards') {
+      // A fixed-count CSV row (not a dice roll) — the "pre-action"
+      // fragment already IS the real outcome, since the count was never
+      // random. Keep showing it rather than dropping it once it's done.
+      const result = classifyCardEffect(effect);
+      return result ? { bucket: result.bucket, text: result.fragment } : null;
+    }
+    if (effect.effect_type === 'dice') {
+      const classified = classifyDiceEffect(effect);
+      if (classified?.kind === 'fee') {
+        // Rolling turns "Varies" into a concrete, known dollar figure —
+        // and a button literally labeled "Pay the fee" is about to lock
+        // it in. Surface what was actually charged (this turn's outflow
+        // ledger) instead of just skipping.
+        const ledger = gameServices.stateService.getTurnOutflow(playerId);
+        return ledger.moneySpent > 0 ? one('money', `${FormatUtils.formatMoney(ledger.moneySpent, { compact: false })} paid`) : null;
+      }
+      if (classified?.kind === 'draw') {
+        // The card type/count wasn't knowable before the roll; now it's
+        // in the action log — read the real result from there instead of
+        // leaving "Varies" or dropping the row. Only recognizes W/E/I/B
+        // card-draw categories (findTurnCardDrawFragment returns null for
+        // anything else); 'quality'/'multiplier' (labor) and 'time
+        // outcomes' dice kinds have no card-draw or ledger-backed real
+        // outcome available here yet, so they still drop to "—" rather
+        // than guess.
+        return one(classified.bucket, findTurnCardDrawFragment(gameServices, playerId, String(effect.effect_value || '')));
+      }
+      return null;
+    }
+    if (effect.effect_type === 'fee' && effect.effect_action === 'deduct') {
+      // Same reasoning as the dice-fee case above, generalized to a flat
+      // (non-dice) fee — it's paid the moment it completes either way.
+      const ledger = gameServices.stateService.getTurnOutflow(playerId);
+      return ledger.moneySpent > 0 ? one('money', `${FormatUtils.formatMoney(ledger.moneySpent, { compact: false })} paid`) : null;
+    }
+    return null;
+  }
+  if (effect.effect_type === 'cards') {
+    const result = classifyCardEffect(effect);
+    return result ? { bucket: result.bucket, text: result.fragment } : null;
+  }
+  if (effect.effect_type === 'dice') {
+    const result = classifyDiceEffect(effect);
+    return result ? { bucket: result.bucket, text: result.fragment } : null;
+  }
+  if (effect.effect_type === 'fee' && effect.effect_action === 'deduct') {
+    return one('money', classifyFeeEffect(effect, gameServices, playerId));
+  }
+  return null;
+}
+
+/**
+ * The proposed result of an action row, in a few words ("+3 Expeditors", "Varies", "-$5,000"), from the effect or
+ * effects the button runs; once the action is done it reads what actually happened. Empty when there is nothing to say.
+ */
+export function getActionResultText(
+  gameServices: IServiceContainer,
+  effects: SpaceEffect[],
+  playerId: string,
+  completedActions: CompletedActions = { manualActions: {} },
+): string {
+  const parts: string[] = [];
+  for (const effect of effects) {
+    const f = effectFragment(effect, gameServices, playerId, completedActions);
+    if (f && !parts.includes(f.text)) parts.push(f.text);
+  }
+  return parts.join(' + ');
+}
+
+/**
  * "Lock the scope" / End Turn preview — the space's own declared cost for
  * this visit, read straight from SPACE_EFFECTS.csv (via DataService, already
  * loaded). Paid once, kept.
@@ -467,64 +559,8 @@ export function getEndTurnCostPreview(
   }
 
   for (const effect of effects) {
-    // An already-completed manual action (e.g. the player already pressed
-    // "Get Work Packages" and it resolved to 3 cards) is no longer a
-    // remaining cost of pressing End Turn — the CSV row is a static
-    // per-visit declaration, not a per-turn one, so without this check it
-    // would keep showing "Varies" for something that already happened
-    // (fb:feedback-1783922070233-49395e17). But going blank ("—") once it's
-    // done isn't right either (maintainer feedback 2026-08-18): show what
-    // actually happened instead — "+3 Work Packages", "-$34,000", etc. —
-    // not nothing.
-    if (effect.trigger_type === 'manual' && isManualEffectCompleted(effect, completedActions)) {
-      if (effect.effect_type === 'cards') {
-        // A fixed-count CSV row (not a dice roll) — the "pre-action"
-        // fragment already IS the real outcome, since the count was never
-        // random. Keep showing it rather than dropping it once it's done.
-        const result = classifyCardEffect(effect);
-        if (result) pushFragment(buckets, result.bucket, result.fragment);
-      } else if (effect.effect_type === 'dice') {
-        const classified = classifyDiceEffect(effect);
-        if (classified?.kind === 'fee') {
-          // Rolling turns "Varies" into a concrete, known dollar figure —
-          // and a button literally labeled "Pay the fee" is about to lock
-          // it in. Surface what was actually charged (this turn's outflow
-          // ledger) instead of just skipping.
-          const ledger = gameServices.stateService.getTurnOutflow(playerId);
-          if (ledger.moneySpent > 0) {
-            pushFragment(buckets, 'money', `${FormatUtils.formatMoney(ledger.moneySpent, { compact: false })} paid`);
-          }
-        } else if (classified?.kind === 'draw') {
-          // The card type/count wasn't knowable before the roll; now it's
-          // in the action log — read the real result from there instead of
-          // leaving "Varies" or dropping the row. Only recognizes W/E/I/B
-          // card-draw categories (findTurnCardDrawFragment returns null for
-          // anything else); 'quality'/'multiplier' (labor) and 'time
-          // outcomes' dice kinds have no card-draw or ledger-backed real
-          // outcome available here yet, so they still drop to "—" rather
-          // than guess.
-          const drawn = findTurnCardDrawFragment(gameServices, playerId, String(effect.effect_value || ''));
-          if (drawn) pushFragment(buckets, classified.bucket, drawn);
-        }
-      } else if (effect.effect_type === 'fee' && effect.effect_action === 'deduct') {
-        // Same reasoning as the dice-fee case above, generalized to a flat
-        // (non-dice) fee — it's paid the moment it completes either way.
-        const ledger = gameServices.stateService.getTurnOutflow(playerId);
-        if (ledger.moneySpent > 0) {
-          pushFragment(buckets, 'money', `${FormatUtils.formatMoney(ledger.moneySpent, { compact: false })} paid`);
-        }
-      }
-      continue;
-    }
-    if (effect.effect_type === 'cards') {
-      const result = classifyCardEffect(effect);
-      if (result) pushFragment(buckets, result.bucket, result.fragment);
-    } else if (effect.effect_type === 'dice') {
-      const result = classifyDiceEffect(effect);
-      if (result) pushFragment(buckets, result.bucket, result.fragment);
-    } else if (effect.effect_type === 'fee' && effect.effect_action === 'deduct') {
-      pushFragment(buckets, 'money', classifyFeeEffect(effect, gameServices, playerId));
-    }
+    const f = effectFragment(effect, gameServices, playerId, completedActions);
+    if (f) pushFragment(buckets, f.bucket, f.text);
   }
 
   // OWNER-FUND-INITIATION auto-applies "owner seed money" (80–120% of
