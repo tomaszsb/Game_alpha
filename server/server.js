@@ -2388,6 +2388,8 @@ app.get('/api/games', (req, res) => {
     playerCount: data.state?.players?.length || 0,
     playerNames: data.state?.players?.map(p => p.name) || [],
     gamePhase: data.state?.gamePhase || 'unknown',
+    // 'home' / 'foreign' once the game has started (known from who pressed Start); 'unknown' for a game not started yet.
+    origin: data.startedFromHome === true ? 'home' : data.startedFromHome === false ? 'foreign' : 'unknown',
     createdAt: data.createdAt,
     lastActivity: data.lastActivity
   }));
@@ -2648,6 +2650,10 @@ app.post('/api/games/:gameId/state', async (req, res) => {
       playerCount: newPlayerCount,
       playerNames
     });
+
+    // Remembered for the admin games list (fb:bf9dd267): a home game or an off-network one.
+    game.startedFromHome = isHomeIP(logEntry.ip);
+    isDirty = true;
 
     if (settings.foreignGameAlertsEnabled && !isHomeIP(logEntry.ip)) {
       if (canSendForeignGameAlert()) {

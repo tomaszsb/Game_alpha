@@ -15,6 +15,14 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.37] - 2026-10-14
+
+### Admin games list: home or off-network, with the players. Not deployed.
+
+- **fb:bf9dd267 (Tom, 10-13: "is this game mine or a real game? an icon for home / off network, # of players, names"):** each game in the admin Active Games list now carries 🏠 (started from the home network) or 🌐 (started from outside). The server remembers who pressed Start (`startedFromHome`, saved with the game) and `/api/games` reports `origin` (`home` / `foreign` / `unknown` for a game not started yet or started before this version: no icon). The player count and names were always sent but the narrow side panel squeezed them to nothing; each row now wraps them onto their own line.
+- **Triage notes (TODO):** light mode on the phone (browser force-dark suspected), End Turn press-and-hold (by design) and the duplicate DOB (mat tile plus tag row) are written up with a question for Tom each; none changed.
+- **Tests:** 1 new; typecheck clean; `npm test` green.
+
 ## [3.7.36] - 2026-10-14
 
 ### Money page shows where the money came from; the screen-size panel stays put. Not deployed.

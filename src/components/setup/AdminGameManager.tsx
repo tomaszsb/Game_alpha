@@ -12,6 +12,7 @@ interface GameInfo {
   playerCount: number;
   playerNames: string[];
   gamePhase: string;
+  origin?: 'home' | 'foreign' | 'unknown';
 }
 
 /**
@@ -199,6 +200,7 @@ export function AdminGameManager(): JSX.Element {
             {activeGames.map(game => (
               <div key={game.gameId} style={{
                 display: 'flex',
+                flexWrap: 'wrap',
                 alignItems: 'center',
                 gap: '0.5rem',
                 padding: '0.35rem 0.5rem',
@@ -207,10 +209,19 @@ export function AdminGameManager(): JSX.Element {
                 border: `1px solid ${colors.secondary.border}`,
                 fontSize: '0.8rem',
               }}>
-                <span style={{ fontWeight: 'bold', color: colors.primary.main, minWidth: '2rem' }}>
+                {game.origin && game.origin !== 'unknown' && (
+                  <span
+                    data-testid={`game-origin-${game.origin}`}
+                    title={game.origin === 'home' ? 'Started from the home network' : 'Started from outside the home network'}
+                    aria-label={game.origin === 'home' ? 'Home game' : 'Off-network game'}
+                  >
+                    {game.origin === 'home' ? '🏠' : '🌐'}
+                  </span>
+                )}
+                <span style={{ fontWeight: 'bold', color: colors.primary.main, minWidth: '2rem', whiteSpace: 'nowrap' }}>
                   {game.gameId}
                 </span>
-                <span style={{ color: colors.text.secondary, flex: 1, fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span data-testid="game-players" style={{ color: colors.text.secondary, flex: '1 1 100%', order: 3, fontSize: '0.75rem' }}>
                   {game.playerCount}p{game.playerNames.length > 0 && `: ${game.playerNames.slice(0, 3).join(', ')}`}
                   {game.playerNames.length > 3 && '...'}
                 </span>
