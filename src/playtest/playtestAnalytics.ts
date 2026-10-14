@@ -31,7 +31,9 @@ export type PlaytestEvent =
   // A game that ENDED IN A LOSS (bankruptcy / design-fee cap): why, where, and
   // the numbers at that moment — so "the engineer ended my game" reports can be
   // checked against what really happened. Decided 2026-10-02 (fb:adb1cc76).
-  | 'game_lost';
+  | 'game_lost'
+  // "Keep this size" in the TV's screen-size panel (2026-10-14): which width was chosen on which screen.
+  | 'tv_size_kept';
 
 /** Optional fields the in-game engagement events attach. Always pseudonymous
  *  (gameId/playerId), never the player's display name. */
@@ -61,6 +63,10 @@ export interface EngagementTrackingDetails {
   scope?: number;
   /** Which screen mode the player was in: pc | tv | remote. */
   mode?: string;
+  // tv_size_kept only. layoutWidth 0 = the device's own width ("Biggest text").
+  layoutWidth?: number;
+  screenWidth?: number;
+  pixelRatio?: number;
 }
 
 function resolveCampaignSource(): string | null {

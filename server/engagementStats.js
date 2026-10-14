@@ -199,3 +199,15 @@ export function gameLostLogFields(body) {
     mode: str(b.mode),
   };
 }
+
+// tv_size_kept — a "Keep this size" tap in the TV's Adjust-screen-size panel (TODO 2026-10-14: log each one so the
+// recommended default can be averaged after ~20 TV sessions). layoutWidth 0 = "Biggest text" (the device's own width).
+export function tvSizeKeptLogFields(body) {
+  const b = body || {};
+  const whole = (v, max) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.trunc(v))) : null);
+  return {
+    layoutWidth: whole(b.layoutWidth, 10000),
+    screenWidth: whole(b.screenWidth, 10000),
+    pixelRatio: typeof b.pixelRatio === 'number' && Number.isFinite(b.pixelRatio) ? Math.max(0, Math.min(10, Math.round(b.pixelRatio * 100) / 100)) : null,
+  };
+}

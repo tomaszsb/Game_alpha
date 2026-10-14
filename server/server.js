@@ -18,7 +18,7 @@ import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
 import { isHomeIP as isHomeIPPure, ipv6Prefix64 } from './homeIP.js';
 import { parseLogLine, aggregateVisitorStats } from './visitorStats.js';
-import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields } from './engagementStats.js';
+import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields, tvSizeKeptLogFields } from './engagementStats.js';
 import geoip from 'geoip-lite';
 import {
   DEFAULT_INSTANCE_ID,
@@ -3199,6 +3199,8 @@ const PLAYTEST_EVENTS = new Set([
   // A game that ended in a loss: reason + the numbers at that moment.
   // Decided 2026-10-02 (fb:adb1cc76).
   'game_lost',
+  // "Keep this size" in the TV's screen-size panel: the width chosen + the device's own numbers.
+  'tv_size_kept',
 ]);
 
 function sanitizeTrackField(value) {
@@ -3220,6 +3222,7 @@ app.post('/api/playtest/track', (req, res) => {
     // byte-for-byte what it was before.
     ...(event === 'push_back' ? pushBackLogFields(req.body) : {}),
     ...(event === 'game_lost' ? gameLostLogFields(req.body) : {}),
+    ...(event === 'tv_size_kept' ? tvSizeKeptLogFields(req.body) : {}),
   });
   res.json({ success: true });
 });

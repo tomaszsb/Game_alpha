@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { parseLogLine } from '../../server/visitorStats.js';
-import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields, ABANDON_THRESHOLD_MS } from '../../server/engagementStats.js';
+import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields, tvSizeKeptLogFields, ABANDON_THRESHOLD_MS } from '../../server/engagementStats.js';
 
 const NOW = Date.parse('2026-08-02T12:00:00.000Z');
 
@@ -378,5 +378,16 @@ describe('gameLostLogFields (what the route adds to a game_lost log line)', () =
       reason: null, visitType: null, turn: null, money: null, designFees: null, scope: null, mode: null,
     });
     expect(gameLostLogFields(undefined).reason).toBeNull();
+  });
+});
+
+describe('tvSizeKeptLogFields (what the route adds to a tv_size_kept log line)', () => {
+  it('keeps the width chosen and the device numbers', () => {
+    expect(tvSizeKeptLogFields({ layoutWidth: 1280, screenWidth: 3840, pixelRatio: 3 })).toEqual({ layoutWidth: 1280, screenWidth: 3840, pixelRatio: 3 });
+  });
+  it('0 is a real answer (Biggest text) and junk becomes null', () => {
+    expect(tvSizeKeptLogFields({ layoutWidth: 0 }).layoutWidth).toBe(0);
+    expect(tvSizeKeptLogFields({ layoutWidth: 'wide', screenWidth: NaN, pixelRatio: 'x' })).toEqual({ layoutWidth: null, screenWidth: null, pixelRatio: null });
+    expect(tvSizeKeptLogFields(undefined).layoutWidth).toBeNull();
   });
 });

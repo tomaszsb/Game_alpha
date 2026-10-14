@@ -15,6 +15,13 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.39] - 2026-10-14
+
+### Every "Keep this size" tap on the TV is logged. Not deployed. No player-visible change.
+
+- **Why:** the TODO's "log each Keep this size tap, then average the TV sizes at ~20 TV sessions". Tapping Keep in the Adjust-screen-size panel now sends a `tv_size_kept` event (`trackPlaytestEvent`, the same fire-and-forget path as the other engagement events) with the width chosen (`layoutWidth`, 0 = Biggest text), the device's `screenWidth` and `pixelRatio`. The server (`tvSizeKeptLogFields` in `engagementStats.js`, clamped like the other events) writes them to a `PLAYTEST_TV_SIZE_KEPT` line in `visitors.log`. No aggregation yet; the TODO item now says to read the log at ~20 TV sessions.
+- **Tests:** 2 new; typecheck clean; `npm test` green.
+
 ## [Housekeeping] 2026-10-14 - outside uptime check built (tooling, no version, nothing to deploy)
 
 - `scripts/uptime-check.mjs` asks `https://game.unravelcodes.com/health` for `status: ok` and texts the owner (`sendOwnerAlert`) after 3 misses in a row, and once when it is back; it remembers in `.claude/tmp/uptime-state.json`. Decision logic is the pure `decideUptime` in `server/uptimeMonitor.js` (`tests/server/uptimeMonitor.test.ts`, 5 tests). `--dry-run` prints without sending or remembering. Described in `docs/technical/ARCHITECTURE.md` "Uptime check". Why: a tunnel outage sat undetected for 12 days (2026-08).

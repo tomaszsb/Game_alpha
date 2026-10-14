@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { colors } from '../../styles/theme';
+import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 import {
   TV_SCALE_OPTIONS,
   applyTvLayoutWidth,
@@ -140,6 +141,7 @@ export function TvScaleCalibration({ onClose, onApplied, anchorRef }: TvScaleCal
     const width = current.layoutWidth;
     writeTvLayoutWidth(width);
     applyTvLayoutWidth(width);
+    trackPlaytestEvent('tv_size_kept', { layoutWidth: width, screenWidth: window.screen?.width, pixelRatio: window.devicePixelRatio });
     onApplied?.(width);
     onCloseRef.current();
   };
