@@ -3,6 +3,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { installConsoleCapture } from './utils/consoleCapture';
+import { installResizeObserverTrace } from './utils/feedbackDiagnostics';
 import { App } from './App';
 import { PlaytesterLandingPage } from './playtest/PlaytesterLandingPage';
 import { capturePwaInstallPrompt } from './playtest/pwaInstall';
@@ -11,6 +12,8 @@ import { initGameSpeed } from './utils/gameSpeed';
 
 // Install console capture early so we catch errors during init
 installConsoleCapture();
+// Tags each ResizeObserver with where it was created, so the "loop completed" error can be traced in a bug report.
+installResizeObserverTrace();
 // A remembered "Fast" speed has to be in force before the first move.
 initGameSpeed();
 

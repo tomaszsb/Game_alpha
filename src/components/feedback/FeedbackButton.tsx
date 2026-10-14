@@ -10,6 +10,7 @@ import { colors } from '../../styles/theme';
 import { getGameStateAPIPath, getCurrentGameId } from '../../utils/networkDetection';
 import { getConsoleLogs } from '../../utils/consoleCapture';
 import { liftModalsForCapture } from '../../utils/screenshotClone';
+import { collectDiagnostics } from '../../utils/feedbackDiagnostics';
 import { IconBug } from '../icons/SetupIcons';
 
 interface FeedbackForm {
@@ -63,6 +64,8 @@ interface GameStateSummary {
     money: number;
     handSize: number;
     timeSpent: number;
+    /** Work-package card ids held (ids only), so a vanished scope can be compared with what the server holds. */
+    scopeCardIds?: string[];
   }>;
 }
 
@@ -172,6 +175,7 @@ export function FeedbackButton(): JSX.Element {
           money: p.money,
           handSize: (p.hand || []).length,
           timeSpent: p.timeSpent,
+          scopeCardIds: (p.hand || []).filter((id: string) => /^W/i.test(id)),
         })),
       };
     } catch {
@@ -248,6 +252,8 @@ export function FeedbackButton(): JSX.Element {
           metadata,
           consoleLogs,
           gameState,
+          // Numbers read from the live page and game (feedbackDiagnostics.ts): the screenshot's colours can't be trusted.
+          diagnostics: collectDiagnostics(),
         }),
       });
 

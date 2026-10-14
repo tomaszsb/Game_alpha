@@ -28,6 +28,7 @@ import '@xyflow/react/dist/style.css';
 import { useGameContext } from '../../context/GameContext';
 import type { Player } from '../../types/DataTypes';
 import { shortName, narrowToOfferedMoves } from '../../utils/boardCommon';
+import { registerDiagnostic } from '../../utils/feedbackDiagnostics';
 import { extractPrefix } from '../../constants/characters';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
@@ -721,6 +722,12 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     }, 100);
     return () => window.clearTimeout(t);
   }, [centerOnCurrent, currentBuilding, destBuildings, nodes, fitView, setCenter, getViewport, sizeTick, walks]);
+
+  // For bug reports (feedbackDiagnostics.ts): why the camera is where it is (fb:a6474bad, a blank TV board).
+  useEffect(() => registerDiagnostic('town', () => ({
+    centerOnCurrent, currentBuilding, destBuildings, walks: walks.length, sizeTick, framed: framed.current,
+    nodeCount: nodes.length, camera: getViewport(),
+  })), [centerOnCurrent, currentBuilding, destBuildings, walks, sizeTick, nodes, getViewport]);
 
   // A jump asked for by the game log (PC): glide to that square's building at the current zoom.
   useEffect(() => {

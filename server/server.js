@@ -2953,7 +2953,7 @@ function ensureFeedbackDir() {
 
 app.post('/api/feedback', async (req, res) => {
   try {
-    const { screenshot, whatDoing, whatWrong, extra, contact, metadata, consoleLogs, gameState } = req.body;
+    const { screenshot, whatDoing, whatWrong, extra, contact, metadata, consoleLogs, gameState, diagnostics } = req.body;
 
     if (!whatDoing || !whatWrong) {
       return res.status(400).json({ error: 'whatDoing and whatWrong are required' });
@@ -2985,6 +2985,9 @@ app.post('/api/feedback', async (req, res) => {
       // FeedbackButton.fetchGameStateSummary.
       ...(Array.isArray(consoleLogs) && consoleLogs.length > 0 ? { consoleLogs } : {}),
       ...(gameState ? { gameState } : {}),
+      // Live-page numbers (src/utils/feedbackDiagnostics.ts): colours, board camera, finances, ResizeObserver trace.
+      // Kept only if it is a plain object of a sane size.
+      ...(diagnostics && typeof diagnostics === 'object' && !Array.isArray(diagnostics) && JSON.stringify(diagnostics).length <= 60000 ? { diagnostics } : {}),
       createdAt: new Date(timestamp).toISOString(),
     };
 

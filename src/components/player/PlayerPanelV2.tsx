@@ -50,6 +50,13 @@ import { ActionButton } from './ActionButton';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 import { getCardWordedFor, withIndefiniteArticle } from '../../utils/scopeWording';
+import { registerDiagnostic } from '../../utils/feedbackDiagnostics';
+
+/** Renders nothing; keeps this panel's bug-report snapshot registered (src/utils/feedbackDiagnostics.ts). */
+function PanelDiagnostics({ name, snapshot }: { name: string; snapshot: () => unknown }): null {
+  useEffect(() => registerDiagnostic(name, snapshot), [name, snapshot]);
+  return null;
+}
 
 export interface PlayerPanelV2Props extends PlayerPanelProps {
   mode: PanelMode;
@@ -848,8 +855,32 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const selectedSubActionBtn: React.CSSProperties = { ...selectedActionBtn, padding: '7px 10px', fontSize: 12, marginBottom: 5 };
   const doneSubActionRow: React.CSSProperties = { ...doneActionRow, padding: '7px 10px', fontSize: 12, marginBottom: 5 };
 
+  // What this panel computed next to what the browser painted: a screenshot of a phone re-draws text and its colours
+  // cannot be trusted (fb:c65560a3), so a bug report carries these numbers too.
+  const diagnostics = () => {
+    const tile = document.querySelector(`[data-panel-player="${playerId}"] [data-testid="glance-money"]`);
+    const valueEl = tile?.children[1] as HTMLElement | undefined;
+    const subEl = tile?.children[2] as HTMLElement | undefined;
+    return {
+      playerId, mode, isPhone, isMyTurn, space: player.currentSpace,
+      money: player.money, moneySources: player.moneySources,
+      moneyCue,
+      painted: { valueText: valueEl?.textContent ?? null, valueColor: valueEl ? getComputedStyle(valueEl).color : null, subText: subEl?.textContent ?? null },
+      finances: { scopeTotal: fin.scopeTotal, commitments: fin.commitments, fundingGap: fin.fundingGap, totalCapital: fin.totalCapital, fundingRaised: fin.fundingRaised, sources: fin.sources, spent: fin.spent },
+      scope: {
+        gameRulesCalc: gameServices.gameRulesService.calculateProjectScope(playerId),
+        finScopeTotal: fin.scopeTotal,
+        heldScopeIds: player.hand.filter((id) => /^W/i.test(id)),
+        activeCardIds: (player.activeCards ?? []).map((a) => a.cardId),
+      },
+      mat: matTiles.map((t) => `${t.id}:${t.done ? 'done' : t.trouble ?? (t.percent ?? 'no')}`),
+      approvals: { dob: player.dobApprovalStatus, fdny: player.fdnyApprovalStatus },
+    };
+  };
+
   return (
-    <div style={cardStyle}>
+    <div style={cardStyle} data-panel-player={playerId}>
+      <PanelDiagnostics name={`panel:${playerId}`} snapshot={diagnostics} />
       {/* First-visit hint glow for the action buttons (fb:e84e4d11). Pulses gently
           to draw a new player's eye; static ring under reduced-motion. */}
       <style>{`

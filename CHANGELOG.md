@@ -15,6 +15,18 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.44] - 2026-10-14
+
+### Bug reports now carry live numbers from the screen, so the open investigations can be caught next time. Not deployed. No player-visible change.
+
+- **Why:** a screenshot of a phone or TV is re-drawn by the capture tool, so its colours cannot be trusted (fb:c65560a3 orange money with no word; the same panel white in another report), and a blank board (fb:a6474bad) says nothing about why. The report form now also sends `diagnostics`, read straight from the live page and game (`src/utils/feedbackDiagnostics.ts`; the server stores it with the report, capped at 60 KB; read it from `/api/feedback/<id>.json`):
+  - `display`: window and visual viewport size, pixel ratio, the viewport meta tag, the TV layout width, the stored and the system theme.
+  - `board`: the React Flow camera (transform), the board's box, how many buildings are inside it. `town`: framing state, current building, camera.
+  - `panel:<player>`: for the money tile, the cue the code computed (colour and word) next to the colour the browser actually painted and the text drawn; finances (scope, commitments, funding gap, capital, sources); scope computed two ways plus the work-package ids held; the mat; approvals. `gameState.players[].scopeCardIds`: the server's copy of the scope ids, to compare with the phone's (the 10-12 vanished-scope bug).
+  - `resizeObserver`: every observer is tagged with where it was made and what it watches; when the "ResizeObserver loop" error fires, the report names the observer that ran just before it (the source nobody has found).
+- **Checked live (Edge):** a submitted report carried all of the above (painted colour `rgb(30, 126, 52)` matching the cue, 14 buildings inside the board box, the observers' watched elements). It never blocks a report: a snapshot that throws becomes an error note.
+- **Tests:** 5 new (`feedbackDiagnostics`); typecheck clean; `npm test` green.
+
 ## [3.7.43] - 2026-10-14
 
 ### DOB and FDNY approvals show in one place, and a denial no longer looks like "not yet". Not deployed.
