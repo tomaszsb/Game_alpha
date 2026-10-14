@@ -1558,19 +1558,22 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       </div>
 
       {/* "Recall my numbers" reference — scope, work packages, money, time. */}
-      <PlayerNumbersV2
-        isOpen={numbersPage !== null}
-        onClose={() => setNumbersPage(null)}
-        page={numbersPage ?? 'money'}
-        clipboard={pageClipboard}
-        onOpenCard={setDetailCardId}
-        playableCardIds={playableExpeditors.map((x) => x.id)}
-        onActivate={handlePlayExpeditor}
-        playingCardId={playingCardId}
-        playerId={playerId}
-        gameServices={gameServices}
-        mode={mode}
-      />
+      {(['money', 'expeditors', 'scope'] as const).map((pg) => (
+        <PlayerNumbersV2
+          key={pg}
+          isOpen={numbersPage === pg}
+          onClose={() => setNumbersPage(null)}
+          page={pg}
+          clipboard={pageClipboard}
+          onOpenCard={setDetailCardId}
+          playableCardIds={playableExpeditors.map((x) => x.id)}
+          onActivate={handlePlayExpeditor}
+          playingCardId={playingCardId}
+          playerId={playerId}
+          gameServices={gameServices}
+          mode={mode}
+        />
+      ))}
 
       {/* "What's happened" history — the Chronicle (first slice). */}
       <PlayerChronicleV2

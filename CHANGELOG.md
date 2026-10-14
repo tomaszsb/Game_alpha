@@ -15,6 +15,15 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.35] - 2026-10-14
+
+### Clipboard flip proven in motion; Money / Expeditors / Scope now flip into each other. Not deployed.
+
+- **Proof (handoff item 2):** headless Edge via Playwright (31 animation frames per 500 ms), PC width. Opening a page: swings down from the clip over ~0.2 s, opacity 0 to 1. Closing: swings back up and is removed. Money to Time: the old page swings up while the new one swings down, and the old one is gone afterwards.
+- **Gap found and fixed:** Money, Expeditors and Scope are one pop-up that only changed its contents, so flipping between them did not animate (the page just jumped, 38 px lower for Scope). Each is now its own page (`PlayerPanelV2` renders one `PlayerNumbersV2` per page), so the old page leaves and the new one arrives, same as Time. Re-run: Money to Scope now overlaps old out / new in.
+- **Not checked:** a real phone, a real TV, the 4-player town on a TV.
+- **Tests:** typecheck clean; `npm test` green (one unrelated random-draw test, `BuilderBids` "counts once in the quality ledger", failed once and passed twice on re-run; not touched).
+
 ## [3.7.34] - 2026-10-14
 
 ### Life events tab: shown only while an event is in action. Not deployed.
