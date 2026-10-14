@@ -28,7 +28,7 @@ const CHOICE_TIMEOUT_MS = 30 * 60 * 1000;
 
 export class ChoiceService implements IChoiceService {
   private stateService: IStateService;
-  private pendingChoices: Map<string, { resolve: (value: string) => void; reject: (reason: any) => void }> = new Map();
+  private pendingChoices: Map<string, { resolve: (value: string) => void; reject: (reason: unknown) => void }> = new Map();
 
   constructor(stateService: IStateService) {
     this.stateService = stateService;

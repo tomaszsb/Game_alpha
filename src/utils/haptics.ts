@@ -25,7 +25,7 @@ let _audioCtx: AudioContext | null = null;
  */
 export function primeAudio(): void {
   try {
-    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    const Ctx = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;
     if (!_audioCtx) _audioCtx = new Ctx();
     if (_audioCtx.state === 'suspended') void _audioCtx.resume();

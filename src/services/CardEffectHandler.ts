@@ -523,7 +523,7 @@ export class CardEffectHandler implements ICardEffectHandler {
     // existing log emission point (dataService is already used one line
     // below for friendlyCardList), so formatActionDescription can render
     // the delta without needing a service dependency of its own.
-    const details: Record<string, any> = {
+    const details: Record<string, unknown> = {
       playerId,
       action: 'card_draw',
       cardType,

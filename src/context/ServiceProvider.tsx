@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import { GameContext } from './GameContext';
-import { IServiceContainer } from '../types/ServiceContracts';
+import { IServiceContainer, ITurnService, IGameRulesService } from '../types/ServiceContracts';
 
 // --- Service Imports ---
 import { DataService } from '../services/DataService';
@@ -77,7 +77,7 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   // Temp EffectEngineService exists only to break the 3-way Turn↔EffectEngine↔Card cycle
   // (see docs/technical/ARCHITECTURE.md). NegotiationService holds the temp instance but only
   // invokes it after the real instance has been wired onto turnService/cardService below.
-  const tempEffectEngine = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, undefined as any, undefined as any, targetingService, loggingService, dataService, financialEffectHandler, cardEffectHandler);
+  const tempEffectEngine = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, undefined as unknown as ITurnService, undefined as unknown as IGameRulesService, targetingService, loggingService, dataService, financialEffectHandler, cardEffectHandler);
   const negotiationService = new NegotiationService(stateService, tempEffectEngine, resourceService, choiceService);
 
   // CardEffectService is a clean dependency (no cycle back to TurnService),

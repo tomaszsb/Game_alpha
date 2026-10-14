@@ -11,7 +11,7 @@ const MAX_ENTRIES = 50;
 const buffer: ConsoleEntry[] = [];
 let installed = false;
 
-function formatArgs(args: any[]): string {
+function formatArgs(args: unknown[]): string {
   return args.map(arg => {
     if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
     if (typeof arg === 'object') {
@@ -29,7 +29,7 @@ export function installConsoleCapture(): void {
   const origError = console.error;
   const origWarn = console.warn;
 
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     buffer.push({
       level: 'error',
       message: formatArgs(args).slice(0, 500),
@@ -39,7 +39,7 @@ export function installConsoleCapture(): void {
     origError.apply(console, args);
   };
 
-  console.warn = (...args: any[]) => {
+  console.warn = (...args: unknown[]) => {
     buffer.push({
       level: 'warn',
       message: formatArgs(args).slice(0, 500),

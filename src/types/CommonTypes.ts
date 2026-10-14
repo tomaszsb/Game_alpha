@@ -25,6 +25,7 @@ export interface Choice {
     logicQuestionId?: string;
     logicStepIndex?: number;   // 1-based step in the chain (for "Question 2 of 5" display)
     logicStepTotal?: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- open-ended metadata bag; modals read keys they know
     [key: string]: any; // Allow other metadata as needed
   };
 }

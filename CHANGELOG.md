@@ -15,6 +15,15 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.45] - 2026-10-14
+
+### The 15 `any` lint warnings are gone. Not deployed. No player-visible change.
+
+- 11 became real types: `unknown` for the performance monitor metadata, the log-detail bag in `CardEffectHandler`, the choice reject reason, the console capture arguments; `Window & { opera?: string }` and `Window & { webkitAudioContext?: typeof AudioContext }` for the two browser-specific properties; `ITurnService` / `IGameRulesService` for the two placeholders `ServiceProvider` passes the effect engine. The `opera` fallback is now an empty string so the mobile check has a string to test.
+- 4 stay `any` on purpose, each with a one-line reason on its `eslint-disable`: the free-form log `details` (2), the negotiation result `data`, and the open-ended modal `metadata` bag in `CommonTypes` (readers index them by key; tightening them breaks `HistoryFeed`, `NegotiationModal`, `ChoiceModal` and `actionLogFormatting`).
+- `eslint src`: 0 errors, 23 warnings (all `set-state-in-effect`, left for when those files are next worked on).
+- **Tests:** typecheck clean; `npm test` 276 files / 3923 green.
+
 ## [3.7.44] - 2026-10-14
 
 ### Bug reports now carry live numbers from the screen, so the open investigations can be caught next time. Not deployed. No player-visible change.

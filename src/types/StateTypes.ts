@@ -249,6 +249,7 @@ export interface ActionLogEntry {
   playerId: string;
   playerName: string;
   description: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- free-form log details; readers index them by key
   details?: Record<string, any>;
   // Transactional logging fields for "Try Again" support
   isCommitted: boolean; // true if action is part of canonical game history
@@ -289,6 +290,7 @@ export interface NegotiationResult {
   message: string;
   negotiationId?: string;
   effects: Effect[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- result payload whose shape depends on the negotiation type
   data?: any;
   newState?: GameState;
 }
@@ -434,6 +436,7 @@ export interface PlayerAction {
   playerId: string;
   action: string;
   timestamp: Date;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- free-form log details; readers index them by key
   details?: Record<string, any>;
 }
 

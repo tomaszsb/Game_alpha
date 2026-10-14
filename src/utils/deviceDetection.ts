@@ -16,7 +16,7 @@ export function detectDeviceType(): DeviceType {
   if (isSmartTV()) return 'desktop';
 
   // Check user agent string for mobile devices
-  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+  const userAgent = navigator.userAgent || navigator.vendor || (window as Window & { opera?: string }).opera || '';
   const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
 
   if (mobileRegex.test(userAgent)) {

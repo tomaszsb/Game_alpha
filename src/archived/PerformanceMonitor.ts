@@ -8,14 +8,14 @@ export interface PerformanceMeasurement {
   startTime: number;
   endTime?: number;
   duration?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class PerformanceMonitor {
   private static measurements: Map<string, PerformanceMeasurement> = new Map();
   private static enabled = true;
 
-  static startMeasurement(name: string, metadata?: Record<string, any>): void {
+  static startMeasurement(name: string, metadata?: Record<string, unknown>): void {
     if (!this.enabled) return;
 
     const measurement: PerformanceMeasurement = {
