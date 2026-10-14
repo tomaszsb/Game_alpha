@@ -15,6 +15,14 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.41] - 2026-10-14
+
+### The replace-an-expeditor list shows what each expeditor really costs. Not deployed.
+
+- **fb:102e0953 (v3.2.71 phone):** "Why do the expeditors say Free when some of them cost?" The Replace Expeditor pop-up showed `Free` on every row while the text under it said "Pay $8K to rush..." (Time Crunch). The tag read the card's `cost` (sticker price), which is 0 for expeditors that charge through `money_effect`. It now shows the fee they charge ($8K, $2K...), `+$2K` for one that pays you, and `Free` only when nothing is charged (`replacementCardAmount`).
+- **fb:4824bc44 checked, not a bug:** the screenshot (v3.2.71) shows the player standing at Owner's Money with nothing played yet, so there was no money to note in History.
+- **Tests:** 1 new; typecheck clean; `npm test` green.
+
 ## [3.7.40] - 2026-10-14
 
 ### Tax Incentive Research (E067) now does what it says. Not deployed.

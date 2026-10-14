@@ -1,3 +1,4 @@
+import { moneyEffectDollars } from '../../utils/moneyEffect';
 import React, { useState } from 'react';
 import { colors, theme } from '../../styles/theme';
 import { Player, CardType } from '../../types/DataTypes';
@@ -31,6 +32,16 @@ interface CardReplacementModalProps {
  * CardReplacementModal allows players to select which cards to replace
  * Uses ModalBase for consistent styling and mobile-friendly design
  */
+/** The money tag on a card in the replace list. `cost` is only the sticker price; many expeditors pay their fee through
+ *  `money_effect` ("Pay $8K to rush..." has cost 0), and the list called every one of those "Free" (fb:102e0953). */
+export function replacementCardAmount(card: { cost?: number | null; money_effect?: string | null }): string {
+  if (card.cost && card.cost > 0) return FormatUtils.formatCardCost(card.cost);
+  const delta = moneyEffectDollars(card.money_effect, 0);
+  if (delta < 0) return FormatUtils.formatCardCost(-delta);
+  if (delta > 0) return `+${FormatUtils.formatCardCost(delta)}`;
+  return FormatUtils.formatCardCost(0);
+}
+
 export function CardReplacementModal({
   isOpen,
   player,
@@ -323,7 +334,7 @@ export function CardReplacementModal({
                   selectedColor={currentCardColors.primary}
                   onSelect={() => handleCardToggle(cardId)}
                   cardTypeIcon={getCardTypeEmoji(cardType)}
-                  displayAmount={FormatUtils.formatCardCost(card.cost || 0)}
+                  displayAmount={replacementCardAmount(card)}
                   actions={cardActions}
                   // Expeditors: show the phase chip inline so the player can tell
                   // which phase each rep serves when choosing which to let go,

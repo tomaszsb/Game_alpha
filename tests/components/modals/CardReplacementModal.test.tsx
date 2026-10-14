@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
-import { CardReplacementModal } from '../../../src/components/modals/CardReplacementModal';
+import { CardReplacementModal, replacementCardAmount } from '../../../src/components/modals/CardReplacementModal';
 import { BACKDROP_GRACE_MS } from '../../../src/components/modals/shared/ModalBase';
 import { Player, Card } from '../../../src/types/DataTypes';
 import { DataService } from '../../../src/services/DataService';
@@ -559,5 +559,15 @@ describe('CardReplacementModal', () => {
     // Full description should be present in the DOM (CSS may visually clip it)
     expect(screen.getByText(/This is a very long description/)).toBeInTheDocument();
     expect(screen.getByText('Complex Project')).toBeInTheDocument();
+  });
+});
+
+describe('replacementCardAmount (fb:102e0953: "expeditors say Free when some cost")', () => {
+  it('shows the fee an expeditor really charges through money_effect, and Free only when nothing is charged', () => {
+    expect(replacementCardAmount({ cost: 0, money_effect: '-8000' })).toBe('$8K');
+    expect(replacementCardAmount({ cost: 5000, money_effect: '-8000' })).toBe('$5K');
+    expect(replacementCardAmount({ cost: 0, money_effect: '2000' })).toBe('+$2K');
+    expect(replacementCardAmount({ cost: 0 })).toBe('Free');
+    expect(replacementCardAmount({ cost: 0, money_effect: '10%' })).toBe('Free');
   });
 });
