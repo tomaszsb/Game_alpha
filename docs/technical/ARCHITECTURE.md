@@ -1001,3 +1001,13 @@ For related architecture topics, see:
 
 **Last Updated:** August 1, 2026
 **Maintained By:** Claude (AI Lead Programmer)
+
+## Uptime check
+
+The game cannot report its own absence (a Cloudflare tunnel outage sat undetected for 12 days in 2026-08), so `scripts/uptime-check.mjs` runs on a machine outside the server: the maintainer's PC, every 5 minutes, from Windows Task Scheduler (task `UnravelUptimeCheck`). It asks `https://game.unravelcodes.com/health` for `status: ok` (15 s timeout), and after 3 misses in a row texts the owner through `sendOwnerAlert` (the same SMTP + carrier-gateway path as the foreign-game alert; the gateway can drop or delay mail, so a missing text is not proof of no outage). It texts once when it goes down and once when it is back. The decision is the pure function `decideUptime` in `server/uptimeMonitor.js`; memory is `.claude/tmp/uptime-state.json`, history `.claude/tmp/uptime.log` (both gitignored). Limits: it only runs while the PC is on and awake, and it needs the repo's `.env` for SMTP. `node scripts/uptime-check.mjs --dry-run` prints what it would do and sends nothing. To remove it later: `Unregister-ScheduledTask -TaskName UnravelUptimeCheck -Confirm:$false`.
+
+To switch it on (PowerShell, once):
+
+```powershell
+Register-ScheduledTask -TaskName UnravelUptimeCheck -Action (New-ScheduledTaskAction -Execute 'C:\Program Files\nodejs\node.exe' -Argument 'scripts\uptime-check.mjs' -WorkingDirectory 'D:\Unravel\Current_Game\Game_Alpha') -Trigger (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)) -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew)
+```

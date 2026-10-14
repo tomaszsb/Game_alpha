@@ -15,6 +15,11 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [Housekeeping] 2026-10-14 - outside uptime check built (tooling, no version, nothing to deploy)
+
+- `scripts/uptime-check.mjs` asks `https://game.unravelcodes.com/health` for `status: ok` and texts the owner (`sendOwnerAlert`) after 3 misses in a row, and once when it is back; it remembers in `.claude/tmp/uptime-state.json`. Decision logic is the pure `decideUptime` in `server/uptimeMonitor.js` (`tests/server/uptimeMonitor.test.ts`, 5 tests). `--dry-run` prints without sending or remembering. Described in `docs/technical/ARCHITECTURE.md` "Uptime check". Why: a tunnel outage sat undetected for 12 days (2026-08).
+- **Not scheduled:** creating the Windows Task Scheduler task was refused by the permission check (it is a standing job on Tom's PC). Switch it on with the PowerShell line in ARCHITECTURE "Uptime check"; it runs only while the PC is on.
+
 ## [3.7.38] - 2026-10-14
 
 ### Lint errors and a duplicate-key warning cleared. Not deployed. No player-visible change.
