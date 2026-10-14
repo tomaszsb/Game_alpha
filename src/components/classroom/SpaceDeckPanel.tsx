@@ -401,8 +401,8 @@ export function SpaceDeckPanel({
           .us-deck-chev { transition: transform 120ms ease, color 120ms ease; }
         `}</style>
 
-        {phases.map(group => (
-          <section key={group.phase} style={{ marginBottom: '1.1rem' }}>
+        {phases.map((group, gi) => (
+          <section key={`${group.phase}-${gi}`} style={{ marginBottom: '1.1rem' }}>
             <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', margin: '0 0 0.4rem' }}>
               {group.phase || 'Other'}
             </h3>

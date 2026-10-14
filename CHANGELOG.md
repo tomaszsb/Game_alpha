@@ -15,6 +15,15 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.38] - 2026-10-14
+
+### Lint errors and a duplicate-key warning cleared. Not deployed. No player-visible change.
+
+- **Lint:** the 3 errors named in TODO were already gone; the 4 left were all in `TownBoard.tsx` (two unused imports, an unused `ms`, and a clock read while rendering, now marked deliberate with the reason). `eslint src`: 0 errors, 38 warnings (23 `set-state-in-effect`, 15 `any`; left for when those files are next edited).
+- **Duplicate key:** the space deck lists spaces grouped by CONSECUTIVE phase, so OWNER and REGULATORY each appear as two groups and the group key (the phase name) repeated ("two children with the same key"). The key now includes the group's position.
+- **Checked, nothing to change:** `MOVEMENT.csv` out of `REG-FDNY-FEE-REVIEW` is not stale (its four destinations are exactly the ones `LOGIC_QUESTIONS.csv` routes to). The lender-review glow reports (fb:11662ac3, fb:95624c8e) are already built (glow on every active button, all game); they wait for Tom's look.
+- **Tests:** typecheck clean; `npm test` green.
+
 ## [3.7.37] - 2026-10-14
 
 ### Admin games list: home or off-network, with the players. Not deployed.

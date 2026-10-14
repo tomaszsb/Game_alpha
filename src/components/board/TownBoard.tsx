@@ -28,7 +28,7 @@ import '@xyflow/react/dist/style.css';
 import { useGameContext } from '../../context/GameContext';
 import type { Player } from '../../types/DataTypes';
 import { shortName, narrowToOfferedMoves } from '../../utils/boardCommon';
-import { extractPrefix, getNpcImagePath, type NpcImageRole } from '../../constants/characters';
+import { extractPrefix } from '../../constants/characters';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
 import { PlayerAvatar } from '../common/PlayerAvatar';
@@ -530,8 +530,9 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       const still = prefersReducedMotion();
       const fastNow = getGameSpeed() === 'fast';
       const times = walkTimes(layout.settings);
-      const baseMs = parseFloat(layout.settings.bubble_ms ?? '') || DEFAULT_BUBBLE_MS;
-      const ms = fastNow ? baseMs / 2 : baseMs;
+      // The moment this change was seen, stamped once for every player's pending result. Reading the clock here is
+      // deliberate: this block runs once per NEW players list (the "adjust state while rendering" pattern), not on every render.
+      // eslint-disable-next-line react-hooks/purity
       const now = Date.now();
       const held: PendingResult[] = [];
       for (const p of players) {
