@@ -13,7 +13,7 @@ const PARTIAL = '#f59e0b';
 /** How a step reads in words: its name, with the percent when it is part way, then where it stands. */
 export function matTileText(t: MatTileState): string {
   const name = t.percent !== undefined ? `${t.label} ${t.percent}%` : t.label;
-  const state = t.done ? getUIString('MAT.done') : t.percent !== undefined ? getUIString('MAT.part') : getUIString('MAT.notyet');
+  const state = t.done ? getUIString('MAT.done') : t.trouble === 'denied' ? getUIString('MAT.denied') : t.trouble === 'objection' ? getUIString('MAT.objection') : t.percent !== undefined ? getUIString('MAT.part') : getUIString('MAT.notyet');
   return `${name}: ${state}`;
 }
 
@@ -36,7 +36,8 @@ function MatIconRow({ tiles, palette: p, size, renderIcon, selected, onSelect, s
     <>
       {tiles.map(t => {
         const partial = t.percent !== undefined;
-        const colour = t.done ? p.good : partial ? PARTIAL : p.border;
+        const trouble = !t.done ? t.trouble : undefined;
+        const colour = t.done ? p.good : trouble === 'denied' ? p.bad : trouble === 'objection' ? PARTIAL : partial ? PARTIAL : p.border;
         const icon = renderIcon?.(t.id, Math.round(size * 0.68));
         return (
           <button
@@ -45,6 +46,7 @@ function MatIconRow({ tiles, palette: p, size, renderIcon, selected, onSelect, s
             data-testid={`mat-tile-${t.id}`}
             data-done={String(t.done)}
             data-percent={t.percent}
+            data-trouble={trouble}
             aria-label={matTileText(t)}
             aria-pressed={selected === t.id}
             title={matTileText(t)}
@@ -52,15 +54,18 @@ function MatIconRow({ tiles, palette: p, size, renderIcon, selected, onSelect, s
             style={{
               position: 'relative', width: size, height: size, padding: 0, flex: 'none', cursor: 'pointer', boxSizing: 'border-box',
               display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: Math.round(size * 0.5),
-              background: t.done ? p.goodSurf : partial ? p.warnSurf : 'transparent',
-              border: `2px ${t.done || partial ? 'solid' : 'dashed'} ${colour}`,
-              color: p.muted, opacity: t.done || partial ? 1 : 0.5,
+              background: t.done ? p.goodSurf : trouble === 'denied' ? p.badSurf : trouble === 'objection' || partial ? p.warnSurf : 'transparent',
+              border: `2px ${t.done || partial || trouble ? 'solid' : 'dashed'} ${colour}`,
+              color: p.muted, opacity: t.done || partial || trouble ? 1 : 0.5,
               marginRight: spread ? 0 : undefined,
             }}
           >
             {icon ?? <span aria-hidden>{t.done ? '✓' : '○'}</span>}
             {t.done && size >= 24 && (
               <span aria-hidden style={{ position: 'absolute', right: -4, bottom: -4, width: 12, height: 12, borderRadius: '50%', background: p.good, color: '#fff', fontSize: 9, lineHeight: '12px', textAlign: 'center' }}>✓</span>
+            )}
+            {trouble && size >= 24 && (
+              <span aria-hidden style={{ position: 'absolute', right: -4, bottom: -4, width: 12, height: 12, borderRadius: '50%', background: trouble === 'denied' ? p.bad : PARTIAL, color: '#fff', fontSize: 9, lineHeight: '12px', textAlign: 'center' }}>{trouble === 'denied' ? '✗' : '!'}</span>
             )}
             {partial && size >= 24 && (
               <span aria-hidden style={{ position: 'absolute', right: -9, bottom: -6, padding: '0 3px', borderRadius: 6, background: PARTIAL, color: '#1a202c', fontSize: 9, lineHeight: '12px' }}>{t.percent}%</span>

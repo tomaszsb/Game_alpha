@@ -13,6 +13,8 @@ export interface MatTileState {
   done: boolean;
   /** Whole percent (1-99) of the way there, for a tile that can be part done (funding); absent otherwise. */
   percent?: number;
+  /** An approval step the examiner turned down ('denied') or raised an objection on: the tile says so instead of just "not yet". */
+  trouble?: 'denied' | 'objection';
 }
 
 function isDone(check: MatCheck, player: Player, fin: Pick<ProjectFinances, 'scopeTotal' | 'fundingGap'>): boolean {
@@ -43,6 +45,8 @@ export function computeMat(player: Player, fin: Pick<ProjectFinances, 'scopeTota
   return getTrophyRules().mat.map(t => {
     const done = isDone(t.check, player, fin);
     const percent = t.check === 'funded' && !done ? fundingPercent(fin) : undefined;
-    return percent === undefined ? { id: t.id, label: t.label, done } : { id: t.id, label: t.label, done, percent };
+    const status = t.check === 'dob_approved' ? player.dobApprovalStatus : t.check === 'fdny_approved' ? player.fdnyApprovalStatus : undefined;
+    const trouble = status === 'denied' ? 'denied' : status === 'minor-objection' ? 'objection' : undefined;
+    return { id: t.id, label: t.label, done, ...(percent === undefined ? {} : { percent }), ...(trouble ? { trouble } : {}) };
   });
 }

@@ -15,6 +15,16 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.43] - 2026-10-14
+
+### DOB and FDNY approvals show in one place, and a denial no longer looks like "not yet". Not deployed.
+
+- **Tom (fb:a49b598f, v3.7.24), and his choice of "Option 1" on 10-14:** the DOB result appeared twice on the player panel, as the project strip's "DOB approved" tile and again as the small "DOB x / FDNY x" line beneath it. The tile is now the one place for done and not yet. The small line only appears when something needs attention: `DOB denied x`, `FDNY objection !`, or `FDNY not needed` (a review this project never needs, which the tile cannot say). Nothing shows there for a missing or an earned approval.
+- **Denied vs missing:** before, a denied DOB and a missing one both showed a grey cross. A denied step's tile is now red with a cross, an objection amber with "!"; their words in the tap label are `denied` / `objection raised` (`MAT.denied`, `MAT.objection` in `UI_STRINGS.csv`).
+- **Phone panel:** the line is a subset of what it was, so the card can only get shorter; not re-measured in a browser. Not looked at on a device.
+- **For the robot (Jarvis):** `approval-tag-dob` / `approval-tag-fdny` now exist only in the trouble cases; the done / not-yet state is on `mat-tile-dob` / `mat-tile-fdny` (`data-done`, new `data-trouble`).
+- **Tests:** the approval-tag tests were rewritten to the new rule (6); typecheck clean; `npm test` green.
+
 ## [3.7.42] - 2026-10-14
 
 ### The phone setup screen always shows an avatar to tap. Not deployed.

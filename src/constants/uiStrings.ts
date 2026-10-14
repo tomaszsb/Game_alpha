@@ -47,6 +47,8 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'MAT.done': 'done',
   'MAT.part': 'part way',
   'MAT.notyet': 'not yet',
+  'MAT.denied': 'denied',
+  'MAT.objection': 'objection raised',
   // v3.2.60: the commit control names where a picked destination leads, so the
   // control that actually moves you reads as movement. The space's own forward
   // label ("Sign off on the design") stays the subject — this only joins it to

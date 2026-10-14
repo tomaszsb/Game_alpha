@@ -83,62 +83,63 @@ afterEach(() => {
   setPanelMode('light');
 });
 
-describe('DOB / FDNY approval tags (fb:b8902332)', () => {
-  it('at the Regulatory stage, before any approval, both tags show a ✗ — "not yet" is the news', () => {
+// fb:b8902332 asked for the approvals to be visible at the approvals stage; fb:a49b598f (Tom, 2026-10-14) then found them
+// shown twice (the project strip's DOB / FDNY tiles AND this line). The tiles are now the one place for "done" and "not yet";
+// this line is only the warning light (denied, objection, or a review this project never needs). Tom chose "Option 1".
+describe('DOB / FDNY approval tags (fb:b8902332, fb:a49b598f)', () => {
+  it('no tag for a missing or an earned approval: the project strip tiles say that', () => {
     setup(basePlayer, 'REGULATORY');
     renderPanel();
-    expect(screen.getByTestId('approval-tag-dob')).toHaveTextContent('DOB ✗');
-    expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY ✗');
-  });
-
-  it('shows ✓ for an approval and ✗ for the one still waiting', () => {
+    expect(screen.queryByTestId('approval-tag-dob')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('approval-tag-fdny')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mat-tile-dob')).toHaveAttribute('data-done', 'false');
+    cleanup();
     setup({ ...basePlayer, dobApprovalStatus: 'approved' }, 'REGULATORY');
     renderPanel();
-    expect(screen.getByTestId('approval-tag-dob')).toHaveTextContent('DOB ✓');
-    expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY ✗');
+    expect(screen.queryByTestId('approval-tag-dob')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mat-tile-dob')).toHaveAttribute('data-done', 'true');
+    expect(screen.getByTestId('mat-tile-fdny')).toHaveAttribute('data-done', 'false');
   });
 
-  it('keeps showing after Regulatory (Construction), so an approval that was reset is visible', () => {
-    setup(basePlayer, 'CONSTRUCTION');
+  it('a denial shows the tag in words and turns the tile red (a denial no longer looks like "not yet")', () => {
+    setup({ ...basePlayer, dobApprovalStatus: 'denied' }, 'REGULATORY');
     renderPanel();
-    expect(screen.getByTestId('approval-tag-dob')).toHaveTextContent('DOB ✗');
+    expect(screen.getByTestId('approval-tag-dob')).toHaveTextContent('DOB denied ✗');
+    expect(screen.getByTestId('mat-tile-dob')).toHaveAttribute('data-trouble', 'denied');
+    expect(screen.getByTestId('mat-tile-dob')).toHaveAttribute('aria-label', expect.stringContaining('denied'));
   });
 
-  it('stays hidden in the early phases — an approval means nothing at Owner / Funding / Design yet', () => {
-    for (const phase of ['OWNER', 'FUNDING', 'DESIGN']) {
-      setup(basePlayer, phase);
-      renderPanel();
-      expect(screen.queryByTestId('approval-tag-dob')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('approval-tag-fdny')).not.toBeInTheDocument();
-      cleanup();
-    }
-  });
-
-  it('a player who has already been to an examiner keeps that tag even in an early phase (fb:bbeb13e2)', () => {
-    // Scope changed back at Design: the DOB approval went back to "none". It must show ✗, not vanish.
-    setup({ ...basePlayer, visitedSpaces: ['REG-DOB-PLAN-EXAM'], fdnyApprovalStatus: 'denied' }, 'DESIGN');
+  it('an objection shows the tag and an amber tile', () => {
+    setup({ ...basePlayer, fdnyApprovalStatus: 'minor-objection' }, 'REGULATORY');
     renderPanel();
-    expect(screen.getByTestId('approval-tag-dob')).toHaveTextContent('DOB ✗');
-    expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY ✗');
+    expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY objection !');
+    expect(screen.getByTestId('mat-tile-fdny')).toHaveAttribute('data-trouble', 'objection');
   });
 
-  it('the FDNY tag reads differently when the review is needed and when it is not (Tom, 2026-10-08)', () => {
+  it('an approval that was reset to "none" is just a not-yet tile again, with no stale tag (fb:bbeb13e2)', () => {
+    setup({ ...basePlayer, visitedSpaces: ['REG-DOB-PLAN-EXAM'], dobApprovalStatus: 'none' }, 'DESIGN');
+    renderPanel();
+    expect(screen.queryByTestId('approval-tag-dob')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mat-tile-dob')).toHaveAttribute('data-done', 'false');
+  });
+
+  it('a review this project never needs keeps its tag (the tile can not say that), and a needed one has none (Tom, 2026-10-08)', () => {
     setup({ ...basePlayer, dobApprovalStatus: 'approved' }, 'REGULATORY');
     (services as any).approvalService = { isFdnyReviewNeeded: vi.fn().mockReturnValue(true) };
     renderPanel();
-    expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY ✗');
+    expect(screen.queryByTestId('approval-tag-fdny')).not.toBeInTheDocument();
     cleanup();
     (services as any).approvalService = { isFdnyReviewNeeded: vi.fn().mockReturnValue(false) };
     renderPanel();
-    expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY –');
+    expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY not needed');
     expect(screen.getByTestId('approval-tag-fdny')).toHaveAttribute('title', 'FDNY not needed for your project');
   });
 
-  it('an approval earned early still shows (status wins over phase)', () => {
+  it('an approval earned early shows on its tile (status wins over phase)', () => {
     setup({ ...basePlayer, fdnyApprovalStatus: 'approved' }, 'DESIGN');
     renderPanel();
-    expect(screen.getByTestId('approval-tag-fdny')).toHaveTextContent('FDNY ✓');
-    expect(screen.queryByTestId('approval-tag-dob')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mat-tile-fdny')).toHaveAttribute('data-done', 'true');
+    expect(screen.queryByTestId('approval-tag-fdny')).not.toBeInTheDocument();
   });
 });
 

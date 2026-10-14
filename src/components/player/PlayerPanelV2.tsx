@@ -266,6 +266,12 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const dob = approvalView(player.dobApprovalStatus, atApprovalsStage || visited.includes(DOB_EXAM_SPACE));
   const fdnyNotNeeded = gameServices.approvalService?.isFdnyReviewNeeded?.(player) === false;
   const fdny = approvalView(player.fdnyApprovalStatus, atApprovalsStage || visited.includes(FDNY_EXAM_SPACE), fdnyNotNeeded);
+  // The project strip's DOB / FDNY tiles already say "done" or "not yet" (Tom, 2026-10-14, fb:a49b598f: it showed twice), so
+  // this line is only the warning light: an examiner's denial or objection, or a review this project never needs.
+  const inTrouble = (status: string | undefined) => status === 'denied' || status === 'minor-objection';
+  const dobTag = dob && inTrouble(player.dobApprovalStatus) ? dob : null;
+  const fdnyTag = fdny && (inTrouble(player.fdnyApprovalStatus) || (fdnyNotNeeded && (!player.fdnyApprovalStatus || player.fdnyApprovalStatus === 'none'))) ? fdny : null;
+  const tagWord = (v: ApprovalView) => (v.mark === '–' ? 'not needed' : v.label);
   // Resolved violations fade to a quiet trace (like DOB/FDNY do) rather than
   // showing forever — only 'active' needs the player's attention.
   const violation = player.violationStatus === 'active' ? violationView(player.violationStatus) : null;
@@ -996,17 +1002,17 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             ]}
           />
         )}
-        {(dob || fdny || violation) && (
+        {(dobTag || fdnyTag || violation) && (
           <div style={{ display: 'flex', marginTop: 8 }}>
             <span style={{ marginLeft: 'auto', display: 'flex', gap: 10, fontSize: 13, color: p.muted }}>
-              {dob && (
-                <span title={`DOB ${dob.label}`} data-testid="approval-tag-dob">
-                  DOB <span style={{ color: dob.dot, fontWeight: 700 }}>{dob.mark}</span>
+              {dobTag && (
+                <span title={`DOB ${dobTag.label}`} data-testid="approval-tag-dob">
+                  DOB <span style={{ color: dobTag.dot, fontWeight: 700 }}>{tagWord(dobTag)} {dobTag.mark}</span>
                 </span>
               )}
-              {fdny && (
-                <span title={`FDNY ${fdny.label}`} data-testid="approval-tag-fdny">
-                  FDNY <span style={{ color: fdny.dot, fontWeight: 700 }}>{fdny.mark}</span>
+              {fdnyTag && (
+                <span title={`FDNY ${fdnyTag.label}`} data-testid="approval-tag-fdny">
+                  FDNY <span style={{ color: fdnyTag.dot, fontWeight: 700 }}>{tagWord(fdnyTag)} {fdnyTag.mark}</span>
                 </span>
               )}
               {violation && (
