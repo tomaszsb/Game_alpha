@@ -97,9 +97,6 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
       mode={mode}
       clipboard={clipboard}
     >
-      {focus === 'life' && historyCards.length === 0 && (
-        <p data-testid="life-events-empty" style={{ fontSize: 13, color: p.muted, margin: 0 }}>{NUMBERS.LIFE_NONE}</p>
-      )}
       {historyCards.length > 0 && (
         <div data-testid="chronicle-history-cards" style={{ marginBottom: 12 }}>
           {[...new Set(historyCards.map((c) => c.type))].map((type) => {

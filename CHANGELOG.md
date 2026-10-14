@@ -15,6 +15,16 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.34] - 2026-10-14
+
+### Life events tab: shown only while an event is in action. Not deployed.
+
+- **Tom (10-14, via Manager):** show a life event only while it is in action that turn; if it lasts several turns, keep it for exactly those turns; otherwise the tab disappears (no "No life events yet" page). Confirmed: an Immediate card counts on the turn it is drawn (also mid-turn), a multi-turn card for as long as its effect is still running.
+- **How:** in action = drawn this turn (the turn ledger's `lifeEventsDrawn`) or still running (an entry in `activeEffects` from that card). With none in action the tab is not drawn (`ClipboardTabs` takes `hide`) and the Life events page lists only the ones in action. The Time page's history list is unchanged. The empty-page text is gone from the page (`LIFE.none` string left unused).
+- **Phone panel:** the tabs are placed absolutely, so hiding one changes no height (647 px stays the ceiling); not re-measured in a browser.
+- **Parked (Tom unsure):** the "Remove / Replace / No change" wording in "This turn" stays a dash.
+- **Tests:** 4 new (panel x3, tabs x1); `npm test` 272 files / 3900 green; typecheck clean.
+
 ## [3.7.33] - 2026-10-13
 
 ### "This turn": every action row is two columns, the button on the left and its proposed result on the right. Not deployed.

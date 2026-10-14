@@ -242,6 +242,25 @@ describe('PlayerPanelV2 — at-a-glance boxes replace "What\'s affecting you" (f
     // The L-type teaching callout is unique to the detail view.
     expect(screen.getByText(/real-world surprises/i)).toBeInTheDocument();
   });
+
+  // Tom, 10-14: the Life events tab shows an event only while it is in action; otherwise the tab is not drawn.
+  it('an old life event (held, not drawn this turn, no running effect) has no Life events tab', () => {
+    renderPanel();
+    expect(screen.queryByTestId('clipboard-tab-life')).not.toBeInTheDocument();
+  });
+
+  it('a life event drawn this turn shows the tab and is listed on the page', () => {
+    services.stateService.getTurnOutflow.mockReturnValue({ moneySpent: 0, cardsConsumed: [], lifeEventsDrawn: ['L001'] });
+    renderPanel();
+    fireEvent.click(screen.getByTestId('clipboard-tab-life'));
+    expect(screen.getByTestId('chronicle-history-cards')).toHaveTextContent('Permit Fee Hike');
+  });
+
+  it('a multi-turn life event keeps the tab while its effect is still running', () => {
+    services.stateService.getPlayer.mockReturnValue({ ...handPlayer, activeEffects: [{ sourceCardId: 'L001', remainingDuration: 2 }] });
+    renderPanel();
+    expect(screen.getByTestId('clipboard-tab-life')).toBeInTheDocument();
+  });
 });
 
 describe('PlayerPanelV2 — Expeditors page lists every expeditor (fb:88a88773)', () => {

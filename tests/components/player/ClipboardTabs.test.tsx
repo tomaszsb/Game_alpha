@@ -25,6 +25,12 @@ describe('clipboard page tabs', () => {
     expect(onSelect).toHaveBeenCalledWith('life');
   });
 
+  it('a hidden tab is not drawn', () => {
+    render(<ClipboardTabs active={null} onSelect={() => {}} palette={panelPalettes.light} hide={['life']} />);
+    expect(screen.queryByTestId('clipboard-tab-life')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(4);
+  });
+
   it('the strip is placed absolutely, so it takes no layout space', () => {
     render(<ClipboardTabs active={null} onSelect={() => {}} palette={panelPalettes.light} />);
     expect(screen.getByTestId('clipboard-tabs').style.position).toBe('absolute');

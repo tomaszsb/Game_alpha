@@ -291,6 +291,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       return !!card && gameServices.dataService.getNumbersSection(card.card_type) === section;
     });
   const historyCardIds = sectionCardIds('history');
+  // Life events IN ACTION: drawn this turn, or still running (an active effect from the card). Tom, 10-14: the
+  // Life events tab shows an event only while it is in action; with none in action the tab is not drawn.
+  const lifeInActionIds = historyCardIds.filter((id) =>
+    (gameServices.stateService.getTurnOutflow(playerId)?.lifeEventsDrawn ?? []).includes(id) ||
+    (player.activeEffects ?? []).some((e) => e.sourceCardId === id && e.remainingDuration > 0));
   // Same set the Expeditors page lists: filed under expeditors, or activatable
   // from hand (see PlayerNumbersV2 cardsFor).
   const expeditorPageCount = player.hand.filter((id) => {
@@ -779,7 +784,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     setChronicleFocus(id === 'life' ? 'life' : 'all');
   };
   // An open page is a page of THIS clipboard: the board in the player's colour, the same tabs down its edge.
-  const pageClipboard = { color: player.color, tabs: <ClipboardTabs active={activePage} onSelect={openPage} palette={p} /> };
+  const pageClipboard = { color: player.color, tabs: <ClipboardTabs active={activePage} onSelect={openPage} palette={p} hide={lifeInActionIds.length === 0 ? ['life'] : []} /> };
   // Each project step wears the picture of its building (TOWN.csv `mat_icon` rows + the building's icon).
   const townRows = gameServices.dataService.getTownRows?.();
   const renderMatIcon = (tileId: string, size: number): React.ReactNode => {
@@ -929,7 +934,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             should be within each area, not outside"). */}
         <div data-testid="glance-frame" style={{ borderRadius: 11, padding: '4px 30px 7px 7px', boxSizing: 'border-box', ...frameLook.frame }}>
         {frameLook.clip && <span aria-hidden data-testid="glance-clip" style={frameLook.clip} />}
-        <ClipboardTabs active={activePage} onSelect={openPage} palette={p} />
+        <ClipboardTabs active={activePage} onSelect={openPage} palette={p} hide={lifeInActionIds.length === 0 ? ['life'] : []} />
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
           <HelpButton
             kind="glance"
@@ -1573,7 +1578,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         onClose={() => setShowChronicle(false)}
         focus={chronicleFocus}
         clipboard={pageClipboard}
-        historyCards={historyCardIds.map((id) => {
+        historyCards={(chronicleFocus === 'life' ? lifeInActionIds : historyCardIds).map((id) => {
           const card = gameServices.dataService.getCardById(id);
           return { id, name: card?.card_name ?? id, type: card?.card_type ?? '' };
         })}

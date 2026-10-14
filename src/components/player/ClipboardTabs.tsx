@@ -19,13 +19,15 @@ interface TabsProps {
   active: PanelPageId | null;
   onSelect: (id: PanelPageId) => void;
   palette: PanelPalette;
+  /** Tabs not drawn (the Life events tab, when no life event is in action). */
+  hide?: PanelPageId[];
 }
 
 /** The strip down the clipboard's right edge: placed absolutely, so it takes no layout space. */
-export function ClipboardTabs({ active, onSelect, palette: p }: TabsProps): JSX.Element {
+export function ClipboardTabs({ active, onSelect, palette: p, hide = [] }: TabsProps): JSX.Element {
   return (
     <div data-testid="clipboard-tabs" style={{ position: 'absolute', right: 1, top: 6, display: 'flex', flexDirection: 'column', gap: 3, zIndex: 1 }}>
-      {PAGE_TABS.map(t => {
+      {PAGE_TABS.filter(t => !hide.includes(t.id)).map(t => {
         const on = active === t.id;
         return (
           <button
