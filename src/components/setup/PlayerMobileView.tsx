@@ -9,7 +9,7 @@ import { GitHubSyncStatus, getVersionBadgeTier, getVersionBadgeDetail, getVersio
 import { styles } from './PlayerSetup.styles';
 import { ShareIcon, useShareGameLink } from './ShareGameButton';
 import { IconBug } from '../icons/SetupIcons';
-import { AvatarIcon } from '../icons/AvatarIcons';
+import { AvatarIcon, AVATAR_IMAGE_MAP } from '../icons/AvatarIcons';
 
 interface PlayerMobileViewProps {
   /** The player this device is controlling, or undefined if not found yet. */
@@ -137,11 +137,14 @@ export function PlayerMobileView({
           {/* Avatar */}
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
             <div
-              style={{ fontSize: '3.5rem', cursor: 'pointer', userSelect: 'none', display: 'flex', justifyContent: 'center' }}
+              style={{ fontSize: '3.5rem', minHeight: '1em', cursor: 'pointer', userSelect: 'none', display: 'flex', justifyContent: 'center' }}
               onClick={() => onCycleAvatar(player.id)}
               title="Tap to change avatar"
+              data-testid="mobile-avatar"
             >
-              <AvatarIcon avatar={player.avatar} size="1em" />
+              {/* A player with no portrait yet (or one this build has no picture for) showed an empty gap, so there was
+                  nothing to tap to change it (fb:a31aff46, phone, TV mode). Show the plain person until one is picked. */}
+              <AvatarIcon avatar={player.avatar && AVATAR_IMAGE_MAP[player.avatar] ? player.avatar : '👤'} size="1em" />
             </div>
             <div style={{ fontSize: '0.8rem', color: colors.secondary.main, marginTop: '0.25rem' }}>
               Tap to change

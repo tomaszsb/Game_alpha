@@ -15,6 +15,14 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.42] - 2026-10-14
+
+### The phone setup screen always shows an avatar to tap. Not deployed.
+
+- **fb:a31aff46 (phone, TV mode, v3.2.82):** "I seem not to have a way to change an avatar on the phone." The screenshot shows the player card with an empty gap where the avatar should be, so there was nothing to tap. The tap-to-change code was there; the picture simply was not drawn (`AvatarIcon` draws nothing for a player with no avatar, or one this build has no picture for). The phone card now falls back to the plain person picture, so the spot always shows something and tapping it still cycles. I did not find why that player had no picture (a slow image load is the other possibility, and is not covered).
+- **fb:3ec9388f checked, not changed:** the dice-result pop-up's SUMMARY shows the space's story, not a line about what the action did. That is authored copy (voice rewrite Pass 2), not code.
+- **Tests:** 2 new; typecheck clean; `npm test` green.
+
 ## [3.7.41] - 2026-10-14
 
 ### The replace-an-expeditor list shows what each expeditor really costs. Not deployed.

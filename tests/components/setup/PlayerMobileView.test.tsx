@@ -94,3 +94,32 @@ describe('PlayerMobileView — invite affordance', () => {
     expect(screen.getByDisplayValue('Alice')).toBeInTheDocument();
   });
 });
+
+describe('PlayerMobileView — avatar always has something to tap (fb:a31aff46)', () => {
+  afterEach(() => cleanup());
+  const base = createTestPlayer({ id: 'p1', name: 'Sunday 2', color: '#007bff' });
+  const view = (avatar: string | undefined, onCycleAvatar = vi.fn()) =>
+    render(
+      <PlayerMobileView
+        player={{ ...base, avatar } as any}
+        onUpdatePlayer={vi.fn()}
+        onCycleAvatar={onCycleAvatar}
+        appSemver="1.2.3"
+        appCommit="abc1234"
+        syncStatus={{ status: 'checking' }}
+      />
+    );
+
+  it('a player with no avatar still shows a picture, and tapping it asks to change it', () => {
+    const cycle = vi.fn();
+    const { container } = view(undefined, cycle);
+    expect(container.querySelector('[data-testid="mobile-avatar"] img')).not.toBeNull();
+    fireEvent.click(screen.getByTestId('mobile-avatar'));
+    expect(cycle).toHaveBeenCalledWith('p1');
+  });
+
+  it('an avatar this build has no picture for also falls back to the plain person', () => {
+    const { container } = view('🦄');
+    expect(container.querySelector('[data-testid="mobile-avatar"] img')).not.toBeNull();
+  });
+});
