@@ -84,6 +84,8 @@ export interface ProjectFinances {
    *  decision 2026-07-10, fb:feedback-1783081115822-cac490a5). This is what
    *  the "Funding raised" ledger line displays. */
   fundingRaised: number;
+  /** Where the money came from, one figure per source (the Money page's "Where your money came from"). */
+  sources: { owner: number; bank: number; investors: number; other: number };
   /** Every dollar the player has ever had access to — owner seed money PLUS
    *  fundingRaised. This is the real number for "can they cover the
    *  project," so fundingGap and the low-cash warning threshold use THIS,
@@ -185,6 +187,7 @@ export function computeProjectFinances(
     construction: { budget: constructionBudget, spent: constructionSpent },
     contingency: { budget: contingencyBudget, used: contingencyUsed },
     fundingRaised,
+    sources: { owner: num(ms.ownerFunding), bank: num(ms.bankLoans), investors: num(ms.investmentDeals), other: num(ms.other) },
     totalCapital,
     cash: num(player.money),
     spent,

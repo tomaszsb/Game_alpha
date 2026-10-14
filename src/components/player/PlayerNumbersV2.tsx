@@ -416,6 +416,17 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
           </div>
         )}
 
+        {/* Where the money came from (fb:3fec0e88): one line per source that has put money in. */}
+        {page === 'money' && fin.totalCapital > 0 && (
+          <div data-testid="money-sources" style={{ marginBottom: 12 }}>
+            <p style={sectionLabel}>Where your money came from</p>
+            {fin.sources.owner > 0 && moneyRow('🏠', "The owner's money", fin.sources.owner)}
+            {fin.sources.bank > 0 && moneyRow('🏦', 'Bank loans', fin.sources.bank)}
+            {fin.sources.investors > 0 && moneyRow('🤝', 'Investor deals', fin.sources.investors)}
+            {fin.sources.other > 0 && moneyRow('🎁', 'Cards and other', fin.sources.other)}
+          </div>
+        )}
+
         {/* Money — raised, spent, on hand, and whether you've raised enough */}
         {page === 'money' && (
         <div style={{ marginBottom: 12 }}>

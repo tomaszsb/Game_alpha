@@ -74,6 +74,11 @@ describe('computeProjectFinances', () => {
     expect(fin.fundingGap).toBe(25250);
   });
 
+  it('reports each source on its own (fb:3fec0e88: where the money came from)', () => {
+    const fin = computeProjectFinances(makePlayer({ moneySources: { ownerFunding: 4600000, bankLoans: 3000000, investmentDeals: 1000000, other: 50000 } }), getCardById);
+    expect(fin.sources).toEqual({ owner: 4600000, bank: 3000000, investors: 1000000, other: 50000 });
+  });
+
   it('fundingRaised is 0 when the project is entirely owner-funded, but totalCapital still reflects it', () => {
     const fin = computeProjectFinances(
       makePlayer({ hand: ['W1'], moneySources: { ownerFunding: 999999, bankLoans: 0, investmentDeals: 0, other: 0 } }),

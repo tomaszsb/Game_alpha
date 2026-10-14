@@ -15,6 +15,15 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.36] - 2026-10-14
+
+### Money page shows where the money came from; the screen-size panel stays put. Not deployed.
+
+- **Where the money came from (fb:3fec0e88):** the Money page has a new "Where your money came from" block: the owner's money, bank loans, investor deals, cards and other (only sources that put money in). The cause of Tom's confusion: "Funding raised" is outside money only (design decision 2026-07-10), so $8.6M cash beside $4M raised looked like missing money; the other $4.6M was the owner's. `computeProjectFinances` now returns `sources`.
+- **Screen-size panel (fb:bf6176e5, fb:08dbbe87):** Bigger / Smaller re-lays the page out, and the panel re-followed its button on every press, so the buttons slid out from under the press ("changed location quickly so I could not press"). It now opens under its button and then stays at the same share of the screen (`pinnedPanelPosition`). Not tried on a real TV (the desktop browser ignores the layout-width change).
+- **Triage notes (TODO):** the 12 reports of 10-14 are in TODO. Not reproduced: the TV with no buildings (fb:a6474bad). Found: card E067 "Tax Incentive Research" has no effect at all (fb:4db1b1d9), so there is no saving to show; the violation (fb:c1dc207d) comes from life-event cards L050/L051.
+- **Tests:** 3 new; typecheck clean; `npm test` 272 files / 3903 green.
+
 ## [3.7.35] - 2026-10-14
 
 ### Clipboard flip proven in motion; Money / Expeditors / Scope now flip into each other. Not deployed.

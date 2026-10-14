@@ -45,6 +45,23 @@ export function placePanelUnderAnchor(
   };
 }
 
+/** Where the panel sits after a resize: the SAME share of the screen it opened at, pulled back inside the
+ *  view. Bigger/Smaller re-lays the whole page out, so following the button (as the first open does) made the
+ *  Bigger / Smaller / Keep buttons slide out from under the finger or remote (fb:bf6176e5, fb:08dbbe87).
+ *  Pure so it can be tested without a browser. */
+export function pinnedPanelPosition(
+  share: { x: number; y: number },
+  panel: { width: number; height: number },
+  viewport: { width: number; height: number },
+): { top: number; left: number } {
+  const maxLeft = Math.max(EDGE_MARGIN_PX, viewport.width - panel.width - EDGE_MARGIN_PX);
+  const maxTop = Math.max(EDGE_MARGIN_PX, viewport.height - panel.height - EDGE_MARGIN_PX);
+  return {
+    top: Math.round(Math.min(Math.max(share.y * viewport.height, EDGE_MARGIN_PX), maxTop)),
+    left: Math.round(Math.min(Math.max(share.x * viewport.width, EDGE_MARGIN_PX), maxLeft)),
+  };
+}
+
 /**
  * Bigger / Smaller buttons that resize the REAL screen live, a Keep this
  * size button that is the only thing that writes the choice, and an ~10s
@@ -74,22 +91,28 @@ export function TvScaleCalibration({ onClose, onApplied, anchorRef }: TvScaleCal
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
-  // Anchored position. Bigger/Smaller re-lays the WHOLE page out (the viewport itself
-  // changes), so the button moves under the panel with every press — re-measure on
-  // every resize and shortly after each step, not just once on open.
+  // Anchored position. The panel opens under its button, then STAYS at that share of the screen: Bigger/Smaller
+  // re-lays the whole page out (the viewport itself changes) so the button moves with every press, and a panel
+  // that followed it slid away from the person pressing (fb:bf6176e5). Re-placed on resize only to stay in view.
   const panelRef = useRef<HTMLDivElement>(null);
+  const shareRef = useRef<{ x: number; y: number } | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   useLayoutEffect(() => {
     const measure = () => {
       const button = anchorRef?.current;
       const panel = panelRef.current;
-      if (!button || !panel) { setPos(null); return; }
-      const r = button.getBoundingClientRect();
-      setPos(placePanelUnderAnchor(
-        { left: r.left, top: r.top, bottom: r.bottom },
-        { width: panel.offsetWidth, height: panel.offsetHeight },
-        { width: window.innerWidth, height: window.innerHeight },
-      ));
+      if (!panel) { setPos(null); return; }
+      const size = { width: panel.offsetWidth, height: panel.offsetHeight };
+      const view = { width: window.innerWidth, height: window.innerHeight };
+      if (!shareRef.current) {
+        if (!button) { setPos(null); return; }
+        const r = button.getBoundingClientRect();
+        const first = placePanelUnderAnchor({ left: r.left, top: r.top, bottom: r.bottom }, size, view);
+        shareRef.current = { x: first.left / view.width, y: first.top / view.height };
+        setPos(first);
+        return;
+      }
+      setPos(pinnedPanelPosition(shareRef.current, size, view));
     };
     measure();
     window.addEventListener('resize', measure);

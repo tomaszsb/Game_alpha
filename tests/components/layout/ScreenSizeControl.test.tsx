@@ -11,7 +11,7 @@ import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ScreenSizeControl } from '../../../src/components/layout/ScreenSizeControl';
-import { placePanelUnderAnchor } from '../../../src/components/layout/TvScaleCalibration';
+import { placePanelUnderAnchor, pinnedPanelPosition } from '../../../src/components/layout/TvScaleCalibration';
 
 function mockDevice(screenWidth: number, dpr: number) {
   vi.stubGlobal('screen', { width: screenWidth, height: 540 });
@@ -72,5 +72,18 @@ describe('placePanelUnderAnchor', () => {
   it('goes ABOVE a button that is low on the page when there is no room below (setup screen)', () => {
     const p = placePanelUnderAnchor({ left: 100, top: 800, bottom: 832 }, panel, viewport);
     expect(p.top + panel.height).toBeLessThanOrEqual(800);
+  });
+});
+
+describe('pinnedPanelPosition (fb:bf6176e5: the buttons must not slide while sizing)', () => {
+  const panel = { width: 300, height: 120 };
+  it('keeps the same share of the screen when the viewport changes size', () => {
+    expect(pinnedPanelPosition({ x: 0.5, y: 0.1 }, panel, { width: 1000, height: 600 })).toEqual({ top: 60, left: 500 });
+    expect(pinnedPanelPosition({ x: 0.5, y: 0.1 }, panel, { width: 2000, height: 1200 })).toEqual({ top: 120, left: 1000 });
+  });
+  it('is pulled back inside the view when the panel would run off', () => {
+    const p = pinnedPanelPosition({ x: 0.95, y: 0.95 }, panel, { width: 1000, height: 600 });
+    expect(p.left).toBe(1000 - 300 - 8);
+    expect(p.top).toBe(600 - 120 - 8);
   });
 });
