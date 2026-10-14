@@ -15,6 +15,16 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.40] - 2026-10-14
+
+### Tax Incentive Research (E067) now does what it says. Not deployed.
+
+- **Tom (fb:4db1b1d9):** "a card said I saved 10% on scope because of taxes. I do not see the 10% savings in money or in scope." The card had no effect at all (its `money_effect` was empty), so there was nothing to see.
+- **What it does now:** it pays the player 10% of their current project scope as cash, the same way the other tax-credit and grant cards (Historic Tax Credit, Public-Private Partnership) pay money. The cash shows in the Money page's new "Where your money came from" block under "Cards and other" and counts as money raised, so it narrows any funding gap. Why cash and not a lower scope number: scope is the list of work packages the player chose, and everything else (budgets, the 20% fee cap) is computed from it; rebating tax is money coming in. With no scope yet it pays $0.
+- **How:** a `money_effect` written as a percent ("10%") means that share of the player's scope (`src/utils/moneyEffect.ts`, used by `CardService.parseCardIntoEffects`); the card detail and the short effect line read "10% of your scope" instead of misreading it as "$10". `CARDS_EXPANDED.csv` E067: `money_effect` = `10%`.
+- **Open for Tom:** is cash back what he meant by "saved 10%"? The alternative is taking 10% off the listed scope.
+- **Tests:** 5 new (percent parsing, the card paying $630,000 on a $6.3M scope, the detail text); typecheck clean; `npm test` green.
+
 ## [3.7.39] - 2026-10-14
 
 ### Every "Keep this size" tap on the TV is logged. Not deployed. No player-visible change.

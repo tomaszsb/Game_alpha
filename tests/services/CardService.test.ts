@@ -805,6 +805,27 @@ describe('CardService - Enhanced Coverage', () => {
   });
 
   describe('Unified Effect Engine Integration', () => {
+    it('a "10%" money_effect pays 10% of the player scope (E067 Tax Incentive Research)', () => {
+      mockDataService.getCardById.mockReturnValue({
+        card_id: 'E067', card_name: 'Tax Incentive Research', card_type: 'E', money_effect: '10%',
+        description: 'Reduce project costs by 10% through identified tax incentives.',
+      });
+      mockGameRulesService.calculateProjectScope.mockReturnValue(6300000);
+
+      cardService.applyCardEffects('player1', 'E067');
+
+      expect(mockEffectEngineService.processCardEffects).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            effectType: 'RESOURCE_CHANGE',
+            payload: expect.objectContaining({ resource: 'MONEY', amount: 630000, source: 'card:E067' }),
+          }),
+        ]),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
     it('should parse card with money_effect into MODIFY_RESOURCE effect', () => {
       const testCard = {
         card_id: 'TEST001',

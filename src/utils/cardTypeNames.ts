@@ -1,3 +1,4 @@
+import { moneyEffectPercent } from './moneyEffect';
 import { colors } from '../styles/theme';
 import { Card, CardTypeLabel } from '../types/DataTypes';
 
@@ -84,8 +85,11 @@ export function getCardEffectSummary(card: Card, playerTimeSpent?: number): stri
   if (card.cost != null && !isNaN(card.cost) && card.cost > 0) {
     parts.push(`-$${card.cost.toLocaleString()}`);
   } else if (card.money_effect) {
+    const pct = moneyEffectPercent(card.money_effect);
     const m = parseInt(card.money_effect, 10);
-    if (!isNaN(m) && m !== 0) {
+    if (pct !== null && pct !== 0) {
+      parts.push(`${pct < 0 ? '-' : '+'}${Math.abs(pct)}% of scope`);
+    } else if (!isNaN(m) && m !== 0) {
       parts.push(`${m < 0 ? '-' : '+'}$${Math.abs(m).toLocaleString()}`);
     }
   }

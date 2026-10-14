@@ -17,6 +17,7 @@
 // Body + ModalBase shell follow the panel's light/dark `mode` (redesign §4).
 // The card-type header keeps its light tint in both modes (type identity).
 
+import { moneyEffectPercent } from '../../utils/moneyEffect';
 import React, { useState } from 'react';
 import { Card } from '../../types/DataTypes';
 import { IServiceContainer } from '../../types/ServiceContracts';
@@ -142,8 +143,11 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   if (card.cost != null && !isNaN(card.cost) && card.cost > 0) {
     facts.push({ icon: '💸', label: 'Costs', value: `$${card.cost.toLocaleString()}` });
   } else if (card.money_effect) {
+    const pct = moneyEffectPercent(card.money_effect);
     const m = parseInt(card.money_effect, 10);
-    if (!isNaN(m) && m !== 0) {
+    if (pct !== null && pct !== 0) {
+      facts.push({ icon: pct < 0 ? '💸' : '💰', label: pct < 0 ? 'Costs' : 'Pays', value: `${Math.abs(pct)}% of your scope` });
+    } else if (!isNaN(m) && m !== 0) {
       facts.push({ icon: m < 0 ? '💸' : '💰', label: m < 0 ? 'Costs' : 'Pays', value: `$${Math.abs(m).toLocaleString()}` });
     }
   }

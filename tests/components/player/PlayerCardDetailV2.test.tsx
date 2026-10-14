@@ -95,6 +95,23 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
     expect(screen.queryByText('💼 Investor')).not.toBeInTheDocument();
   });
 
+  it('a percent money_effect reads "10% of your scope", never "$10" (E067)', () => {
+    render(
+      <DictionaryProvider>
+        <PlayerCardDetailV2
+          isOpen
+          onClose={vi.fn()}
+          card={{ card_id: 'E067', card_type: 'E', card_name: 'Tax Incentive Research', description: 'Reduce project costs by 10%.', money_effect: '10%' }}
+          playerId="player1"
+          gameServices={services as any}
+          mode="light"
+        />
+      </DictionaryProvider>,
+    );
+    expect(screen.getByText('10% of your scope')).toBeInTheDocument();
+    expect(screen.queryByText('$10')).not.toBeInTheDocument();
+  });
+
   it('colours the day delta — green when it saves days, red when it adds (fb:39fd9f04)', () => {
     renderDetail(); // card saves 2 days (tick_modifier '-2')
     expect(screen.getByText('2 days')).toHaveStyle({ color: '#1e7e34' });

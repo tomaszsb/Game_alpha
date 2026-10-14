@@ -1,3 +1,4 @@
+import { moneyEffectDollars } from '../utils/moneyEffect';
 import { ICardService, IDataService, IStateService, IResourceService, IEffectEngineService, ILoggingService, IGameRulesService, IChoiceService, IApprovalService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { GameState, Player } from '../types/StateTypes';
@@ -1525,7 +1526,8 @@ export class CardService implements ICardService {
 
     // MODIFY_RESOURCE effects from money_effect field
     if (card.money_effect && card.money_effect !== '0') {
-      const moneyAmount = parseInt(card.money_effect, 10);
+      // A "10%" money_effect pays that share of the player's scope (E067); a plain number is dollars.
+      const moneyAmount = moneyEffectDollars(card.money_effect, this.gameRulesService.calculateProjectScope(playerId));
       if (!isNaN(moneyAmount) && moneyAmount !== 0) {
         effects.push({
           effectType: 'RESOURCE_CHANGE',
