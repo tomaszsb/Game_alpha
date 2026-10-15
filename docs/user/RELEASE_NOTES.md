@@ -2,6 +2,19 @@
 
 ---
 
+
+## v3.7.34 to v3.7.46 — Tidier panels, honest money, and a refreshed tour (October 14, 2026)
+
+- **Life events tab appears only when there is one.** The newspaper tab shows a life event only while it is in action (the turn you draw it, and as long as it lasts if it runs several turns). Otherwise there is no tab.
+- **Pages flip into each other.** Money, Experts and Scope now swing in and out like the other clipboard pages.
+- **"Where your money came from."** The Money page lists the owner's money, bank loans, investor deals and cards, so cash and "funding raised" add up.
+- **Tax Incentive Research now works.** It pays you 10% of your scope as cash (it used to do nothing).
+- **One place for the DOB and FDNY result.** The project strip's circles say done or not yet; the small line only appears for a denial, an objection, or "not needed". A denied step turns red instead of looking like "not yet".
+- **The screen-size panel on the TV stays put** while you press Bigger and Smaller.
+- **The replace-an-expeditor list shows real fees** instead of "Free" on every row.
+- **Phone setup always shows your picture** so you can tap it to change it.
+- **For hosts:** the admin games list shows a house for a game started at home and a globe for one started from outside, with the players' names. The challenge page's photo tour was re-taken from the current game.
+
 ## v3.7.25 to v3.7.33 — A busier town, a clipboard with tabs, and results beside the buttons (October 13, 2026)
 
 - **One tap, one bubble.** The little result bubbles used to rise from several buildings at once after a single tap. Now everything one player did in that tap comes up as one bubble per kind (scope, money, days), from the building they end up in. With several players, each bubble carries a dot in its player's colour.

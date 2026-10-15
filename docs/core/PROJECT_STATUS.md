@@ -5,19 +5,19 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** October 13, 2026 (v3.7.33)
+**Last Updated:** October 14, 2026 (v3.7.46)
 **Current Phase:** Beta — live in production
-**Current Version:** **v3.7.33 — LIVE (`/health` `788a5ea4` = HEAD, 2026-10-13 22:17 UTC).** Trust `/health`, never this line.
+**Current Version:** **v3.7.46 pushed; live at the time of writing was `3b2dbf72` (= v3.7.43).** v3.7.44-46 wait for Tom's next deploy. Trust `/health`, never this line.
 
 ## Current sprint
-Latest: Tom's four reports from 10-13, built in order and now live: v3.7.25 one bubble per kind per tap; v3.7.26 orange part-way "Funded 78%" plus the loan-fee line; v3.7.27/28/30 the town reveals names as the game goes, two construction sites (new building / renovation, picked by the scope's `card_kind` tags) and per-player owner house, office and site; v3.7.29/31/32 the clipboard (Money and Scope side by side on a phone, the player's colour, page tabs, eight round icons wearing their building's picture, flipping pages, play pop-ups as clipboard pages); v3.7.33 two-column "This turn" rows (button left, proposed result right). Before that: v3.7.24 "Lock the scope" fix, the town board (3.7.6-15) and the clipboard look (3.7.16-23).
+Latest (10-14, from Tom's play on the TV and phone, "pretty good, nothing urgent"): the Life events tab only while an event is in action (3.7.34); pages flip into each other (3.7.35); the Money page's "where your money came from", the TV size panel that stays put, 12 reports triaged (3.7.36); the admin games list shows home / off-network (3.7.37); lint errors and a duplicate-key warning cleared (3.7.38); every "Keep this size" tap logged (3.7.39); E067 Tax Incentive Research pays 10% of scope (3.7.40); the real fee in the replace list (3.7.41); the avatar on the phone setup screen (3.7.42); DOB / FDNY in one place and a red denied tile (3.7.43); bug reports carry live `diagnostics` (3.7.44); the 15 `any` warnings cleared (3.7.45); the /challenge photo tour re-shot (3.7.46). Also: an outside uptime check built (`scripts/uptime-check.mjs`, scheduled by Tom, texts after 3 misses).
 
 ## Health
-- **Tests (v3.7.33):** typecheck + build clean; `npm test` 272 files / 3896 green (exit 0); ghost gate green (11 files / 43 tests, 1 skipped). Phone panel 647 px at 360x640 and 390x844 (was 649).
-- **Feedback dashboard:** 56 open on 10-13 (~3 newer than the last triage are untracked; see NEXT_SESSION).
-- **Machine:** Node 24.10.0 (matches Dockerfile).
+- **Tests (v3.7.46):** typecheck + build clean; `npm test` 276 files / 3923 green; ghost gate green (11 files / 43 tests, 1 skipped); lint 0 errors, 23 `set-state-in-effect` warnings (left on purpose).
+- **Feedback dashboard:** 65 open, all tracked; 12 new ones triaged into TODO on 10-14.
+- **Machine:** Node 24.10.0 (matches Dockerfile). Uptime check log: `.claude/tmp/uptime.log`.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Tom's look at 3.7.14-3.7.33 (all live)** on real devices (list in TODO "Tom's checks"), then flip the confirmed reports. Not seen in motion: the page flip; not seen on a real TV: the 4-player town.
-2. **Two small choices for Tom:** what the Life events page holds; whether the "Remove / Replace / No change" rolls get worded in the right column of "This turn".
-3. **Money/scope bug** (scope not reproduced; waiting on Tom's reload result + same player on another screen). Parked: the ResizeObserver loop error (needs Chrome connected) and the untriaged reports fb:a49b598f, f9e897b0, bf9dd267.
+1. **Tom's device checks + flips** (checklist `.claude/tmp/TOM_CHECKLIST_2026-10-14.md`; nothing flips until he confirms one by one) and the Safari test for the iPhone light-mode report.
+2. **Open investigations now instrumented:** orange money (fb:c65560a3), TV with no buildings (fb:a6474bad), the money/scope vanish (10-12), the ResizeObserver loop: read the report's `diagnostics` on the next one.
+3. **Jarvis:** its 10-15 03:00 run is the first on the three-pop-up split and conditional Life events tab; it will tell Game if anything trips.

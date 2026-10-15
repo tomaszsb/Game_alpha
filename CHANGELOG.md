@@ -24,6 +24,7 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Honest note on two of them:** the won and lost end screens are STAGED. A real game takes far longer than the robot-driven run I used, so for those two I set the player's finish, days, fees, funding and turn count to plausible figures (214 days, $540K in fees, 26 turns) and called the game's own `endGame`, so the modal and the three-trophy table are the real ones fed made-up numbers. The mid-game picture is a real game moment. The setup picture shows 2 players, "Maya" and "Sam".
 - **Checked:** `/challenge` in Edge steps through all 11 slides with the right captions.
 - **Needs a deploy** to reach the public page (the images are bundled).
+- **Decisions recorded 10-14 (Tom):** End Turn stays press-and-hold (tap shows the cost, hold commits; the robot depends on it; the cheap fallback if it still confuses is a clearer hint). The DOB/FDNY duplicate went with "Option 1" (3.7.43). Light mode on the phone waits for his Safari test (iPhone, UA `EdgiOS`; the app never reads the system theme).
 
 ## [3.7.45] - 2026-10-14
 
