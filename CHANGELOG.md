@@ -15,6 +15,16 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.7.46] - 2026-10-14
+
+### The /challenge page's screenshot tour is re-shot from the current game. Not deployed.
+
+- **Tom:** "my challenge page has some outdated screenshots". The carousel (`src/playtest/tour/`, built into the app) still showed v3.1.83/84: the old board of boxes, the old panel, the old end screens. Ten of its eleven pictures were re-taken from the current game (v3.7.45, Edge, 1400 x 1100): player setup (two players), the beginning (town board, clipboard panel), adding new work (scope result), building your team (the owner's pop-up), a word explained (the glossary entry for "expeditor"), mid game (Lender Review, funding 65% part-way), what it costs (the cost bubble on the End Turn control), the glossary list, and the won and lost end screens. Same file names, so order and captions are unchanged.
+- **Not re-taken:** `40-teacher-edit-spaces.png` (the teacher's space editor needs a teacher login), still the old picture.
+- **Honest note on two of them:** the won and lost end screens are STAGED. A real game takes far longer than the robot-driven run I used, so for those two I set the player's finish, days, fees, funding and turn count to plausible figures (214 days, $540K in fees, 26 turns) and called the game's own `endGame`, so the modal and the three-trophy table are the real ones fed made-up numbers. The mid-game picture is a real game moment. The setup picture shows 2 players, "Maya" and "Sam".
+- **Checked:** `/challenge` in Edge steps through all 11 slides with the right captions.
+- **Needs a deploy** to reach the public page (the images are bundled).
+
 ## [3.7.45] - 2026-10-14
 
 ### The 15 `any` lint warnings are gone. Not deployed. No player-visible change.
