@@ -18,29 +18,29 @@ describe('RulesModal', () => {
 
   it('should not render when isOpen is false', () => {
     render(<RulesModal isOpen={false} onClose={vi.fn()} />);
-    expect(screen.queryByText('Game Objective')).not.toBeInTheDocument();
+    expect(screen.queryByText('Your job')).not.toBeInTheDocument();
   });
 
   it('renders every section heading and the Key Spaces labels with today\'s default text', () => {
     render(<RulesModal isOpen={true} onClose={vi.fn()} />);
 
     // Headings mix an emoji + heading text as one element's combined
-    // textContent (e.g. "🎯 Game Objective"), so these need a substring
+    // textContent (e.g. "🎯 Your job"), so these need a substring
     // match, not an exact-string match.
-    expect(screen.getByText(/Game Objective/)).toBeInTheDocument();
-    expect(screen.getByText(/Turn Structure/)).toBeInTheDocument();
-    expect(screen.getByText(/Resource Types/)).toBeInTheDocument();
-    expect(screen.getByText(/Key Spaces/)).toBeInTheDocument();
-    expect(screen.getByText(/Negotiation/)).toBeInTheDocument();
-    expect(screen.getByText(/Winning/)).toBeInTheDocument();
+    expect(screen.getByText(/Your job/)).toBeInTheDocument();
+    expect(screen.getByText(/Each turn/)).toBeInTheDocument();
+    expect(screen.getByText(/What you are juggling/)).toBeInTheDocument();
+    expect(screen.getByText(/The road/)).toBeInTheDocument();
+    expect(screen.getByText(/Negotiate for better terms/)).toBeInTheDocument();
+    expect(screen.getByText(/Winning and losing/)).toBeInTheDocument();
 
     // 2026-08-14: the literal space-id labels — these are exactly what a
     // reskin needs to be able to override (see the CSV-override test below).
-    expect(screen.getByText('OWNER-SCOPE-INITIATION:')).toBeInTheDocument();
-    expect(screen.getByText('OWNER-FUND-INITIATION:')).toBeInTheDocument();
-    expect(screen.getByText('ARCH/ENG Spaces:')).toBeInTheDocument();
-    expect(screen.getByText('REG Spaces:')).toBeInTheDocument();
-    expect(screen.getByText('CON Spaces:')).toBeInTheDocument();
+    expect(screen.getByText('Owner:')).toBeInTheDocument();
+    expect(screen.getByText('Architect and engineer:')).toBeInTheDocument();
+    expect(screen.getByText('The city (DOB and FDNY):')).toBeInTheDocument();
+    expect(screen.getByText('Builder:')).toBeInTheDocument();
+    expect(screen.getByText('Finish:')).toBeInTheDocument();
 
     expect(screen.getByText('Got it!')).toBeInTheDocument();
   });
@@ -66,9 +66,9 @@ describe('RulesModal', () => {
 
     expect(screen.getByText('CASTLE-QUEST-START:')).toBeInTheDocument();
     expect(screen.getByText('Accept your quest from the King')).toBeInTheDocument();
-    expect(screen.queryByText('OWNER-SCOPE-INITIATION:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Owner:')).not.toBeInTheDocument();
     // Untouched keys stay at their default.
-    expect(screen.getByText('OWNER-FUND-INITIATION:')).toBeInTheDocument();
+    expect(screen.getByText('Architect and engineer:')).toBeInTheDocument();
   });
 
   it('a reskin CSV can override the modal title and footer button', () => {

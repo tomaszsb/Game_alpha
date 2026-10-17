@@ -50,41 +50,41 @@ DISCARD_PILE.EMPTY_STATE,No resources used yet
 DISCARD_PILE.FILTER_LABEL,Filter by type
 RULES.title,How to play
 RULES.footer.gotIt,Got it!
-RULES.objective.heading,Game Objective
-RULES.objective.body,"Navigate through the development process from initial scope to project completion. Manage your time, money, and resources while making strategic decisions to successfully complete your construction project."
-RULES.turnStructure.heading,Turn Structure
-RULES.turnStructure.step1.label,Determine Outcome:
-RULES.turnStructure.step1.body,Each space has different possible outcomes that affect your project
-RULES.turnStructure.step2.label,Complete Actions:
-RULES.turnStructure.step2.body,Perform any required actions (like hiring expeditors or securing funding)
+RULES.objective.heading,Your job
+RULES.objective.body,"You are the project manager on a building in New York City. Get the plans approved, the money lined up and a builder hired, then finish the job. Every step costs days and dollars, so watch both."
+RULES.turnStructure.heading,Each turn
+RULES.turnStructure.step1.label,Listen:
+RULES.turnStructure.step1.body,Read what the person at your space is telling you
+RULES.turnStructure.step2.label,Do the job:
+RULES.turnStructure.step2.body,"Do what it asks: hire a helper, pick a loan, answer a question"
 RULES.turnStructure.step3.label,End Turn:
-RULES.turnStructure.step3.body,"Once all actions are completed, end your turn to advance"
-RULES.resourceTypes.heading,Resource Types
-RULES.resourceTypes.W.label,Work Packages:
-RULES.resourceTypes.W.body,Construction work scopes and project requirements
-RULES.resourceTypes.B.label,Bank Loans:
-RULES.resourceTypes.B.body,Funding and financial resources
+RULES.turnStructure.step3.body,Press and hold End Turn to move on. A quick tap only shows what moving on will cost
+RULES.resourceTypes.heading,What you are juggling
+RULES.resourceTypes.W.label,Work:
+RULES.resourceTypes.W.body,"The jobs you take on, and how big the project is (its scope)"
+RULES.resourceTypes.B.label,Bank loans:
+RULES.resourceTypes.B.body,Money you borrow to pay for the project
 RULES.resourceTypes.E.label,Expeditors:
-RULES.resourceTypes.E.body,Filing representatives who can help or hinder application processes
-RULES.resourceTypes.L.label,Life Events:
+RULES.resourceTypes.E.body,"People who file your paperwork, faster or slower depending on who you hire"
+RULES.resourceTypes.L.label,Life events:
 RULES.resourceTypes.L.body,"Real-world surprises like new laws, weather delays, and unforeseen circumstances"
 RULES.resourceTypes.I.label,Investors:
-RULES.resourceTypes.I.body,Investment opportunities and funding partners
-RULES.keySpaces.heading,Key Spaces
-RULES.keySpaces.item1.label,OWNER-SCOPE-INITIATION:
-RULES.keySpaces.item1.body,Define project scope and hire expeditors
-RULES.keySpaces.item2.label,OWNER-FUND-INITIATION:
-RULES.keySpaces.item2.body,Secure initial funding
-RULES.keySpaces.item3.label,ARCH/ENG Spaces:
-RULES.keySpaces.item3.body,Work with architects and engineers
-RULES.keySpaces.item4.label,REG Spaces:
-RULES.keySpaces.item4.body,Handle permits and regulatory requirements
-RULES.keySpaces.item5.label,CON Spaces:
-RULES.keySpaces.item5.body,Construction and final project phases
-RULES.negotiation.heading,Negotiation
-RULES.negotiation.body,"Some spaces allow negotiation. If you have a snapshot from entering the space, you can restore your previous state. Otherwise, you’ll receive a time penalty but can try again."
-RULES.winning.heading,Winning
-RULES.winning.body,Successfully navigate through all phases of development and reach the final completion space to win the game. Manage your resources wisely and make strategic decisions to overcome challenges along the way.
+RULES.resourceTypes.I.body,People who put money in for a share of the result
+RULES.keySpaces.heading,The road
+RULES.keySpaces.item1.label,Owner:
+RULES.keySpaces.item1.body,Set the scope and find the money
+RULES.keySpaces.item2.label,Architect and engineer:
+RULES.keySpaces.item2.body,Draw the project up
+RULES.keySpaces.item3.label,The city (DOB and FDNY):
+RULES.keySpaces.item3.body,Review and approve the plans
+RULES.keySpaces.item4.label,Builder:
+RULES.keySpaces.item4.body,Hire one and get the job built
+RULES.keySpaces.item5.label,Finish:
+RULES.keySpaces.item5.body,Close out the job. Each stop tells you what it needs
+RULES.negotiation.heading,Negotiate for better terms
+RULES.negotiation.body,"Not happy with an offer? You can negotiate for better terms. The first offer comes back to you, but it costs a small fee and five more days, and each try costs again, so check the price before you press."
+RULES.winning.heading,Winning and losing
+RULES.winning.body,"Three prizes are in play: Fastest, On budget and Best built. Win two of the three and the project is yours. If nobody wins two, the lowest total of the three decides. You lose if you run out of money, your design fees pass 20% of the project's scope, or the job runs so long the owner pulls the plug."
 COMMIT.withDestination,{label} → {destination}
 COMMIT.waitingFor,Waiting for {name}
 COMMIT.working,Working…

@@ -3,6 +3,12 @@
 ---
 
 
+## v3.8.1 to v3.8.3 — A clearer "How to play" (October 17, 2026)
+
+- **"How to play" says how the game works now.** Your job, each turn (press and hold End Turn to move on), what you are juggling, the road from the owner to the finish, negotiating for better terms, and how you win or lose. The old text talked about a final space and a "snapshot" that no longer exist.
+- **Your picture shows on the phone setup card.** It had shrunk to a dot.
+- **The class page and the certificate** carry a class link tag so a teacher can see who came from them; the class page says a game takes about 30 minutes.
+
 ## v3.8.0 — Class page and certificate (October 17, 2026)
 
 - **A page for classes.** `/class` explains the game in plain words and starts a game. You only have to reach the end, not win.

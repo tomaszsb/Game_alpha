@@ -1,4 +1,6 @@
-# "How to play" — new text, DRAFT for Tom's voice pass (2026-10-17)
+# "How to play" — new text. APPLIED in v3.8.3 (Tom's answers 10-17: say press-and-hold, "negotiate for better terms", neutral voice)
+
+The live wording is in `src/constants/uiStrings.ts` and `UI_STRINGS.csv`; this file is the reasoning, kept for reference.
 
 Replaces the old `RULES.*` strings in `src/constants/uiStrings.ts` (same keys, same modal, no layout change).
 Why: the old text still talks about reaching "the final completion space", a "snapshot" you can restore, raw

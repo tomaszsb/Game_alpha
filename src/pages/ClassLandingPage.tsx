@@ -51,7 +51,7 @@ export function ClassLandingPage(): JSX.Element {
       </ol>
 
       <p style={{ color: '#4b5563' }}>
-        A full game takes a while. It plays best on a computer or tablet, and you can use your
+        A game takes about 30 minutes. It plays best on a computer or tablet, and you can use your
         phone as the controller. Your game is saved, so you can come back to it.
       </p>
 

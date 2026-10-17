@@ -19,6 +19,15 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 
 `tests/ghost/dataIntegrity.test.ts` split every CSV line on every comma. 15 card rows (L006, L011, L012, L015, L021, L026, L029, L041 and more) have a quoted comma, so for them every column after it was read from the wrong cell, and a bad `revokes_approval` value on those rows could not have been caught. It now splits like the game's reader (a comma inside quotes stays in its cell) and also fails if any card row has a different cell count than the header. All 7 tests still pass, so no bad value was hiding. Also audited: `TooltipService`'s own CSV reader handles quoted commas, so merging it gains nothing (left alone). Lint warnings (23) stay parked on purpose: rewriting them changes when state updates, with no player-visible gain.
 
+## [3.8.3] - 2026-10-17
+
+### "How to play" rewritten in plain permit words; the /class page says "about 30 minutes". Not deployed.
+
+- **Tom's answers (10-17):** say "press and hold End Turn" in the text; call it "negotiate for better terms"; keep the text neutral (no Ruth); the class page just says about 30 minutes ("once they start they will be hooked").
+- **What changed:** all 31 `RULES.*` strings, in `uiStrings.ts` AND `UI_STRINGS.csv` (the CSV overrides the code, so both had to change). Gone: "reach the final completion space", the "snapshot" you could restore, raw space ids (`OWNER-SCOPE-INITIATION`), "Determine Outcome", "Resource Types". New: Your job, Each turn, What you are juggling, The road (Owner, Architect and engineer, The city (DOB and FDNY), Builder, Finish), Negotiate for better terms (the offer comes back, small fee, five more days, each try costs again), Winning and losing (three prizes, win two, lowest total breaks a tie; lose by running out of money, design fees past 20% of scope, or the owner pulling the plug). No layout or key changes. Draft and reasoning: `docs/core/HOW_TO_PLAY_DRAFT.md`.
+- **Tests:** `RulesModal.test.tsx` expectations moved to the new default text (the reskin-override tests still prove a CSV can replace any label); `npm test` green; typecheck clean.
+- **Measured the same day:** outside players 46 games, 4 finished (9%); a person's real finish 24-47 min. Told to Tom; the "30 minutes" is his call.
+
 ## [3.8.2] - 2026-10-17
 
 ### `/class?src=<tag>` is now recorded, so students a teacher sends there can be told apart. Not deployed.
