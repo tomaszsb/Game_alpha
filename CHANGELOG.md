@@ -19,6 +19,16 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 
 `tests/ghost/dataIntegrity.test.ts` split every CSV line on every comma. 15 card rows (L006, L011, L012, L015, L021, L026, L029, L041 and more) have a quoted comma, so for them every column after it was read from the wrong cell, and a bad `revokes_approval` value on those rows could not have been caught. It now splits like the game's reader (a comma inside quotes stays in its cell) and also fails if any card row has a different cell count than the header. All 7 tests still pass, so no bad value was hiding. Also audited: `TooltipService`'s own CSV reader handles quoted commas, so merging it gains nothing (left alone). Lint warnings (23) stay parked on purpose: rewriting them changes when state updates, with no player-visible gain.
 
+## [3.8.2] - 2026-10-17
+
+### `/class?src=<tag>` is now recorded, so students a teacher sends there can be told apart. Not deployed.
+
+- **Ask:** the Jarvis session (Tom picked "change the /class page" there; the request reached this session as a relayed message). `/class` never called the tracker, so `/class?src=kosi` games landed under "(no tag)" with Tom's and family games.
+- **Change:** on load `ClassLandingPage` calls `trackPlaytestEvent('landing_view')` once. That reads `?src=` (or `?utm_campaign=`), keeps it in `sessionStorage`, and logs `PLAYTEST_LANDING_VIEW` with `campaignSource`; every later event of that tab's game (`PLAYTEST_SPACE_REACHED`, game finished, ...) carries it. "Start the game" stays a same-tab link so the tag carries over. No server change.
+- **Trade-off:** it reuses `landing_view`, so `/class` and `/challenge` landings share that count. A separate event name would need a server change; not done.
+- **Tests:** `ClassLandingPage.test.tsx` now 3 (stores the tag, posts exactly one `landing_view` with it, Start has no `target`); `npm test` green; typecheck clean.
+- **Proof after deploy:** open `/class?src=kosi`, press Start, make a move, look for `PLAYTEST_SPACE_REACHED` with `campaignSource` "kosi" in `visitors.log`.
+
 ## [3.8.1] - 2026-10-17
 
 ### The avatar on the phone setup card finally shows (it was drawn one pixel wide). Not deployed.

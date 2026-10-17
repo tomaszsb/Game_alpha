@@ -5,7 +5,8 @@
 // game's auto-create (same reason as /challenge). "Start" sends the student to the normal
 // game start.
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { trackPlaytestEvent } from '../playtest/playtestAnalytics';
 
 const page: React.CSSProperties = {
   maxWidth: 640,
@@ -17,6 +18,17 @@ const page: React.CSSProperties = {
 };
 
 export function ClassLandingPage(): JSX.Element {
+  // Records the visit and, because trackPlaytestEvent reads ?src= / ?utm_campaign= and keeps it in
+  // sessionStorage, tags every later event of this tab's game with the class link it came from
+  // (/class?src=kosi). The Start link below must stay a same-tab link or that tag is lost.
+  // It reuses the `landing_view` event, so /class and /challenge landings share that count.
+  const tracked = useRef(false);
+  useEffect(() => {
+    if (tracked.current) return;
+    tracked.current = true;
+    trackPlaytestEvent('landing_view');
+  }, []);
+
   return (
     <main style={page} data-testid="class-landing">
       <h1 style={{ marginBottom: 8 }}>Unravel Codes</h1>
