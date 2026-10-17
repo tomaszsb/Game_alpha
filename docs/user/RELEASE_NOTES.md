@@ -3,6 +3,13 @@
 ---
 
 
+## v3.8.0 — Class page and certificate (October 17, 2026)
+
+- **A page for classes.** `/class` explains the game in plain words and starts a game. You only have to reach the end, not win.
+- **A certificate.** On the last screen, "Print certificate" opens one page with your name, the date and the game name. Print it or save it as a PDF to show your teacher.
+- **A small joke** for structural engineers sits under the button.
+
+
 ## v3.7.34 to v3.7.46 — Tidier panels, honest money, and a refreshed tour (October 14, 2026)
 
 - **Life events tab appears only when there is one.** The newspaper tab shows a life event only while it is in action (the turn you draw it, and as long as it lasts if it runs several turns). Otherwise there is no tab.

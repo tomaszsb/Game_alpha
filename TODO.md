@@ -56,6 +56,7 @@
 
 ## 🙋 Decisions waiting on Tom
 
+- [ ] **Class page + certificate (v3.8.0, Manager brief 10-17): Tom's checks and answers.** Needs a deploy; then play one game to the end screen, press "Print certificate" and save a real PDF (only the page's HTML and 375 px width were checked, not a printed file). Tom hasn't said how many students, the start date, or whether `/class` should say "City College" (it is generic now). Joke 1 is in; jokes 2-3 are in the 10-17 Manager reply. A full game's length is unmeasured (last outside baseline: 14% finished); read finish times from the server's game records before promising extra credit.
 - [ ] **Is there a real class and a date for the 30-student scenario?** Back-burnered until there is; before a real class the board's clicks for a spectator must be checked (spectators are read-only in the panels; load test 30 and 100 spectators, 0 lost, local).
 - [ ] **Money and Scope sit on a diagonal on a phone (Money top-left, Scope bottom-right): change it?** (the layout half of fb:c0d3bfb8). Who: Tom.
 - [ ] **Unraid cleanup, his call:** `docker rmi game_alpha-game-alpha:latest` (609 MB) and `docker builder prune` (23.4 GB).
