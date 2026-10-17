@@ -3204,6 +3204,8 @@ const PLAYTEST_EVENTS = new Set([
   'game_lost',
   // "Keep this size" in the TV's screen-size panel: the width chosen + the device's own numbers.
   'tv_size_kept',
+  // A tap on the commit control released before the hold filled (gameId, playerId, spaceId only).
+  'commit_tap',
 ]);
 
 function sanitizeTrackField(value) {

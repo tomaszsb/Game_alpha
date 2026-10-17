@@ -48,7 +48,10 @@ const setup = (over: Partial<React.ComponentProps<typeof TurnCommitControl>> = {
 };
 
 describe('TurnCommitControl (dark-mode merged control)', () => {
-  beforeEach(() => vi.useFakeTimers());
+  beforeEach(() => {
+    vi.useFakeTimers();
+    try { localStorage.removeItem('uc_hold_learned'); } catch { /* ignore */ }
+  });
   afterEach(() => {
     vi.runOnlyPendingTimers();
     vi.useRealTimers();
@@ -427,6 +430,54 @@ describe('TurnCommitControl (dark-mode merged control)', () => {
         fireEvent.pointerUp(tryBtn);
       });
       expect(line).toHaveStyle({ visibility: 'hidden' });
+    });
+  });
+
+  describe('teaching the hold (first-space wall, 2026-10-17)', () => {
+    it('captions a ready End side "Press and hold" until the player has done one hold', () => {
+      const { endBtn } = setup();
+      expect(endBtn).toHaveTextContent('Press and hold');
+      fireEvent.pointerDown(endBtn);
+      act(() => { vi.advanceTimersByTime(700); });
+      expect(endBtn).not.toHaveTextContent('Press and hold');
+      expect(localStorage.getItem('uc_hold_learned')).toBe('1');
+    });
+
+    it('does not caption it once learned, and keeps the blocked-reason line when not ready', () => {
+      localStorage.setItem('uc_hold_learned', '1');
+      const learned = setup();
+      expect(learned.endBtn).not.toHaveTextContent('Press and hold');
+      cleanup();
+      localStorage.removeItem('uc_hold_learned');
+      const { endBtn } = setup({ endActionable: false, endSubLabel: 'Finish 2 things above first' });
+      expect(endBtn).toHaveTextContent('Finish 2 things above first');
+      expect(endBtn).not.toHaveTextContent('Press and hold');
+    });
+
+    it('reports a tap released before the hold filled, once, and not a completed hold', () => {
+      const onTapWithoutHold = vi.fn();
+      const { endBtn, onCommitEnd } = setup({ onTapWithoutHold });
+      fireEvent.pointerDown(endBtn);
+      act(() => { vi.advanceTimersByTime(200); });
+      fireEvent.pointerUp(endBtn);
+      fireEvent.pointerLeave(endBtn);
+      expect(onTapWithoutHold).toHaveBeenCalledTimes(1);
+      expect(onTapWithoutHold).toHaveBeenCalledWith('end');
+      expect(onCommitEnd).not.toHaveBeenCalled();
+
+      fireEvent.pointerDown(endBtn);
+      act(() => { vi.advanceTimersByTime(700); });
+      fireEvent.pointerUp(endBtn);
+      expect(onCommitEnd).toHaveBeenCalledTimes(1);
+      expect(onTapWithoutHold).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not report a tap on a side that cannot be committed', () => {
+      const onTapWithoutHold = vi.fn();
+      const { endBtn } = setup({ endActionable: false, endSubLabel: 'Finish 2 things above first', onTapWithoutHold });
+      fireEvent.pointerDown(endBtn);
+      fireEvent.pointerUp(endBtn);
+      expect(onTapWithoutHold).not.toHaveBeenCalled();
     });
   });
 });

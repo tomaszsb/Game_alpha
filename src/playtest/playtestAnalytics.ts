@@ -33,7 +33,10 @@ export type PlaytestEvent =
   // checked against what really happened. Decided 2026-10-02 (fb:adb1cc76).
   | 'game_lost'
   // "Keep this size" in the TV's screen-size panel (2026-10-14): which width was chosen on which screen.
-  | 'tv_size_kept';
+  | 'tv_size_kept'
+  // A press on End Turn / Try Again that was released before the hold filled (2026-10-17): do players miss the
+  // press-and-hold? Read with space_reached: lots of commit_tap at one space and no move after = the gesture.
+  | 'commit_tap';
 
 /** Optional fields the in-game engagement events attach. Always pseudonymous
  *  (gameId/playerId), never the player's display name. */

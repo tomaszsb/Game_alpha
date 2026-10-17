@@ -1516,6 +1516,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             tryAgainRows={tryAgainCostRows}
             onCommitEnd={commit.onClick}
             onCommitTryAgain={(details) => onTryAgain(playerId, details)}
+            onTapWithoutHold={() => {
+              const gameId = getCurrentGameId();
+              if (gameId) trackPlaytestEvent('commit_tap', { gameId, playerId, spaceId: player.currentSpace });
+            }}
             endCostLine={turnCostLine ?? undefined}
             showGreenDot={showGreenDot}
             isHelpOpen={openHelp === 'commit'}

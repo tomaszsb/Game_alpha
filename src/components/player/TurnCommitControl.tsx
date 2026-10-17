@@ -67,6 +67,16 @@ const HOLD_MS = 650;
  *  fades back out on its own. */
 const BUBBLE_MS = 3000;
 
+/** Remembered once a player has completed one hold, so the "Press and hold" caption teaches the gesture
+ *  only until they have done it (the first space was where most outside players stopped, 2026-10-17). */
+const HOLD_LEARNED_KEY = 'uc_hold_learned';
+function readHoldLearned(): boolean {
+  try { return localStorage.getItem(HOLD_LEARNED_KEY) === '1'; } catch { return false; }
+}
+function writeHoldLearned(): void {
+  try { localStorage.setItem(HOLD_LEARNED_KEY, '1'); } catch { /* private window: the caption just keeps showing */ }
+}
+
 export interface TurnCommitControlProps {
   mode: PanelMode;
   /** Caption for the Try Again side (space's own CSV label). */
@@ -86,6 +96,9 @@ export interface TurnCommitControlProps {
   /** Fired on a completed push-back hold. `costChecked` says whether the player
    *  had opened this side's cost box BEFORE that press (see `previewedRef`). */
   onCommitTryAgain: (details: PushBackDetails) => void;
+  /** A press on a side that COULD be committed ended before the hold filled: the "tapped but did not hold"
+   *  moment, counted so we can see whether players miss the gesture. */
+  onTapWithoutHold?: (side: 'end' | 'tryAgain') => void;
   /** Optional one-line cost summary shown under the End preview (turnCostLine). */
   endCostLine?: string;
   /** First-visit green nudge dot on the End side. */
@@ -110,6 +123,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
   tryAgainRows,
   onCommitEnd,
   onCommitTryAgain,
+  onTapWithoutHold,
   endCostLine,
   showGreenDot,
   isHelpOpen,
@@ -123,6 +137,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
   const timerRef = useRef<number | null>(null);
   const bubbleTimerRef = useRef<number | null>(null);
   const firedRef = useRef(false);
+  const [holdLearned, setHoldLearned] = useState<boolean>(readHoldLearned);
   // Which side is mid-press right now, so a pointer that merely hovers over and
   // leaves a button (no press) can't count as opening its cost box.
   const pressedRef = useRef<Side | null>(null);
@@ -171,6 +186,8 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
     (side: Side) => {
       firedRef.current = true;
       pressedRef.current = null;
+      writeHoldLearned();
+      setHoldLearned(true);
       const costChecked = previewedRef.current.has(side);
       previewedRef.current.clear();
       if (side === 'end') onCommitEnd?.();
@@ -208,8 +225,9 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
       clearTimer();
       setPressing((cur) => (cur === side ? null : cur));
       if (wasPressed) previewedRef.current.add(side); // its cost box was shown, uncommitted
+      if (wasPressed && actionableFor(side)) onTapWithoutHold?.(side);
     },
-    [clearTimer],
+    [actionableFor, clearTimer, onTapWithoutHold],
   );
 
   const onKeyDown = useCallback(
@@ -531,7 +549,9 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         }}
       >
         {renderSide('tryAgain', tryAgainLabel, false)}
-        {renderSide('end', endLabel, true, endActionable ? undefined : endSubLabel)}
+        {/* "Press and hold" fills the slot the "why not yet" line uses, so the control is no taller than it
+            already is before the player has done the two actions; it goes away after their first hold. */}
+        {renderSide('end', endLabel, true, endActionable ? (holdLearned ? undefined : 'Press and hold') : endSubLabel)}
       </div>
       </div>
     </div>

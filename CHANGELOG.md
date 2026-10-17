@@ -19,6 +19,17 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 
 `tests/ghost/dataIntegrity.test.ts` split every CSV line on every comma. 15 card rows (L006, L011, L012, L015, L021, L026, L029, L041 and more) have a quoted comma, so for them every column after it was read from the wrong cell, and a bad `revokes_approval` value on those rows could not have been caught. It now splits like the game's reader (a comma inside quotes stays in its cell) and also fails if any card row has a different cell count than the header. All 7 tests still pass, so no bad value was hiding. Also audited: `TooltipService`'s own CSV reader handles quoted commas, so merging it gains nothing (left alone). Lint warnings (23) stay parked on purpose: rewriting them changes when state updates, with no player-visible gain.
 
+## [3.8.4] - 2026-10-17
+
+### The press-and-hold is taught on the button, and taps that miss it are counted. Server restarts on deploy.
+
+- **Why:** of 46 outside games, 31 never got past the first space ("Owner: set the scope"; 14 never reached a space, 17 stopped there). Played as a new student on a PC (10-17): the two actions and both pop-ups work, and "Lock the scope" needs a 0.65 s hold; a quick tap only shows a cost bubble, which looks like nothing happened. Fits fb:53a47779. **Hypothesis, not proven.**
+- **Caption:** when the End side is ready, its second line now says "Press and hold" (the same slot that says "Finish 2 things above first" while blocked). It disappears for good after the player's first completed hold (`localStorage` `uc_hold_learned`; private windows just keep seeing it). The robot's `aria-label` is unchanged.
+- **Phone size (Tom's rule), measured at 360x640 and 390x844:** the control is 54 px with the caption, the same 54 px it already is while blocked at the first space; it was 40 px when ready with no caption. So the first-space screen is no taller than before; only the ready state grew 14 px, and only until the first hold. Tom can veto.
+- **Tracker:** new event `commit_tap` (`PLAYTEST_COMMIT_TAP` in `visitors.log`, fields gameId, playerId, spaceId) whenever a press on a committable side ends before the hold fills. Read it with `PLAYTEST_SPACE_REACHED`: many `commit_tap` at one space and no move after = the gesture is the wall. Server whitelist gained `commit_tap`, so **this deploy restarts the server**.
+- **Tests:** `TurnCommitControl.test.tsx` +4 (caption until first hold, kept blocked line, one tap counted and a hold not, no count when blocked); `npm test` 279 files / 3936 green; typecheck clean. Checked in Edge: a tap posts exactly one `commit_tap` with the right ids.
+- **Not yet checked on a real phone.** Not yet seen: whether it raises the share of outside players who pass the first space (read after the class).
+
 ## [3.8.3] - 2026-10-17
 
 ### "How to play" rewritten in plain permit words; the /class page says "about 30 minutes". Not deployed.
