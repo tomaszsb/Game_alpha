@@ -21,7 +21,8 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 
 - **Tom's report (fb:3c938084, v3.7.46, "Not fixed yet"):** the picture spot above "Tap to change" was still an empty gap. The screenshot showed a tiny dot there. **Cause (found, not guessed):** `AvatarIcon` wrote its size into the HTML `width`/`height` attributes, and those only understand pixels; `size="1em"` was read as 1 pixel. v3.7.42 gave every player a portrait to show, but it was still drawn at 1 x 1. **Fix:** a text size like "1em" or "4rem" now goes in the style; a plain number still sets both. This also fixes the other places that pass `1.1rem`, `1.5rem` and `4rem`.
 - **Tests:** `AvatarIcon.test.tsx` (2); `npm test` 279 files / 3930 green; typecheck clean. Not checked on a real phone.
-- **Other new reports 10-14/15, not yet in TODO:** fb:53a47779 End Turn "long press in a short press, but not always" (the press-and-hold decision of 10-14 stands; the hint may need to be clearer) · fb:b6b93adf light mode "much better than before but still not light" (diagnostics: `panelModeStored` dark, phone dark mode) · fb:69b4bc3a money "looks fixed, turned green".
+- **Tom 10-17: "money is done"** (orange money fb:c65560a3 and fb:69b4bc3a "looks fixed, turned green" closed; cause never found, the 3.7.44 diagnostics are there if it returns).
+- **Other new reports 10-14/15, now in TODO:** fb:53a47779 End Turn "long press in a short press, but not always" (the press-and-hold decision of 10-14 stands; the hint may need to be clearer) · fb:b6b93adf light mode "much better than before but still not light" (diagnostics: `panelModeStored` dark, phone dark mode) · fb:69b4bc3a money "looks fixed, turned green".
 
 ## [3.8.0] - 2026-10-17
 
