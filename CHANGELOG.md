@@ -15,6 +15,10 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [Housekeeping] 2026-10-17 - data-integrity test reads quoted CSV cells properly (tests only, no version)
+
+`tests/ghost/dataIntegrity.test.ts` split every CSV line on every comma. 15 card rows (L006, L011, L012, L015, L021, L026, L029, L041 and more) have a quoted comma, so for them every column after it was read from the wrong cell, and a bad `revokes_approval` value on those rows could not have been caught. It now splits like the game's reader (a comma inside quotes stays in its cell) and also fails if any card row has a different cell count than the header. All 7 tests still pass, so no bad value was hiding. Also audited: `TooltipService`'s own CSV reader handles quoted commas, so merging it gains nothing (left alone). Lint warnings (23) stay parked on purpose: rewriting them changes when state updates, with no player-visible gain.
+
 ## [3.8.1] - 2026-10-17
 
 ### The avatar on the phone setup card finally shows (it was drawn one pixel wide). Not deployed.

@@ -20,7 +20,28 @@ function loadCsv(relativePath: string): string[][] {
   return raw
     .split('\n')
     .filter(line => line.trim().length > 0)
-    .map(line => line.split(',').map(cell => cell.trim()));
+    .map(line => splitCsvLine(line).map(cell => cell.trim()));
+}
+
+// Splits one CSV line the way the game's own reader does: a comma inside "quotes" stays in its cell.
+// (A plain split(',') shifted every column after a quoted comma: 15 card rows, e.g. L006, are like that.)
+function splitCsvLine(line: string): string[] {
+  const cells: string[] = [];
+  let cell = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { cell += '"'; i++; } else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) {
+      cells.push(cell);
+      cell = '';
+    } else {
+      cell += ch;
+    }
+  }
+  cells.push(cell);
+  return cells;
 }
 
 describe('CSV data integrity', () => {
@@ -201,14 +222,17 @@ describe('CSV data integrity', () => {
     );
     // Header has a historical stray \r — strip CR before splitting.
     const lines = cardsRaw.replace(/\r/g, '').split('\n').filter(l => l.trim().length > 0);
-    const header = lines[0].split(',');
+    const header = splitCsvLine(lines[0]);
     const colIdx = header.indexOf('revokes_approval');
     expect(colIdx, 'revokes_approval column should exist in CARDS_EXPANDED.csv').toBeGreaterThan(-1);
+    // Every row must have the header's width, or the column read below could be the wrong cell.
+    const ragged = lines.slice(1).filter(l => splitCsvLine(l).length !== header.length).length;
+    expect(ragged, 'CARDS_EXPANDED rows with a different cell count than the header').toBe(0);
 
     const VALID = new Set(['', 'dob', 'fdny', 'both']);
     const offenders: string[] = [];
     for (let i = 1; i < lines.length; i++) {
-      const fields = lines[i].split(',');
+      const fields = splitCsvLine(lines[i]);
       const cardId = fields[0];
       const value = (fields[colIdx] ?? '').trim();
       if (!VALID.has(value)) {
