@@ -15,6 +15,18 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.8.0] - 2026-10-17
+
+### A class page (/class) and a printable certificate at the end of the game. Not deployed.
+
+- **Ask (Tom, via the Manager brief):** a friend teaches structural engineering at City College and will give extra credit for playing. The students need a landing page, a printable proof of finishing, and a structural-engineer joke.
+- **`/class`:** its own page (`ClassLandingPage`, routed by address in `main.tsx` like `/challenge`, so it never creates a game). Plain words: what the game is, "you only have to reach the end", and a Start button that goes to the normal game start. Wording is generic (no school name) until Tom says otherwise.
+- **Certificate:** a "Print certificate" button on the end screen (win or loss, both count as finishing). It opens one printable page with the player's name from the game, the date and the game name; the browser's Print / Save as PDF does the rest. No check code, nothing stored, nothing sent (Tom: cheating does not matter). Name is HTML-escaped; the print button is wired without an inline handler because the app's CSP blocks those.
+- **Joke:** one line under the button (joke 1 of 3), small italic text; it sits inside the end-screen modal, not the player panel.
+- **Checked:** `/class` at 375 px wide has no sideways scroll and starts no game; certificate page renders the name and hides its button when printing. Not checked: a real print-to-PDF file and a full game to the end screen.
+- **Tests:** `certificate.test.ts` (4), `ClassLandingPage.test.tsx` (1); `npm test` 278 files / 3928 green; typecheck clean.
+- **Game length:** no recorded average. Last outside baseline: 14% of games finished, so Kossi should tell students it takes a while.
+
 ## [3.7.46] - 2026-10-14
 
 ### The /challenge page's screenshot tour is re-shot from the current game. Not deployed.

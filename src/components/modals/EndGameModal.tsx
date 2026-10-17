@@ -15,6 +15,7 @@ import { PostGameLogViewer } from '../game/PostGameLogViewer';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 import { lossTitle } from '../../utils/endGameLoss';
+import { openCertificate, STRUCTURAL_JOKE } from '../../utils/certificate';
 import { getTrophyRules, TROPHY_IDS } from '../../utils/trophyRules';
 import type { TrophyStandings } from '../../utils/trophyScoring';
 
@@ -313,6 +314,25 @@ export function EndGameModal(): JSX.Element {
             the stats. Wins, observations, lessons — color coded. Renders only
             if at least one rule matched. */}
         {insights.length > 0 && <ProjectDebrief insights={insights} />}
+
+        {/* Class certificate + a joke (v3.8.0): a printable page from the player's name, no proof or storage. */}
+        <div style={{ margin: '16px 0', textAlign: 'center' }}>
+          <button
+            type="button"
+            data-testid="print-certificate"
+            onClick={() => {
+              if (!openCertificate(statsPlayer?.name || winnerName || lossName)) {
+                window.alert('Your browser blocked the certificate window. Allow pop-ups for this site and try again.');
+              }
+            }}
+            style={{ padding: '10px 18px', fontSize: '15px', cursor: 'pointer', minHeight: 44 }}
+          >
+            Print certificate
+          </button>
+          <p data-testid="structural-joke" style={{ margin: '10px 0 0', fontSize: '13px', fontStyle: 'italic', color: colors.text.secondary }}>
+            {STRUCTURAL_JOKE}
+          </p>
+        </div>
 
         {/* v3.0.50 (fb:91738221 pass 3) — post-game log viewer + export.
             Collapsible by default. When the modal opens for a specific

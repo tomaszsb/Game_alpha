@@ -8,6 +8,7 @@ import { App } from './App';
 import { PlaytesterLandingPage } from './playtest/PlaytesterLandingPage';
 import { capturePwaInstallPrompt } from './playtest/pwaInstall';
 import { AdminStatsPage } from './pages/AdminStatsPage';
+import { ClassLandingPage } from './pages/ClassLandingPage';
 import { initGameSpeed } from './utils/gameSpeed';
 
 // Install console capture early so we catch errors during init
@@ -47,6 +48,8 @@ function main(): void {
   const path = window.location.pathname.replace(/\/$/, '');
   if (path === '/challenge') {
     root.render(<PlaytesterLandingPage />);
+  } else if (path === '/class') {
+    root.render(<ClassLandingPage />);
   } else if (path === '/admin/stats') {
     root.render(<AdminStatsPage />);
   } else {
