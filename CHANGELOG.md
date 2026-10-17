@@ -19,6 +19,10 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 
 `tests/ghost/dataIntegrity.test.ts` split every CSV line on every comma. 15 card rows (L006, L011, L012, L015, L021, L026, L029, L041 and more) have a quoted comma, so for them every column after it was read from the wrong cell, and a bad `revokes_approval` value on those rows could not have been caught. It now splits like the game's reader (a comma inside quotes stays in its cell) and also fails if any card row has a different cell count than the header. All 7 tests still pass, so no bad value was hiding. Also audited: `TooltipService`'s own CSV reader handles quoted commas, so merging it gains nothing (left alone). Lint warnings (23) stay parked on purpose: rewriting them changes when state updates, with no player-visible gain.
 
+## [Housekeeping] 2026-10-17 - static page `/nest-privacy.html` (no version, no game change)
+
+Tom asked for a Google-required privacy-policy page for his personal Home Assistant / Nest sign-in (Google Cloud project `home-assistant-510400`, leaving "Testing" mode) on a domain he owns. The page text came from the Hermes/Jarvis session's `handouts/nest-privacy-policy.html`; it is copied unchanged to `public/nest-privacy.html` (Vite copies `public/` into `dist/`, and `express.static(distPath)` serves it before the SPA catch-all). **The contact address in it is `game@unravelcodes.com`** (the one already on every game page), replacing the brief's `CONTACT_EMAIL` placeholder, because Tom had not picked one; he can swap it. Checked locally: the server returns the file byte-for-byte as `text/html`, and `/privacy` still returns the game's front page. Goes live with the next deploy.
+
 ## [3.8.4] - 2026-10-17
 
 ### The press-and-hold is taught on the button, and taps that miss it are counted. Server restarts on deploy.
