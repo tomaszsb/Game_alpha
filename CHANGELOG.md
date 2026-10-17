@@ -15,6 +15,14 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 - **Dashboard PATCH ledger 2026-07-10 to 08-02** (flip counts after each confirmed deploy, 53 open down to 7) now lives only in the archive; the recipe stays in TODO.
 - **2026-07-11 blind code review:** all 10 items fixed (v3.0.112-120); the `npm test` "hang" root-caused v3.1.11; the 2026-07-21 playtest findings (6 card-effect gaps) resolved v3.1.45-54.
 
+## [3.8.1] - 2026-10-17
+
+### The avatar on the phone setup card finally shows (it was drawn one pixel wide). Not deployed.
+
+- **Tom's report (fb:3c938084, v3.7.46, "Not fixed yet"):** the picture spot above "Tap to change" was still an empty gap. The screenshot showed a tiny dot there. **Cause (found, not guessed):** `AvatarIcon` wrote its size into the HTML `width`/`height` attributes, and those only understand pixels; `size="1em"` was read as 1 pixel. v3.7.42 gave every player a portrait to show, but it was still drawn at 1 x 1. **Fix:** a text size like "1em" or "4rem" now goes in the style; a plain number still sets both. This also fixes the other places that pass `1.1rem`, `1.5rem` and `4rem`.
+- **Tests:** `AvatarIcon.test.tsx` (2); `npm test` 279 files / 3930 green; typecheck clean. Not checked on a real phone.
+- **Other new reports 10-14/15, not yet in TODO:** fb:53a47779 End Turn "long press in a short press, but not always" (the press-and-hold decision of 10-14 stands; the hint may need to be clearer) · fb:b6b93adf light mode "much better than before but still not light" (diagnostics: `panelModeStored` dark, phone dark mode) · fb:69b4bc3a money "looks fixed, turned green".
+
 ## [3.8.0] - 2026-10-17
 
 ### A class page (/class) and a printable certificate at the end of the game. Not deployed.

@@ -68,9 +68,11 @@ export function AvatarIcon({ avatar, size = '1em', style, className }: AvatarIco
     <img
       src={src}
       alt=""
-      width={size}
-      height={size}
-      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, objectFit: 'cover', borderRadius: '50%', ...style }}
+      // CSS lengths ("1em", "4rem") are not valid in the HTML width/height attributes: the browser reads
+      // "1em" as 1 pixel, which drew a one-pixel dot on the phone setup card (fb:3c938084, v3.7.42 did not fix it).
+      width={typeof size === 'number' ? size : undefined}
+      height={typeof size === 'number' ? size : undefined}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, objectFit: 'cover', borderRadius: '50%', width: size, height: size, ...style }}
       className={className}
     />
   );
