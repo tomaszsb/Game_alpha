@@ -109,7 +109,7 @@ describe('server.js endpoint auth wiring', () => {
 
   it('POST /api/instances/:id/positions requires instance write token or admin', () => {
     expect(handlerHead('post', '/api/instances/:id/positions', 1200))
-      .toContain('checkInstanceWriteAccess(config');
+      .toContain('guardedInstanceWriteAccess(req, res, config');
   });
 
   it.each([
@@ -117,7 +117,7 @@ describe('server.js endpoint auth wiring', () => {
     ['delete', '/api/instances/:id/edge-waypoints/:edgeId'],
     ['delete', '/api/instances/:id/edge-waypoints'],
   ])('%s %s requires instance write token or admin', (method, route) => {
-    expect(handlerHead(method, route, 1200)).toContain('checkInstanceWriteAccess(config');
+    expect(handlerHead(method, route, 1200)).toContain('guardedInstanceWriteAccess(req, res, config');
   });
 
   it('GET /api/instances/:id/edge-waypoints is open by design (read-only display data)', () => {
@@ -130,7 +130,7 @@ describe('server.js endpoint auth wiring', () => {
     ['delete', '/api/instances/:id/edge-anchors/:edgeId/:end'],
     ['delete', '/api/instances/:id/edge-anchors'],
   ])('%s %s requires instance write token or admin', (method, route) => {
-    expect(handlerHead(method, route, 1200)).toContain('checkInstanceWriteAccess(config');
+    expect(handlerHead(method, route, 1200)).toContain('guardedInstanceWriteAccess(req, res, config');
   });
 
   it('GET /api/instances/:id/edge-anchors is open by design (read-only display data)', () => {
@@ -208,8 +208,7 @@ describe('server.js endpoint auth wiring', () => {
     // here — so the route adds its own narrow admin check.
     const body = copiesRouteBody();
     expect(body).toContain("tier === 'official'");
-    expect(body).toContain('checkAdminPassword(');
-    expect(body).toContain('CONFIG.ADMIN_PASSWORD_HASH');
+    expect(body).toContain('guardedAdminPassword(req, res,');
     expect(body).toContain('res.status(403)');
   });
 
@@ -259,8 +258,7 @@ describe('server.js endpoint auth wiring', () => {
     // `individual` card instead — but the tier they get is decided by this
     // check and nothing else.
     const body = contentRouteBody();
-    expect(body).toContain('checkAdminPassword(');
-    expect(body).toContain('CONFIG.ADMIN_PASSWORD_HASH');
+    expect(body).toContain('guardedAdminPassword(req, res,');
     expect(body).toContain("const tier = admin.ok ? 'official' : 'individual';");
   });
 
@@ -346,7 +344,7 @@ describe('server.js endpoint auth wiring', () => {
 
   it('handleInstanceMutation enforces optimistic concurrency (409 on stale configVersion)', () => {
     const start = source.indexOf('function handleInstanceMutation');
-    const body = source.slice(start, start + 1600);
+    const body = source.slice(start, start + 2200);
     expect(body).toContain('baseConfigVersion');
     expect(body).toContain('409');
   });
@@ -362,7 +360,7 @@ describe('server.js endpoint auth wiring', () => {
     const start = source.indexOf('function handleInstanceMutation');
     expect(start).toBeGreaterThan(-1);
     const body = source.slice(start, start + 2400);
-    expect(body).toContain('checkInstanceWriteAccess(config');
+    expect(body).toContain('guardedInstanceWriteAccess(req, res, config');
     // And validation gates the save: errors → 422, never a silent bake.
     expect(body).toContain('validateConfig(');
   });
@@ -432,7 +430,7 @@ describe('server.js endpoint auth wiring', () => {
     // Reads the requested classroom, defaulting to classroom-1 (open).
     expect(head).toContain('req.body.instanceId');
     // A non-default classroom requires ownership/admin to spawn a game.
-    expect(head).toContain('checkInstanceWriteAccess(cfg');
+    expect(head).toContain('guardedInstanceWriteAccess(req, res, cfg');
     expect(head).toContain('accountId: resolveTeacherAccountId(req)');
     // Bakes the requested instance (not just the default) and records it.
     expect(head).toContain('rebakeInstance(requestedInstanceId)');
@@ -468,7 +466,7 @@ describe('server.js endpoint auth wiring', () => {
   // ===== Phase 3 polish: teacher self-service create + delete =====
 
   it('POST /api/instances lets a logged-in teacher create a room they own (not admin-gated)', () => {
-    const head = handlerHead('post', '/api/instances', 900);
+    const head = handlerHead('post', '/api/instances', 2000);
     // Authorized by the teacher session, NOT the admin guard.
     expect(head).toContain('resolveTeacherAccountId(req)');
     expect(head).not.toContain('requireAdmin(req');
@@ -483,7 +481,7 @@ describe('server.js endpoint auth wiring', () => {
 
   it('DELETE /api/instances/:id allows the owner or admin, and refuses the default classroom', () => {
     const head = handlerHead('delete', '/api/instances/:id', 1400);
-    expect(head).toContain('checkInstanceWriteAccess(config');
+    expect(head).toContain('guardedInstanceWriteAccess(req, res, config');
     expect(head).toContain('accountId: resolveTeacherAccountId(req)');
     // The public default classroom can never be deleted.
     expect(head).toContain('DEFAULT_INSTANCE_ID');
@@ -593,5 +591,47 @@ describe('server.js /data gate wiring', () => {
     while ((m = re.exec(source))) {
       if (m.index !== gate) expect(m.index).toBeGreaterThan(gate);
     }
+  });
+});
+
+// ===== v3.8.6: the admin password is rate-limited everywhere it is accepted =====
+describe('server.js admin-password guard and text caps', () => {
+  it('no route checks the admin password without counting wrong guesses', () => {
+    // checkAdminPassword( may appear only inside guardedAdminPassword itself;
+    // every other admin-password check goes through that helper (or
+    // requireAdmin / guardedInstanceWriteAccess, which call it).
+    const start = source.indexOf('function guardedAdminPassword(');
+    const end = source.indexOf('\nfunction ', start + 1);
+    expect(start).toBeGreaterThan(-1);
+    const outside = source.slice(0, start) + source.slice(end);
+    expect(outside).not.toMatch(/checkAdminPassword\(/);
+    // And checkInstanceWriteAccess is only called (with the admin password
+    // left out) from guardedInstanceWriteAccess.
+    const calls = source.match(/checkInstanceWriteAccess\(/g) || [];
+    expect(calls.length).toBe(1);
+  });
+
+  it('requireAdmin, the game-token guard and the feedback guard all count wrong admin passwords', () => {
+    for (const fn of ['function requireAdmin(', 'function requireGameTokenOrAdmin(', 'function requireFeedbackAccess(']) {
+      const at = source.indexOf(fn);
+      expect(at, fn).toBeGreaterThan(-1);
+      expect(source.slice(at, at + 1100), fn).toContain('guardedAdminPassword(req, res,');
+    }
+  });
+
+  it('a teacher can own at most MAX_CLASSROOMS_PER_TEACHER rooms, checked before one is made', () => {
+    const head = handlerHead('post', '/api/instances', 2000);
+    const cap = head.indexOf('owned >= MAX_CLASSROOMS_PER_TEACHER');
+    expect(cap).toBeGreaterThan(-1);
+    expect(cap).toBeLessThan(head.indexOf('createInstance('));
+    expect(source).toContain('const MAX_CLASSROOMS_PER_TEACHER = 20;');
+  });
+
+  it('classroom mutations check text length before loading the classroom', () => {
+    const start = source.indexOf('function handleInstanceMutation');
+    const body = source.slice(start, start + 1200);
+    const cap = body.indexOf('findOverlongText(req.body)');
+    expect(cap).toBeGreaterThan(-1);
+    expect(cap).toBeLessThan(body.indexOf('loadInstance('));
   });
 });

@@ -57,6 +57,7 @@ import { buildCatalog } from './instanceCatalog.js';
 import { compareBoardReports } from './boardCheck.js';
 import { createPlaytestRunner } from './boardPlaytest.js';
 import { parseCsvWithHeaders } from './processGameData.js';
+import { findOverlongText, findOverlongCsvCell, overlongMessage } from './textLimits.js';
 import {
   bakeInstance,
   computeStockVersion,
@@ -145,6 +146,11 @@ app.use(cors({
     ? process.env.ALLOWED_ORIGINS.split(',')
     : ['https://game.unravelcodes.com', 'http://localhost:3000', 'http://localhost:3001']
 }));
+// Classroom routes get a 1 MB body cap, registered first so it parses (and
+// refuses) before the general 10 MB one below. The biggest legitimate
+// classroom post is the editor's three whole CSVs, ~45 KB today. The 10 MB
+// limit stays for everything else (game state, admin save-source-files).
+app.use('/api/instances', express.json({ limit: '1mb' }));
 app.use(express.json({ limit: '10mb' }));
 
 // Security headers
@@ -958,6 +964,87 @@ function createRateLimiter(maxAttempts, windowMs) {
 const checkAdminRateLimit = createRateLimiter(5, 15 * 60 * 1000); // 5 per 15 min
 const checkLoginRateLimit = createRateLimiter(5, 15 * 60 * 1000); // 5 per 15 min
 
+// ===== ADMIN PASSWORD SIDE DOORS =====
+// The admin password is also accepted outside /api/admin/verify: every
+// classroom write route, board check, game create from a private classroom,
+// the debug/feedback reads. Before v3.8.6 none of those were rate-limited, so
+// a stranger could guess the admin password there without limit (independent
+// review 2026-10-18). Every one now goes through guardedAdminPassword.
+//
+// Own bucket, and only WRONG passwords count: the maintainer saves dozens of
+// edits with the right password, and those must never lock them out. Five wrong
+// guesses from one IP and the admin password is refused (429) there for 15
+// minutes — checked BEFORE the password is looked at, so a blocked guesser
+// cannot tell a right guess from a wrong one. Teacher sessions and instance
+// write tokens are checked first and never touch this bucket.
+const ADMIN_GUESS_LIMIT = { maxFailures: 5, windowMs: 15 * 60 * 1000 };
+const adminGuessFailures = new Map(); // IP -> { count, resetAt }
+
+function adminGuessBlockedFor(req) {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const entry = adminGuessFailures.get(ip);
+  if (!entry || Date.now() >= entry.resetAt) return 0;
+  return entry.count >= ADMIN_GUESS_LIMIT.maxFailures ? Math.ceil((entry.resetAt - Date.now()) / 1000) : 0;
+}
+
+function recordAdminGuessFailure(req) {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = adminGuessFailures.get(ip);
+  if (entry && now < entry.resetAt) entry.count++;
+  else adminGuessFailures.set(ip, { count: 1, resetAt: now + ADMIN_GUESS_LIMIT.windowMs });
+}
+
+/**
+ * Check an admin password a caller supplied, counting wrong ones.
+ * Returns checkAdminPassword's result, or null when the IP is over the limit —
+ * the 429 has then already been sent and the caller must just return.
+ * The result is remembered on req, so a route that checks before handing on to
+ * handleInstanceMutation (POST /content, /copies) counts one guess, not two.
+ */
+function guardedAdminPassword(req, res, password) {
+  if (req._adminCheck && req._adminCheck.password === password) {
+    if (req._adminCheck.result === null && !res.headersSent) sendAdminGuessLimit(req, res);
+    return req._adminCheck.result;
+  }
+  let result;
+  if (typeof password !== 'string' || password === '') {
+    // Nothing typed is not a guess.
+    result = checkAdminPassword(password, CONFIG.ADMIN_PASSWORD_HASH);
+  } else if (adminGuessBlockedFor(req)) {
+    sendAdminGuessLimit(req, res);
+    result = null;
+  } else {
+    result = checkAdminPassword(password, CONFIG.ADMIN_PASSWORD_HASH);
+    if (!result.ok && result.status === 401) recordAdminGuessFailure(req);
+  }
+  req._adminCheck = { password, result };
+  return result;
+}
+
+function sendAdminGuessLimit(req, res) {
+  const minutes = Math.max(1, Math.ceil(adminGuessBlockedFor(req) / 60));
+  logVisitor(req, 'ADMIN_GUESS_LIMITED');
+  res.status(429).json({
+    success: false,
+    error: `Too many wrong admin passwords from this connection. Please wait ${minutes} minute${minutes === 1 ? '' : 's'} and try again.`,
+  });
+}
+
+/**
+ * checkInstanceWriteAccess with the admin password counted. Same options
+ * (token, adminPassword, accountId); the hash is filled in here. The write
+ * token and teacher session are tried first, so a teacher is never slowed.
+ * Returns null when a 429 was sent (caller returns), else the access result.
+ */
+function guardedInstanceWriteAccess(req, res, config, { token, adminPassword, accountId } = {}) {
+  const withoutAdmin = checkInstanceWriteAccess(config, { token, accountId, adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH });
+  if (withoutAdmin.ok || !adminPassword) return withoutAdmin;
+  const admin = guardedAdminPassword(req, res, adminPassword);
+  if (admin === null) return null;
+  return admin.ok ? { ok: true, via: 'admin' } : admin;
+}
+
 // ===== FOREIGN-GAME ALERT THROTTLE =====
 // A global cap, not per-IP: the kill switch (settings.foreignGameAlertsEnabled)
 // is all-or-nothing, but with it on, a burst of qualifying game starts —
@@ -1013,6 +1100,11 @@ app.post('/api/admin/save-source-files', (req, res) => {
 
   if (!spacesCSV || !diceRollCSV) {
     return res.status(400).json({ success: false, error: 'spacesCSV and diceRollCSV are required' });
+  }
+  // Same text caps as every other classroom write, cell by cell.
+  for (const csv of [spacesCSV, diceRollCSV, modalConfigCSV]) {
+    const tooLong = findOverlongCsvCell(csv);
+    if (tooLong) return res.status(400).json({ success: false, error: overlongMessage(tooLong) });
   }
 
   let step = 'init';
@@ -1158,6 +1250,8 @@ app.get('/api/instances/mine', (req, res) => {
 // need the admin to make rooms. The admin can still create rooms on a
 // teacher's behalf via /api/admin/instances.) The new room is owned by the
 // caller automatically and its id is generated from the name.
+const MAX_CLASSROOMS_PER_TEACHER = 20;
+
 app.post('/api/instances', (req, res) => {
   const accountId = resolveTeacherAccountId(req);
   if (!accountId) return res.status(401).json({ success: false, error: 'Not logged in' });
@@ -1168,6 +1262,23 @@ app.post('/api/instances', (req, res) => {
     return res.status(401).json({ success: false, error: 'Session no longer valid' });
   }
   const displayName = String((req.body && req.body.displayName) || '').trim();
+  const tooLong = findOverlongText({ displayName });
+  if (tooLong) return res.status(400).json({ success: false, error: overlongMessage(tooLong) });
+  // Each room is a folder plus a baked board on disk; a cap keeps one account
+  // from filling the server. Counts rooms this teacher OWNS (not co-teaches).
+  let owned = 0;
+  for (const roomId of listInstanceIds(instancesRoot)) {
+    try {
+      const cfg = loadInstance(instancesRoot, roomId);
+      if (cfg && cfg.meta?.owner === accountId) owned++;
+    } catch { /* a corrupt room does not count */ }
+  }
+  if (owned >= MAX_CLASSROOMS_PER_TEACHER) {
+    return res.status(400).json({
+      success: false,
+      error: `You already have ${owned} classrooms, which is the most one teacher can have. Delete one you no longer use, then try again.`,
+    });
+  }
   try {
     const id = generateInstanceId(displayName);
     const config = createInstance(instancesRoot, { id, displayName: displayName || undefined });
@@ -1202,11 +1313,11 @@ app.delete('/api/instances/:id', (req, res) => {
     return res.status(400).json({ success: false, error: err.message });
   }
   if (!config) return res.status(404).json({ success: false, error: 'No such classroom' });
-  const access = checkInstanceWriteAccess(config, {
+  const access = guardedInstanceWriteAccess(req, res, config, {
     adminPassword: req.headers['x-admin-password'],
-    adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
     accountId: resolveTeacherAccountId(req),
   });
+  if (!access) return; // 429 already sent
   if (!access.ok) {
     logVisitor(req, 'INSTANCE_DELETE_DENIED', { instanceId: id });
     return res.status(access.status || 401).json({ success: false, error: access.error || 'Not authorized to delete this classroom' });
@@ -1264,12 +1375,12 @@ app.post('/api/instances/:id/board-check', (req, res) => {
   try {
     const config = loadInstance(instancesRoot, req.params.id);
     if (!config) return res.status(404).json({ success: false, error: 'No such instance' });
-    const access = checkInstanceWriteAccess(config, {
+    const access = guardedInstanceWriteAccess(req, res, config, {
       token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
-      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
       accountId: resolveTeacherAccountId(req),
     });
+    if (!access) return; // 429 already sent
     if (!access.ok) {
       logVisitor(req, 'INSTANCE_MUTATION_AUTH_FAILED', { instanceId: req.params.id });
       return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
@@ -1355,18 +1466,24 @@ function handleInstanceMutation(req, res, mutate) {
   if (!instanceLayerActive) {
     return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
   }
+  // Text caps (server/textLimits.js): every string in the body, before the
+  // classroom is even loaded, so an oversized post costs nothing to refuse.
+  const tooLong = findOverlongText(req.body);
+  if (tooLong) {
+    return res.status(400).json({ success: false, error: overlongMessage(tooLong) });
+  }
   let step = 'load';
   try {
     const config = loadInstance(instancesRoot, req.params.id);
     if (!config) {
       return res.status(404).json({ success: false, error: 'No such instance' });
     }
-    const access = checkInstanceWriteAccess(config, {
+    const access = guardedInstanceWriteAccess(req, res, config, {
       token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
-      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
       accountId: resolveTeacherAccountId(req),
     });
+    if (!access) return; // 429 already sent
     if (!access.ok) {
       logVisitor(req, 'INSTANCE_MUTATION_AUTH_FAILED', { instanceId: req.params.id });
       return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
@@ -1513,10 +1630,10 @@ app.post('/api/instances/:id/copies', (req, res) => {
   // saves or re-bakes the classroom. Omitted / `individual` tiers skip this
   // entirely, so Classroom Setup's behavior is unchanged.
   if (tier === 'official') {
-    const admin = checkAdminPassword(
-      req.headers['x-admin-password'] || (req.body && req.body.password),
-      CONFIG.ADMIN_PASSWORD_HASH
+    const admin = guardedAdminPassword(req, res,
+      req.headers['x-admin-password'] || (req.body && req.body.password)
     );
+    if (!admin) return; // 429 already sent
     if (!admin.ok) {
       logVisitor(req, 'OFFICIAL_CARD_DENIED', { instanceId: req.params.id, slot });
       return res.status(403).json({
@@ -1674,10 +1791,10 @@ app.post('/api/instances/:id/content', (req, res) => {
   // admin, and the caller falls through to handleInstanceMutation, which is
   // the one place classroom write access is decided. Someone with neither is
   // refused there with a 401 before anything loads, mutates, saves or bakes.
-  const admin = checkAdminPassword(
-    req.headers['x-admin-password'] || (req.body && req.body.password),
-    CONFIG.ADMIN_PASSWORD_HASH
+  const admin = guardedAdminPassword(req, res,
+    req.headers['x-admin-password'] || (req.body && req.body.password)
   );
+  if (!admin) return; // 429 already sent
   handleInstanceMutation(req, res, (config) => {
     const { stockSpacesCsv, diceCsv, modalCsv, stockVersion } = readStockForValidation();
     // The baseline is the board the editor LOADED, not the shipped stock.
@@ -1873,12 +1990,12 @@ app.post('/api/instances/:id/positions', (req, res) => {
       return res.status(404).json({ success: false, error: 'No such instance' });
     }
 
-    const access = checkInstanceWriteAccess(config, {
+    const access = guardedInstanceWriteAccess(req, res, config, {
       token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || req.body.password,
-      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
       accountId: resolveTeacherAccountId(req),
     });
+    if (!access) return; // 429 already sent
     if (!access.ok) {
       logVisitor(req, 'INSTANCE_POSITIONS_AUTH_FAILED', { instanceId: req.params.id });
       return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
@@ -1943,12 +2060,12 @@ app.post('/api/instances/:id/edge-waypoints', (req, res) => {
       return res.status(404).json({ success: false, error: 'No such instance' });
     }
 
-    const access = checkInstanceWriteAccess(config, {
+    const access = guardedInstanceWriteAccess(req, res, config, {
       token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || req.body.password,
-      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
       accountId: resolveTeacherAccountId(req),
     });
+    if (!access) return; // 429 already sent
     if (!access.ok) {
       logVisitor(req, 'INSTANCE_EDGE_WAYPOINT_AUTH_FAILED', { instanceId: req.params.id });
       return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
@@ -1985,12 +2102,12 @@ app.delete('/api/instances/:id/edge-waypoints/:edgeId', (req, res) => {
       return res.status(404).json({ success: false, error: 'No such instance' });
     }
 
-    const access = checkInstanceWriteAccess(config, {
+    const access = guardedInstanceWriteAccess(req, res, config, {
       token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
-      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
       accountId: resolveTeacherAccountId(req),
     });
+    if (!access) return; // 429 already sent
     if (!access.ok) {
       logVisitor(req, 'INSTANCE_EDGE_WAYPOINT_AUTH_FAILED', { instanceId: req.params.id });
       return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
@@ -2022,12 +2139,12 @@ app.delete('/api/instances/:id/edge-waypoints', (req, res) => {
       return res.status(404).json({ success: false, error: 'No such instance' });
     }
 
-    const access = checkInstanceWriteAccess(config, {
+    const access = guardedInstanceWriteAccess(req, res, config, {
       token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
-      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
       accountId: resolveTeacherAccountId(req),
     });
+    if (!access) return; // 429 already sent
     if (!access.ok) {
       logVisitor(req, 'INSTANCE_EDGE_WAYPOINT_AUTH_FAILED', { instanceId: req.params.id });
       return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
@@ -2087,12 +2204,12 @@ app.post('/api/instances/:id/edge-anchors', (req, res) => {
       return res.status(404).json({ success: false, error: 'No such instance' });
     }
 
-    const access = checkInstanceWriteAccess(config, {
+    const access = guardedInstanceWriteAccess(req, res, config, {
       token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || req.body.password,
-      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
       accountId: resolveTeacherAccountId(req),
     });
+    if (!access) return; // 429 already sent
     if (!access.ok) {
       logVisitor(req, 'INSTANCE_EDGE_ANCHOR_AUTH_FAILED', { instanceId: req.params.id });
       return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
@@ -2133,12 +2250,12 @@ app.delete('/api/instances/:id/edge-anchors/:edgeId/:end', (req, res) => {
       return res.status(404).json({ success: false, error: 'No such instance' });
     }
 
-    const access = checkInstanceWriteAccess(config, {
+    const access = guardedInstanceWriteAccess(req, res, config, {
       token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
-      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
       accountId: resolveTeacherAccountId(req),
     });
+    if (!access) return; // 429 already sent
     if (!access.ok) {
       logVisitor(req, 'INSTANCE_EDGE_ANCHOR_AUTH_FAILED', { instanceId: req.params.id });
       return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
@@ -2170,12 +2287,12 @@ app.delete('/api/instances/:id/edge-anchors', (req, res) => {
       return res.status(404).json({ success: false, error: 'No such instance' });
     }
 
-    const access = checkInstanceWriteAccess(config, {
+    const access = guardedInstanceWriteAccess(req, res, config, {
       token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
-      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
       accountId: resolveTeacherAccountId(req),
     });
+    if (!access) return; // 429 already sent
     if (!access.ok) {
       logVisitor(req, 'INSTANCE_EDGE_ANCHOR_AUTH_FAILED', { instanceId: req.params.id });
       return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
@@ -2421,11 +2538,11 @@ app.post('/api/games', async (req, res) => {
       if (!cfg) {
         return res.status(404).json({ success: false, error: `No such classroom: "${requestedInstanceId}"` });
       }
-      const access = checkInstanceWriteAccess(cfg, {
+      const access = guardedInstanceWriteAccess(req, res, cfg, {
         adminPassword: req.headers['x-admin-password'],
-        adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
         accountId: resolveTeacherAccountId(req),
       });
+      if (!access) return; // 429 already sent
       if (!access.ok) {
         logVisitor(req, 'CREATE_GAME_INSTANCE_DENIED', { instanceId: requestedInstanceId });
         return res.status(access.status || 403).json({ success: false, error: 'Not authorized to start a game from this classroom' });
@@ -2876,7 +2993,8 @@ app.delete('/api/gamestate', (req, res) => {
 // both the admin BugReportsPanel and token-holding maintainer scripts working.
 // Returns true if authorized; otherwise writes the error response and returns false.
 function requireAdmin(req, res) {
-  const result = checkAdminPassword(req.headers['x-admin-password'], CONFIG.ADMIN_PASSWORD_HASH);
+  const result = guardedAdminPassword(req, res, req.headers['x-admin-password']);
+  if (!result) return false; // 429 already sent
   if (!result.ok) {
     res.status(result.status).json({ error: result.error });
     return false;
@@ -2894,8 +3012,10 @@ function requireGameTokenOrAdmin(req, res, gameId) {
     res.status(404).json({ error: `Game ${gameId} not found` });
     return null;
   }
-  if (checkAdminPassword(req.headers['x-admin-password'], CONFIG.ADMIN_PASSWORD_HASH).ok) {
-    return game;
+  if (req.headers['x-admin-password']) {
+    const admin = guardedAdminPassword(req, res, req.headers['x-admin-password']);
+    if (!admin) return null; // 429 already sent
+    if (admin.ok) return game;
   }
   // Falls through to token validation (writes its own 401/403 on failure)
   return validateGameToken(req, res, gameId);
@@ -2905,10 +3025,16 @@ function requireFeedbackAccess(req, res) {
   const queryToken = typeof req.query.token === 'string' ? req.query.token : '';
   const authHeader = req.headers.authorization || '';
   const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-  const result = checkFeedbackAccess(
-    { adminHeader: req.headers['x-admin-password'], token: queryToken || bearerToken },
+  // The token is tried first, alone, so maintainer scripts never touch the
+  // admin-guess counter; only then is the admin password checked (counted).
+  let result = checkFeedbackAccess(
+    { token: queryToken || bearerToken },
     { adminHash: CONFIG.ADMIN_PASSWORD_HASH, feedbackToken: process.env.FEEDBACK_TOKEN }
   );
+  if (!result.ok && req.headers['x-admin-password'] && CONFIG.ADMIN_PASSWORD_HASH) {
+    result = guardedAdminPassword(req, res, req.headers['x-admin-password']);
+    if (!result) return false; // 429 already sent
+  }
   if (!result.ok) {
     res.status(result.status).json({ error: result.error });
     return false;
@@ -3503,6 +3629,10 @@ app.use((req, res, _next) => {
 // into a normal handler and every 500 would go unhandled instead of
 // returning JSON. Underscore-renamed rather than removed for that reason.
 app.use((err, req, res, _next) => {
+  // body-parser refusing an oversized post (see the express.json limits).
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ success: false, error: 'That is too much to save at once. Please shorten the text and try again.' });
+  }
   console.error('❌ Server error:', err);
   res.status(500).json({
     error: 'Internal Server Error'

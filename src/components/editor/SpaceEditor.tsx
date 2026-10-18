@@ -4,6 +4,7 @@ import { InlineDiceRollEditor } from './InlineDiceRollEditor';
 import { shortName } from '../../utils/boardCommon';
 import { SpaceRegionAnchor, regionForAnchor, regionHeading, regionShortLabel } from './spaceRegions';
 import { SpaceSchema, SchemaField, moreSettings, groupMoreSettings } from './utils/spaceSchema';
+import { TEXT_LIMITS } from '../classroom/textLimits';
 
 /**
  * The safe subset a teacher may change: what a space SAYS and what it costs,
@@ -453,6 +454,7 @@ export function SpaceEditor({
             onChange={(v) => handleChange('Title', v)}
             original={originalValue('Title')}
             rows={1}
+            maxLength={TEXT_LIMITS.short}
           />
           <TextareaField
             anchor="field:Event"
@@ -1212,8 +1214,10 @@ function SpaceSelectField({ label, value, options, onChange, anchor, id: idProp 
   );
 }
 
-function TextareaField({ label, value, onChange, rows = 2, original, anchor }: {
+function TextareaField({ label, value, onChange, rows = 2, original, anchor, maxLength = TEXT_LIMITS.long }: {
   label: string; value: string; onChange: (v: string) => void; rows?: number;
+  /** The server refuses longer text (server/textLimits.js). */
+  maxLength?: number;
   /** What the original says, when it is known. Undefined = nothing to compare. */
   original?: string;
   /** Where a click on the player view lands. See spaceRegions.ts. */
@@ -1230,6 +1234,7 @@ function TextareaField({ label, value, onChange, rows = 2, original, anchor }: {
         onChange={(e) => onChange(e.target.value)}
         style={differs ? { ...styles.textarea, ...CHANGED_INPUT } : styles.textarea}
         rows={rows}
+        maxLength={maxLength}
       />
     </div>
   );
@@ -1240,7 +1245,7 @@ function TimeInput({ value, onChange, id }: { value: string; onChange: (v: strin
   const timeMatch = value?.match(/^(\d+)\s*days?$/i);
   const isNumeric = !value || timeMatch;
   if (!isNumeric) {
-    return <input id={id} type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.input} />;
+    return <input id={id} type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} maxLength={TEXT_LIMITS.short} style={styles.input} />;
   }
   const numDays = timeMatch ? parseInt(timeMatch[1]) : 0;
   return (
@@ -1264,7 +1269,7 @@ function FeeInput({ value, onChange, id }: { value: string; onChange: (v: string
   const feeMatch = value?.match(/^(\d+(?:\.\d+)?)\s*%$/);
   const isPercent = !value || feeMatch;
   if (!isPercent) {
-    return <input id={id} type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} style={styles.input} />;
+    return <input id={id} type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} maxLength={TEXT_LIMITS.short} style={styles.input} />;
   }
   return (
     <div style={styles.helperRow}>
