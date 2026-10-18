@@ -65,10 +65,19 @@ window.addEventListener('error', function(e) {
 // (see #loading-tip in the loading screen markup) is the only way
 // those users find out anything's wrong, since there's no console
 // to check on a TV.
-setTimeout(() => {
-    const root = document.getElementById('root');
-    const tip = document.getElementById('loading-tip');
-    if (root && root.innerHTML.includes('Loading Unravel Codes...')) {
+//
+// 2026-10-18 (Tom on a friend's Samsung TV, stuck on "Loading..." with no tip):
+// this check looked for the text "Loading Unravel Codes...", which the loading
+// screen stopped saying long ago, so the tip never showed. It now looks for the
+// loading shell itself (.loading inside #root): React replaces all of #root when
+// it mounts, so if that element is still there the game has not started. This
+// whole file must stay old-style JavaScript (ES5: var, function, no arrows, no
+// includes): it is the one script that has to run on browsers too old for the
+// game itself. tests/utils/errorHandlerScript.test.ts parses it as ES5.
+window.setTimeout(function() {
+    var root = document.getElementById('root');
+    var tip = document.getElementById('loading-tip');
+    if (root && root.querySelector('.loading')) {
         console.warn('React application may have failed to load');
         if (tip) tip.style.display = 'block';
     }

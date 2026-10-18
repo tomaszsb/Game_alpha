@@ -3,6 +3,10 @@
 ---
 
 
+## v3.8.16 — Help on TVs that can't run the game (October 18, 2026)
+
+- **If the game is stuck on "Loading..." for 10 seconds, a tip now appears again.** On a Samsung or LG TV, play on a laptop or phone and show it on the TV with screen mirroring or an HDMI cable. On an Android TV or Fire TV, the TV Bro browser works.
+
 ## v3.8.15 — Questions on the certificate, and five fixes (October 18, 2026)
 
 - **Before you print your certificate,** a few optional questions: would you play again, what was boring, what was best, and two or three questions about why your own game went the way it did. Your "why" answers print on the certificate so your teacher can talk about them in class. Answers are saved with your name and game code only.
