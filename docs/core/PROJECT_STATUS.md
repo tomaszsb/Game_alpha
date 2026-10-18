@@ -5,9 +5,9 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** October 18, 2026 (v3.8.20)
+**Last Updated:** October 18, 2026 (v3.8.22)
 **Current Phase:** Beta — live in production
-**Current Version:** **v3.8.20 LIVE** (`/health` `20c235fc` at 21:25 UTC; 3.8.20 forced expeditors cut; 3.8.18 Site Inspection fork, 3.8.19 Trouble On Site fork; 3.8.16 TV loading tip, 3.8.17 why-help at 3 dice spaces, deployed on Tom's go for 10-18; the deploy test gate ran and passed 4001/4001). Trust `/health`, never this line.
+**Current Version:** **v3.8.22 LIVE** (`/health` `0a16d4fb` at 22:13 UTC; 3.8.21 send-your-expeditor, 3.8.22 Special Inspector fork; 3.8.20 forced expeditors cut; 3.8.18 Site Inspection fork, 3.8.19 Trouble On Site fork; 3.8.16 TV loading tip, 3.8.17 why-help at 3 dice spaces, deployed on Tom's go for 10-18; the deploy test gate ran and passed 4001/4001). Trust `/health`, never this line.
 
 ## Current sprint
 10-18, the independent review + two playtests (D:/Unravel/Independent_Review). Shipped: review bugs (3.8.8-3.8.13), one "Move on" name (3.8.14), certificate fun + "why" questions with answers on the certificate and saved without IP, admin list in Site Stats, and five PLAYTEST-2 fixes (3.8.15), restore guide in ARCHITECTURE.md (untested). Next: N3 design ideas (PLAYTEST.md Part 2) and the why-tips during play (Q6).
