@@ -88,7 +88,7 @@ RULES.winning.body,"Three prizes are in play: Fastest, On budget and Best built.
 COMMIT.withDestination,{label} → {destination}
 COMMIT.waitingFor,Waiting for {name}
 COMMIT.working,Working…
-COMMIT.takeYourNextStep,Take your next step
+COMMIT.takeYourNextStep,Move on
 COMMIT.ending,Ending…
 COMMIT.endTurn,End turn
 ACTION_ROW.optional,optional

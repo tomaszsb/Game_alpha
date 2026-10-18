@@ -670,9 +670,9 @@ describe('PlayerPanelV2 — commit control highlights once actionable, any visit
 // movement_type=dice, so the commit spine's dice-roll button used to borrow
 // that same "Accept…" label — implying the player had already accepted
 // something they hadn't even seen yet. The roll step now shows the generic
-// "Take your next step" instead; the real "Accept…" wording is untouched
+// "Move on" instead (was "Take your next step" until v3.8.14); the real "Accept…" wording is untouched
 // once the roll resolves and the button becomes the actual commit.
-describe('PlayerPanelV2 — Arch/Eng redo visit: roll step says "Take your next step", not "Accept…"', () => {
+describe('PlayerPanelV2 — Arch/Eng redo visit: roll step says "Move on", not "Accept…"', () => {
   let services: ReturnType<typeof createAllMockServices>;
 
   const makePlayer = (): any => ({
@@ -719,10 +719,10 @@ describe('PlayerPanelV2 — Arch/Eng redo visit: roll step says "Take your next 
     return screen.getAllByTestId('commit-side').find((b) => b.getAttribute('data-side') === 'end')!;
   };
 
-  it('before the roll: shows "Take your next step", not the redesign-accept wording', () => {
+  it('before the roll: shows "Move on", not the redesign-accept wording', () => {
     setup(false, false);
     const end = renderAndGetEndSide();
-    expect(end.textContent).toMatch(/Take your next step/);
+    expect(end.textContent).toMatch(/Move on/);
     expect(end.textContent).not.toMatch(/Accept the redesign/);
   });
 

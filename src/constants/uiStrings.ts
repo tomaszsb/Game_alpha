@@ -64,7 +64,7 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // sourcing moved.
   'COMMIT.waitingFor': 'Waiting for {name}',
   'COMMIT.working': 'Working…',
-  'COMMIT.takeYourNextStep': 'Take your next step',
+  'COMMIT.takeYourNextStep': 'Move on',
   'COMMIT.ending': 'Ending…',
   'COMMIT.endTurn': 'End turn',
   // fb:ba16e596 — "move forward should still be unusable, I still did not do

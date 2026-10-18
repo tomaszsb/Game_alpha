@@ -11,6 +11,7 @@
 - **The bank's fee is one clear rule:** 1% for a loan up to $1.4M, 2% up to $2.75M, 3% above. Before a loan is drawn it shows the range; after, the exact dollars.
 - **The red design-fee warning no longer cries wolf** after you cut work; it measures the same way the rule does.
 - **The word-hover glossary** switches to the built-in copy after 6 seconds if the glossary website is slow or down.
+- **One name for moving on (v3.8.14).** Where the only thing left is to go to your next stop, the button now always says **Move on**.
 
 ## v3.8.1 to v3.8.4 — A clearer "How to play" (October 17, 2026)
 
