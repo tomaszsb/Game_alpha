@@ -42,6 +42,8 @@ room,REG-FDNY-PLAN-EXAM,,firehouse,,,,,,,,
 room,CON-INITIATION,,trailer,,,,,,,,
 room,CON-ISSUES,,trailer,,,,,,,,
 room,CON-INSPECT,,site,,,,,,,,
+room,CON-FIX,,site,,,,,,,,
+room,CON-STEER,,site,,,,,,,,
 variant,CON-INITIATION,,trailer_new,,,,,,,,new
 variant,CON-ISSUES,,trailer_new,,,,,,,,new
 variant,CON-INSPECT,,site_new,,,,,,,,new

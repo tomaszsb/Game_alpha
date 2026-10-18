@@ -156,6 +156,14 @@ CON-INSPECT,First,dice,dice_outcome,Time outcomes,,See how long the inspection t
 CON-INSPECT,Subsequent,cards,draw_L,1,dice_roll_2,Draw 1 if you roll a 2 L cards,auto,,,,,,,
 CON-INSPECT,Subsequent,cards,draw_E,2,,Bring in extra hands,manual,,,,,,,Bring in extra hands
 CON-INSPECT,Subsequent,dice,dice_outcome,Time outcomes,,See how long the walk takes,manual,,,,,,,See how long the walk takes
+CON-FIX,First,dice,dice_outcome,Fees Paid,,Pay for the fix,manual,,,,,,,Pay for the fix
+CON-FIX,First,time,add,5,,Spend 5 days,auto,,,,,,,
+CON-FIX,Subsequent,dice,dice_outcome,Fees Paid,,Pay for the fix,manual,,,,,,,Pay for the fix
+CON-FIX,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
+CON-STEER,First,dice,dice_outcome,Time outcomes,,See if anyone noticed,manual,,,,,,,See if anyone noticed
+CON-STEER,First,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
+CON-STEER,Subsequent,dice,dice_outcome,Time outcomes,,See if anyone noticed,manual,,,,,,,See if anyone noticed
+CON-STEER,Subsequent,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
 REG-DOB-FINAL-REVIEW,First,cards,draw_L,1,dice_roll_3,Draw 1 if you roll a 3 L cards,auto,,,,,,,
 REG-DOB-FINAL-REVIEW,First,cards,draw_E,3,,Add a team member,manual,,,,,,,Add a team member
 REG-DOB-FINAL-REVIEW,First,dice,dice_outcome,Time outcomes,,See how long final review takes,manual,,,,,,,See how long final review takes

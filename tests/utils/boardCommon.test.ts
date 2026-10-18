@@ -172,7 +172,7 @@ describe('board tile labels are unique across every space (GAME_CONFIG.csv)', ()
   it('finds the expected columns and every space in the real CSV', () => {
     expect(nameCol).toBeGreaterThanOrEqual(0);
     expect(labelCol).toBeGreaterThanOrEqual(0);
-    expect(rows.length).toBe(27);
+    expect(rows.length).toBe(29); // v3.8.18 added CON-FIX + CON-STEER (Site Inspection: fix it or steer the inspector)
   });
 
   it('resolves every space to a label no other space shares', () => {

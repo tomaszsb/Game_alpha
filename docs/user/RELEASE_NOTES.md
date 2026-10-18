@@ -3,6 +3,10 @@
 ---
 
 
+## v3.8.18 — Your call at the site inspection (October 18, 2026)
+
+- **At the first Site Inspection you decide.** Fix the safety violation first (costs days and money, and the inspection almost always passes), or let your contractor steer the inspector away (fast, but it marks down your build quality, and if the city notices you get a stop-work order and a fine).
+
 ## v3.8.16 — Help on TVs that can't run the game (October 18, 2026)
 
 - **If the game is stuck on "Loading..." for 10 seconds, a tip now appears again.** On a Samsung or LG TV, play on a laptop or phone and show it on the TV with screen mirroring or an HDMI cable. On an Android TV or Fire TV, the TV Bro browser works.
