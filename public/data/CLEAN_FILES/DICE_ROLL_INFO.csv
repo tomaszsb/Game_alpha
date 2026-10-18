@@ -37,6 +37,16 @@ TR8-TEST-NOW,Next Step,Subsequent,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPEC
 TR8-TEST-LATER,Time outcomes,Subsequent,0 days,0 days,0 days,0 days,20 days,20 days
 TR8-TEST-LATER,Fees Paid,Subsequent,0,0,0,0,-20000,-20000
 TR8-TEST-LATER,Next Step,Subsequent,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT
+SI-AGENCY-BUDGET,Time outcomes,First,0 days,0 days,0 days,0 days,15 days,15 days
+SI-AGENCY-BUDGET,Next Step,First,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES
+SI-SKIP,Time outcomes,First,0 days,0 days,0 days,0 days,0 days,60 days
+SI-SKIP,Fees Paid,First,0,0,0,0,0,-25000
+SI-SKIP,Next Step,First,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES
+SI-AGENCY-BUDGET,Time outcomes,Subsequent,0 days,0 days,0 days,0 days,15 days,15 days
+SI-AGENCY-BUDGET,Next Step,Subsequent,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES
+SI-SKIP,Time outcomes,Subsequent,0 days,0 days,0 days,0 days,0 days,60 days
+SI-SKIP,Fees Paid,Subsequent,0,0,0,0,0,-25000
+SI-SKIP,Next Step,Subsequent,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES
 CON-ISSUES,Time outcomes,First,1 day,15 days,1 day,1 day,1 day,1 day
 CON-ISSUES,Time outcomes,Subsequent,1 day,1 day,1 day,15 days,1 day,1 day
 ENG-FEE-REVIEW,Time outcomes,First,2%,2%,4%,4%,6%,6%

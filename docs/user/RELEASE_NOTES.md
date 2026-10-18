@@ -3,6 +3,10 @@
 ---
 
 
+## v3.8.22 — Hire a special inspector (October 18, 2026)
+
+- **After you hire your builder, you pick who inspects the work.** A top agency (more days and money, no surprises), a budget agency (cheap, but their report is sometimes late), or name one later (free, but it lowers your build quality and the city may stop the job). In New York the owner hires this inspector, and the city wants the name before the permit.
+
 ## v3.8.21 — Send your expeditor to fight the audit (October 18, 2026)
 
 - **At The Audit and the Fire Dept. review, pushing back sends one of your expeditors** to fight the finding, instead of costing you days. No expeditor? It costs days, as before. So now you decide: use your expeditors early to save days, or keep one for the audit.

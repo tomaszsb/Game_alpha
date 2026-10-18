@@ -46,6 +46,10 @@ room,CON-FIX,,site,,,,,,,,
 room,CON-STEER,,site,,,,,,,,
 room,TR8-TEST-NOW,,site,,,,,,,,
 room,TR8-TEST-LATER,,site,,,,,,,,
+room,SI-HIRE,,site,,,,,,,,
+room,SI-AGENCY-TOP,,site,,,,,,,,
+room,SI-AGENCY-BUDGET,,site,,,,,,,,
+room,SI-SKIP,,site,,,,,,,,
 variant,CON-INITIATION,,trailer_new,,,,,,,,new
 variant,CON-ISSUES,,trailer_new,,,,,,,,new
 variant,CON-INSPECT,,site_new,,,,,,,,new

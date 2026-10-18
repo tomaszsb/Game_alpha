@@ -28,5 +28,9 @@ CON-FIX,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Fix It First,,1020
 CON-STEER,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Steer the Inspector,,1020,460,,No,,,No
 TR8-TEST-NOW,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Test It Now,,1020,570,,No,,,No
 TR8-TEST-LATER,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,"Close Up, Test Later",,1020,680,,No,,,No
+SI-HIRE,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Hire a Special Inspector,,1220,130,,No,,,No
+SI-AGENCY-TOP,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Top Inspection Agency,,1220,240,,No,,,No
+SI-AGENCY-BUDGET,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Budget Inspection Agency,,1220,350,,No,,,No
+SI-SKIP,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Name One Later,,1220,460,,No,,,No
 REG-DOB-FINAL-REVIEW,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Final Approval,,820,240,,Yes,,,Yes
 FINISH,END,Main,No,Yes,1,4,No,No,No,0,flat,,No,,,No,Finish,,1220,20,,No,,,No

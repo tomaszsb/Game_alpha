@@ -167,6 +167,20 @@ TR8-TEST-LATER,First,dice,dice_outcome,Time outcomes,,See if it passes,manual,,,
 TR8-TEST-LATER,First,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
 TR8-TEST-LATER,Subsequent,dice,dice_outcome,Time outcomes,,See if it passes,manual,,,,,,,See if it passes
 TR8-TEST-LATER,Subsequent,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
+SI-AGENCY-TOP,First,time,add,5,,Spend 5 days,auto,,,,,,,
+SI-AGENCY-TOP,First,fee,deduct,2% of scope,,Pay 2% of scope fees,auto,SCOPE_PERCENTAGE,,,,,,
+SI-AGENCY-TOP,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
+SI-AGENCY-TOP,Subsequent,fee,deduct,2% of scope,,Pay 2% of scope fees,auto,SCOPE_PERCENTAGE,,,,,,
+SI-AGENCY-BUDGET,First,dice,dice_outcome,Time outcomes,,See if their report is on time,manual,,,,,,,See if their report is on time
+SI-AGENCY-BUDGET,First,time,add,2,,Spend 2 days,auto,,,,,,,
+SI-AGENCY-BUDGET,First,fee,deduct,0.5% of scope,,Pay 0.5% of scope fees,auto,SCOPE_PERCENTAGE,,,,,,
+SI-AGENCY-BUDGET,Subsequent,dice,dice_outcome,Time outcomes,,See if their report is on time,manual,,,,,,,See if their report is on time
+SI-AGENCY-BUDGET,Subsequent,time,add,2,,Spend 2 days,auto,,,,,,,
+SI-AGENCY-BUDGET,Subsequent,fee,deduct,0.5% of scope,,Pay 0.5% of scope fees,auto,SCOPE_PERCENTAGE,,,,,,
+SI-SKIP,First,dice,dice_outcome,Time outcomes,,See if anyone notices,manual,,,,,,,See if anyone notices
+SI-SKIP,First,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
+SI-SKIP,Subsequent,dice,dice_outcome,Time outcomes,,See if anyone notices,manual,,,,,,,See if anyone notices
+SI-SKIP,Subsequent,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
 REG-DOB-FINAL-REVIEW,First,cards,draw_L,1,dice_roll_3,Draw 1 if you roll a 3 L cards,auto,,,,,,,
 REG-DOB-FINAL-REVIEW,First,dice,dice_outcome,Time outcomes,,See how long final review takes,manual,,,,,,,See how long final review takes
 REG-DOB-FINAL-REVIEW,Subsequent,cards,draw_L,1,dice_roll_4,Draw 1 if you roll a 4 L cards,auto,,,,,,,

@@ -11,6 +11,7 @@ review,review_passed,,
 review,review_sent_back,,
 space_event,CHEAT-BYPASS,cut_corner,
 space_event,CON-STEER,cut_corner,
+space_event,SI-SKIP,cut_corner,
 mat,scope,scope_set,Scope chosen
 mat,funded,funded,Funded
 mat,architect,architect_paid,Architect

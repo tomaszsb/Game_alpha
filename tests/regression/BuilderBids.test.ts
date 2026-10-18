@@ -143,7 +143,8 @@ describe('the door to the bank', () => {
     const set = s.turnService.ensureBuilderBids(s.playerId);
     await s.turnService.hireBuilderBid(s.playerId, set.bids[0].id);
     const moves = s.movementService.getValidMoves(s.playerId);
-    expect(moves).toEqual(['CON-ISSUES']);
+    // v3.8.22: after the hire the normal road is the special-inspector fork (it was Trouble On Site).
+    expect(moves).toEqual(['SI-HIRE']);
   });
 
   it('a trip to the bank and back is still a first visit, with the same bids at the same prices', async () => {
@@ -167,9 +168,9 @@ describe('what survives the end of the turn', () => {
     const set = s.turnService.ensureBuilderBids(s.playerId);
     const bid = set.bids[0];
     await s.turnService.hireBuilderBid(s.playerId, bid.id);
-    s.stateService.setPlayerMoveIntent(s.playerId, 'CON-ISSUES');
+    s.stateService.setPlayerMoveIntent(s.playerId, 'SI-HIRE');
     await s.turnService.endTurnWithMovement(true);
-    expect(s.me().currentSpace).toBe('CON-ISSUES');
+    expect(s.me().currentSpace).toBe('SI-HIRE');
     expect(s.me().contractor).toMatchObject({ quality: bid.quality, multiplier: bid.roll });
   });
 

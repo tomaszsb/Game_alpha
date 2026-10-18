@@ -54,3 +54,7 @@ choice,CON-FIX,Fix it first,"Fixing the violation before the inspector sees it c
 choice,CON-STEER,Steer the inspector,"Letting the contractor steer the inspector away saves time today, but it marks down your build quality, and if the city notices you get a stop-work order and a fine.",Fast and risky.
 choice,TR8-TEST-NOW,Test it now,"Testing the energy work before the walls close costs a few days and a test crew, but it is on record and nobody has to open a finished wall.",Safe and a little slower.
 choice,TR8-TEST-LATER,"Close up, test later","Closing the walls now saves the test days today. Most times it passes at the end; when it fails, finished walls are opened, fixed and closed again.",Fast now and risky later.
+choice,SI-HIRE,Hire a Special Inspector,"The owner, not the city, hires the special inspector who checks welds, pours and tests, and the agency has to be named before the permit is issued.",Pick an agency: top / budget / later.
+choice,SI-AGENCY-TOP,Top inspection agency,"The top agency costs more and takes a few days to set up, but their report is never the reason you wait.",Safe and pricier.
+choice,SI-AGENCY-BUDGET,Budget inspection agency,"The budget agency is cheap and usually fine, but some weeks their report is late and the job waits for it.",Cheap with some risk.
+choice,SI-SKIP,Name one later,"Starting without a named agency costs nothing today, marks down your build quality, and if the city checks you get a stop-work order and a fine.",Free now and risky.

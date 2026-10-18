@@ -37,6 +37,16 @@ TR8-TEST-NOW,Next Step,Subsequent,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPEC
 TR8-TEST-LATER,Time outcomes,Subsequent,0 days,0 days,0 days,0 days,20 days,20 days,See if it passes
 TR8-TEST-LATER,Fees Paid,Subsequent,0,0,0,0,-20000,-20000,See what it costs you
 TR8-TEST-LATER,Next Step,Subsequent,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,
+SI-AGENCY-BUDGET,Time outcomes,First,0 days,0 days,0 days,0 days,15 days,15 days,See if their report is on time
+SI-AGENCY-BUDGET,Next Step,First,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,
+SI-SKIP,Time outcomes,First,0 days,0 days,0 days,0 days,0 days,60 days,See if anyone notices
+SI-SKIP,Fees Paid,First,0,0,0,0,0,-25000,See what it costs you
+SI-SKIP,Next Step,First,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,
+SI-AGENCY-BUDGET,Time outcomes,Subsequent,0 days,0 days,0 days,0 days,15 days,15 days,See if their report is on time
+SI-AGENCY-BUDGET,Next Step,Subsequent,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,
+SI-SKIP,Time outcomes,Subsequent,0 days,0 days,0 days,0 days,0 days,60 days,See if anyone notices
+SI-SKIP,Fees Paid,Subsequent,0,0,0,0,0,-25000,See what it costs you
+SI-SKIP,Next Step,Subsequent,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,CON-ISSUES,
 CON-ISSUES,Time outcomes,First,1 day,15 days,1 day,1 day,1 day,1 day,See how long you're stopped
 CON-ISSUES,Time outcomes,Subsequent,1 day,1 day,1 day,15 days,1 day,1 day,See how long it slows you
 ENG-FEE-REVIEW,Fees Paid,First,2%,2%,4%,4%,6%,6%,See what the fee is

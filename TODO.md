@@ -31,8 +31,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 - [ ] **One money calculator** (`costPreview.ts` re-does the charging maths). REVIEW.md §4 "pattern"; CHECK.md "Next after that".
 
 ### Fun (dice to choices)
-- [ ] **[N3] next: Hire a Special Inspector fork** (send-your-expeditor is LIVE v3.8.21). Forced expeditors were CUT in v3.8.20 (Tom lifted his 09-27 park on 10-18: "Cut them"). PLAYTEST.md Part 2a new space 1, Part 2b #3.
-- [ ] **[N3] Hire a Special Inspector fork (TR1).** PLAYTEST.md Part 2a new space 1, 2c #3.
+- [ ] **[N3] next (not started):** Inspector sign-off (full report vs sign today), Hire an Expeditor fork (veteran / junior / yourself), TCO vs final CO. Special Inspector LIVE v3.8.22, send-your-expeditor v3.8.21. Forced expeditors were CUT in v3.8.20 (Tom lifted his 09-27 park on 10-18: "Cut them"). PLAYTEST.md Part 2a new space 1, Part 2b #3.
 - [ ] **[N3] Hire an Expeditor fork (veteran / junior / yourself).** PLAYTEST.md Part 2b #1, 2c #6.
 - [ ] **[N3] Inspector sign-off (full report vs sign today).** PLAYTEST.md Part 2a new space 2, 2c #7.
 - [ ] **TCO vs final CO at the end.** PLAYTEST.md Part 2a new space 4, 2c #9. Old item: "Loan-repayment deadline + TCO mechanic" in the Parking lot.
