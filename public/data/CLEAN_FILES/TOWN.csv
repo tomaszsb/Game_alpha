@@ -44,6 +44,8 @@ room,CON-ISSUES,,trailer,,,,,,,,
 room,CON-INSPECT,,site,,,,,,,,
 room,CON-FIX,,site,,,,,,,,
 room,CON-STEER,,site,,,,,,,,
+room,TR8-TEST-NOW,,site,,,,,,,,
+room,TR8-TEST-LATER,,site,,,,,,,,
 variant,CON-INITIATION,,trailer_new,,,,,,,,new
 variant,CON-ISSUES,,trailer_new,,,,,,,,new
 variant,CON-INSPECT,,site_new,,,,,,,,new

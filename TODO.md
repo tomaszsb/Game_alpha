@@ -31,10 +31,8 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 - [ ] **One money calculator** (`costPreview.ts` re-does the charging maths). REVIEW.md §4 "pattern"; CHECK.md "Next after that".
 
 ### Fun (dice to choices)
-- [ ] **[N3] Site Inspection: fix it first or steer the inspector away.** PLAYTEST.md Part 2a "Change to an existing space", 2c #1.
 - [ ] **[N3] Owner gives 1 expeditor not 3; drop most forced "Add a team member" taps.** PLAYTEST.md Part 2b #1-2, 2c #2. Old item: "Expeditor pick-with-tradeoffs" in the Parking lot (Tom 09-27 "not yet"; this review re-asks).
 - [ ] **[N3] Hire a Special Inspector fork (TR1).** PLAYTEST.md Part 2a new space 1, 2c #3.
-- [ ] **[N3] Energy test now or later (TR8) at Trouble On Site; ends the ping-pong.** PLAYTEST.md Part 2a new space 3, 2c #4.
 - [ ] **[N3] Send your expeditor on a job (Try Again paid with 1 E card).** PLAYTEST.md Part 2b #3, 2c #5.
 - [ ] **[N3] Hire an Expeditor fork (veteran / junior / yourself).** PLAYTEST.md Part 2b #1, 2c #6.
 - [ ] **[N3] Inspector sign-off (full report vs sign today).** PLAYTEST.md Part 2a new space 2, 2c #7.

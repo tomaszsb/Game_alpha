@@ -164,6 +164,14 @@ CON-STEER,First,dice,dice_outcome,Time outcomes,,See if anyone noticed,manual,,,
 CON-STEER,First,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
 CON-STEER,Subsequent,dice,dice_outcome,Time outcomes,,See if anyone noticed,manual,,,,,,,See if anyone noticed
 CON-STEER,Subsequent,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
+TR8-TEST-NOW,First,dice,dice_outcome,Fees Paid,,Pay for the test,manual,,,,,,,Pay for the test
+TR8-TEST-NOW,First,time,add,3,,Spend 3 days,auto,,,,,,,
+TR8-TEST-NOW,Subsequent,dice,dice_outcome,Fees Paid,,Pay for the test,manual,,,,,,,Pay for the test
+TR8-TEST-NOW,Subsequent,time,add,3,,Spend 3 days,auto,,,,,,,
+TR8-TEST-LATER,First,dice,dice_outcome,Time outcomes,,See if it passes,manual,,,,,,,See if it passes
+TR8-TEST-LATER,First,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
+TR8-TEST-LATER,Subsequent,dice,dice_outcome,Time outcomes,,See if it passes,manual,,,,,,,See if it passes
+TR8-TEST-LATER,Subsequent,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
 REG-DOB-FINAL-REVIEW,First,cards,draw_L,1,dice_roll_3,Draw 1 if you roll a 3 L cards,auto,,,,,,,
 REG-DOB-FINAL-REVIEW,First,cards,draw_E,3,,Add a team member,manual,,,,,,,Add a team member
 REG-DOB-FINAL-REVIEW,First,dice,dice_outcome,Time outcomes,,See how long final review takes,manual,,,,,,,See how long final review takes

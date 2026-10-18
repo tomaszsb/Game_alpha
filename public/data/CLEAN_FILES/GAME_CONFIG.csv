@@ -26,5 +26,7 @@ CON-ISSUES,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Trouble On Site
 CON-INSPECT,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Site Inspection,,1020,130,,No,,,No
 CON-FIX,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Fix It First,,1020,350,,No,,,No
 CON-STEER,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Steer the Inspector,,1020,460,,No,,,No
+TR8-TEST-NOW,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Test It Now,,1020,570,,No,,,No
+TR8-TEST-LATER,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,"Close Up, Test Later",,1020,680,,No,,,No
 REG-DOB-FINAL-REVIEW,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Final Approval,,820,240,,Yes,,,Yes
 FINISH,END,Main,No,Yes,1,4,No,No,No,0,flat,,No,,,No,Finish,,1220,20,,No,,,No
