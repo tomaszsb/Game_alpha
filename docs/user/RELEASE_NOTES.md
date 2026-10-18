@@ -3,6 +3,11 @@
 ---
 
 
+## v3.8.23 to v3.8.25 — Teachers can set the prices (October 18, 2026)
+
+- **Teachers see every new space** and can change its words, days and fees, including a percent of the project's cost, and reset it.
+- **"What it can cost":** a teacher can now change what a risky choice costs when it goes wrong (for example, the stop-work order behind "Steer the Inspector"). The chances stay the same; only the days and dollars change.
+
 ## v3.8.22 — Hire a special inspector (October 18, 2026)
 
 - **After you hire your builder, you pick who inspects the work.** A top agency (more days and money, no surprises), a budget agency (cheap, but their report is sometimes late), or name one later (free, but it lowers your build quality and the city may stop the job). In New York the owner hires this inspector, and the city wants the name before the permit.
