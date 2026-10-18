@@ -202,6 +202,7 @@ export class CardEffectHandler implements ICardEffectHandler {
 
     // If cardIds is empty but cardType and count are provided, determine cards at runtime
     if ((!cardIdsToDiscard || cardIdsToDiscard.length === 0) && payload.cardType && payload.count) {
+      let discardCount = payload.count;
 
       const allCardsOfType = this.cardService.getPlayerCards(payload.playerId, payload.cardType);
 
@@ -213,13 +214,30 @@ export class CardEffectHandler implements ICardEffectHandler {
         };
       }
 
+      // A project always keeps at least one work package (PLAYTEST 2026-10-18:
+      // a 1-in-6 "Remove 1" roll at a scope-check space took a player's ONLY
+      // work package, and the game went on with $0 scope, $0 fees and a loan
+      // for nothing). A plain removal is capped so the last W card stays; a
+      // replace is exempt because it draws a new card straight after.
+      if (payload.cardType === 'W' && !isDiceRollReplace && !source.includes('replace')) {
+        const removable = Math.max(0, allCardsOfType.length - 1);
+        if (removable === 0) {
+          return {
+            success: true,
+            effectType: effect.effectType,
+            data: { cardIds: [], skipped: true, keptLastWorkPackage: true, reason: 'Last work package kept' }
+          };
+        }
+        discardCount = Math.min(discardCount, removable);
+      }
+
       // Show a choice modal when explicitly required (dice rolls, or
       // flagged globals like L003/L048) AND the player has more cards
       // than the discard count — otherwise auto-pick by slicing.
       // Kid E (2026-05-29): ghost bot sets `autoPickForcedDiscards=true`
       // to skip the modal (it can't click) and fall through to the slice.
-      if (requiresUserChoice && allCardsOfType.length > payload.count && !this.autoPickForcedDiscards) {
-        const choiceResult = await this.presentCardChoice(payload, allCardsOfType, isDiceRollReplace);
+      if (requiresUserChoice && allCardsOfType.length > discardCount && !this.autoPickForcedDiscards) {
+        const choiceResult = await this.presentCardChoice({ ...payload, count: discardCount }, allCardsOfType, isDiceRollReplace);
         if (choiceResult.skipped) {
           return {
             success: true,
@@ -237,7 +255,7 @@ export class CardEffectHandler implements ICardEffectHandler {
         cardIdsToDiscard = choiceResult.cardIds;
       } else {
         // Take the first 'count' cards from that list
-        cardIdsToDiscard = allCardsOfType.slice(0, payload.count);
+        cardIdsToDiscard = allCardsOfType.slice(0, discardCount);
       }
     }
 

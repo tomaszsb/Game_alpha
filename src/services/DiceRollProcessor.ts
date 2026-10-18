@@ -316,6 +316,16 @@ export class DiceRollProcessor {
     generatedEffects.forEach((effect, index) => {
       const effectResult = effectResults?.results[index];
 
+      // The roll asked to cut the player's only work package; it was kept
+      // (CardEffectHandler). Say so, instead of showing nothing.
+      if ((effectResult?.data as { keptLastWorkPackage?: boolean } | undefined)?.keptLastWorkPackage) {
+        effects.push({
+          type: 'info',
+          description: "Your only work package stays. A project can't be cut to nothing.",
+        });
+        return;
+      }
+
       // Skip effects that were skipped by the user
       if (effectResult?.data?.skipped) {
         debugLog(`   ⏭️ Skipping display of skipped effect: ${effect.effectType}`);
