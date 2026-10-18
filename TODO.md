@@ -14,6 +14,97 @@
 
 ---
 
+## 🧭 From the 2026-10-18 independent review
+
+Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEARCH.md, CHECK.md = corrections, trust it where they conflict, RESEARCH-2.md, PLAYTEST.md = one live game + design). Tom's 10-18 answers: `E:\Documents\People\AI\Manager\DECISIONS.md`, entries headed 2026-10-18. **Overnight plan (Manager, 10-18):** **[N1]** = this bug session · **[N2]** = next: certificate questions + why-tips + restore guide · **[N3]** = after: PLAYTEST design ideas. No tag = not scheduled.
+
+**Tom's 10-18 decisions (settled):** buyer = schools, paid; order is fun → teacher end (no training needed) → per-school branding; second product = a general **fantasy RPG** version (never the D&D name), sold per owner · text alert dropped (done v3.8.7) · everyone-is-a-PM stays; role play later · scores are for play, no anti-cheat; trade schools count credit by completion (trustworthy proof parked until one asks) · fun is measured by 3 questions on the certificate page · "why" questions on the certificate page · why-tips go into the EXISTING tips/hover/help, max one paragraph · no new restore document: a restore section in an existing doc, tested once, kept current by /koniec · teacher content is the school's responsibility; terms of use + LLC + lawyer parked until the first paying school.
+
+### Bugs
+- [ ] **[N1] Scope can drop to zero and the game carries on** ($0 fees, a loan for nothing). PLAYTEST.md diary 4-11, "Other things" #1-2. Old item: "Money/scope bug (Tom, 10-12)" below may be the same thing.
+- [ ] **[N1] "Push back" undoes bad luck already seen** (a life event and its scope). PLAYTEST.md diary 11, "Other things" #3, UI #5.
+- [ ] **[N1] Time went backwards once (day 499 → 497).** PLAYTEST.md diary 34-40, "Other things" #6.
+- [ ] **[N1] NPC lines promise choices the screen doesn't give** ("yes/no questions", "Push hard or eat the delay", "Scope grew" at zero, lender "squeezes" while scope rises 28x). PLAYTEST.md "Other things" #4.
+- [ ] **[N1] Bank-loan fee written 3 ways; 20% warning uses current scope, the rule uses peakScope; "20%" typed in many places.** REVIEW.md §4 cases 1-3, CHECK.md "What holds up".
+- [ ] **[N1] UI rules don't match:** hold vs tap, builder hire one tap with no preview, 6 names for "move on", the left push button does 3 things, pop-ups close with different words, optional vs required look alike. PLAYTEST.md "UI inconsistencies" 1-9. Old item: "End Turn ... long press and a short press" (fb:53a47779) below.
+- [ ] **[N1] Deploy runs without the tests.** REVIEW.md §6 Missing #1, top table #3.
+- [ ] **[N1] Glossary site down → does the game still work?** REVIEW.md §8 Q6.
+- [ ] **Loan named "Assisted Living Facility Loan" on an airport job.** PLAYTEST.md "Other things" #5.
+- [ ] **Result pop-up at 1024x768 is a narrow column, title one word per line.** PLAYTEST.md "Other things" #8, UI #10.
+- [ ] **"$756K deficit" shown on turn 1 before any money, unexplained.** PLAYTEST.md diary after space 2.
+- [ ] **Expeditor cards that ADD days sit in a solo hand forever.** PLAYTEST.md "Other things" #7, Part 2b.
+- [ ] **Debrief praises "21 expeditors hired" (the game hired them); count used, not hired.** PLAYTEST.md End screen, Part 2b #7.
+- [ ] **No test boots the real server** (server.js starts itself on import). REVIEW.md §6 Missing #2, §3 Fragile #3.
+- [ ] **Two editors for one job drift; unused classroom write key still accepted; co-teacher overwrite check never switched on.** REVIEW.md §1 "What can go wrong" #4-5.
+- [ ] **One money calculator** (`costPreview.ts` re-does the charging maths). REVIEW.md §4 "pattern"; CHECK.md "Next after that".
+
+### Fun (dice to choices)
+- [ ] **[N3] Site Inspection: fix it first or steer the inspector away.** PLAYTEST.md Part 2a "Change to an existing space", 2c #1.
+- [ ] **[N3] Owner gives 1 expeditor not 3; drop most forced "Add a team member" taps.** PLAYTEST.md Part 2b #1-2, 2c #2. Old item: "Expeditor pick-with-tradeoffs" in the Parking lot (Tom 09-27 "not yet"; this review re-asks).
+- [ ] **[N3] Hire a Special Inspector fork (TR1).** PLAYTEST.md Part 2a new space 1, 2c #3.
+- [ ] **[N3] Energy test now or later (TR8) at Trouble On Site; ends the ping-pong.** PLAYTEST.md Part 2a new space 3, 2c #4.
+- [ ] **[N3] Send your expeditor on a job (Try Again paid with 1 E card).** PLAYTEST.md Part 2b #3, 2c #5.
+- [ ] **[N3] Hire an Expeditor fork (veteran / junior / yourself).** PLAYTEST.md Part 2b #1, 2c #6.
+- [ ] **[N3] Inspector sign-off (full report vs sign today).** PLAYTEST.md Part 2a new space 2, 2c #7.
+- [ ] **TCO vs final CO at the end.** PLAYTEST.md Part 2a new space 4, 2c #9. Old item: "Loan-repayment deadline + TCO mechanic" in the Parking lot.
+- [ ] **Bad expeditor cards fire on draw; specialty decks; bids for expeditors (unify builder bids).** PLAYTEST.md Part 2b #4, #6, 2c #10-11.
+- [ ] **Concrete test break (sources unchecked).** PLAYTEST.md Part 2a new space 5.
+- [ ] **Dice set up a problem, the student picks how to handle it, at the 2-3 most-hit dice spaces.** RESEARCH-2.md §1d Copy #1, §6 #1.
+- [ ] **Cap bad luck: after 2 failed rolls at one space, the 3rd is a choice.** RESEARCH-2.md §1d #5, §6 #2 (robot games 20-170 turns, CHECK.md §6).
+- [ ] **Show the trophy race all game; approvals stamp the mat.** RESEARCH-2.md §1d #2-3, §6 #3.
+- [ ] **Give waiting players a job in group play.** RESEARCH-2.md §1d #4.
+- [ ] **Pause new dice spaces, cards, board drawing and polish** until the teaching items exist. RESEARCH.md §6 #4, RESEARCH-2.md §1d "Drop".
+- [ ] **Measure fun: the 3 certificate questions + "how many minutes did your game take?"** RESEARCH-2.md §6 #4 (see [N2] below).
+
+### Teaching (certificate questions, why-tips)
+- [ ] **[N2] 3 fun questions on the /class certificate page (play again? / what was boring? / best part?).** Tom Q4; RESEARCH-2.md §6 #4.
+- [ ] **[N2] 2-3 "why" questions on the certificate page; typed answers print on the certificate.** Tom Q5; CHECK.md top 5 #4; RESEARCH.md §6 #1 (reshaped by CHECK §3).
+- [ ] **[N2] Why-tips: explain cause and odds in the existing tips/hover/help + the end page, max one paragraph.** Tom Q6; RESEARCH.md §6b #2.
+- [ ] **One-page teacher guide with talk prompts.** CHECK.md top 5 #4; RESEARCH.md §6b #3.
+- [ ] **Before/after 10-question quiz with the real class.** CHECK.md top 5 #3; RESEARCH.md §6 #3.
+- [ ] **5-10 new multiple-choice "why" questions in the game, reason shown after, small cost when wrong** (NOT re-enabling the auto-answered ones; removed 2026-05-26 after a complaint). CHECK.md top 5 #5, §1 #1; RESEARCH.md §6 #2.
+- [ ] **"Rules as of (date)" line + yearly check by a working expediter.** RESEARCH.md §6 #11.
+- [ ] **Expeditors teach the wrong lesson ("accelerants"); real ones prevent lost time.** PLAYTEST.md Part 2b "What a real NYC expeditor does".
+- [ ] **Swap dice for decisions where work quality decides (e.g. the audit), one space at a time, after the questions exist.** RESEARCH.md §6 #7 (CHECK §3: weak for now).
+
+### Teacher end
+- [ ] **Teacher presets (project type / length / luck level) with "preview as student".** RESEARCH-2.md §6 #5.
+- [ ] **One space editor for Tom and teachers, with the player preview.** RESEARCH.md §6 #9, REVIEW.md §1 "How I would want it", §8 Q9.
+- [ ] **A question space (multiple choice) a teacher can add to any space.** REVIEW.md §1 "What is missing"; RESEARCH.md §2d.
+- [ ] **Tom's view: who has accounts, rooms, last played.** REVIEW.md §1 "How I would want it".
+- [ ] **A classroom export button.** RESEARCH.md §6b #5.
+
+### Branding
+- [ ] **Smallest branding: school name, logo, one colour on start screen, header and certificate, plus a school link.** RESEARCH-2.md §3c, §6 #11 (57 files hard-code colours).
+
+### Schools and trade-school credit
+- [ ] **Stop collecting student data: nicknames, counts-only visitor log, one plain privacy page that says "scores never count".** CHECK.md top 5 #2; RESEARCH.md §6 #6, #13 (text alert part done v3.8.7).
+- [ ] **Credit-ready certificate: who, active minutes, skills shown, "rules as of".** RESEARCH-2.md §2e, §6 #7 (trustworthy proof parked by Tom until a trade school asks).
+- [ ] **A 4-6 game unit + one-page guide per game.** RESEARCH-2.md §6 #8.
+- [ ] **Tom: one pilot this school year, results by Feb-Mar 2027; test the price ladder.** RESEARCH-2.md §6 #9-10, §2.
+- [ ] **Tom: ask the real class's teacher what was useful; talk to ULI UrbanPlan / ACE Mentor / a working expediter.** CHECK.md §2, §3 #8, #14.
+- [ ] **Before the first paying school: terms of use, an LLC, a lawyer reads the contract.** Tom Q8 (parked).
+- [ ] **Accessibility deadline April 26, 2027 (WCAG 2.1 AA) for big public schools.** CHECK.md §6. Old item: "Accessibility ... RESEARCH FIRST" in the Parking lot.
+
+### Roles
+- [ ] **Role play, step 1: Banker/Lender as a second role (person or robot), robots fill empty seats; then the City examiner, then Owner/Architect.** Tom Q3; RESEARCH-2.md §4c, §6 #12.
+
+### Fantasy RPG version
+- [ ] **One fantasy RPG board, data only, own names, no "D&D"; owner pays.** Tom 10-18; RESEARCH-2.md §5, §6 #13. Old item: "D&D skin" in the Parking lot.
+
+### Ops and safety
+- [ ] **Tom: reset each teacher's password from the admin screen.** CHECK.md top 5 #1 update; DECISIONS 10-18.
+- [ ] **[N2] Restore guide: a "server died, bring it back" section in `docs/technical/ARCHITECTURE.md`, tested once, kept current by /koniec.** Tom Q7; REVIEW.md §8 Q7.
+- [ ] **Tag each deploy image with its commit, keep the last two (an undo).** REVIEW.md §6 Missing #3.
+- [ ] **A GitHub check on every push.** REVIEW.md §6 Missing #1.
+- [ ] **Rules as numbers, sentences made from them (one column at a time).** REVIEW.md top table #6, §3 Fragile #5; RESEARCH.md §6 #10.
+- [ ] **Retire the dictionary copy script (it would overwrite newer game code).** REVIEW.md top table #8, §5.
+- [ ] **Move off the home server before a second school.** RESEARCH.md §6 #12, CHECK.md §3 #12.
+- [ ] **Teacher work in its own folder the web server never serves; cap rooms per teacher.** REVIEW.md §1.
+- [ ] **Delete ~3,000 lines of dead screens and the old single-game route** (low value). REVIEW.md §3 "Dead".
+
+---
+
 ## 🔎 Active — bugs & investigations
 
 - [ ] **TV shows no buildings (fb:a6474bad, 10-14, v3.7.33).** Screenshot: the TV board is a plain light-blue canvas, no town, at the Owner space with 1 player ("they used to be there"). Next: reproduce the TV view at game start; check town nodes/viewport. **v3.7.44: bug reports now carry `diagnostics.board` + `diagnostics.town` (camera transform, nodes inside the box, framing state); read them on the next report.** **10-14 session: NOT reproduced.** In a TV view (PC game opened with `&mode=tv`, Edge) the town frames and follows; window sizes 960-1600 wide and rapid resize bursts all re-frame with every building in the canvas. Next: ask Tom what he pressed just before (a walk? the size buttons?) and what the TV's layout width was. <!-- fb:feedback-1791952023966-a6474bad -->
