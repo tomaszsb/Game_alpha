@@ -192,6 +192,10 @@ export const TEACHER_EDITABLE_COLUMNS = Object.freeze([
   'Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee',
 ]);
 
+/** "2% of scope" / "0.5 % of scope": a percent-of-project fee (SCOPE_PERCENTAGE). */
+export const SCOPE_PCT_RE = /^(\d{1,2}(?:\.\d{1,2})?)\s*%\s*of\s+scope$/i;
+export const MAX_SCOPE_PCT = 20;
+
 /**
  * Time and Fee are read by the pipeline as numbers (parseInt), and a fee with a "%"
  * or the words "dice"/"roll" changes the RULE the space runs, not just its
@@ -220,6 +224,16 @@ export function findBadWordingNumbers({ changed, baselineSpacesCsv, stockSpacesC
         if (!(column in row)) continue;
         const value = String(row[column] ?? '').trim();
         if (value === '' || value === String(baseRow?.[column] ?? '').trim()) continue;
+        // A space that already charges "N% of scope" may get a different percent
+        // (0-20), never a different KIND of fee: that keeps the rule the same
+        // while the teacher sets the price (Tom, 2026-10-18: "Close the gap").
+        if (column === 'Fee' && SCOPE_PCT_RE.test(String(baseRow?.Fee ?? '').trim())) {
+          const m = value.match(SCOPE_PCT_RE);
+          if (m && Number(m[1]) <= MAX_SCOPE_PCT) continue;
+          problems.push({ slot: change.slot, column, value,
+            message: `${change.slot}: Fee must be a percent of the project's cost from 0 to ${MAX_SCOPE_PCT}, like "2% of scope" (got "${value}").` });
+          continue;
+        }
         if (!rules[column].ok.test(value)) {
           problems.push({
             slot: change.slot,

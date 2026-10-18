@@ -1265,7 +1265,24 @@ function TimeInput({ value, onChange, id }: { value: string; onChange: (v: strin
 }
 
 // Fee inline input
-function FeeInput({ value, onChange, id }: { value: string; onChange: (v: string) => void; id?: string }): JSX.Element {
+export function FeeInput({ value, onChange, id }: { value: string; onChange: (v: string) => void; id?: string }): JSX.Element {
+  // A percent-of-project fee ("2% of scope", the inspection agencies): a number box,
+  // written back in the same form, so a teacher changes the price, never the rule.
+  const scopeMatch = value?.match(/^(\d+(?:\.\d+)?)\s*%\s*of\s+scope$/i);
+  if (scopeMatch) {
+    return (
+      <div style={styles.helperRow}>
+        <input
+          id={id}
+          type="number" min="0" max="20" step="0.5" value={scopeMatch[1]}
+          onChange={(e) => onChange(`${e.target.value || '0'}% of scope`)}
+          style={{ ...styles.input, flex: 1 }}
+          aria-label="Fee, percent of the project's cost"
+        />
+        <span style={styles.helperSuffix}>% of the project's cost</span>
+      </div>
+    );
+  }
   const feeMatch = value?.match(/^(\d+(?:\.\d+)?)\s*%$/);
   const isPercent = !value || feeMatch;
   if (!isPercent) {
