@@ -8,6 +8,7 @@ import { ErrorNotifications } from '../utils/ErrorNotifications';
 import { parseCardDrawFormat } from '../utils/parseUtils';
 import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlyCardList } from '../utils/logFormatting';
+import { diffLifeEventChange } from '../utils/lifeEventChange';
 import { getViolationTier, computeFilingFee, computeDailyAccrual, VIOLATION_DEADLINE_DAYS, ViolationVariant } from '../utils/violationRules';
 
 export class CardService implements ICardService {
@@ -1108,6 +1109,26 @@ export class CardService implements ICardService {
   // E-card draws, forced discards, multi-turn duration) are deferred. Manual
   // card play passes no options → full behavior unchanged.
   async applyCardEffects(playerId: string, cardId: string, options?: { onlyResourceEffects?: boolean; diceRoll?: number }): Promise<GameState> {
+    // A life event is permanent: "a law change doesn't unchange just because the
+    // player retries" (Workstream 2). The L card itself was already kept across
+    // Try Again, but what it DID (a Notice of Violation's extra work package,
+    // its money and days) rolled back with the TEMP state, so pushing back
+    // erased bad luck the player had already seen (PLAYTEST 2026-10-18, Engineer's
+    // Fee). Record the change it made on the turn ledger; Try Again re-applies it.
+    const card = this.dataService.getCardById(cardId);
+    if (card?.card_type !== 'L' || !options?.onlyResourceEffects) {
+      return this.applyCardEffectsUnrecorded(playerId, cardId, options);
+    }
+    const before = this.stateService.getPlayer(playerId);
+    const result = await this.applyCardEffectsUnrecorded(playerId, cardId, options);
+    const after = this.stateService.getPlayer(playerId);
+    if (before && after) {
+      this.stateService.recordTurnOutflow(playerId, { lifeEventChange: diffLifeEventChange(before, after) });
+    }
+    return result;
+  }
+
+  private async applyCardEffectsUnrecorded(playerId: string, cardId: string, options?: { onlyResourceEffects?: boolean; diceRoll?: number }): Promise<GameState> {
     // Ensure EffectEngineService is ready before processing card effects
     this.assertEffectEngineReady();
 

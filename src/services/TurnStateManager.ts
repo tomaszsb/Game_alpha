@@ -377,6 +377,13 @@ export class TurnStateManager {
     if (changes.fdnyApprovalStatus !== undefined) updatedState.fdnyApprovalStatus = changes.fdnyApprovalStatus;
     if (changes.dobApprovedDestinations !== undefined) updatedState.dobApprovedDestinations = [...changes.dobApprovedDestinations];
     if (changes.fdnyApprovedDestinations !== undefined) updatedState.fdnyApprovedDestinations = [...changes.fdnyApprovedDestinations];
+    // Violation fields: only a life event kept across Try Again sets these here.
+    if (changes.violationStatus !== undefined) updatedState.violationStatus = changes.violationStatus;
+    if (changes.violationVariant !== undefined) updatedState.violationVariant = changes.violationVariant;
+    if (changes.violationTier !== undefined) updatedState.violationTier = changes.violationTier;
+    if (changes.violationDeadlineDay !== undefined) updatedState.violationDeadlineDay = changes.violationDeadlineDay;
+    if (changes.violationPenaltyBase !== undefined) updatedState.violationPenaltyBase = changes.violationPenaltyBase;
+    if (changes.violationAccrualCheckpoint !== undefined) updatedState.violationAccrualCheckpoint = changes.violationAccrualCheckpoint;
 
     // Create updated REAL state
     const newRealState: PlayerTurnState = {
@@ -542,7 +549,7 @@ export class TurnStateManager {
    */
   public recordTurnOutflow(
     playerId: string,
-    entry: { moneySpent?: number; moneyDeliberate?: number; cardConsumed?: string; lifeEventDrawn?: string }
+    entry: { moneySpent?: number; moneyDeliberate?: number; cardConsumed?: string; lifeEventDrawn?: string; lifeEventChange?: import('../utils/lifeEventChange').LifeEventChange }
   ): void {
     const existing: TurnCostLedger = this.turnStateModel.costLedgers?.[playerId] ?? {
       moneySpent: 0,
@@ -557,7 +564,10 @@ export class TurnStateManager {
         : existing.cardsConsumed,
       lifeEventsDrawn: entry.lifeEventDrawn
         ? [...(existing.lifeEventsDrawn ?? []), entry.lifeEventDrawn]
-        : (existing.lifeEventsDrawn ?? [])
+        : (existing.lifeEventsDrawn ?? []),
+      lifeEventChanges: entry.lifeEventChange
+        ? [...(existing.lifeEventChanges ?? []), entry.lifeEventChange]
+        : (existing.lifeEventChanges ?? [])
     };
     this.turnStateModel = {
       ...this.turnStateModel,

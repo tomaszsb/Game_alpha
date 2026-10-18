@@ -17,6 +17,7 @@ import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlySpaceName } from '../utils/logFormatting';
 import { calculatePushBackDays, calculatePushBackMoneyKept, getLoanOnTheTable } from '../utils/costPreview';
 import { computeFilingFee } from '../utils/violationRules';
+import { combineLifeEventChanges, applyLifeEventHand } from '../utils/lifeEventChange';
 
 export class TurnService implements ITurnService {
   private readonly dataService: IDataService;
@@ -1059,10 +1060,16 @@ export class TurnService implements ITurnService {
             ? this.gameRulesService.calculateProjectScope(playerId)
             : 0,
         );
-        if (moneyKept > 0) {
-          changes.money = realState.money - moneyKept;
+        // What this turn's life events did stays too (money, days, cards,
+        // approvals): a push-back re-opens the deal, it doesn't undo bad luck
+        // the player has already seen (PLAYTEST 2026-10-18).
+        const lifeEvents = combineLifeEventChanges(ledger.lifeEventChanges ?? []);
+        if (moneyKept > 0 || lifeEvents.moneyDelta !== 0) {
+          changes.money = realState.money - moneyKept + lifeEvents.moneyDelta;
         }
-        // Hand = (REAL hand) − played cards + drawn L cards
+        changes.timeSpent = timePenalty + lifeEvents.timeDelta;
+        Object.assign(changes, lifeEvents.fields);
+        // Hand = (REAL hand) − played cards + drawn L cards + what they changed
         // Played cards stay consumed; L cards drawn this turn persist because
         // a law change doesn't unchange just because the player retries.
         const hasHandChange =
@@ -1074,7 +1081,7 @@ export class TurnService implements ITurnService {
           if (ledger.lifeEventsDrawn.length > 0) {
             newHand = [...newHand, ...ledger.lifeEventsDrawn];
           }
-          changes.hand = newHand;
+          changes.hand = applyLifeEventHand(newHand, lifeEvents);
         }
       }
       this.stateService.applyToRealState(playerId, changes);
