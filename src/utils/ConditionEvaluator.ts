@@ -24,15 +24,13 @@ import { debugWarn } from './debugLog';
  */
 
 // Named resource thresholds. Union of the vocabularies that used to live in
-// MovementService (money_/time_/cards_) and this file (loan_).
+// MovementService (money_/time_/cards_). The old loan_ names were removed
+// 2026-10-18: unused, and they read cash instead of loans (REVIEW.md section 4).
 const RESOURCE_CONDITIONS: Record<string, (player: Player) => boolean> = {
   money_le_1m: p => (p.money || 0) <= 1000000,
   money_gt_1m: p => (p.money || 0) > 1000000,
   money_le_2m: p => (p.money || 0) <= 2000000,
   money_gt_2m: p => (p.money || 0) > 2000000,
-  loan_up_to_1_4m: p => (p.money || 0) <= 1400000,
-  loan_1_5m_to_2_75m: p => (p.money || 0) >= 1500000 && (p.money || 0) <= 2750000,
-  loan_above_2_75m: p => (p.money || 0) > 2750000,
   time_le_5: p => (p.timeSpent || 0) <= 5,
   time_gt_5: p => (p.timeSpent || 0) > 5,
   time_le_10: p => (p.timeSpent || 0) <= 10,

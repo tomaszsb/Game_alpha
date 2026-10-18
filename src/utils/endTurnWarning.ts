@@ -27,6 +27,11 @@ export interface EndTurnWarningInput {
   designFees: number;
   /** The player's current project scope. */
   scope: number;
+  /** The biggest scope this player has had at a turn's end. The 20% rule
+   *  (FinancialEffectHandler.checkDesignFeeCap) measures fees against the bigger
+   *  of this and today's scope, so the warning must too (REVIEW.md 2026-10-18,
+   *  section 4 case 2: it used today's scope and could cry wolf after a cut). */
+  peakScope?: number;
   /** Did a bill land this turn (a fee quote the player hasn't accepted yet)? */
   billedThisTurn: boolean;
 }
@@ -41,7 +46,8 @@ const dollars = (n: number): string => `$${Math.round(Math.abs(n)).toLocaleStrin
  */
 export function getEndTurnWarning(input: EndTurnWarningInput): EndTurnWarning | null {
   const { money, designFees, scope, billedThisTurn } = input;
-  const feePct = scope > 0 ? (designFees / scope) * 100 : 0;
+  const ruleScope = Math.max(scope, input.peakScope ?? 0);
+  const feePct = ruleScope > 0 ? (designFees / ruleScope) * 100 : 0;
 
   if (money < 0) {
     return {

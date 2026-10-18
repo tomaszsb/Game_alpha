@@ -43,4 +43,12 @@ describe('getEndTurnWarning', () => {
     expect(getEndTurnWarning({ money: 5, designFees: 999, scope: 0, billedThisTurn: true })).toBeNull();
     expect(getEndTurnWarning({ money: -5, designFees: 0, scope: 0, billedThisTurn: true })!.level).toBe('red');
   });
+  // REVIEW.md 2026-10-18 section 4 case 2: the rule measures fees against the
+  // biggest scope the player has had (peakScope); the warning used today's.
+  it('measures against the biggest scope, like the rule does', () => {
+    // $250K fees: 25% of today's $1M, but only 12.5% of the $2M peak. No red.
+    const w = getEndTurnWarning({ money: 100_000, designFees: 250_000, scope: 1_000_000, peakScope: 2_000_000, billedThisTurn: true });
+    expect(w?.level).not.toBe('red');
+    expect(getEndTurnWarning({ money: 100_000, designFees: 450_000, scope: 1_000_000, peakScope: 2_000_000, billedThisTurn: true })!.level).toBe('red');
+  });
 });

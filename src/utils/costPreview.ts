@@ -30,6 +30,7 @@ import { IServiceContainer, IStateService } from '../types/ServiceContracts';
 import { SpaceContent, SpaceEffect, VisitType } from '../types/DataTypes';
 import type { TurnCostLedger } from '../types/StateTypes';
 import { FormatUtils } from './FormatUtils';
+import { calculateTieredLoanFee, parseLoanFeeTiers } from './loanFeeTiers';
 import { extractPercentage, parseFeeFromDescription, determineFeeType } from './parseUtils';
 
 export type CostPreviewRowKey = 'labor' | 'work' | 'expediting' | 'money' | 'time';
@@ -332,6 +333,15 @@ function classifyFeeEffect(
     const scope = gameServices.gameRulesService.calculateProjectScope(playerId);
     const amount = Math.round(scope * (pct / 100));
     return amount > 0 ? `-${FormatUtils.formatMoney(amount, { compact: false })}` : `${pct}% of your project scope`;
+  }
+
+  if (feeType === 'LOAN_TIERED') {
+    // The real dollar figure once a loan is on the table (same function that
+    // charges it); before that, the range the player will pay.
+    const loan = getLoanOnTheTable(gameServices.stateService, playerId);
+    if (loan > 0) return `-${FormatUtils.formatMoney(calculateTieredLoanFee(desc, loan), { compact: false })}`;
+    const tiers = parseLoanFeeTiers(desc);
+    if (tiers) return `${tiers[0].rate * 100}-${tiers[tiers.length - 1].rate * 100}% of your loan`;
   }
 
   if (feeType === 'LOAN_PERCENTAGE' || feeType === 'LOAN_TIERED') {

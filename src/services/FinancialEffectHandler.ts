@@ -19,6 +19,8 @@ import { Player } from '../types/DataTypes';
 import { extractPercentage, parseFeeFromDescription } from '../utils/parseUtils';
 import { debugLog, debugWarn } from '../utils/debugLog';
 import { getTrophyRules } from '../utils/trophyRules';
+import { calculateTieredLoanFee } from '../utils/loanFeeTiers';
+import { DESIGN_FEE_CAP_PCT } from '../utils/progressIndicators';
 
 type ResourceChangePayload = Extract<Effect, { effectType: 'RESOURCE_CHANGE' }>['payload'];
 type FeeDeductionPayload = Extract<Effect, { effectType: 'FEE_DEDUCTION' }>['payload'];
@@ -333,7 +335,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     }
     const designFeeRatio = playerScope > 0 ? (totalDesignFees / playerScope) * 100 : 0;
 
-    if (designFeeRatio >= 20) {
+    if (designFeeRatio >= DESIGN_FEE_CAP_PCT) {
       // v2.70.4 (fb:3a57d5d0) — strict 20% rule per user decision: ANY phase,
       // ANY time, design fees over 20% of scope ends the game. The previous
       // behavior only ended the game during the DESIGN phase and applied a
@@ -555,15 +557,10 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
       // flavor text for "1.4m"/"2.75m", which silently broke if that text
       // was ever reworded. Now a dedicated CSV fee_type (BANK-FUND-REVIEW in
       // SPACE_EFFECTS.csv), so the tiered structure fires regardless of how
-      // the description is phrased. Tier thresholds/rates themselves are
-      // still fixed game-balance constants, not CSV data.
-      if (totalLoanAmount <= 1400000) {
-        feeAmount = Math.round(totalLoanAmount * 0.01);
-      } else if (totalLoanAmount <= 2750000) {
-        feeAmount = Math.round(totalLoanAmount * 0.02);
-      } else {
-        feeAmount = Math.round(totalLoanAmount * 0.03);
-      }
+      // the description is phrased. 2026-10-18: the tier limits and rates are
+      // read from that same fee cell (loanFeeTiers.ts), so the sentence the
+      // player reads and the charge can no longer disagree.
+      feeAmount = calculateTieredLoanFee(payload.feeDescription, totalLoanAmount);
       debugLog(`    Tiered fee: $${feeAmount} (loan: $${totalLoanAmount})`);
     } else if (payload.feeType === 'LOAN_PERCENTAGE' && totalLoanAmount > 0) {
       const feeDesc = payload.feeDescription.toLowerCase();

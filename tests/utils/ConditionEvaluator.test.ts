@@ -120,49 +120,6 @@ describe('ConditionEvaluator', () => {
       });
     });
 
-    describe('loan conditions', () => {
-      it('should return true for loan_up_to_1_4m when money <= 1.4M', () => {
-        const player = createMockPlayer({ money: 1400000 });
-        expect(conditionEvaluator.evaluate(player, 'loan_up_to_1_4m')).toBe(true);
-      });
-
-      it('should return false for loan_up_to_1_4m when money > 1.4M', () => {
-        const player = createMockPlayer({ money: 1500000 });
-        expect(conditionEvaluator.evaluate(player, 'loan_up_to_1_4m')).toBe(false);
-      });
-
-      it('should return true for loan_1_5m_to_2_75m when money in range', () => {
-        const player = createMockPlayer({ money: 2000000 });
-        expect(conditionEvaluator.evaluate(player, 'loan_1_5m_to_2_75m')).toBe(true);
-      });
-
-      it('should return false for loan_1_5m_to_2_75m when money below range', () => {
-        const player = createMockPlayer({ money: 1400000 });
-        expect(conditionEvaluator.evaluate(player, 'loan_1_5m_to_2_75m')).toBe(false);
-      });
-
-      it('should return false for loan_1_5m_to_2_75m when money above range', () => {
-        const player = createMockPlayer({ money: 3000000 });
-        expect(conditionEvaluator.evaluate(player, 'loan_1_5m_to_2_75m')).toBe(false);
-      });
-
-      it('should return true for loan_above_2_75m when money > 2.75M', () => {
-        const player = createMockPlayer({ money: 3000000 });
-        expect(conditionEvaluator.evaluate(player, 'loan_above_2_75m')).toBe(true);
-      });
-
-      it('should return false for loan_above_2_75m when money <= 2.75M', () => {
-        const player = createMockPlayer({ money: 2750000 });
-        expect(conditionEvaluator.evaluate(player, 'loan_above_2_75m')).toBe(false);
-      });
-
-      it('should fail closed for an unrecognised loan_ variant (used to return true)', () => {
-        const player = createMockPlayer();
-        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-        expect(conditionEvaluator.evaluate(player, 'loan_up_to_9m')).toBe(false);
-        warnSpy.mockRestore();
-      });
-    });
 
     // Moved here from MovementService's former private evaluator.
     describe('money / time / hand-size conditions', () => {

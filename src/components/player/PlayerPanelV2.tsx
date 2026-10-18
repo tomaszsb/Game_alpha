@@ -550,6 +550,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         money: player.money,
         designFees: player.expenditures?.design || 0,
         scope: gameServices.gameRulesService.calculateProjectScope(playerId),
+        peakScope: player.peakScope,
         billedThisTurn: turnLedger.moneySpent - (turnLedger.moneyDeliberate ?? 0) > 0,
       })
     : null;
