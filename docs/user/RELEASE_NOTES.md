@@ -3,6 +3,10 @@
 ---
 
 
+## v3.8.20 — Fewer expeditors handed to you (October 18, 2026)
+
+- **The owner gives you one expeditor, not three,** and most of the "Add a team member" taps are gone. You still get two at the City Filing Fee, where expeditors do their real job: filing your papers and clearing the city's objections.
+
 ## v3.8.19 — Trouble On Site: test now or later (October 18, 2026)
 
 - **Trouble On Site is your decision now.** Test the energy work before the walls close (a few days and a fee, safe), or close up and test later (free most of the time, but a failed test means opening finished walls). Either way you go on to the site inspection: construction no longer throws you back to the engineer and the whole filing loop. In robot test games this made a game about a third shorter.

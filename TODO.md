@@ -31,7 +31,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 - [ ] **One money calculator** (`costPreview.ts` re-does the charging maths). REVIEW.md §4 "pattern"; CHECK.md "Next after that".
 
 ### Fun (dice to choices)
-- [ ] **WHERE I STOPPED (10-18 night, bug session): NOT built, needs Tom's word.** Owner gives 1 expeditor not 3; drop most forced "Add a team member" taps (forced draws today: Owner 3, Lender 1, Bank 2, City Filing Fee 2, Hire a Builder 3 + 1, Site Inspection return 2, Final Approval 3 + 1, Architect's Fee return 1). Tom parked this exact idea 09-27 ("let's not do anything yet", Parking lot), so a session did not overrule it. Proposal: keep the owner's 1, the City Filing Fee 2 (expeditors file at DOB) and the architect's story one; remove the rest. Then Hire a Special Inspector and expeditor-fights-audit.
+- [ ] **[N3] next: Hire a Special Inspector fork; send your expeditor to fight an audit (Try Again paid with 1 expeditor).** Forced expeditors were CUT in v3.8.20 (Tom lifted his 09-27 park on 10-18: "Cut them"). PLAYTEST.md Part 2a new space 1, Part 2b #3.
 - [ ] **[N3] Hire a Special Inspector fork (TR1).** PLAYTEST.md Part 2a new space 1, 2c #3.
 - [ ] **[N3] Send your expeditor on a job (Try Again paid with 1 E card).** PLAYTEST.md Part 2b #3, 2c #5.
 - [ ] **[N3] Hire an Expeditor fork (veteran / junior / yourself).** PLAYTEST.md Part 2b #1, 2c #6.
@@ -150,7 +150,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 ## 🅿️ Parking lot — real but deferred; each fires on its inline trigger
 
 ### Product / design
-- [ ] **Expeditor pick-with-tradeoffs instead of "hire 3"** (cheap-but-slow vs fast-but-pricey, events where one underperforms or leaves; the reporter's own design is in fb:f22035af's `extra`). Tom 09-27: "let's not do anything yet". Trigger: Tom's word. <!-- fb:feedback-1778584030168-f22035af --> <!-- fb:feedback-1790512401424-cd598be9 --> <!-- fb:feedback-1790512455634-db1d1104 -->
+- [ ] **Expeditor pick-with-tradeoffs instead of "hire 3"** (the reporter's design is in fb:f22035af's `extra`). Tom's 09-27 park LIFTED 10-18: forced handouts cut in v3.8.20; the "pick" fork (veteran / junior / yourself, PLAYTEST.md Part 2b #1) is the next step. <!-- fb:feedback-1778584030168-f22035af --> <!-- fb:feedback-1790512401424-cd598be9 --> <!-- fb:feedback-1790512455634-db1d1104 -->
 - [ ] **Onboarding Phase C leftovers:** the mentor (Ruth + handbook), the glossary popup in the same card look, an audit of ~53 hover-only `title=` tooltips, the "How to play" modal body rewrite (needs Tom's voice pass), re-measure the baselines after 30+ outside games. Trigger: Tom's word. Detail: CHANGELOG housekeeping 2026-10-13. <!-- fb:feedback-1778583921001-0aa9660c --> <!-- fb:feedback-1778584099671-8ad42b52 -->
 - [ ] **Town board next steps:** own growing building, scenes, steering, road jokes, TV news cards (Tom 10-12: "lets wait"). Trigger: Tom has watched a real 3+ player game on the TV. Detail: `docs/core/TOWN_BOARD_REVIEW.md`.
 - [ ] **Change-legibility P2-P5 + audio** (inline tab deltas, tiered work cards, time-feel transitions, a11y, audio is greenfield; reframe against the V2 panel first). Trigger: Tom's word. Detail: `docs/archive/player-panel-redesign-20260714.md` §10. <!-- fb:feedback-1790512043564-612fbdc4 -->

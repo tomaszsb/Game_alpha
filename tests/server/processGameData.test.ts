@@ -1112,7 +1112,7 @@ describe('processGameData — per-action narratives', () => {
     expect(row).toBeDefined();
     // 1st-person Owner voice — matches the modal's Owner portrait + Summary box
     // (fb:7065e8df: the portrait box read 3rd-person while the Summary read 1st).
-    expect(row!).toContain("I'm handing you a stack of contacts");
+    expect(row!).toContain("Here's one name: an expeditor I've worked with before."); // v3.8.20: one expeditor, not three
   });
 
   it('emits authored l_card narrative for ARCH-FEE-REVIEW/First draw_L', () => {
