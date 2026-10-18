@@ -52,7 +52,7 @@ import {
   findCardForSlot,
   updateCardContent,
 } from './instanceStore.js';
-import { diffSubmittedContent, restrictChangesToWording, findBadWordingNumbers } from './instanceContentDiff.js';
+import { diffSubmittedContent, restrictChangesToWording, findBadWordingNumbers, findBadRiskNumbers } from './instanceContentDiff.js';
 import { validateConfig } from './instanceValidation.js';
 import { buildCatalog } from './instanceCatalog.js';
 import { compareBoardReports } from './boardCheck.js';
@@ -1785,7 +1785,10 @@ app.post('/api/instances/:id/content', (req, res) => {
     // no card at all. The admin's payload is used as posted — he owns the
     // structure.
     if (!admin.ok) {
-      const numberProblems = findBadWordingNumbers({ changed: diff.changed, baselineSpacesCsv, stockSpacesCsv });
+      const numberProblems = [
+        ...findBadWordingNumbers({ changed: diff.changed, baselineSpacesCsv, stockSpacesCsv }),
+        ...findBadRiskNumbers({ changed: diff.changed, baselineDiceCsv, stockDiceCsv: diceCsv, baselineSpacesCsv }),
+      ];
       if (numberProblems.length > 0) {
         return res.status(422).json({
           success: false,

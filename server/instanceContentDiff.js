@@ -248,6 +248,110 @@ export function findBadWordingNumbers({ changed, baselineSpacesCsv, stockSpacesC
   return problems;
 }
 
+// ===== Teacher-editable risk numbers (Tom, 2026-10-18: "Close the gap") =====
+// The days and money behind a dice outcome ("Steer the Inspector": 2 times in 6, a
+// stop-work order: 30 days and a $25,000 fine) live in DiceRoll Info.csv rows
+// `Time outcomes` and `Fees Paid`. A teacher may change those NUMBERS, never which
+// rows exist, never the odds layout, never `Next Step` (the route). A row is a
+// price row only when every one of its stock/baseline cells is already a plain
+// number of days or dollars (some `Time outcomes` rows hold space names: those
+// stay locked). Days 0-365; fees $0-$1,000,000 as a cost (stored negative, the
+// stock convention).
+export const TEACHER_DICE_ROWS = Object.freeze(['Time outcomes', 'Fees Paid']);
+export const MAX_RISK_DAYS = 365;
+export const MAX_RISK_FEE = 1000000;
+const DICE_CELLS = ['1', '2', '3', '4', '5', '6'];
+const DAY_CELL_RE = /^(\d{1,3})(\s*days?)?$/i;
+const FEE_CELL_RE = /^-?\$?\d[\d,]{0,9}$/;
+
+function dayValue(v) {
+  const m = String(v ?? '').trim().match(DAY_CELL_RE);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return n <= MAX_RISK_DAYS ? n : null;
+}
+function feeValue(v) {
+  const t = String(v ?? '').trim();
+  if (!FEE_CELL_RE.test(t)) return null;
+  const n = Number(t.replace(/[$,]/g, ''));
+  return Math.abs(n) <= MAX_RISK_FEE ? n : null;
+}
+/** The canonical cell text the pipeline reads. */
+function formatRiskCell(dieRoll, v) {
+  if (dieRoll === 'Time outcomes') {
+    const n = dayValue(v);
+    return `${n} day${n === 1 ? '' : 's'}`;
+  }
+  const n = Math.abs(feeValue(v));
+  return n === 0 ? '0' : `-${n}`;
+}
+/** Is this baseline dice row one whose six cells are plain prices? */
+export function isPriceRow(row) {
+  const kind = String(row?.die_roll ?? '').trim();
+  if (!TEACHER_DICE_ROWS.includes(kind)) return false;
+  return DICE_CELLS.every((c) => {
+    const v = String(row[c] ?? '').trim();
+    if (v === '') return true;
+    return kind === 'Time outcomes' ? dayValue(v) !== null : feeValue(v) !== null;
+  });
+}
+const sameKey = (a, b) => String(a.visit_type || '') === String(b.visit_type || '')
+  && String(a.die_roll || '').trim() === String(b.die_roll || '').trim();
+
+/**
+ * Plain-language problems with a teacher's risk numbers, or [] when all are fine.
+ * @param {{ changed: Array<{ slot: string, diceRows?: Array<Object<string, string>> }>,
+ *   baselineDiceCsv?: string|null, stockDiceCsv?: string|null, baselineSpacesCsv?: string|null }} args
+ */
+export function findBadRiskNumbers({ changed, baselineDiceCsv, stockDiceCsv, baselineSpacesCsv }) {
+  const base = baselineSpacesCsv ? rowsBySpace(baselineDiceCsv) : rowsBySpace(stockDiceCsv);
+  const problems = [];
+  for (const change of changed || []) {
+    for (const baseRow of base.get(change.slot) || []) {
+      if (!isPriceRow(baseRow)) continue;
+      const sub = (change.diceRows || []).find((r) => sameKey(r, baseRow));
+      if (!sub) continue;
+      const kind = baseRow.die_roll.trim();
+      for (const c of DICE_CELLS) {
+        const value = String(sub[c] ?? '').trim();
+        if (value === String(baseRow[c] ?? '').trim()) continue;
+        const ok = kind === 'Time outcomes' ? dayValue(value) !== null : feeValue(value) !== null && feeValue(value) <= 0 || value === '0';
+        if (!ok) {
+          problems.push({
+            slot: change.slot, column: kind, value,
+            message: kind === 'Time outcomes'
+              ? `${change.slot}: days must be a whole number from 0 to ${MAX_RISK_DAYS} (got "${value}").`
+              : `${change.slot}: a cost must be a whole number of dollars from 0 to ${MAX_RISK_FEE.toLocaleString('en-US')} (got "${value}").`,
+          });
+        }
+      }
+    }
+  }
+  return problems;
+}
+
+/** Baseline dice rows with a teacher's valid price changes applied. */
+function applyRiskNumbers(baseRows, submittedRows) {
+  let differs = false;
+  const rows = (baseRows || []).map((baseRow) => {
+    if (!isPriceRow(baseRow)) return { ...baseRow };
+    const sub = (submittedRows || []).find((r) => sameKey(r, baseRow));
+    if (!sub) return { ...baseRow };
+    const kind = baseRow.die_roll.trim();
+    const next = { ...baseRow };
+    for (const c of DICE_CELLS) {
+      const value = String(sub[c] ?? '').trim();
+      if (value === String(baseRow[c] ?? '').trim()) continue;
+      const ok = kind === 'Time outcomes' ? dayValue(value) !== null : feeValue(value) !== null && feeValue(value) <= 0 || value === '0';
+      if (!ok) continue;
+      const formatted = formatRiskCell(kind, value);
+      if (formatted !== String(baseRow[c] ?? '').trim()) { next[c] = formatted; differs = true; }
+    }
+    return next;
+  });
+  return { rows, differs };
+}
+
 /**
  * Cut a set of submitted changes down to what a teacher is allowed to make.
  *
@@ -328,11 +432,15 @@ export function restrictChangesToWording({
       return next;
     });
 
-    if (!differs) continue;
+    // Risk numbers (v3.8.25): the price cells of `Time outcomes` / `Fees Paid`
+    // rows are taken from the submission when valid; every other dice value,
+    // row and column still comes from the baseline.
+    const dice = applyRiskNumbers(baseDice.get(change.slot) || [], change.diceRows);
+    if (!differs && !dice.differs) continue;
     allowed.push({
       slot: change.slot,
       rows,
-      diceRows: baseDice.get(change.slot) || [],
+      diceRows: dice.rows,
       modalRows: baseModal.get(change.slot) || [],
     });
   }
