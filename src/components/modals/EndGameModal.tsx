@@ -7,7 +7,7 @@ import { useGameContext } from '../../context/GameContext';
 import { Player, VisitType } from '../../types/DataTypes';
 import { GameEndReason } from '../../types/StateTypes';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
-import { buildEndGameStats, formatMoney, formatPercent, formatDays, EndGameStats } from '../../utils/endGameStats';
+import { buildEndGameStats, countCardsPlayed, formatMoney, formatPercent, formatDays, EndGameStats } from '../../utils/endGameStats';
 import { buildEndGameInsights, Insight, InsightTone } from '../../utils/endGameInsights';
 import { getDobLabel } from '../../services/ApprovalService';
 import { shortName } from '../../utils/boardCommon';
@@ -15,7 +15,10 @@ import { PostGameLogViewer } from '../game/PostGameLogViewer';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 import { lossTitle } from '../../utils/endGameLoss';
-import { openCertificate, STRUCTURAL_JOKE } from '../../utils/certificate';
+import { STRUCTURAL_JOKE } from '../../utils/certificate';
+import { buildWhyQuestions } from '../../utils/certificateQuestions';
+import { friendlySpaceName } from '../../utils/logFormatting';
+import { CertificateQuestions } from './CertificateQuestions';
 import { getTrophyRules, TROPHY_IDS } from '../../utils/trophyRules';
 import type { TrophyStandings } from '../../utils/trophyScoring';
 
@@ -183,8 +186,21 @@ export function EndGameModal(): JSX.Element {
       totalTurns: gs.globalTurnCount,
       rounds: gs.gameRound,
       finalScore: gameRulesService.calculatePlayerScore(statsPlayer.id),
+      expeditorsUsed: countCardsPlayed(gs.globalActionLog ?? [], statsPlayer.id, 'E'),
     });
   }, [statsPlayer, gameRulesService, stateService, dataService]);
+
+  // Certificate "why" questions (v3.8.15): from this player's own trophy row and stops.
+  const whyQuestions = useMemo(() => {
+    if (!stats || !statsPlayer) return [];
+    return buildWhyQuestions({
+      row: standings?.rows.find(r => r.playerId === statsPlayer.id) ?? null,
+      journey: stats.journey,
+      daysTotal: stats.daysTotal,
+      money: (n) => formatMoney(Math.round(n)),
+      spaceTitle: (name) => friendlySpaceName(dataService, name),
+    });
+  }, [stats, statsPlayer, standings, dataService]);
 
   // v3.0.13 — Project Debrief: pure-helper insights derived from the same stats
   // snapshot. Capped at 5 so we celebrate, not lecture.
@@ -315,20 +331,14 @@ export function EndGameModal(): JSX.Element {
             if at least one rule matched. */}
         {insights.length > 0 && <ProjectDebrief insights={insights} />}
 
-        {/* Class certificate + a joke (v3.8.0): a printable page from the player's name, no proof or storage. */}
+        {/* Class certificate + a joke (v3.8.0). v3.8.15: the fun and "why" questions sit
+            above the button; the "why" answers print on the certificate (Review Q4 + Q5). */}
         <div style={{ margin: '16px 0', textAlign: 'center' }}>
-          <button
-            type="button"
-            data-testid="print-certificate"
-            onClick={() => {
-              if (!openCertificate(statsPlayer?.name || winnerName || lossName)) {
-                window.alert('Your browser blocked the certificate window. Allow pop-ups for this site and try again.');
-              }
-            }}
-            style={{ padding: '10px 18px', fontSize: '15px', cursor: 'pointer', minHeight: 44 }}
-          >
-            Print certificate
-          </button>
+          <CertificateQuestions
+            playerName={statsPlayer?.name || winnerName || lossName}
+            gameCode={getCurrentGameId() ?? null}
+            whyQuestions={whyQuestions}
+          />
           <p data-testid="structural-joke" style={{ margin: '10px 0 0', fontSize: '13px', fontStyle: 'italic', color: colors.text.secondary }}>
             {STRUCTURAL_JOKE}
           </p>

@@ -9,7 +9,7 @@ import {
   Line, Bar, Pie, Cell, XAxis, YAxis, Tooltip, Legend, CartesianGrid, ResponsiveContainer,
   ComposedChart, BarChart, PieChart,
 } from 'recharts';
-import { fetchStatsSummary, toCsv, type StatsSummary, type StatsWindow } from '../../utils/adminStatsApi';
+import { fetchStatsSummary, fetchClassAnswers, toCsv, type ClassAnswer, type StatsSummary, type StatsWindow } from '../../utils/adminStatsApi';
 import { colors } from '../../styles/theme';
 
 const REFRESH_MS = 60 * 1000;
@@ -350,6 +350,8 @@ export function StatsDashboard(): JSX.Element {
         })()}
       </Section>
 
+      <ClassAnswersSection />
+
       {/* Recent activity */}
       <Section title="Recent activity">
         <div style={{ overflowX: 'auto' }}>
@@ -397,5 +399,37 @@ export function StatsDashboard(): JSX.Element {
         </div>
       </Section>
     </div>
+  );
+}
+
+/** The answers students typed on the certificate step (Tom, 2026-10-18, Review Q4 + Q5). */
+function ClassAnswersSection(): JSX.Element {
+  const [answers, setAnswers] = useState<ClassAnswer[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    fetchClassAnswers().then(setAnswers).catch((e: Error) => setError(e.message));
+  }, []);
+  const count = (v: string) => (answers ?? []).filter(a => a.fun.playAgain === v).length;
+  return (
+    <Section title="Class answers (certificate questions)" footer="Only what students typed, their name, the game code and the date. No IP or device is stored.">
+      {error && <div style={{ color: colors.danger.main }}>{error}</div>}
+      {!error && answers === null && <div>Loading…</div>}
+      {answers && answers.length === 0 && <div style={{ color: colors.text.tertiary }}>No answers yet.</div>}
+      {answers && answers.length > 0 && (
+        <div data-testid="class-answers">
+          <div style={{ marginBottom: '0.6rem' }}>Would play again: <strong>{count('yes')}</strong> yes · <strong>{count('maybe')}</strong> maybe · <strong>{count('no')}</strong> no ({answers.length} answers)</div>
+          {answers.map((a, i) => (
+            <div key={`${a.date}-${i}`} style={{ borderTop: `1px solid ${colors.border.primary}`, padding: '0.5rem 0', fontSize: '0.85rem' }}>
+              <div><strong>{a.name}</strong> · {new Date(a.date).toLocaleString()} {a.gameCode && `· ${a.gameCode}`} {a.fun.playAgain && `· play again: ${a.fun.playAgain}`}</div>
+              {a.fun.mostBoring && <div>Most boring: {a.fun.mostBoring}</div>}
+              {a.fun.bestPart && <div>Best part: {a.fun.bestPart}</div>}
+              {a.why.filter(w => w.answer).map((w, j) => (
+                <div key={j} style={{ marginTop: 4 }}><em>{w.question}</em><br />{w.answer}</div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
   );
 }

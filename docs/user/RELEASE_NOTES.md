@@ -3,6 +3,15 @@
 ---
 
 
+## v3.8.15 — Questions on the certificate, and five fixes (October 18, 2026)
+
+- **Before you print your certificate,** a few optional questions: would you play again, what was boring, what was best, and two or three questions about why your own game went the way it did. Your "why" answers print on the certificate so your teacher can talk about them in class. Answers are saved with your name and game code only.
+- **Cut a Corner now says what's at stake:** a lucky break skips you ahead, a bad one costs months, and skipping the DOB filing is charged at the end.
+- **The lender's "remove a work package" list** shows prices and names the work the way the rest of the game does.
+- **Favor Called In** shows the days it saves you ("-2 days").
+- **The bank lends what you're short,** up to its offer, instead of a fixed amount, so you don't pay a fee on money you didn't need.
+- **The end-of-game debrief** counts the expeditors you actually sent in, not the ones the game handed you.
+
 ## v3.8.8 to v3.8.13 — Fixes from the independent review (October 18, 2026)
 
 - **Your project can't be cut to nothing.** A lender's or designer's review could remove your only work package and leave you paying for an empty project. Your last work package now always stays.

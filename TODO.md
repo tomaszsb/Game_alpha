@@ -21,11 +21,11 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 **Tom's 10-18 decisions (settled):** buyer = schools, paid; order is fun → teacher end (no training needed) → per-school branding; second product = a general **fantasy RPG** version (never the D&D name), sold per owner · text alert dropped (done v3.8.7) · everyone-is-a-PM stays; role play later · scores are for play, no anti-cheat; trade schools count credit by completion (trustworthy proof parked until one asks) · fun is measured by 3 questions on the certificate page · "why" questions on the certificate page · why-tips go into the EXISTING tips/hover/help, max one paragraph · no new restore document: a restore section in an existing doc, tested once, kept current by /koniec · teacher content is the school's responsibility; terms of use + LLC + lawyer parked until the first paying school.
 
 ### Bugs
+- [ ] **From PLAYTEST-2 (10-18), left for N3:** Trouble On Site can send construction back to the engineer and the whole filing loop; "Efficiency Boost (-3)" saved only 2 days and some "-1 day" plays seemed to do nothing (likely a cap on the current filing, unverified); "Hire this builder" is one tap for $800K+. PLAYTEST-2.md "Still broken" #4, #6, #7.
 - [ ] **Loan named "Assisted Living Facility Loan" on an airport job.** PLAYTEST.md "Other things" #5.
 - [ ] **Result pop-up at 1024x768 is a narrow column, title one word per line.** PLAYTEST.md "Other things" #8, UI #10.
 - [ ] **"$756K deficit" shown on turn 1 before any money, unexplained.** PLAYTEST.md diary after space 2.
 - [ ] **Expeditor cards that ADD days sit in a solo hand forever.** PLAYTEST.md "Other things" #7, Part 2b.
-- [ ] **Debrief praises "21 expeditors hired" (the game hired them); count used, not hired.** PLAYTEST.md End screen, Part 2b #7.
 - [ ] **No test boots the real server** (server.js starts itself on import). REVIEW.md §6 Missing #2, §3 Fragile #3.
 - [ ] **Two editors for one job drift; unused classroom write key still accepted; co-teacher overwrite check never switched on.** REVIEW.md §1 "What can go wrong" #4-5.
 - [ ] **One money calculator** (`costPreview.ts` re-does the charging maths). REVIEW.md §4 "pattern"; CHECK.md "Next after that".
@@ -49,8 +49,6 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 - [ ] **Measure fun: the 3 certificate questions + "how many minutes did your game take?"** RESEARCH-2.md §6 #4 (see [N2] below).
 
 ### Teaching (certificate questions, why-tips)
-- [ ] **[N2] 3 fun questions on the /class certificate page (play again? / what was boring? / best part?).** Tom Q4; RESEARCH-2.md §6 #4.
-- [ ] **[N2] 2-3 "why" questions on the certificate page; typed answers print on the certificate.** Tom Q5; CHECK.md top 5 #4; RESEARCH.md §6 #1 (reshaped by CHECK §3).
 - [ ] **[N2] Why-tips: explain cause and odds in the existing tips/hover/help + the end page, max one paragraph.** Tom Q6; RESEARCH.md §6b #2.
 - [ ] **One-page teacher guide with talk prompts.** CHECK.md top 5 #4; RESEARCH.md §6b #3.
 - [ ] **Before/after 10-question quiz with the real class.** CHECK.md top 5 #3; RESEARCH.md §6 #3.

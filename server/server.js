@@ -8,6 +8,7 @@
 
 import express from 'express';
 import { dataGate } from './dataGate.js';
+import { cleanClassAnswer, appendClassAnswer, readClassAnswers } from './classAnswers.js';
 import cors from 'cors';
 import { createServer } from 'http';
 import crypto from 'crypto';
@@ -2994,6 +2995,30 @@ function ensureFeedbackDir() {
     console.log(`📁 Created feedback directory: ${FEEDBACK_DIR}`);
   }
 }
+
+// ===== CLASS CERTIFICATE ANSWERS (Tom, 2026-10-18, Review Q4 + Q5) =====
+// The fun and "why" answers a student types before printing the certificate.
+// Stored in DATA_DIR/class-answers.jsonl: name, game code, answers, date. No IP or
+// device is written (the limiter below keeps IPs in memory only, to stop floods).
+// Not under /data: that serves DATA_DIR/game-data, behind dataGate's allowlist.
+const checkClassAnswerRateLimit = createRateLimiter(20, 60 * 60 * 1000); // 20 per hour
+app.post('/api/class-answers', (req, res) => {
+  if (!checkClassAnswerRateLimit(req, res)) return;
+  const { record, error } = cleanClassAnswer(req.body);
+  if (error) return res.status(400).json({ error });
+  try {
+    appendClassAnswer(CONFIG.DATA_DIR, record);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('class answers: could not save', err);
+    res.status(500).json({ error: 'Could not save the answers.' });
+  }
+});
+
+app.get('/api/admin/class-answers', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.json({ answers: readClassAnswers(CONFIG.DATA_DIR) });
+});
 
 app.post('/api/feedback', async (req, res) => {
   try {

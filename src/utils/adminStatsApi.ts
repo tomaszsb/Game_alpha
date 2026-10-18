@@ -134,3 +134,25 @@ export function toCsv(rows: RecentEntry[]): string {
   }
   return lines.join('\n');
 }
+
+/** One saved certificate-step answer (server/classAnswers.js): no IP or device by design. */
+export interface ClassAnswer {
+  date: string;
+  name: string;
+  gameCode: string;
+  fun: { playAgain: string; mostBoring: string; bestPart: string };
+  why: Array<{ question: string; answer: string }>;
+}
+
+/** GET /api/admin/class-answers: every saved answer, newest first. */
+export async function fetchClassAnswers(d: AdminStatsApiDeps = {}): Promise<ClassAnswer[]> {
+  const fetchFn = d.fetch ?? fetch;
+  const password = (d.getAdminPassword ?? getAdminPassword)();
+  if (!password) throw new Error('Admin session expired. Log in again.');
+  const response = await fetchFn(`${(d.getBackendURL ?? getBackendURL)()}/api/admin/class-answers`, {
+    headers: { 'x-admin-password': password },
+  });
+  if (!response.ok) throw new Error(`Could not load class answers (${response.status}).`);
+  const data = await response.json();
+  return Array.isArray(data.answers) ? data.answers : [];
+}

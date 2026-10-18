@@ -1,8 +1,9 @@
 // src/utils/certificate.ts
 //
 // The end-of-game certificate: one printable page (the browser's Print > Save as PDF),
-// the same way the post-game log export works. No check code, no server proof, nothing
-// stored: it is a plain page built from the player's name and today's date.
+// the same way the post-game log export works. No check code, no server proof: a plain
+// page built from the player's name and today's date, plus (v3.8.15) the student's own
+// answers to the "why" questions, so the teacher can talk them through in class.
 
 export const STRUCTURAL_JOKE =
   "A structural engineer's favorite game? Anything where the load is spread evenly and nobody has to take the weight alone.";
@@ -16,8 +17,19 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#39;');
 }
 
-export function buildCertificateHtml(playerName: string, date: Date): string {
+export function buildCertificateHtml(
+  playerName: string,
+  date: Date,
+  why: Array<{ question: string; answer: string }> = [],
+): string {
   const name = escapeHtml(playerName.trim() || 'A Player');
+  const answered = why.filter(w => w.answer.trim());
+  const answersHtml = answered.length === 0 ? '' : `
+<div class="answers">
+  <h2>Thinking it over</h2>
+${answered.map(w => `  <p class="q">${escapeHtml(w.question)}</p>
+  <p class="a">${escapeHtml(w.answer.trim())}</p>`).join('\n')}
+</div>`;
   const dateText = escapeHtml(
     date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
   );
@@ -32,6 +44,10 @@ export function buildCertificateHtml(playerName: string, date: Date): string {
   .small { font-size: 1rem; color: #4b5563; margin: 8px 0; }
   .name { font-size: 2.4rem; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #9ca3af; display: inline-block; padding: 0 24px 4px; }
   .game { font-size: 1.4rem; font-style: italic; margin: 8px 0 20px; }
+  .answers { max-width: 900px; margin: 24px auto 0; text-align: left; break-inside: avoid; }
+  .answers h2 { font-size: 1.2rem; color: #1e3a5f; margin: 0 0 8px; }
+  .answers .q { font-weight: bold; margin: 12px 0 4px; }
+  .answers .a { margin: 0 0 8px; padding-left: 12px; border-left: 3px solid #9ca3af; white-space: pre-wrap; }
   .print-button { margin-top: 24px; padding: 0.6rem 1.2rem; font-size: 1rem; cursor: pointer; }
   @media print { .print-button { display: none; } }
 </style></head><body>
@@ -43,17 +59,17 @@ export function buildCertificateHtml(playerName: string, date: Date): string {
   <p class="game">Unravel Codes: The Game</p>
   <p class="small">a board game about getting a building permitted and built in New York City,<br>and reached the end of the game on</p>
   <p class="small"><strong>${dateText}</strong></p>
-</div>
+</div>${answersHtml}
 <button class="print-button" id="print-btn">Print / Save as PDF</button>
 </body></html>`;
 }
 
 /** Opens the certificate in a new tab. Returns false when the browser blocked the pop-up. */
-export function openCertificate(playerName: string): boolean {
+export function openCertificate(playerName: string, why: Array<{ question: string; answer: string }> = []): boolean {
   const win = window.open('', '_blank');
   if (!win) return false;
   win.document.open();
-  win.document.write(buildCertificateHtml(playerName, new Date()));
+  win.document.write(buildCertificateHtml(playerName, new Date(), why));
   win.document.close();
   // No inline onclick: the app's CSP blocks inline handlers, and the new tab inherits it.
   win.document.getElementById('print-btn')?.addEventListener('click', () => win.print());
