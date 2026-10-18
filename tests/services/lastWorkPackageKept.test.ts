@@ -74,3 +74,30 @@ describe('CardEffectHandler.handleCardDiscard: the last work package is never re
     expect(cards.discardCards).toHaveBeenCalledWith('p1', ['E001'], expect.anything(), expect.anything());
   });
 });
+
+// PLAYTEST-2 2026-10-18: the lender's "Choose 1 work package to remove" list showed raw
+// card names (other buildings) and no prices, unlike the replace list.
+describe('the remove-a-package list reads like the rest of the game', () => {
+  it("uses the player's project wording and shows the price", async () => {
+    const cards = createMockCardService();
+    cards.getPlayerCards.mockReturnValue(['W001', 'W002']);
+    cards.discardCards.mockResolvedValue(true);
+    const state = createMockStateService();
+    state.getPlayer.mockReturnValue({ id: 'p1', projectType: 'school' });
+    const data = createMockDataService();
+    (data.getCardById as any).mockImplementation((id: string) => ({ card_id: id, card_name: 'museum exhibit hall', cost: id === 'W001' ? 2_000_000 : 0, card_type: 'W' }));
+    (data as any).getCardScopeTemplate = vi.fn((id: string) => (id === 'W001' ? 'HVAC upgrade for the {project}' : undefined));
+    const choice = createMockChoiceService();
+    choice.createChoice = vi.fn().mockResolvedValue('W002');
+    const handler = new CardEffectHandler(cards, state, choice, createMockLoggingService(), data, createMockNotificationService());
+
+    await handler.handleCardDiscard({
+      effectType: 'CARD_DISCARD',
+      payload: { playerId: 'p1', cardIds: [], cardType: 'W', count: 1, source: 'space:LEND-SCOPE-CHECK:dice_remove', reason: 'dice' },
+    } as any, { source: 'dice', playerId: 'p1' } as any);
+
+    const options = (choice.createChoice as any).mock.calls[0][3];
+    expect(options[0].label).toBe('HVAC upgrade for the school ($2M)');
+    expect(options[1].label).toBe('museum exhibit hall');
+  });
+});

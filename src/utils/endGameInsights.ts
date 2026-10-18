@@ -103,20 +103,26 @@ const rules: Rule[] = [
 
   // === EXPEDITORS ===
   (stats) => {
-    if (stats.cardCounts.E === 0) {
+    // Counts what the player USED, not what the game handed them (PLAYTEST 1 and 2,
+    // 2026-10-18: "21 expeditors hired: aggressive use of accelerants" for a player who
+    // chose none and used 2). Real expeditors don't make DOB faster; they stop you
+    // losing time to mistakes, so the wording says that.
+    if (stats.expeditorsUsed === 0) {
       return {
         id: 'no-expeditors', tone: 'lesson', priority: 55,
-        headline: 'You never hired an expeditor.',
-        detail: 'Expeditors shave days in regulatory review — worth experimenting with next game.',
+        headline: stats.cardCounts.E > 0
+          ? `You had ${stats.cardCounts.E} expeditor${stats.cardCounts.E === 1 ? '' : 's'} on your team and never sent one in.`
+          : 'You never used an expeditor.',
+        detail: 'An expeditor files your papers and clears the city’s objections, so you lose fewer days to mistakes. Try sending one in at a filing step next game.',
       };
     }
     return null;
   },
   (stats) => {
-    if (stats.cardCounts.E >= 4) {
+    if (stats.expeditorsUsed >= 3) {
       return {
         id: 'expeditor-heavy', tone: 'win', priority: 50,
-        headline: `${stats.cardCounts.E} expeditors hired — aggressive use of accelerants.`,
+        headline: `You sent in your expeditors ${stats.expeditorsUsed} times to keep the paperwork moving.`,
       };
     }
     return null;

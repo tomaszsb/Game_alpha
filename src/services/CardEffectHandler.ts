@@ -21,6 +21,8 @@ import {
 import { Card } from '../types/DataTypes';
 import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlyCardList } from '../utils/logFormatting';
+import { getCardWordedFor } from '../utils/scopeWording';
+import { FormatUtils } from '../utils/FormatUtils';
 import { snapshotPlayerForLifeEvent, diffLifeEventSnapshot } from '../utils/lifeEventReceipts';
 
 type CardDrawPayload = Extract<Effect, { effectType: 'CARD_DRAW' }>['payload'];
@@ -495,11 +497,18 @@ export class CardEffectHandler implements ICardEffectHandler {
 
     try {
       const cardType = payload.cardType ?? '';
+      // Same wording as the replace list and the rest of the game (PLAYTEST-2, 2026-10-18:
+      // the remove list showed raw card names, "museum exhibit hall" on a school, and no
+      // prices): the name as this player's project reads it, plus its price when it has one.
+      const projectType = this.stateService.getPlayer(payload.playerId)?.projectType;
       const options = allCardsOfType.map(cardId => {
-        const cardData = this.dataService?.getCardById(cardId);
+        const cardData = this.dataService
+          ? getCardWordedFor(this.dataService, cardId, projectType)
+          : undefined;
+        const price = cardData?.cost && cardData.cost > 0 ? ` (${FormatUtils.formatMoney(cardData.cost, { compact: true })})` : '';
         return {
           id: cardId,
-          label: cardData ? cardData.card_name : getCardTypeName(cardType)
+          label: cardData ? `${cardData.card_name}${price}` : getCardTypeName(cardType)
         };
       });
 

@@ -24,6 +24,7 @@ function makeStats(overrides: Partial<EndGameStats> = {}): EndGameStats {
     approvals: { dob: 'none', fdny: 'none' },
     journey: [],
     cardCounts: { W: 0, B: 0, E: 0, L: 0, I: 0 },
+    expeditorsUsed: 0,
     ...overrides,
   };
 }
@@ -92,15 +93,20 @@ describe('buildEndGameInsights — budget', () => {
 });
 
 describe('buildEndGameInsights — expeditors', () => {
-  it('no-expeditors fires (lesson tone) when E count is 0', () => {
-    const out = buildEndGameInsights(makeStats({ cardCounts: { W: 0, B: 0, E: 0, L: 0, I: 0 } }), makePlayer());
+  it('no-expeditors fires (lesson tone) when none were USED, even with a full hand', () => {
+    const out = buildEndGameInsights(makeStats({ cardCounts: { W: 0, B: 0, E: 21, L: 0, I: 0 }, expeditorsUsed: 0 }), makePlayer());
     const ins = out.find(i => i.id === 'no-expeditors');
     expect(ins?.tone).toBe('lesson');
+    expect(ins?.headline).toContain('21 expeditors');
   });
 
-  it('expeditor-heavy fires (win) when E ≥ 4', () => {
-    const out = buildEndGameInsights(makeStats({ cardCounts: { W: 0, B: 0, E: 4, L: 0, I: 0 } }), makePlayer());
+  // PLAYTEST 1 + 2 (2026-10-18): 21 handed out, 2 used, praised as "aggressive use of accelerants".
+  it('expeditor-heavy counts expeditors USED (≥ 3), not the ones the game handed out', () => {
+    const heldOnly = buildEndGameInsights(makeStats({ cardCounts: { W: 0, B: 0, E: 21, L: 0, I: 0 }, expeditorsUsed: 2 }), makePlayer());
+    expect(ids(heldOnly)).not.toContain('expeditor-heavy');
+    const out = buildEndGameInsights(makeStats({ cardCounts: { W: 0, B: 0, E: 1, L: 0, I: 0 }, expeditorsUsed: 3 }), makePlayer());
     expect(out.find(i => i.id === 'expeditor-heavy')?.tone).toBe('win');
+    expect(out.find(i => i.id === 'expeditor-heavy')?.headline).not.toMatch(/accelerant/);
     expect(ids(out)).not.toContain('no-expeditors');  // mutually exclusive
   });
 });

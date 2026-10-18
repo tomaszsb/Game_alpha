@@ -58,6 +58,7 @@ function makeStats(overrides: Partial<EndGameStats> = {}): EndGameStats {
     approvals: { dob: 'approved', fdny: 'approved' },
     journey: [],
     cardCounts: { W: 0, B: 0, E: 0, L: 0, I: 0 },
+    expeditorsUsed: 0,
     ...overrides,
   };
 }

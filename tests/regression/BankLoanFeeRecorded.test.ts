@@ -17,9 +17,11 @@ async function atBank(money: number) {
   stateService.startGame();
   stateService.updatePlayer({
     id: playerId, currentSpace: 'BANK-FUND-REVIEW', visitType: 'First', visitedSpaces: ['BANK-FUND-REVIEW'], money, loans: [],
+    // A $15M work package: the bank lends only what the player is short (v3.8.15).
+    hand: ['W118'],
   } as any);
   await turnService.startTurn(playerId);
-  return { stateService, turnService, playerId };
+  return { stateService, turnService, playerId, dataService: s.dataService };
 }
 
 describe('the bank loan fee is a recorded payment', () => {
@@ -45,5 +47,24 @@ describe('the bank loan fee is a recorded payment', () => {
     const p = s.stateService.getPlayer(s.playerId)!;
     expect((p.costHistory ?? []).filter((c: any) => c.category === 'loanFee')).toHaveLength(0);
     expect(p.money).toBe(1_000_000);
+  });
+});
+
+// PLAYTEST-2 2026-10-18: the bank lent $1.8M (and charged its fee on all of it) to a
+// player $470K short. It now lends what the player is short (the Money page's funding
+// gap, rounded up to $10K), never more than its own offer.
+describe('the bank lends what you are short, up to its offer', () => {
+  it('a player $470K short borrows $470K, not the whole offer', async () => {
+    const { computeProjectFinances } = await import('../../src/utils/projectFinances');
+    const s: any = await atBank(0);
+    const card = (id: string) => s.dataService.getCardById(id);
+    const p0 = s.stateService.getPlayer(s.playerId)!;
+    const commitments = computeProjectFinances(p0, card).commitments;
+    s.stateService.updatePlayer({ id: s.playerId, moneySources: { ownerFunding: commitments - 470_000, bankLoans: 0, investmentDeals: 0, other: 0 } });
+    expect(computeProjectFinances(s.stateService.getPlayer(s.playerId)!, card).fundingGap).toBe(470_000);
+    await s.turnService.triggerManualEffectWithFeedback(s.playerId, 'cards:draw_B');
+    const borrowed = s.stateService.getPlayer(s.playerId)!.moneySources?.bankLoans ?? 0;
+    expect(borrowed).toBeGreaterThan(0);
+    expect(borrowed).toBeLessThanOrEqual(470_000);
   });
 });

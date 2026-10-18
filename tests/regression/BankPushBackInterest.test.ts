@@ -29,6 +29,8 @@ async function atSpaceWithCash(space: string, money: number, visit: 'First' | 'S
   stateService.startGame();
   stateService.updatePlayer({
     id: playerId, currentSpace: space, visitType: visit, visitedSpaces: [space], money, loans: [],
+    // A $15M work package, so the player is short: the bank lends only what you're short (v3.8.15).
+    hand: ['W118'],
   } as any);
   await turnService.startTurn(playerId);
   const money$ = () => stateService.getPlayer(playerId)!.money as number;

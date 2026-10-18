@@ -71,7 +71,11 @@ export function getCardDisplayTitle(card: Card): string {
  */
 export function getCardEffectSummary(card: Card, playerTimeSpent?: number): string | null {
   const parts: string[] = [];
-  const tick = card.tick_modifier ? parseInt(card.tick_modifier, 10) : undefined;
+  let tick = card.tick_modifier ? parseInt(card.tick_modifier, 10) : undefined;
+  // "Favor Called In": tick_modifier is the days the OPPONENT loses; the player who
+  // plays it gains the same days back (CardService.handleFavorCalledIn). The button
+  // read "+2 days" for a card that saves you 2 (PLAYTEST-2, 2026-10-18).
+  if (card.card_mechanic === 'favor_called_in' && tick != null && !isNaN(tick)) tick = -Math.abs(tick);
   if (tick != null && !isNaN(tick) && tick !== 0) {
     // No player context passed → show the card's face value (unchanged,
     // backward-compatible default). Only apply the partial-benefit warning

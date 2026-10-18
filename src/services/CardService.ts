@@ -9,6 +9,7 @@ import { parseCardDrawFormat } from '../utils/parseUtils';
 import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlyCardList } from '../utils/logFormatting';
 import { diffLifeEventChange } from '../utils/lifeEventChange';
+import { computeProjectFinances } from '../utils/projectFinances';
 import { getViolationTier, computeFilingFee, computeDailyAccrual, VIOLATION_DEADLINE_DAYS, ViolationVariant } from '../utils/violationRules';
 
 export class CardService implements ICardService {
@@ -1760,9 +1761,14 @@ export class CardService implements ICardService {
     // (handleAutomaticFunding handles the money instead, avoiding double-count).
     // Workstream 6 #3: lifted from `=== 'OWNER-FUND-INITIATION'` to data flag.
     if (card.card_type === 'B' && card.loan_amount) {
-      const loanAmount = parseInt(card.loan_amount, 10);
+      const offered = parseInt(card.loan_amount, 10);
+      const player = this.stateService.getPlayer(playerId);
+      // The bank lends what you're short, up to its offer (PLAYTEST-2, 2026-10-18: a
+      // $1.8M loan, and a fee on all of it, for a player $470K short). "Short" is the
+      // Money page's funding gap, rounded up to the next $10K.
+      const gap = player ? computeProjectFinances(player, (id) => this.dataService.getCardById(id) as never).fundingGap : offered;
+      const loanAmount = isNaN(offered) ? offered : Math.min(offered, Math.ceil(Math.max(0, gap) / 10000) * 10000);
       if (!isNaN(loanAmount) && loanAmount > 0) {
-        const player = this.stateService.getPlayer(playerId);
         const autoTypes = player ? this.dataService.getAutoTriggerCardTypes(player.currentSpace) : [];
         const skipDirectMoney = autoTypes.includes('B');
 
@@ -2163,6 +2169,9 @@ export class CardService implements ICardService {
    * This card requires selecting an opponent and applying opposite time effects.
    */
   private async handleFavorCalledIn(playerId: string, card: Card): Promise<void> {
+    // The days come from the card's own tick_modifier (stock E009: 2), the same number
+    // its Activate label shows, so data and engine can't disagree.
+    const favorDays = Math.abs(parseInt(card.tick_modifier ?? '', 10)) || 2;
 
     const gameState = this.stateService.getGameState();
     const allPlayers = gameState.players;
@@ -2173,7 +2182,7 @@ export class CardService implements ICardService {
 
     if (opponents.length === 0) {
       // Still apply benefit to self in single player (spendTime reduces time spent)
-      this.resourceService.spendTime(playerId, 2, `card:${card.card_id}`, `${card.card_name}: -2 days`);
+      this.resourceService.spendTime(playerId, favorDays, `card:${card.card_id}`, `${card.card_name}: -${favorDays} days`);
       this.stateService.emitGameEvent({
         type: 'card_effect_target_resolved',
         playerId: playerId,
@@ -2224,17 +2233,17 @@ export class CardService implements ICardService {
     // Opponent gets +2 days (penalty) - addTime increases time spent
     this.resourceService.addTime(
       selectedOpponent.id,
-      2,
+      favorDays,
       cardSource,
-      `${card.card_name}: +2 days (targeted by ${currentPlayer?.name})`
+      `${card.card_name}: +${favorDays} days (targeted by ${currentPlayer?.name})`
     );
 
     // Player gets -2 days (benefit) - spendTime reduces time spent
     this.resourceService.spendTime(
       playerId,
-      2,
+      favorDays,
       cardSource,
-      `${card.card_name}: -2 days`
+      `${card.card_name}: -${favorDays} days`
     );
 
 

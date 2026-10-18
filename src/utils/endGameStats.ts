@@ -81,6 +81,9 @@ export interface EndGameStats {
   approvals: ApprovalStatusPair;
   journey: JourneyStep[];
   cardCounts: CardCounts;
+  /** Expeditor cards the player actually PLAYED (from the action log). cardCounts.E
+   *  counts the ones still held, which the game hands out by itself. */
+  expeditorsUsed: number;
 }
 
 export interface BuildStatsOptions {
@@ -96,6 +99,8 @@ export interface BuildStatsOptions {
   totalTurns?: number;
   /** Game rounds completed (gameState.gameRound). Defaults to 0. */
   rounds?: number;
+  /** Expeditor cards played (countCardsPlayed over the action log). Defaults to 0. */
+  expeditorsUsed?: number;
   /** Final score from gameRulesService.calculatePlayerScore(playerId).
    *  Falls back to the (usually uncomputed) player.score when omitted. */
   finalScore?: number;
@@ -215,6 +220,7 @@ export function buildEndGameStats(player: Player, opts: BuildStatsOptions): EndG
     approvals,
     journey,
     cardCounts,
+    expeditorsUsed: opts.expeditorsUsed ?? 0,
   };
 }
 
@@ -243,4 +249,14 @@ export function formatPercent(part: number, whole: number): string {
 
 export function formatDays(days: number): string {
   return `${days} ${days === 1 ? 'day' : 'days'}`;
+}
+
+/** How many cards of one type a player played, from the committed action log. */
+export function countCardsPlayed(
+  log: ReadonlyArray<{ type: string; playerId: string; isCommitted?: boolean; details?: Record<string, unknown> }>,
+  playerId: string,
+  cardType: string,
+): number {
+  return log.filter(e => e.type === 'card_play' && e.playerId === playerId && e.isCommitted !== false
+    && String(e.details?.cardId ?? '').startsWith(cardType)).length;
 }
