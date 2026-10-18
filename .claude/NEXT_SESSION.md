@@ -1,7 +1,7 @@
 # Next session starter — written 2026-10-18 by /koniec
 
 ## State at handoff
-- **Version:** v3.8.15 **LIVE** (`/health` `01beafd1`, deployed 18:50 UTC 10-18 on Tom's go "today only"; the deploy test gate ran on the Tower: 4001/4001). Re-read `/health`.
+- **Version:** v3.8.16 **LIVE** (`/health` `9f6d182f`, deployed 19:02 UTC 10-18: TV loading tip fixed; v3.8.15 went out 18:50 on Tom's go "today only"; the deploy test gate ran on the Tower: 4001/4001). Re-read `/health`.
 - **Branch:** master = origin/master after the wrap-up commit, clean.
 - **Shipped 10-18 (one session, Manager briefs from the independent review):** 3.8.8-3.8.13 review bugs (last work package stays, push-back keeps life events, NPC wording, one bank-fee source + 20% warning on peakScope, deploy test gate, glossary fail-soft); 3.8.14 one "Move on" name (Tom kept press-and-hold); 3.8.15 certificate questions (3 fun + 2-3 "why" from the player's own trophy row and stops; answers print on the certificate; saved to `DATA_DIR/class-answers.jsonl` with name/game code/answers/date only; admin list in Site Stats) + PLAYTEST-2 fixes (Cut a Corner states its stakes, remove-list wording + prices, Favor Called In "-2 days", bank lends what you're short, debrief counts expeditors USED). Restore guide in ARCHITECTURE.md, untested.
 - **Tests:** `npm test` 288 files / 4001 green; ghost 45 passed / 1 skipped; build clean. Typecheck: pre-existing errors only in `tests/server/dataGate.test.ts` (express types, since v3.8.5).
@@ -12,6 +12,7 @@
 3. **Rest of the PLAYTEST UI list:** builder hire is one tap for $800K+ while signing needs a hold; pop-ups close with different words; optional and required actions look alike. Robot taps `commit-end-turn` and `builder-bid-hire`: making either a hold breaks it.
 
 ## Decisions waiting on the user
+- **Samsung/LG TVs from 2021 or older can't run the game** (build target `es2020` needs Chromium 80+; Samsung 2021 = M76). The 10-s tip now tells them to mirror a laptop/phone. Lowering the target + `@vitejs/plugin-legacy` is Tom's call (bigger bundle, needs a real-TV test). Details: CHANGELOG 3.8.16.
 - Backups: nothing copies `.env` or `server/data` off the Tower (ARCHITECTURE.md "If the server dies"). Teacher password resets.
 - The old "Money/scope vanished" report (10-12) is probably the v3.8.8 cause; ask Tom whether to close it.
 
