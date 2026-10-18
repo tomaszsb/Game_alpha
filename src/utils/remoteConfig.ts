@@ -74,7 +74,8 @@ export async function fetchRemoteConfig(mode: string = 'game'): Promise<ServiceV
     }
 
     try {
-        const response = await fetch(API_ENDPOINT);
+        // Time limit: a hung dashboard falls back to DEFAULT_CONFIG instead of waiting.
+        const response = await fetch(API_ENDPOINT, { signal: AbortSignal.timeout(6000) });
         if (!response.ok) {
             debugWarn(`Failed to fetch remote config: ${response.status}`);
             // Optional chaining, not `(configCache as any)[mode]`. The cast was

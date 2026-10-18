@@ -113,6 +113,11 @@ export function isHeaderEchoTerm(term: { id?: string; term?: string; definition?
 // Dashboard API endpoint (primary source — live data)
 const GLOSSARY_API_URL = 'https://dashboard.unravelcodes.com/api/glossary/live';
 
+// A dashboard that hangs (instead of failing fast) must not leave the game's
+// hover words empty for minutes: give up after this long and use the CSV copy
+// that ships with the game (independent review 2026-10-18, REVIEW.md section 8 Q6).
+export const GLOSSARY_API_TIMEOUT_MS = 6000;
+
 // CSV fallback paths (used when dashboard is unreachable)
 const CSV_PATHS = [
   '/data/CLEAN_FILES/GLOSSARY.csv',  // game_beta location
@@ -223,7 +228,7 @@ export async function loadTerms(): Promise<GlossaryTerm[]> {
   // Try dashboard API first (live data). CORS is configured on the scraper
   // (allow_origins includes game.unravelcodes.com); failures fall through to CSV.
   try {
-    const response = await fetch(GLOSSARY_API_URL);
+    const response = await fetch(GLOSSARY_API_URL, { signal: AbortSignal.timeout(GLOSSARY_API_TIMEOUT_MS) });
     if (response.ok) {
       const rawTerms = await response.json();
       if (Array.isArray(rawTerms) && rawTerms.length > 0) {

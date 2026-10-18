@@ -16,6 +16,7 @@ import {
   getTermsByCategory,
   getCategories,
   clearCache,
+  GLOSSARY_API_TIMEOUT_MS,
   isAiGenerated,
   regularPlural,
   isHeaderEchoTerm
@@ -96,7 +97,7 @@ describe('Dictionary Terms Module', () => {
 
       const terms = await loadTerms();
 
-      expect(mockFetch).toHaveBeenCalledWith('https://dashboard.unravelcodes.com/api/glossary/live');
+      expect(mockFetch).toHaveBeenCalledWith('https://dashboard.unravelcodes.com/api/glossary/live', expect.objectContaining({ signal: expect.anything() }));
       expect(terms).toHaveLength(3);
       expect(terms[0].id).toBe('acris');
       expect(terms[1].id).toBe('dob');
@@ -248,6 +249,27 @@ describe('Dictionary Terms Module', () => {
 
       expect(terms).toHaveLength(1);
       expect(terms[0].id).toBe('csv-term');
+    });
+
+    // REVIEW.md 2026-10-18 section 8 Q6: a dashboard that HANGS must not hold
+    // the hover words hostage. The API call carries a time limit; when it fires
+    // the fetch rejects (AbortError) and the shipped CSV is used.
+    it('gives the dashboard a time limit and falls back to CSV when it hangs', async () => {
+      mockFetch.mockImplementationOnce((_url: string, init?: { signal?: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          expect(init?.signal).toBeDefined();
+          init!.signal!.addEventListener('abort', () => reject(new DOMException('timed out', 'TimeoutError')));
+        }));
+      mockFetch.mockResolvedValueOnce({ ok: true, text: () => Promise.resolve(csvContent) });
+      vi.useFakeTimers();
+      try {
+        const pending = loadTerms();
+        await vi.advanceTimersByTimeAsync(GLOSSARY_API_TIMEOUT_MS + 1);
+        const terms = await pending;
+        expect(terms[0].id).toBe('csv-term');
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('should fall back to CSV when API returns empty array', async () => {
