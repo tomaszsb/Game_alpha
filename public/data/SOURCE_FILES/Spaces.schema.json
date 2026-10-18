@@ -751,6 +751,15 @@
    "x-authored": {
     "value": "No"
    }
+  },
+  {
+   "name": "try_again_e_cost",
+   "type": "number",
+   "title": "Push-back with expeditors",
+   "description": "Expeditors a push-back sends to fight the finding instead of costing days, when the player holds that many. Blank = days.",
+   "x-role": "behaviour",
+   "x-group": "Push-back",
+   "x-editable-by": "admin"
   }
  ]
 }

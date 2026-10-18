@@ -374,6 +374,8 @@ export interface SpaceContent {
    *  always comes back. Absent = no charge. Not counted toward the 20% design-fee
    *  cap. See calculatePushBackScopeFee. */
   try_again_scope_pct?: number;
+  /** Expeditors a push-back spends instead of its days, when the player holds that many (v3.8.21). */
+  try_again_e_cost?: number;
   shake_on?: string;
   tts_field?: string;
   special_action?: string;

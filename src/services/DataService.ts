@@ -1487,6 +1487,7 @@ export class DataService implements IDataService {
         // fixed-time-rows rule, never to a surprise price of 0.
         try_again_days: parsePushBackDays(get(values, 'try_again_days')),
         try_again_scope_pct: parseScopePct(get(values, 'try_again_scope_pct')),
+        try_again_e_cost: parsePushBackDays(get(values, 'try_again_e_cost')),
         shake_on: get(values, 'shake_on') || '',
         tts_field: get(values, 'tts_field') || ''
       };

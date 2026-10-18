@@ -3,6 +3,10 @@
 ---
 
 
+## v3.8.21 — Send your expeditor to fight the audit (October 18, 2026)
+
+- **At The Audit and the Fire Dept. review, pushing back sends one of your expeditors** to fight the finding, instead of costing you days. No expeditor? It costs days, as before. So now you decide: use your expeditors early to save days, or keep one for the audit.
+
 ## v3.8.20 — Fewer expeditors handed to you (October 18, 2026)
 
 - **The owner gives you one expeditor, not three,** and most of the "Add a team member" taps are gone. You still get two at the City Filing Fee, where expeditors do their real job: filing your papers and clearing the city's objections.

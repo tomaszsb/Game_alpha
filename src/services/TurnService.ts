@@ -15,7 +15,7 @@ import { SpaceEffect, VisitType } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
 import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlySpaceName } from '../utils/logFormatting';
-import { calculatePushBackDays, calculatePushBackMoneyKept, getLoanOnTheTable } from '../utils/costPreview';
+import { calculatePushBackDays, calculatePushBackMoneyKept, getLoanOnTheTable, expeditorsForPushBack } from '../utils/costPreview';
 import { computeFilingFee } from '../utils/violationRules';
 import { combineLifeEventChanges, applyLifeEventHand } from '../utils/lifeEventChange';
 
@@ -1007,7 +1007,11 @@ export class TurnService implements ITurnService {
       // ("1 day per $200K") prices the push-back off the loan drawn this turn, and
       // that draw is exactly what the rollback throws away.
       const loanOnTable = getLoanOnTheTable(this.stateService, playerId);
-      const timePenalty = calculatePushBackDays(spaceEffects, spaceContent, loanOnTable);
+      // "Send your expeditor" (v3.8.21): where the space allows it and the player
+      // held enough expeditors at turn start, they are spent instead of the days.
+      const turnStartHand = this.stateService.getRealPlayerState(playerId)?.hand ?? currentPlayer.hand ?? [];
+      const sentExpeditors = expeditorsForPushBack(spaceContent, turnStartHand, (id) => id.startsWith('E'));
+      const timePenalty = sentExpeditors.length > 0 ? 0 : calculatePushBackDays(spaceEffects, spaceContent, loanOnTable);
 
 
       // 5. Emit turn_discarded — LogWriter's write must precede
@@ -1026,6 +1030,7 @@ export class TurnService implements ITurnService {
         spaceName: currentPlayer.currentSpace,
         timePenalty: timePenalty,
         tryAgainCount: tryAgainCount,
+        expeditorsSent: sentExpeditors.length,
       });
 
       // 6. Cancel any pending choice (e.g., card replacement modal) so the
@@ -1083,6 +1088,10 @@ export class TurnService implements ITurnService {
           }
           changes.hand = applyLifeEventHand(newHand, lifeEvents);
         }
+        // The expeditors sent to fight the finding leave the hand for good.
+        if (sentExpeditors.length > 0) {
+          changes.hand = (changes.hand ?? realState.hand).filter((c) => !sentExpeditors.includes(c));
+        }
       }
       this.stateService.applyToRealState(playerId, changes);
 
@@ -1096,6 +1105,18 @@ export class TurnService implements ITurnService {
       // is what keeps ghost actions out of the post-game log after a rollback
       // (the v3.0.63 fix, now part of the single transaction boundary).
       this.discardTurnTransaction(playerId);
+      if (sentExpeditors.length > 0) {
+        // Into the discard pile like any played card (the hand change is already in REAL above).
+        this.stateService.updateGameState({
+          discardPiles: {
+            ...this.stateService.getGameState().discardPiles,
+            E: [...(this.stateService.getGameState().discardPiles?.E ?? []), ...sentExpeditors],
+          },
+        } as never);
+        this.loggingService.info(`${currentPlayer.name} sent an expeditor to fight the finding instead of losing days.`, {
+          playerId, action: 'card_play', cardId: sentExpeditors[0], isCommitted: true,
+        });
+      }
 
 
       // 8. Prepare success message

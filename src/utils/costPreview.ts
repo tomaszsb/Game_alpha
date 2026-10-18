@@ -184,6 +184,25 @@ export function calculatePushBackDays(
 }
 
 /**
+ * "Send your expeditor" (PLAYTEST.md Part 2b #3, 2026-10-18): at a space with
+ * `try_again_e_cost`, a push-back made while the player holds that many expeditors
+ * spends them (oldest first) to fight the finding INSTEAD of costing days. With
+ * fewer, it costs days as before. Only expeditors held at the start of the turn
+ * count (`hand` = the turn-start hand), since a card drawn this turn goes back on
+ * a push-back anyway. Returns the card ids to spend, or [] when days apply.
+ */
+export function expeditorsForPushBack(
+  content: Pick<SpaceContent, 'try_again_e_cost'> | null | undefined,
+  hand: string[],
+  isExpeditor: (cardId: string) => boolean,
+): string[] {
+  const need = content?.try_again_e_cost;
+  if (typeof need !== 'number' || !(need >= 1)) return [];
+  const held = hand.filter(isExpeditor);
+  return held.length >= need ? held.slice(0, need) : [];
+}
+
+/**
  * The revision fee a push-back charges at this space: `try_again_scope_pct` percent
  * of the player's project scope (the architect's and engineer's fee reviews set 0.5).
  * Blank / out-of-range reads as 0 / clamped, never as a surprise bill. It is NOT a
@@ -614,11 +633,23 @@ export function getTryAgainCostPreview(
 
   const spaceContent = gameServices.dataService.getSpaceContent(player.currentSpace, player.visitType);
   const loanOnTable = getLoanOnTheTable(gameServices.stateService, playerId);
-  const timeDays = calculatePushBackDays(effects, spaceContent, loanOnTable);
+  const sendExpeditors = expeditorsForPushBack(
+    spaceContent,
+    gameServices.stateService.getRealPlayerState?.(playerId)?.hand ?? player.hand ?? [],
+    (id) => id.startsWith('E'),
+  );
+  const timeDays = sendExpeditors.length > 0 ? 0 : calculatePushBackDays(effects, spaceContent, loanOnTable);
   // An explicit push-back price (try_again_days) is a fixed number whatever the
   // loan; otherwise a loan-scaled row can't be priced until a loan is on the table.
   const followsLoan = hasLoanScaledTime(effects) && typeof spaceContent?.try_again_days !== 'number';
-  if (followsLoan && loanOnTable === 0) {
+  if (sendExpeditors.length > 0) {
+    rows.push({
+      key: 'expediting',
+      icon: ROW_META.expediting.icon,
+      label: ROW_META.expediting.label,
+      value: `Send ${sendExpeditors.length === 1 ? 'an expeditor' : `${sendExpeditors.length} expeditors`} to fight it (no days)`,
+    });
+  } else if (followsLoan && loanOnTable === 0) {
     rows.push({ key: 'time', icon: ROW_META.time.icon, label: ROW_META.time.label, value: 'Varies' });
   } else if (timeDays !== 0) {
     rows.push({

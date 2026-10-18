@@ -30,12 +30,19 @@ export class ToastWriter {
 
       case 'turn_discarded': {
         const dayWord = event.timePenalty !== 1 ? 'days' : 'day';
+        const sent = event.expeditorsSent ?? 0;
         this.notificationService.notify(
-          {
-            short: 'Try Again Used',
-            medium: `🔄 Try Again: ${event.timePenalty} day penalty`,
-            detailed: `${event.playerName} used Try Again: ${event.timePenalty} ${dayWord} penalty applied.`,
-          },
+          sent > 0
+            ? {
+                short: 'Expeditor sent',
+                medium: `🔄 Pushed back: your expeditor fights the finding (no days lost)`,
+                detailed: `${event.playerName} pushed back and sent an expeditor to fight the finding instead of losing days.`,
+              }
+            : {
+                short: 'Try Again Used',
+                medium: `🔄 Try Again: ${event.timePenalty} day penalty`,
+                detailed: `${event.playerName} used Try Again: ${event.timePenalty} ${dayWord} penalty applied.`,
+              },
           { playerId: event.playerId, playerName: event.playerName, actionType: 'tryAgain', notificationDuration: 3000 }
         );
         break;

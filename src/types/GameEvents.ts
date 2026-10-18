@@ -176,6 +176,8 @@ export interface TurnDiscardedEvent {
   spaceName: string;
   timePenalty: number;
   tryAgainCount: number;
+  /** Expeditors sent to fight the finding instead of the days (v3.8.21). */
+  expeditorsSent?: number;
 }
 
 export interface DiceRolledEvent {
