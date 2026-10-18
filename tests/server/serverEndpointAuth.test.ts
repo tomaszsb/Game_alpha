@@ -581,3 +581,17 @@ describe('server.js endpoint auth wiring', () => {
     expect(body).toContain("app.disable('x-powered-by')");
   });
 });
+
+// SECURITY (2026-10-18): the /data allowlist gate must be registered before
+// any static that serves /data, or accounts/ and config.json leak again.
+describe('server.js /data gate wiring', () => {
+  it('registers dataGate before every /data static', () => {
+    const gate = source.indexOf("app.use('/data', dataGate)");
+    expect(gate).toBeGreaterThan(-1);
+    const re = /app\.use\('\/data[^']*'/g;
+    let m;
+    while ((m = re.exec(source))) {
+      if (m.index !== gate) expect(m.index).toBeGreaterThan(gate);
+    }
+  });
+});

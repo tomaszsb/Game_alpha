@@ -7,6 +7,7 @@
 // - Visitor logging (IP, device, actions)
 
 import express from 'express';
+import { dataGate } from './dataGate.js';
 import cors from 'cors';
 import { createServer } from 'http';
 import crypto from 'crypto';
@@ -474,6 +475,9 @@ if (fs.existsSync(distPath)) {
   // create/mutation/game-create (same model as the default classroom below);
   // serving stays a fast static read. Must be registered BEFORE the generic
   // '/data' static or that would swallow '/data/i/...' as classroom-1 files.
+  // SECURITY: allowlist gate for ALL of /data (see dataGate.js). Registered first.
+  app.use('/data', dataGate);
+
   app.use('/data/i/:instanceId', (req, res, next) => {
     if (!instanceLayerActive) return res.status(404).end();
     const id = req.params.instanceId;

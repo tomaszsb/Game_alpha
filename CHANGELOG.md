@@ -23,6 +23,10 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 
 Tom asked for a Google-required privacy-policy page for his personal Home Assistant / Nest sign-in (Google Cloud project `home-assistant-510400`, leaving "Testing" mode) on a domain he owns. The page text came from the Hermes/Jarvis session's `handouts/nest-privacy-policy.html`; it is copied unchanged to `public/nest-privacy.html` (Vite copies `public/` into `dist/`, and `express.static(distPath)` serves it before the SPA catch-all). **The contact address in it is `game@unravelcodes.com`** (the one already on every game page), replacing the brief's `CONTACT_EMAIL` placeholder, because Tom had not picked one; he can swap it. Checked locally: the server returns the file byte-for-byte as `text/html`, and `/privacy` still returns the game's front page. Goes live with the next deploy.
 
+## [3.8.5] - 2026-10-18 (SECURITY)
+
+Closed a public data leak. `/data` served the whole writable data folder, so anyone could download `accounts/sessions.json` (login tokens), `accounts/accounts.json` (password hashes), each classroom's `instances/<id>/config.json` (write token) and `backups/`. Now `server/dataGate.js` allows only `SOURCE_FILES/<file>`, `CLEAN_FILES/<file>`, `GLOSSARY.csv` and `i/<classroom>/(SOURCE|CLEAN)_FILES/<file>` (csv/json) and 404s everything else, decoding the path first so `..`, `%2e`, backslash, case and trailing-slash tricks fail. Tests: `tests/server/dataGate.test.ts`, wiring pin in `serverEndpointAuth.test.ts`. The keys leaked, so after deploy: wipe sessions, regenerate classroom write tokens, teachers reset passwords.
+
 ## [3.8.4] - 2026-10-17
 
 ### The press-and-hold is taught on the button, and taps that miss it are counted. Server restarts on deploy.
