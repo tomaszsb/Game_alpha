@@ -1,7 +1,7 @@
 # Next session starter — written 2026-10-18 by /koniec
 
 ## State at handoff
-- **Version:** v3.8.14 (see /health) (`/health` `6b94e2a4` = HEAD, deployed 15:28 UTC 10-18 on Tom's go "today only"). Re-read `/health`.
+- **Version:** v3.8.14 **LIVE** (`/health` `41399a5a`, deployed 16:02 UTC 10-18 on Tom's go "today only"; the deploy test gate ran for real and passed 3982/3982). Re-read `/health`.
 - **Branch:** master = origin/master after the wrap-up commit, clean.
 - **Last shipped (bug session, Manager brief from the 10-18 independent review):** 3.8.8 last work package always stays · 3.8.9 push-back keeps what a life event did · 3.8.10 NPC lines no longer promise missing choices · 3.8.11 bank fee from one data cell + 20% warning on peakScope · 3.8.12 deploy.sh runs the tests first · 3.8.13 glossary 6 s fail-soft. "Time went backwards" = good-luck events, not a bug (robot probe).
 - **Tests:** `npm test` 284 files / 3982 green; ghost 45 passed / 1 skipped; build clean. Typecheck: pre-existing errors in `tests/server/dataGate.test.ts` (express types, since v3.8.5).
