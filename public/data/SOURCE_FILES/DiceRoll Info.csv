@@ -17,22 +17,18 @@ CON-INITIATION,Fee Paid,Subsequent,0%,2%,4%,6%,8%,10%,See what the change costs
 CON-INSPECT,Next Step,Subsequent,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,CON-ISSUES,
 CON-INSPECT,Time outcomes,First,1 day,5 days,25 days,1 day,1 day,1 day,See how long the inspection takes
 CON-INSPECT,Time outcomes,Subsequent,1 day,1 day,1 day,5 days,25 days,1 day,See how long the walk takes
-CON-FIX,Fees Paid,First,-10000,-10000,-10000,-10000,-10000,-10000,Pay for the fix
 CON-FIX,Next Step,First,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,CON-ISSUES,
 CON-STEER,Time outcomes,First,0 days,0 days,0 days,0 days,30 days,30 days,See if anyone noticed
 CON-STEER,Fees Paid,First,0,0,0,0,-25000,-25000,See what it costs you
 CON-STEER,Next Step,First,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,CON-ISSUES,CON-ISSUES,
-CON-FIX,Fees Paid,Subsequent,-10000,-10000,-10000,-10000,-10000,-10000,Pay for the fix
 CON-FIX,Next Step,Subsequent,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,CON-ISSUES,
 CON-STEER,Time outcomes,Subsequent,0 days,0 days,0 days,0 days,30 days,30 days,See if anyone noticed
 CON-STEER,Fees Paid,Subsequent,0,0,0,0,-25000,-25000,See what it costs you
 CON-STEER,Next Step,Subsequent,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,REG-DOB-FINAL-REVIEW,CON-ISSUES,CON-ISSUES,
-TR8-TEST-NOW,Fees Paid,First,-5000,-5000,-5000,-5000,-5000,-5000,Pay for the test
 TR8-TEST-NOW,Next Step,First,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,
 TR8-TEST-LATER,Time outcomes,First,0 days,0 days,0 days,0 days,20 days,20 days,See if it passes
 TR8-TEST-LATER,Fees Paid,First,0,0,0,0,-20000,-20000,See what it costs you
 TR8-TEST-LATER,Next Step,First,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,
-TR8-TEST-NOW,Fees Paid,Subsequent,-5000,-5000,-5000,-5000,-5000,-5000,Pay for the test
 TR8-TEST-NOW,Next Step,Subsequent,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,
 TR8-TEST-LATER,Time outcomes,Subsequent,0 days,0 days,0 days,0 days,20 days,20 days,See if it passes
 TR8-TEST-LATER,Fees Paid,Subsequent,0,0,0,0,-20000,-20000,See what it costs you

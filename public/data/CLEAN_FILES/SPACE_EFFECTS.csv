@@ -151,18 +151,18 @@ CON-INSPECT,First,cards,return_e,1,,Let a team member go,manual,,,,,,,Let a team
 CON-INSPECT,First,dice,dice_outcome,Time outcomes,,See how long the inspection takes,manual,,,,,,,See how long the inspection takes
 CON-INSPECT,Subsequent,cards,draw_L,1,dice_roll_2,Draw 1 if you roll a 2 L cards,auto,,,,,,,
 CON-INSPECT,Subsequent,dice,dice_outcome,Time outcomes,,See how long the walk takes,manual,,,,,,,See how long the walk takes
-CON-FIX,First,dice,dice_outcome,Fees Paid,,Pay for the fix,manual,,,,,,,Pay for the fix
 CON-FIX,First,time,add,5,,Spend 5 days,auto,,,,,,,
-CON-FIX,Subsequent,dice,dice_outcome,Fees Paid,,Pay for the fix,manual,,,,,,,Pay for the fix
+CON-FIX,First,fee,deduct,$10000,,Pay $10000 fees,auto,FIXED,,,,,,
 CON-FIX,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
+CON-FIX,Subsequent,fee,deduct,$10000,,Pay $10000 fees,auto,FIXED,,,,,,
 CON-STEER,First,dice,dice_outcome,Time outcomes,,See if anyone noticed,manual,,,,,,,See if anyone noticed
 CON-STEER,First,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
 CON-STEER,Subsequent,dice,dice_outcome,Time outcomes,,See if anyone noticed,manual,,,,,,,See if anyone noticed
 CON-STEER,Subsequent,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
-TR8-TEST-NOW,First,dice,dice_outcome,Fees Paid,,Pay for the test,manual,,,,,,,Pay for the test
 TR8-TEST-NOW,First,time,add,3,,Spend 3 days,auto,,,,,,,
-TR8-TEST-NOW,Subsequent,dice,dice_outcome,Fees Paid,,Pay for the test,manual,,,,,,,Pay for the test
+TR8-TEST-NOW,First,fee,deduct,$5000,,Pay $5000 fees,auto,FIXED,,,,,,
 TR8-TEST-NOW,Subsequent,time,add,3,,Spend 3 days,auto,,,,,,,
+TR8-TEST-NOW,Subsequent,fee,deduct,$5000,,Pay $5000 fees,auto,FIXED,,,,,,
 TR8-TEST-LATER,First,dice,dice_outcome,Time outcomes,,See if it passes,manual,,,,,,,See if it passes
 TR8-TEST-LATER,First,dice,dice_outcome,Fees Paid,,See what it costs you,manual,,,,,,,See what it costs you
 TR8-TEST-LATER,Subsequent,dice,dice_outcome,Time outcomes,,See if it passes,manual,,,,,,,See if it passes

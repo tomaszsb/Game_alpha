@@ -54,6 +54,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 - [ ] **Swap dice for decisions where work quality decides (e.g. the audit), one space at a time, after the questions exist.** RESEARCH.md §6 #7 (CHECK §3: weak for now).
 
 ### Teacher end
+- [ ] **Teachers can't change the RISKY side of today's choices (10-18 check, Tom: "don't forget the teacher end").** They see all 8 new spaces (Fix It First / Steer the Inspector, Test It Now / Close Up Test Later, the Special Inspector fork) and can edit title, story, action, outcome, days and plain-dollar fees, and reset them (`tests/server/teacherSeesNewSpaces.test.ts`). NOT editable today (a bigger editor change, not built): the dice outcomes behind the risks (stop-work 30 days / $25K, test-later 20 days / $20K, budget agency +15 days, name-later 60 days / $25K), percent fees (the agencies' 2% / 0.5% of scope: teachers may only enter plain dollars), and `try_again_e_cost` (send-your-expeditor) plus the expeditor handouts (`e_card`). Next: let the teacher editor change a stock space's dice numbers within limits, with the same test-build-before-save check.
 - [ ] **Teacher presets (project type / length / luck level) with "preview as student".** RESEARCH-2.md §6 #5.
 - [ ] **One space editor for Tom and teachers, with the player preview.** RESEARCH.md §6 #9, REVIEW.md §1 "How I would want it", §8 Q9.
 - [ ] **A question space (multiple choice) a teacher can add to any space.** REVIEW.md §1 "What is missing"; RESEARCH.md §2d.
