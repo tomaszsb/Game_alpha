@@ -31,7 +31,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 - [ ] **One money calculator** (`costPreview.ts` re-does the charging maths). REVIEW.md §4 "pattern"; CHECK.md "Next after that".
 
 ### Fun (dice to choices)
-- [ ] **[N3] Owner gives 1 expeditor not 3; drop most forced "Add a team member" taps.** PLAYTEST.md Part 2b #1-2, 2c #2. Old item: "Expeditor pick-with-tradeoffs" in the Parking lot (Tom 09-27 "not yet"; this review re-asks).
+- [ ] **WHERE I STOPPED (10-18 night, bug session): NOT built, needs Tom's word.** Owner gives 1 expeditor not 3; drop most forced "Add a team member" taps (forced draws today: Owner 3, Lender 1, Bank 2, City Filing Fee 2, Hire a Builder 3 + 1, Site Inspection return 2, Final Approval 3 + 1, Architect's Fee return 1). Tom parked this exact idea 09-27 ("let's not do anything yet", Parking lot), so a session did not overrule it. Proposal: keep the owner's 1, the City Filing Fee 2 (expeditors file at DOB) and the architect's story one; remove the rest. Then Hire a Special Inspector and expeditor-fights-audit.
 - [ ] **[N3] Hire a Special Inspector fork (TR1).** PLAYTEST.md Part 2a new space 1, 2c #3.
 - [ ] **[N3] Send your expeditor on a job (Try Again paid with 1 E card).** PLAYTEST.md Part 2b #3, 2c #5.
 - [ ] **[N3] Hire an Expeditor fork (veteran / junior / yourself).** PLAYTEST.md Part 2b #1, 2c #6.
