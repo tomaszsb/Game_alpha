@@ -29,6 +29,7 @@ import { useGameContext } from '../../context/GameContext';
 import type { Player } from '../../types/DataTypes';
 import { shortName, narrowToOfferedMoves } from '../../utils/boardCommon';
 import { registerDiagnostic } from '../../utils/feedbackDiagnostics';
+import { cameraSeesNothing } from '../../utils/townCamera';
 import { extractPrefix } from '../../constants/characters';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
@@ -722,6 +723,26 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     }, 100);
     return () => window.clearTimeout(t);
   }, [centerOnCurrent, currentBuilding, destBuildings, nodes, fitView, setCenter, getViewport, sizeTick, walks]);
+
+  // Self-heal (fb:a6474bad): a following screen (TV, remote) whose camera has lost the town, or that
+  // comes back from being hidden, frames the current player's building again. Checked every 3 s.
+  useEffect(() => {
+    if (!centerOnCurrent) return;
+    const reframe = () => { framed.current = false; setSizeTick(n => n + 1); };
+    const check = () => {
+      const el = wrapperRef.current;
+      if (!el || document.visibilityState === 'hidden') return;
+      const boxes = nodes.filter(n => n.type === 'townBuilding').map(n => {
+        const b = getNodesBounds([n]);
+        return { x: b.x, y: b.y, width: b.width, height: b.height };
+      });
+      if (cameraSeesNothing(getViewport(), boxes, { width: el.clientWidth, height: el.clientHeight })) reframe();
+    };
+    const onVisible = () => { if (document.visibilityState === 'visible') reframe(); };
+    const timer = window.setInterval(check, 3000);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); };
+  }, [centerOnCurrent, nodes, getViewport]);
 
   // For bug reports (feedbackDiagnostics.ts): why the camera is where it is (fb:a6474bad, a blank TV board).
   useEffect(() => registerDiagnostic('town', () => ({
