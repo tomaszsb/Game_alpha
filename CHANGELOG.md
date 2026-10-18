@@ -23,6 +23,10 @@ TODO.md was cleaned up (Tom: "we have other documents to do those things"). The 
 
 Tom asked for a Google-required privacy-policy page for his personal Home Assistant / Nest sign-in (Google Cloud project `home-assistant-510400`, leaving "Testing" mode) on a domain he owns. The page text came from the Hermes/Jarvis session's `handouts/nest-privacy-policy.html`; it is copied unchanged to `public/nest-privacy.html` (Vite copies `public/` into `dist/`, and `express.static(distPath)` serves it before the SPA catch-all). **The contact address in it is `game@unravelcodes.com`** (the one already on every game page), replacing the brief's `CONTACT_EMAIL` placeholder, because Tom had not picked one; he can swap it. Checked locally: the server returns the file byte-for-byte as `text/html`, and `/privacy` still returns the game's front page. Goes live with the next deploy.
 
+## [3.8.7] - 2026-10-18
+
+Removed the away-from-home game-start text alert. Tom, 2026-10-18: "we can drop the phone text alert all together." It texted player names and the player's IP to Tom's phone whenever a game started off the home network. Gone with it: the hourly cap (`canSendForeignGameAlert`), the Admin Tools checkbox ("Text me when a game starts from an unrecognized IP"), `src/utils/adminSettingsApi.ts`, the `/api/admin/settings` routes and the `settings.json` file they kept (its only setting). Kept: home/away detection (the admin games list and stats still use it) and `sendOwnerAlert` for the uptime check's "site is down" text. Tests: the three alert wiring pins became one pin that the alert, the setting and the routes are gone. A leftover `server/data/settings.json` on the server is now simply ignored.
+
 ## [3.8.6] - 2026-10-18 (SECURITY)
 
 Closed the two smaller holes from the 2026-10-18 independent review (`D:\Unravel\Independent_Review\REVIEW.md`, re-proved in CHECK.md section 6).

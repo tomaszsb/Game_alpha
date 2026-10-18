@@ -4,10 +4,6 @@ import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 
-vi.mock('../../../src/utils/adminSettingsApi', () => ({
-  getAdminSettings: vi.fn().mockResolvedValue({ foreignGameAlertsEnabled: true }),
-  setForeignGameAlertsEnabled: vi.fn(),
-}));
 vi.mock('../../../src/utils/adminAuth', () => ({ getAdminPassword: () => 'x' }));
 
 import { AdminGameManager } from '../../../src/components/setup/AdminGameManager';

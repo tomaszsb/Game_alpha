@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { colors } from '../../styles/theme';
 import { getBackendURL } from '../../utils/networkDetection';
 import { getAdminPassword } from '../../utils/adminAuth';
-import { getAdminSettings, setForeignGameAlertsEnabled as apiSetForeignGameAlertsEnabled } from '../../utils/adminSettingsApi';
 import { debugLog } from '../../utils/debugLog';
 
 interface GameInfo {
@@ -30,10 +29,6 @@ export function AdminGameManager(): JSX.Element {
   // in-effect flags; defaulting here removes the redundant extra render
   // rather than just silencing the warning.
   const [gamesLoading, setGamesLoading] = useState(true);
-
-  // Foreign-game text alert kill switch (null = not loaded yet)
-  const [foreignGameAlertsEnabled, setForeignGameAlertsEnabledState] = useState<boolean | null>(null);
-  const [alertSettingBusy, setAlertSettingBusy] = useState(false);
 
   const fetchActiveGames = async () => {
     try {
@@ -64,26 +59,6 @@ export function AdminGameManager(): JSX.Element {
     const interval = setInterval(fetchActiveGames, 5000);
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    getAdminSettings()
-      .then((s) => { if (!cancelled) setForeignGameAlertsEnabledState(s.foreignGameAlertsEnabled); })
-      .catch((err) => debugLog('Could not load admin settings:', err));
-    return () => { cancelled = true; };
-  }, []);
-
-  const handleToggleForeignGameAlerts = async (next: boolean) => {
-    setAlertSettingBusy(true);
-    try {
-      const s = await apiSetForeignGameAlertsEnabled(next);
-      setForeignGameAlertsEnabledState(s.foreignGameAlertsEnabled);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Could not update the setting.');
-    } finally {
-      setAlertSettingBusy(false);
-    }
-  };
 
   const handleJoinGame = async (gameId: string) => {
     // Fetch the target game's token before navigating, otherwise the
@@ -161,25 +136,6 @@ export function AdminGameManager(): JSX.Element {
 
   return (
     <>
-      <label style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        fontSize: '0.85rem',
-        color: colors.secondary.dark,
-        cursor: foreignGameAlertsEnabled === null || alertSettingBusy ? 'default' : 'pointer',
-        opacity: alertSettingBusy ? 0.6 : 1,
-      }}>
-        <input
-          type="checkbox"
-          checked={foreignGameAlertsEnabled ?? false}
-          disabled={foreignGameAlertsEnabled === null || alertSettingBusy}
-          onChange={(e) => handleToggleForeignGameAlerts(e.target.checked)}
-        />
-        📱 Text me when a game starts from an unrecognized IP
-        {foreignGameAlertsEnabled === null && <span style={{ color: colors.text.secondary }}> (loading…)</span>}
-      </label>
-
       {/* Game Manager */}
       <div style={{
         marginTop: '0.25rem',

@@ -79,7 +79,7 @@ import {
   revokeSession,
   revokeAccountSessions,
 } from './accountStore.js';
-import { sendReminder, isMailerConfigured, CARRIER_GATEWAYS, resolveRecipient, sendOwnerAlert } from './mailer.js';
+import { sendReminder, isMailerConfigured, CARRIER_GATEWAYS, resolveRecipient } from './mailer.js';
 import {
   initReminderScheduler,
   isPushConfigured,
@@ -121,9 +121,6 @@ const CONFIG = {
 
   // Games file path
   GAMES_FILE: process.env.GAMES_FILE || './server/data/games.json',
-
-  // Settings file path (admin-toggleable runtime settings, e.g. alert kill switch)
-  SETTINGS_FILE: process.env.SETTINGS_FILE || './server/data/settings.json',
 
   // Manual override for the "home" IP the foreign-game alert compares
   // against. The server auto-detects its own public IP on startup (see
@@ -598,7 +595,7 @@ async function detectHomeIP() {
       console.warn(`⚠️ Could not detect home IP via ${url}: ${err.message}`);
     }
   }
-  console.warn('⚠️ Could not auto-detect home IP from any provider. Foreign-game alerts will fire for every non-private IP until this succeeds (or set HOME_IP manually).');
+  console.warn('⚠️ Could not auto-detect home IP from any provider. Admin stats will count every non-private IP as away-from-home until this succeeds (or set HOME_IP manually).');
   homeIPDetectionSettled = true;
 }
 
@@ -718,33 +715,8 @@ function ensureDataDir() {
   }
 }
 
-// ===== ADMIN SETTINGS (persisted, toggled from the Admin Tools screen) =====
-
-let settings = {
-  foreignGameAlertsEnabled: true,
-};
-
-function loadSettings() {
-  try {
-    if (fs.existsSync(CONFIG.SETTINGS_FILE)) {
-      const data = JSON.parse(fs.readFileSync(CONFIG.SETTINGS_FILE, 'utf8'));
-      settings = { ...settings, ...data };
-    }
-  } catch (err) {
-    console.error('❌ Failed to load settings:', err.message);
-  }
-}
-
-function saveSettings() {
-  try {
-    ensureDataDir();
-    fs.writeFileSync(CONFIG.SETTINGS_FILE, JSON.stringify(settings, null, 2));
-  } catch (err) {
-    console.error('❌ Failed to save settings:', err.message);
-  }
-}
-
-loadSettings();
+// (v3.8.7: the admin settings file and its one setting, the away-from-home
+// game-start text alert, were removed at Tom's request 2026-10-18.)
 
 /**
  * Save games to file
@@ -1043,25 +1015,6 @@ function guardedInstanceWriteAccess(req, res, config, { token, adminPassword, ac
   const admin = guardedAdminPassword(req, res, adminPassword);
   if (admin === null) return null;
   return admin.ok ? { ok: true, via: 'admin' } : admin;
-}
-
-// ===== FOREIGN-GAME ALERT THROTTLE =====
-// A global cap, not per-IP: the kill switch (settings.foreignGameAlertsEnabled)
-// is all-or-nothing, but with it on, a burst of qualifying game starts —
-// same visitor retrying, or several different ones — must not spam the
-// developer's phone via the carrier-gateway SMS path. No dedup needed
-// beyond a simple count; the alert body already includes gameId/IP for
-// context on whichever ones do get through.
-const ALERT_CAP = { maxPerHour: 5, windowMs: 60 * 60 * 1000 };
-let alertWindow = { count: 0, resetAt: 0 };
-function canSendForeignGameAlert() {
-  const now = Date.now();
-  if (now >= alertWindow.resetAt) {
-    alertWindow = { count: 0, resetAt: now + ALERT_CAP.windowMs };
-  }
-  if (alertWindow.count >= ALERT_CAP.maxPerHour) return false;
-  alertWindow.count++;
-  return true;
 }
 
 // ===== ADMIN AUTHENTICATION =====
@@ -2476,22 +2429,6 @@ app.post('/api/admin/instances/:id/owner', (req, res) => {
   }
 });
 
-// Admin-toggleable runtime settings (currently just the foreign-game alert
-// kill switch). GET reads current state; POST merges in any recognized keys.
-app.get('/api/admin/settings', (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  res.json({ success: true, settings });
-});
-
-app.post('/api/admin/settings', (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  if (typeof req.body?.foreignGameAlertsEnabled === 'boolean') {
-    settings.foreignGameAlertsEnabled = req.body.foreignGameAlertsEnabled;
-  }
-  saveSettings();
-  res.json({ success: true, settings });
-});
-
 // ===== GAME MANAGEMENT ENDPOINTS =====
 
 // Admin-only since 2026-06-12: listing every gameId publicly defeated the
@@ -2775,29 +2712,6 @@ app.post('/api/games/:gameId/state', async (req, res) => {
     // Remembered for the admin games list (fb:bf9dd267): a home game or an off-network one.
     game.startedFromHome = isHomeIP(logEntry.ip);
     isDirty = true;
-
-    if (settings.foreignGameAlertsEnabled && !isHomeIP(logEntry.ip)) {
-      if (canSendForeignGameAlert()) {
-        try {
-          // Carrier email-to-SMS gateways can deliver minutes to hours late
-          // (confirmed 2026-08-16: a real alert arrived ~16h after the game
-          // actually started) -- stamp the real event time so a late text
-          // doesn't get mistaken for something happening right now.
-          const alertTime = new Date(logEntry.timestamp).toLocaleString('en-US', {
-            timeZone: 'America/New_York',
-            month: 'numeric',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          });
-          await sendOwnerAlert(`Game ${gameId} started ${alertTime} ET with players: ${playerNames} (IP ${logEntry.ip}, ${logEntry.device})`);
-        } catch (err) {
-          console.warn('⚠️ Could not send foreign-game alert:', err.message);
-        }
-      } else {
-        console.warn('⚠️ Foreign-game alert suppressed: hourly cap reached');
-      }
-    }
   }
 
   // Version conflict detection and rejection (Dec 29, 2025 fix)

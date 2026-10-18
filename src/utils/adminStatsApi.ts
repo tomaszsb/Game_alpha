@@ -1,6 +1,6 @@
 // src/utils/adminStatsApi.ts
 // Client for GET /api/admin/stats/summary (the /admin/stats dashboard).
-// Same admin-password-header pattern as adminSettingsApi.ts.
+// Admin-password-header pattern (x-admin-password from the admin session).
 
 import { getAdminPassword } from './adminAuth';
 import { getBackendURL } from './networkDetection';

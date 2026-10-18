@@ -38,8 +38,6 @@ function post(route: string, body: unknown, headers: Record<string, string> = {}
 
 beforeAll(async () => {
   dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'uc-seclimits-'));
-  // No text alerts may ever leave a test run.
-  fs.writeFileSync(path.join(dataDir, 'settings.json'), JSON.stringify({ foreignGameAlertsEnabled: false }));
   child = spawn(process.execPath, ['server/server.js'], {
     cwd: ROOT,
     env: {
@@ -47,7 +45,6 @@ beforeAll(async () => {
       DATA_DIR: dataDir,
       LOG_FILE: path.join(dataDir, 'visitors.log'),
       GAMES_FILE: path.join(dataDir, 'games.json'),
-      SETTINGS_FILE: path.join(dataDir, 'settings.json'),
       ADMIN_PASSWORD_HASH: crypto.createHash('sha256').update(PASSWORD).digest('hex'),
       FEEDBACK_TOKEN: '',
     },

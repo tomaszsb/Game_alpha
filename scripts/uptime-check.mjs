@@ -1,6 +1,6 @@
 // scripts/uptime-check.mjs
 // Outside uptime check: asks https://game.unravelcodes.com/health whether the game is answering, and texts the owner
-// (server/mailer.js sendOwnerAlert, the same path as the foreign-game alert) after 3 misses in a row, and once more when
+// (server/mailer.js sendOwnerAlert) after 3 misses in a row, and once more when
 // it is back. Run it from a machine that is NOT the server, every 5 minutes (Windows Task Scheduler on the maintainer's
 // PC; see docs/technical/ARCHITECTURE.md "Uptime check"). Decision logic: server/uptimeMonitor.js.
 //
