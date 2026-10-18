@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { SpaceRow, DiceRollRow, ModalConfigRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS, SHAKE_OPTIONS, TTS_FIELD_OPTIONS } from './types/EditorTypes';
 import { InlineDiceRollEditor } from './InlineDiceRollEditor';
+import { RiskNumbers } from './RiskNumbers';
 import { shortName } from '../../utils/boardCommon';
 import { SpaceRegionAnchor, regionForAnchor, regionHeading, regionShortLabel } from './spaceRegions';
 import { SpaceSchema, SchemaField, moreSettings, groupMoreSettings } from './utils/spaceSchema';
@@ -527,6 +528,11 @@ export function SpaceEditor({
             </div>
             <div style={{ flex: 1 }} />
           </div>
+          {/* A teacher sets the price of the chance outcomes here (v3.8.25); the
+              maintainer edits the same cells in the full outcome table below. */}
+          {!shows('w_card') && (
+            <RiskNumbers diceRolls={diceRollData} spaceName={currentSpace.space_name} visitType={visitType} onUpdateDiceRoll={onUpdateDiceRoll} />
+          )}
         </EditorSection>
 
         {/* The five actions. Outside the safe subset: what a space DEALS is
