@@ -40,10 +40,14 @@ describe.each([
     const s = await atFeeReview(space, visit, 500_000);
     s.resourceService.spendMoney(s.playerId, 300_000, `space:${space}`, 'Design fee quote', undefined, true);
     expect(s.player().money).toBe(200_000); // the quote is on the table...
+    // A life event drawn on arrival (a random roll) keeps its days through the
+    // push-back since v3.8.9, so count those on top of the 5.
+    const lifeEventDays = (s.stateService.getTurnOutflow(s.playerId).lifeEventChanges ?? [])
+      .reduce((sum: number, c: { timeDelta: number }) => sum + c.timeDelta, 0);
     const r = await s.turnService.tryAgainOnSpace(s.playerId);
     expect(r.success).toBe(true);
     expect(s.player().money).toBe(500_000 - 20_000); // ...gone; only 0.5% of $4M stays
-    expect(s.player().timeSpent).toBe(5);
+    expect(s.player().timeSpent).toBe(5 + lifeEventDays);
   });
 
   it('a quote the player cannot afford cannot bankrupt them by pushing back', async () => {
