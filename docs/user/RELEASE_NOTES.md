@@ -3,6 +3,15 @@
 ---
 
 
+## v3.8.8 to v3.8.13 — Fixes from the independent review (October 18, 2026)
+
+- **Your project can't be cut to nothing.** A lender's or designer's review could remove your only work package and leave you paying for an empty project. Your last work package now always stays.
+- **Pushing back no longer erases bad luck you already saw.** If a life event hit you this turn (say, a Notice of Violation with extra work), it stays when you push back. Pushing back re-opens the deal; it doesn't rewind the world.
+- **People say what the screen lets you do.** Fire Dept. intake no longer promises yes/no questions, Trouble On Site no longer says "push hard" when there is one button, and the architect and engineer no longer say "scope grew" when it didn't.
+- **The bank's fee is one clear rule:** 1% for a loan up to $1.4M, 2% up to $2.75M, 3% above. Before a loan is drawn it shows the range; after, the exact dollars.
+- **The red design-fee warning no longer cries wolf** after you cut work; it measures the same way the rule does.
+- **The word-hover glossary** switches to the built-in copy after 6 seconds if the glossary website is slow or down.
+
 ## v3.8.1 to v3.8.4 — A clearer "How to play" (October 17, 2026)
 
 - **"How to play" says how the game works now.** Your job, each turn (press and hold End Turn to move on), what you are juggling, the road from the owner to the finish, negotiating for better terms, and how you win or lose. The old text talked about a final space and a "snapshot" that no longer exist.
