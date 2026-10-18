@@ -31,7 +31,7 @@ import { HelpButton } from '../help/HelpButton';
 import { HelpCard } from '../help/HelpCard';
 import { shortName } from '../../utils/boardCommon';
 import { formatManualEffectButton, getManualEffectTooltip, getMovementChoiceTooltip } from '../../utils/buttonFormatting';
-import { buildSpaceWhy } from '../../utils/spaceWhy';
+import { buildSpaceWhy, buildViolationWhy } from '../../utils/spaceWhy';
 import { getTooltipService } from '../../services/TooltipService';
 import { friendlySpaceName } from '../../utils/logFormatting';
 import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
@@ -1075,6 +1075,14 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               onClick={handleFileAffidavit}
               ariaLabel="File the Affidavit of Correction for your open violation"
             />
+            {/* fb:c1dc207d: say WHY (a life event, not the plan exam) and how often, from the data. */}
+            {(() => {
+              const why = buildViolationWhy(
+                getTooltipService().getTooltip('why', 'VIOLATION')?.tooltip_why,
+                gameServices.dataService.getCardsByType('L'),
+              );
+              return why ? <p data-testid="violation-why" style={{ margin: '6px 0 0', fontSize: 12, color: p.muted, lineHeight: 1.4 }}>{why}</p> : null;
+            })()}
           </div>
         )}
         {affidavitResult && (

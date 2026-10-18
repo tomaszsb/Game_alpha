@@ -43,3 +43,20 @@ export function buildSpaceWhy(
   const odds = describeOutcomeOdds(outcome, spaceTitle);
   return odds ? `${cause.trim()} ${odds}` : cause.trim();
 }
+
+/**
+ * "Why do I have a violation?" (fb:c1dc207d: "Is it part of the L cards? Or is it
+ * because of plan exam?"). It is a life event, never the plan exam. Cause = the
+ * `why,VIOLATION` row in ACTION_TOOLTIPS.csv; the odds are counted from the cards:
+ * how many of the life events are violations (card_mechanic notice_of_violation_*).
+ */
+export function buildViolationWhy(
+  cause: string | undefined,
+  lifeEvents: Array<{ card_mechanic?: string }>,
+): string | null {
+  if (!cause || !cause.trim()) return null;
+  const total = lifeEvents.length;
+  const violations = lifeEvents.filter((c) => String(c.card_mechanic || '').startsWith('notice_of_violation')).length;
+  if (total === 0 || violations === 0) return cause.trim();
+  return `${cause.trim()} ${violations} of the ${total} life events that can happen are violations like this one.`;
+}
