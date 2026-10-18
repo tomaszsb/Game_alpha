@@ -170,7 +170,10 @@ describe('diffSubmittedContent', () => {
 // ===== The real thing: shipped data through the real editor round-trip =====
 
 describe('a Space Data Editor save that changed nothing mints nothing (real data)', () => {
-  const sourceDir = path.resolve(__dirname, '../../server/data/game-data/SOURCE_FILES');
+  // The shipped stock (what the image seeds the server's copy from). Not
+  // server/data/game-data: that is a local server's runtime folder, absent in a
+  // fresh checkout such as the deploy's test gate.
+  const sourceDir = path.resolve(__dirname, '../../public/data/SOURCE_FILES');
   const read = (name: string) =>
     fs.existsSync(path.join(sourceDir, name)) ? fs.readFileSync(path.join(sourceDir, name), 'utf-8') : null;
 

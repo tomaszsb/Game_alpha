@@ -47,6 +47,10 @@ beforeAll(async () => {
       GAMES_FILE: path.join(dataDir, 'games.json'),
       ADMIN_PASSWORD_HASH: crypto.createHash('sha256').update(PASSWORD).digest('hex'),
       FEEDBACK_TOKEN: '',
+      // The server seeds its data from <DIST_PATH>/data. A fresh checkout (the
+      // deploy's test gate) has no build yet, so fall back to the same files in
+      // public/data, which is what the build copies there.
+      DIST_PATH: fs.existsSync(path.join(ROOT, 'dist', 'data')) ? path.join(ROOT, 'dist') : path.join(ROOT, 'public'),
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

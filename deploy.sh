@@ -18,6 +18,26 @@ echo "Pulling latest changes..."
 git checkout -- deploy.sh 2>/dev/null || true
 git pull origin master
 
+# Tests gate the deploy (2026-10-18, independent review REVIEW.md section 6 #1:
+# nothing ran the tests before a deploy, so a session that forgot could ship
+# broken code). The suite runs in a throw-away Node container on a COPY of the
+# code (live player data in server/data is left out), so nothing on this box
+# changes and nothing is built or restarted unless every test passes.
+# Emergency only: SKIP_TESTS=1 bash deploy.sh
+if [ "$SKIP_TESTS" != "1" ]; then
+  echo "Running the test suite (the deploy goes ahead only if every test passes)..."
+  if ! docker run --rm -v "$(pwd)":/src:ro -e PUPPETEER_SKIP_DOWNLOAD=true node:24-alpine sh -c '
+      set -o pipefail
+      mkdir /w && cd /src && tar --exclude=./server/data --exclude=./node_modules --exclude=./.git -cf - . | tar -xf - -C /w
+      cd /w && npm ci --no-audit --no-fund --loglevel=error >/dev/null && npm test 2>&1 | grep -E "FAIL|×|Test Files|Tests " | tail -n 40'; then
+    echo ""
+    echo "   DEPLOY STOPPED: the tests failed (see above). Nothing was built or restarted;"
+    echo "   the live game is unchanged. Fix the tests first."
+    exit 1
+  fi
+  echo "   OK — all tests passed"
+fi
+
 # NOTE (2026-07-29): the stop/rm used to live HERE, before the build. That
 # opened a ~7-minute window (the image build) in which the container name was
 # free, and Unraid's Docker manager would recreate the container from its saved
