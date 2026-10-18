@@ -31,6 +31,9 @@ import { HelpButton } from '../help/HelpButton';
 import { HelpCard } from '../help/HelpCard';
 import { shortName } from '../../utils/boardCommon';
 import { formatManualEffectButton, getManualEffectTooltip, getMovementChoiceTooltip } from '../../utils/buttonFormatting';
+import { buildSpaceWhy } from '../../utils/spaceWhy';
+import { getTooltipService } from '../../services/TooltipService';
+import { friendlySpaceName } from '../../utils/logFormatting';
 import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
 import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
 import { PlayerNumbersV2, NumbersPage } from './PlayerNumbersV2';
@@ -1198,7 +1201,19 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             // finally get to define themselves.
             // A merged dice button (two rows sharing one roll) explains BOTH
             // outcomes — `mergedFrom` is what collapsePairedDiceActions folded in.
-            const why = getManualEffectTooltip(a.effect, a.mergedFrom?.map((m) => m.effect));
+            const baseWhy = getManualEffectTooltip(a.effect, a.mergedFrom?.map((m) => m.effect));
+            // Review Q6 (2026-10-18): at spaces with a `why` row, the roll's help also says
+            // WHY it happens and the odds of each result, counted from the dice data.
+            const spaceWhy = a.effect.effect_type === 'dice'
+              ? buildSpaceWhy(
+                  getTooltipService().getTooltip('why', player.currentSpace)?.tooltip_why,
+                  gameServices.dataService.getDiceOutcome(player.currentSpace, player.visitType),
+                  (name) => friendlySpaceName(gameServices.dataService, name),
+                )
+              : null;
+            const why = spaceWhy ? { ...baseWhy, tooltip: `${baseWhy.tooltip}
+
+${spaceWhy}` } : baseWhy;
             // Namespaced so an action row and the space's own "?" share the ONE
             // open-at-a-time slot without ever colliding on a key.
             const helpId = `action:${a.effectKey}`;

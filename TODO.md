@@ -49,7 +49,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 - [ ] **Measure fun: the 3 certificate questions + "how many minutes did your game take?"** RESEARCH-2.md §6 #4 (see [N2] below).
 
 ### Teaching (certificate questions, why-tips)
-- [ ] **[N2] Why-tips: explain cause and odds in the existing tips/hover/help + the end page, max one paragraph.** Tom Q6; RESEARCH.md §6b #2.
+- [ ] **Why-tips: STARTED v3.8.17** at Trouble On Site, Site Inspection, The Audit (cause row in ACTION_TOOLTIPS.csv `why,<SPACE>` + odds from DICE_OUTCOMES). Next: more spaces (one row each), Fire Dept. Review (choice-list outcomes need wording), the end page. Tom Q6; RESEARCH.md §6b #2.
 - [ ] **One-page teacher guide with talk prompts.** CHECK.md top 5 #4; RESEARCH.md §6b #3.
 - [ ] **Before/after 10-question quiz with the real class.** CHECK.md top 5 #3; RESEARCH.md §6 #3.
 - [ ] **5-10 new multiple-choice "why" questions in the game, reason shown after, small cost when wrong** (NOT re-enabling the auto-answered ones; removed 2026-05-26 after a complaint). CHECK.md top 5 #5, §1 #1; RESEARCH.md §6 #2.
