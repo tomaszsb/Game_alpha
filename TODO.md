@@ -84,7 +84,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 
 ### Ops and safety
 - [ ] **Tom: reset each teacher's password from the admin screen.** CHECK.md top 5 #1 update; DECISIONS 10-18.
-- [ ] **[N2] Restore guide: a "server died, bring it back" section in `docs/technical/ARCHITECTURE.md`, tested once, kept current by /koniec.** Tom Q7; REVIEW.md §8 Q7.
+- [ ] **Restore guide WRITTEN 10-18 (`docs/technical/ARCHITECTURE.md` "If the server dies"); NOT tested yet. Tom: keep `.env` in the password manager and copy `server/data` off the Tower on a schedule (nothing does today); then test a restore once.** Tom Q7; REVIEW.md §8 Q7.
 - [ ] **Tag each deploy image with its commit, keep the last two (an undo).** REVIEW.md §6 Missing #3.
 - [ ] **A GitHub check on every push.** REVIEW.md §6 Missing #1.
 - [ ] **Rules as numbers, sentences made from them (one column at a time).** REVIEW.md top table #6, §3 Fragile #5; RESEARCH.md §6 #10.

@@ -17,6 +17,7 @@
 7. [Data Architecture](#data-architecture)
 8. [Testing Architecture](#testing-architecture)
 9. [Code Quality Standards](#code-quality-standards)
+10. [If the server dies: how to bring the game back](#if-the-server-dies-how-to-bring-the-game-back-added-2026-10-18)
 
 ---
 
@@ -1011,3 +1012,28 @@ To switch it on (PowerShell, once):
 ```powershell
 Register-ScheduledTask -TaskName UnravelUptimeCheck -Action (New-ScheduledTaskAction -Execute 'C:\Program Files\nodejs\node.exe' -Argument 'scripts\uptime-check.mjs' -WorkingDirectory 'D:\Unravel\Current_Game\Game_Alpha') -Trigger (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)) -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew)
 ```
+
+---
+
+## If the server dies: how to bring the game back (added 2026-10-18)
+
+Tom's decision (Review Q7): no new document; this section is the restore guide and every Game session's `/koniec` keeps it current. **Not yet tested end to end** (the 2026-10-18 session could only write it); the first person to restore should note here what was wrong.
+
+**What has to survive (everything else is rebuilt from GitHub):**
+| What | Where on the Tower | Why it matters |
+|---|---|---|
+| The code | `github.com/tomaszsb/Game_alpha`, branch `master` | `deploy.sh` builds from it |
+| Secrets | `/mnt/user/appdata/Game_alpha/.env` (admin password hash, feedback token, mail and SMS settings) | NOT in git. Without it the admin pages stay locked and no mail goes out |
+| Player and teacher data | `/mnt/user/appdata/Game_alpha/server/data/` | saved games (`games.json`), the visitor log, feedback reports, certificate answers (`class-answers.jsonl`), teacher accounts and classrooms (`game-data/accounts`, `game-data/instances`) and their backups |
+| Public address | Cloudflare DNS for `game.unravelcodes.com` + the reverse proxy on the Tower | points the domain at port 3080 |
+
+**Backups today, honestly:** the nightly job copies Tom's PC (E: drive) TO the Tower. Nothing found in this repo copies the Tower's `server/data` or `.env` anywhere else, so a dead Tower disk would lose them. To do (Tom): keep a copy of `.env` in the password manager, and copy `server/data` off the Tower on a schedule.
+
+**Rebuild on the Tower (or any Linux box with Docker and git):**
+1. `git clone https://github.com/tomaszsb/Game_alpha.git /mnt/user/appdata/Game_alpha` (or `git pull` in the old folder if the folder survived).
+2. Put back `.env` and `server/data/` from the copies above. With no `server/data`, the server starts empty: no saved games, no teacher accounts (classroom-1 is recreated), the board comes from the code.
+3. `cd /mnt/user/appdata/Game_alpha && bash deploy.sh` (the same command as every deploy). It runs the tests, builds the image, starts the `game_alpha` container on port 3080 with `server/data` mounted, and checks `/health`.
+4. Check: `curl https://game.unravelcodes.com/health` shows `"status":"ok"` and the commit you deployed; open `/class`, start a game; log in to Admin.
+5. If teacher logins were lost: recreate the accounts in Admin and send each teacher a new password (classroom keys rotate themselves when classrooms are recreated).
+
+**Moving to a new machine:** the same steps, then point Cloudflare DNS (or the reverse proxy) at the new box's port 3080.
