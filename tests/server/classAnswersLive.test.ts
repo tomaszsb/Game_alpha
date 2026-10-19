@@ -71,7 +71,7 @@ describe('certificate answers on the real server', () => {
     const file = path.join(dataDir, 'class-answers.jsonl');
     expect(fs.existsSync(file)).toBe(true);
     const saved = JSON.parse(fs.readFileSync(file, 'utf8').trim().split('\n').pop()!);
-    expect(Object.keys(saved).sort()).toEqual(['date', 'fun', 'gameCode', 'name', 'why']);
+    expect(Object.keys(saved).sort()).toEqual(['course', 'date', 'fun', 'gameCode', 'name', 'why']);
     const raw = fs.readFileSync(file, 'utf8');
     expect(raw).not.toContain('203.0.113.9');
     expect(raw).not.toContain('Mozilla');

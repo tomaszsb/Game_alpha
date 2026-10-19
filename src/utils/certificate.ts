@@ -8,6 +8,10 @@
 export const STRUCTURAL_JOKE =
   "A structural engineer's favorite game? Anything where the load is spread evenly and nobody has to take the weight alone.";
 
+/** SUNY Farmingdale course the student ticked (Prof. Ahouissi, 2026-10-19). '' = none. */
+export type CourseChoice = '' | '350' | '409';
+export const COURSES: CourseChoice[] = ['350', '409'];
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -21,6 +25,7 @@ export function buildCertificateHtml(
   playerName: string,
   date: Date,
   why: Array<{ question: string; answer: string }> = [],
+  course: CourseChoice = '',
 ): string {
   const name = escapeHtml(playerName.trim() || 'A Player');
   const answered = why.filter(w => w.answer.trim());
@@ -43,6 +48,9 @@ ${answered.map(w => `  <p class="q">${escapeHtml(w.question)}</p>
   h1 { font-size: 2.2rem; margin: 0 0 8px; color: #1e3a5f; }
   .small { font-size: 1rem; color: #4b5563; margin: 8px 0; }
   .name { font-size: 2.4rem; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #9ca3af; display: inline-block; padding: 0 24px 4px; }
+  .course { margin: 8px 0 0; font-size: 1.2rem; }
+  .course span { display: inline-block; margin: 0 18px; white-space: nowrap; }
+  .box { display: inline-block; width: 1.1em; height: 1.1em; border: 2px solid #1f2937; vertical-align: -0.2em; margin-right: 8px; text-align: center; line-height: 1.1em; font-weight: bold; box-sizing: border-box; font-size: 1.1em; }
   .game { font-size: 1.4rem; font-style: italic; margin: 8px 0 20px; }
   .answers { max-width: 900px; margin: 24px auto 0; text-align: left; break-inside: avoid; }
   .answers h2 { font-size: 1.2rem; color: #1e3a5f; margin: 0 0 8px; }
@@ -59,17 +67,23 @@ ${answered.map(w => `  <p class="q">${escapeHtml(w.question)}</p>
   <p class="game">Unravel Codes: The Game</p>
   <p class="small">a board game about getting a building permitted and built in New York City,<br>and reached the end of the game on</p>
   <p class="small"><strong>${dateText}</strong></p>
+  <p class="small">Course (SUNY Farmingdale)</p>
+  <p class="course">${COURSES.map(c => `<span data-course="${c}"><i class="box">${course === c ? '&#10003;' : ''}</i>Course ${c}</span>`).join('')}</p>
 </div>${answersHtml}
 <button class="print-button" id="print-btn">Print / Save as PDF</button>
 </body></html>`;
 }
 
 /** Opens the certificate in a new tab. Returns false when the browser blocked the pop-up. */
-export function openCertificate(playerName: string, why: Array<{ question: string; answer: string }> = []): boolean {
+export function openCertificate(
+  playerName: string,
+  why: Array<{ question: string; answer: string }> = [],
+  course: CourseChoice = '',
+): boolean {
   const win = window.open('', '_blank');
   if (!win) return false;
   win.document.open();
-  win.document.write(buildCertificateHtml(playerName, new Date(), why));
+  win.document.write(buildCertificateHtml(playerName, new Date(), why, course));
   win.document.close();
   // No inline onclick: the app's CSP blocks inline handlers, and the new tab inherits it.
   win.document.getElementById('print-btn')?.addEventListener('click', () => win.print());

@@ -417,10 +417,10 @@ function ClassAnswersSection(): JSX.Element {
       {answers && answers.length === 0 && <div style={{ color: colors.text.tertiary }}>No answers yet.</div>}
       {answers && answers.length > 0 && (
         <div data-testid="class-answers">
-          <div style={{ marginBottom: '0.6rem' }}>Would play again: <strong>{count('yes')}</strong> yes · <strong>{count('maybe')}</strong> maybe · <strong>{count('no')}</strong> no ({answers.length} answers)</div>
+          <div style={{ marginBottom: '0.6rem' }}>Would play again: <strong>{count('yes')}</strong> yes · <strong>{count('maybe')}</strong> maybe · <strong>{count('no')}</strong> no ({answers.length} answers) · Course 350: <strong>{answers.filter(a => a.course === '350').length}</strong> · Course 409: <strong>{answers.filter(a => a.course === '409').length}</strong></div>
           {answers.map((a, i) => (
             <div key={`${a.date}-${i}`} style={{ borderTop: `1px solid ${colors.border.primary}`, padding: '0.5rem 0', fontSize: '0.85rem' }}>
-              <div><strong>{a.name}</strong> · {new Date(a.date).toLocaleString()} {a.gameCode && `· ${a.gameCode}`} {a.fun.playAgain && `· play again: ${a.fun.playAgain}`}</div>
+              <div><strong>{a.name}</strong> · {new Date(a.date).toLocaleString()} {a.gameCode && `· ${a.gameCode}`} {a.course && `· course ${a.course}`} {a.fun.playAgain && `· play again: ${a.fun.playAgain}`}</div>
               {a.fun.mostBoring && <div>Most boring: {a.fun.mostBoring}</div>}
               {a.fun.bestPart && <div>Best part: {a.fun.bestPart}</div>}
               {a.why.filter(w => w.answer).map((w, j) => (

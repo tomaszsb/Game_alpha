@@ -140,6 +140,7 @@ export interface ClassAnswer {
   date: string;
   name: string;
   gameCode: string;
+  course?: string;
   fun: { playAgain: string; mostBoring: string; bestPart: string };
   why: Array<{ question: string; answer: string }>;
 }

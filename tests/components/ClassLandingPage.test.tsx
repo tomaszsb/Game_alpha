@@ -12,6 +12,15 @@ describe('ClassLandingPage', () => {
     expect(start.getAttribute('href')).toBe('/');
   });
 
+  it('names SUNY Farmingdale and the three requirements', () => {
+    render(<ClassLandingPage />);
+    expect(screen.getByText(/SUNY Farmingdale/)).toBeTruthy();
+    expect(screen.getByText(/Finish one entire game, win or lose/)).toBeTruthy();
+    expect(screen.getByText(/at least one comment/)).toBeTruthy();
+    expect(screen.getByTestId('class-bug-sample')).toBeTruthy();
+    expect(screen.getByText('350')).toBeTruthy();
+  });
+
   describe('campaign tag', () => {
     let fetchMock: ReturnType<typeof vi.fn>;
     beforeEach(() => {

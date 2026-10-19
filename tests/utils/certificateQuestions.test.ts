@@ -64,7 +64,7 @@ describe('certificate prints the why answers', () => {
 describe('cleanClassAnswer (server)', () => {
   it('keeps only name, game code, answers and date; drops anything else posted', () => {
     const { record } = cleanClassAnswer({ name: ' Ada ', gameCode: 'G-AB12-CD34', fun: { playAgain: 'Yes', bestPart: 'x' }, why: [], ip: '1.2.3.4', device: 'iPhone' }, new Date('2026-10-18T00:00:00Z'));
-    expect(record).toEqual({ date: '2026-10-18T00:00:00.000Z', name: 'Ada', gameCode: 'G-AB12-CD34', fun: { playAgain: 'yes', mostBoring: '', bestPart: 'x' }, why: [] });
+    expect(record).toEqual({ date: '2026-10-18T00:00:00.000Z', name: 'Ada', course: '', gameCode: 'G-AB12-CD34', fun: { playAgain: 'yes', mostBoring: '', bestPart: 'x' }, why: [] });
   });
   it('cuts long text instead of refusing it, and keeps at most 3 why answers', () => {
     const { record } = cleanClassAnswer({ name: 'A', fun: { bestPart: 'y'.repeat(5000) }, why: Array(6).fill({ question: 'q', answer: 'a' }) });

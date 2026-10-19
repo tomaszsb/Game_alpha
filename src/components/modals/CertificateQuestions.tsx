@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react';
 import { colors } from '../../styles/theme';
-import { openCertificate } from '../../utils/certificate';
+import { openCertificate, COURSES, type CourseChoice } from '../../utils/certificate';
 import { FUN_QUESTIONS, type CertificateAnswers, type WhyQuestion } from '../../utils/certificateQuestions';
 import { getBackendURL } from '../../utils/networkDetection';
 
@@ -20,11 +20,11 @@ interface Props {
 
 /** Sends the answers; never blocks or fails the certificate. */
 export async function saveCertificateAnswers(
-  body: { name: string; gameCode: string | null; answers: CertificateAnswers },
+  body: { name: string; gameCode: string | null; answers: CertificateAnswers; course?: CourseChoice },
   fetchFn: typeof fetch = fetch,
 ): Promise<boolean> {
   const { answers } = body;
-  const any = answers.playAgain || answers.mostBoring.trim() || answers.bestPart.trim() || answers.why.some(w => w.answer.trim());
+  const any = body.course || answers.playAgain || answers.mostBoring.trim() || answers.bestPart.trim() || answers.why.some(w => w.answer.trim());
   if (!any) return false;
   try {
     const res = await fetchFn(`${getBackendURL()}/api/class-answers`, {
@@ -33,6 +33,7 @@ export async function saveCertificateAnswers(
       body: JSON.stringify({
         name: body.name,
         gameCode: body.gameCode ?? '',
+        course: body.course ?? '',
         fun: { playAgain: answers.playAgain, mostBoring: answers.mostBoring, bestPart: answers.bestPart },
         why: answers.why,
       }),
@@ -55,18 +56,19 @@ export function CertificateQuestions({ playerName, gameCode, whyQuestions }: Pro
   const [mostBoring, setMostBoring] = useState('');
   const [bestPart, setBestPart] = useState('');
   const [why, setWhy] = useState<string[]>(() => whyQuestions.map(() => ''));
+  const [course, setCourse] = useState<CourseChoice>('');
   const [saved, setSaved] = useState(false);
 
   const onPrint = () => {
     const whyAnswers = whyQuestions.map((q, i) => ({ question: q.question, answer: why[i] ?? '' }));
     // Open the tab first, inside the click, or the browser blocks it as a pop-up.
-    if (!openCertificate(playerName, whyAnswers)) {
+    if (!openCertificate(playerName, whyAnswers, course)) {
       window.alert('Your browser blocked the certificate window. Allow pop-ups for this site and try again.');
     }
     if (!saved) {
       void saveCertificateAnswers({
         name: playerName, gameCode,
-        answers: { playAgain, mostBoring, bestPart, why: whyAnswers },
+        answers: { playAgain, mostBoring, bestPart, why: whyAnswers }, course,
       }).then(ok => { if (ok) setSaved(true); });
     }
   };
@@ -115,6 +117,31 @@ export function CertificateQuestions({ playerName, gameCode, whyQuestions }: Pro
             value={why[i] ?? ''} onChange={e => setWhy(prev => prev.map((v, j) => (j === i ? e.target.value : v)))} />
         </React.Fragment>
       ))}
+
+      <span style={labelStyle}>Class at SUNY Farmingdale? Check your course (it prints on the certificate)</span>
+      <div role="radiogroup" aria-label="Course" style={{ display: 'flex', gap: 8 }}>
+        {COURSES.map(c => (
+          <button
+            key={c}
+            type="button"
+            role="radio"
+            aria-checked={course === c}
+            data-testid={`cert-course-${c}`}
+            onClick={() => setCourse(course === c ? '' : c)}
+            style={{
+              flex: 1, minHeight: 44, fontSize: 15, cursor: 'pointer', borderRadius: 6,
+              border: `2px solid ${course === c ? colors.primary.main : colors.border.primary}`,
+              background: course === c ? colors.primary.light : 'transparent',
+              color: colors.text.primary,
+            }}
+          >
+            {course === c ? '☑' : '☐'} Course {c}
+          </button>
+        ))}
+      </div>
+      <p style={{ margin: '10px 0 0', fontSize: 13, color: colors.text.secondary }}>
+        Your teacher also needs at least one comment from you. Tap the red bug button in the corner and leave one.
+      </p>
 
       <div style={{ textAlign: 'center', marginTop: 14 }}>
         <button

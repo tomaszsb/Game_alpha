@@ -20,6 +20,8 @@ export const MAX_ANSWER = 500;
 export const MAX_QUESTION = 300;
 export const MAX_WHY = 3;
 const AGAIN = new Set(['yes', 'maybe', 'no', '']);
+// SUNY Farmingdale (Prof. Ahouissi, 2026-10-19): which course the student is in.
+export const COURSES = new Set(['350', '409', '']);
 const GAME_CODE_RE = /^[A-Za-z0-9-]{1,40}$/;
 
 const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -34,6 +36,8 @@ export function cleanClassAnswer(body, now = new Date()) {
   const fun = body.fun && typeof body.fun === 'object' ? body.fun : {};
   const again = text(fun.playAgain, 10).toLowerCase();
   if (!AGAIN.has(again)) return { error: 'playAgain must be yes, maybe or no.' };
+  const course = text(body.course, 10);
+  if (!COURSES.has(course)) return { error: 'course must be 350 or 409.' };
   const why = (Array.isArray(body.why) ? body.why : [])
     .slice(0, MAX_WHY)
     .map((w) => ({ question: text(w && w.question, MAX_QUESTION), answer: text(w && w.answer, MAX_ANSWER) }))
@@ -41,6 +45,7 @@ export function cleanClassAnswer(body, now = new Date()) {
   const record = {
     date: now.toISOString(),
     name: text(body.name, MAX_NAME) || 'A Player',
+    course,
     gameCode: GAME_CODE_RE.test(String(body.gameCode || '')) ? String(body.gameCode) : '',
     fun: {
       playAgain: again,
@@ -49,7 +54,7 @@ export function cleanClassAnswer(body, now = new Date()) {
     },
     why,
   };
-  const anything = record.fun.playAgain || record.fun.mostBoring || record.fun.bestPart || why.some((w) => w.answer);
+  const anything = record.course || record.fun.playAgain || record.fun.mostBoring || record.fun.bestPart || why.some((w) => w.answer);
   if (!anything) return { error: 'No answers given.' };
   return { record };
 }

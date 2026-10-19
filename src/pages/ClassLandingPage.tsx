@@ -7,6 +7,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { trackPlaytestEvent } from '../playtest/playtestAnalytics';
+import { IconBug } from '../components/icons/SetupIcons';
 
 const page: React.CSSProperties = {
   maxWidth: 640,
@@ -43,11 +44,34 @@ export function ClassLandingPage(): JSX.Element {
         costs days and money, and the engineers' work only gets built if the paperwork gets through.
       </p>
 
-      <h2>What to do</h2>
+      <h2>What to do (SUNY Farmingdale, courses 350 and 409)</h2>
       <ol>
         <li>Press <strong>Start the game</strong> below.</li>
-        <li>Play until the game ends. You do not have to win. You only have to reach the end.</li>
-        <li>On the last screen, press <strong>Print certificate</strong> and save it as a PDF to show your teacher.</li>
+        <li>
+          <strong>Finish one entire game, win or lose.</strong> You do not have to win. You have to
+          reach the end.
+        </li>
+        <li>
+          Leave <strong>at least one comment</strong> with the bug button: a red round button
+          {' '}
+          <span
+            data-testid="class-bug-sample"
+            aria-hidden="true"
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28,
+              borderRadius: '50%', background: '#dc3545', color: '#fff', verticalAlign: 'middle',
+            }}
+          >
+            <IconBug size="1em" />
+          </span>
+          {' '}
+          in the bottom-right corner of the game. Tap it, write what you noticed, and send.
+        </li>
+        <li>
+          On the last screen, check your course (<strong>350</strong> or <strong>409</strong>), press{' '}
+          <strong>Print certificate</strong>, and save it as a PDF. Your name on it is the name you
+          used in the game.
+        </li>
       </ol>
 
       <p style={{ color: '#4b5563' }}>
