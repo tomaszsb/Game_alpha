@@ -152,7 +152,7 @@ Most important first. Each line: what to look at, and what "good" looks like. No
 
 ## 🙋 Decisions waiting on Tom
 
-- [ ] **The class:** how many students, the start date, and should `/class` say "City College" (generic today)?
+- [ ] **Farmingdale (v3.8.27, built, not deployed):** after deploy, open `/class` on a phone, play to the end, tick Course 350 or 409, print to a real PDF. Good: the page names SUNY Farmingdale, the ticked box shows on the PDF, and Admin > Site Stats > Class answers lists the course and counts. Still unknown: student count and start date; whether Kossi wants the course chosen BEFORE play (`/class?src=350` links) or only at the certificate (built: certificate only); a per-course "who finished" list for Kossi would be a small Site Stats addition but he has no admin access.
 - [ ] **Samsung / LG TVs from 2021 or older can't run the game** (too old a browser engine). Today the loading tip tells them to mirror a laptop or phone. Building a version for old TVs makes the game bigger and needs a real-TV test. Later, your call.
 - [ ] **Your wording, in the files (no code):** trophy names, "X is out" lines, End Turn warnings, builder-bid texts, and today's new places (Fix It First, Steer the Inspector, Test It Now, Close Up Test Later, the inspection agencies).
 - [ ] **Money and Scope sit on a diagonal on a phone (Money top-left, Scope bottom-right): change it?** <!-- fb:feedback-1791152358714-c0d3bfb8 -->

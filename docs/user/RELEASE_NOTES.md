@@ -3,6 +3,11 @@
 ---
 
 
+## v3.8.27 — Farmingdale classes (October 19, 2026)
+
+- **The /class page** now names SUNY Farmingdale (courses 350 and 409) and says what to do: finish one whole game, win or lose; leave at least one comment with the red bug button; check your course and print the certificate.
+- **The certificate** has two boxes, Course 350 and Course 409. Pick yours before printing and it shows ticked on the page.
+
 ## v3.8.23 to v3.8.25 — Teachers can set the prices (October 18, 2026)
 
 - **Teachers see every new space** and can change its words, days and fees, including a percent of the project's cost, and reset it.
