@@ -47,7 +47,7 @@ ${answered.map(w => `  <p class="q">${escapeHtml(w.question)}</p>
   .frame { border: 6px double #1e3a5f; padding: 40px 24px; max-width: 900px; margin: 0 auto; }
   h1 { font-size: 2.2rem; margin: 0 0 8px; color: #1e3a5f; }
   .small { font-size: 1rem; color: #4b5563; margin: 8px 0; }
-  .name { font-size: 2.4rem; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #9ca3af; display: inline-block; padding: 0 24px 4px; }
+  .name { font-size: 2.4rem; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #9ca3af; display: inline-block; padding: 0 24px 4px; max-width: 100%; box-sizing: border-box; overflow-wrap: anywhere; }
   .course { margin: 8px 0 0; font-size: 1.2rem; }
   .course span { display: inline-block; margin: 0 18px; white-space: nowrap; }
   .box { display: inline-block; width: 1.1em; height: 1.1em; border: 2px solid #1f2937; vertical-align: -0.2em; margin-right: 8px; text-align: center; line-height: 1.1em; font-weight: bold; box-sizing: border-box; font-size: 1.1em; }
