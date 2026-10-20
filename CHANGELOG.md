@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.29] - 2026-10-20
+
+Two things Tom asked for after looking at the board path chart.
+- **Opened walls send you back to the engineer.** On the cheap inspector branches, one outcome in six (the one that already cost days) now goes to Find an Engineer instead of Trouble On Site: Budget Inspection Agency (the 15-day outcome) and Name One Later (the 60-day, $25,000 outcome), first and return visits. The top agency never does. Data only: `DICE_OUTCOMES`, `DICE_EFFECTS` Next Step, `DICE_ROLL_INFO`, `DiceRoll Info.csv`, plus one added sentence in the two spaces' story text (`SPACE_CONTENT.csv`, `Spaces.csv`). The engineer's first visit is the ordinary Find an Engineer path, so the city approval you already hold is NOT cancelled (not built; see TODO). Test: `tests/utils/openedWallRedesign.test.ts`. Not run through the robot players, so the effect on game length is unmeasured.
+- **Hire this builder is a press-and-hold** (650 ms, same as Move on; Enter or Space held also works). A tap only says "Press and hold the button to hire this builder for $X and N days of work." (`BuilderBidsCard.tsx`, strings `BUILDER_BIDS.holdHint` / `holdCaption`). **The Jarvis robot taps `builder-bid-hire` once, so it will not hire until Jarvis presses and holds** (pointerdown, wait 700 ms, pointerup). Phone panel: no caption on the button there; the hint line appears only after a tap. Tests: 3 in `BuilderBidsCard.test.tsx`. 300 files / 4050 green, build clean. Not deployed.
+
 ## [Housekeeping] 2026-10-20 - board path flowchart (docs only, no version, no game change)
 
 Tom: "I do not see the flow" from hiring a builder through regulatory sign-off. `scripts/build-board-flowchart.mjs` reads MOVEMENT, DICE_OUTCOMES, DICE_EFFECTS, SPACE_EFFECTS, SPACE_CONTENT, LOGIC_QUESTIONS, TROPHIES and Spaces.csv and writes `docs/technical/BOARD_PATH_FLOWCHART.html` (one page; NEW tags come from git: spaces missing just before v3.8.0). Re-run it after any data change. Findings are listed on the page (the Audit / Fire Dept. Review `time` rows in DICE_EFFECTS hold place names; no quality points on these boxes; Final Approval first vs return visit differ). Not checked by eye: dark theme, phone width.

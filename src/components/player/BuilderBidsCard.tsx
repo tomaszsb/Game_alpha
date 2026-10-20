@@ -8,13 +8,16 @@
 // data-price, data-days, data-guarantee-days), builder-bid-hire, builder-bids-lapsed,
 // builder-bids-error, builder-hired, bank-bid-line.
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { IServiceContainer } from '../../types/ServiceContracts';
 import type { PanelPalette } from './panelTheme';
 import { BUILDER_BIDS } from '../../constants/uiStrings';
 import { getBuilderRules } from '../../utils/trophyRules';
 import { cheapestLiveBid, isBidLive, typicalQuote } from '../../utils/builderBids';
 import { usePhoneWidth } from '../../hooks/usePhoneWidth';
+
+/** How long the Hire button must be held before it signs. Same length as the turn-end hold, so one gesture means "I mean it" everywhere. */
+const HOLD_MS = 650;
 
 const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
 
@@ -36,6 +39,8 @@ export function isShoppingForBuilder(gameServices: IServiceContainer, playerId: 
 export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, palette: p, canAct }) => {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // A press that ends before the hold is full is a tap: it only says what a hold would do.
+  const [hintFor, setHintFor] = useState<string | null>(null);
   // On a phone the same facts take fewer words: the player panel there must stay no taller than it was.
   const isPhone = usePhoneWidth();
   const player = gameServices.stateService.getPlayer(playerId);
@@ -111,22 +116,76 @@ export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, p
                 ? `${BUILDER_BIDS.days(b.days)} · ${BUILDER_BIDS.holdsShort(b.expiresDay)}`
                 : `${BUILDER_BIDS.days(b.days)} · ${BUILDER_BIDS.holds(b.expiresDay, b.expiresDay - day)}`}
             </div>
+            {hintFor === b.id && (
+              <div data-testid="builder-bid-hold-hint" role="status" style={{ fontSize: 12, marginTop: 3, color: p.text, fontWeight: 600 }}>
+                {BUILDER_BIDS.holdHint(money(b.price), b.days)}
+              </div>
+            )}
           </div>
-          <button
-            type="button"
-            data-testid="builder-bid-hire"
-            aria-label={BUILDER_BIDS.hireAria(money(b.price), b.days)}
+          <HoldToHire
+            ariaLabel={BUILDER_BIDS.hireAria(money(b.price), b.days)}
+            label={isPhone ? BUILDER_BIDS.HIRE_SHORT : BUILDER_BIDS.HIRE}
             disabled={!canAct || busy}
-            onClick={() => hire(b.id)}
-            style={{ flexShrink: 0, padding: isPhone ? '8px 9px' : '8px 10px', borderRadius: 8, border: `1px solid ${p.borderStrong}`, background: p.accent, color: '#fff', fontWeight: 600, fontSize: 13, cursor: canAct && !busy ? 'pointer' : 'default', opacity: canAct ? 1 : 0.55 }}
-          >
-            {isPhone ? BUILDER_BIDS.HIRE_SHORT : BUILDER_BIDS.HIRE}
-          </button>
+            palette={p}
+            isPhone={isPhone}
+            onHold={() => { setHintFor(null); hire(b.id); }}
+            onTap={() => setHintFor(b.id)}
+          />
         </div>
       ))}
       {error && <div data-testid="builder-bids-error" role="alert" style={{ fontSize: 12, color: p.bad, marginBottom: 6 }}>{error}</div>}
       <p style={{ fontSize: 11, margin: '0 0 2px', color: p.muted }}>{isPhone ? BUILDER_BIDS.LENDER_SHORT : BUILDER_BIDS.LENDER}</p>
     </div>
+  );
+};
+
+interface HoldProps {
+  ariaLabel: string;
+  label: string;
+  disabled: boolean;
+  palette: PanelPalette;
+  isPhone: boolean;
+  onHold: () => void;
+  onTap: () => void;
+}
+
+/** "Hire" is a press-and-hold: signing is the biggest bill in the game and one stray tap must not make it. Keyboard: hold Enter or Space. */
+const HoldToHire: React.FC<HoldProps> = ({ ariaLabel, label, disabled, palette: p, isPhone, onHold, onTap }) => {
+  const [pressing, setPressing] = useState(false);
+  const timer = useRef<number | null>(null);
+  const fired = useRef(false);
+  const down = useRef(false);
+  const stop = useCallback(() => { if (timer.current != null) { window.clearTimeout(timer.current); timer.current = null; } }, []);
+  useEffect(() => stop, [stop]);
+  const start = () => {
+    if (disabled || down.current) return;
+    down.current = true; fired.current = false; setPressing(true); stop();
+    timer.current = window.setTimeout(() => { fired.current = true; setPressing(false); onHold(); }, HOLD_MS);
+  };
+  const end = () => {
+    if (!down.current) return;
+    down.current = false; stop(); setPressing(false);
+    if (!fired.current && !disabled) onTap();
+  };
+  return (
+    <button
+      type="button"
+      data-testid="builder-bid-hire"
+      aria-label={`${BUILDER_BIDS.HOLD_CAPTION}: ${ariaLabel}`}
+      disabled={disabled}
+      onPointerDown={start}
+      onPointerUp={end}
+      onPointerCancel={end}
+      onPointerLeave={end}
+      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); start(); } }}
+      onKeyUp={(e) => { if (e.key === 'Enter' || e.key === ' ') end(); }}
+      onContextMenu={(e) => e.preventDefault()}
+      style={{ position: 'relative', overflow: 'hidden', flexShrink: 0, padding: isPhone ? '8px 9px' : '8px 10px', borderRadius: 8, border: `1px solid ${p.borderStrong}`, background: p.accent, color: '#fff', fontWeight: 600, fontSize: 13, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.55 : 1, touchAction: 'none', userSelect: 'none', WebkitTouchCallout: 'none' }}
+    >
+      <span aria-hidden="true" data-testid="builder-bid-hold-fill" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: pressing ? '100%' : 0, background: 'rgba(255,255,255,0.35)', transition: pressing ? `width ${HOLD_MS}ms linear` : 'none' }} />
+      <span style={{ position: 'relative', display: 'block' }}>{label}</span>
+      {!isPhone && <span style={{ position: 'relative', display: 'block', fontSize: 10, fontWeight: 500, opacity: 0.9 }}>{BUILDER_BIDS.HOLD_CAPTION}</span>}
+    </button>
   );
 };
 

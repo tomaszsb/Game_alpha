@@ -3,6 +3,11 @@
 ---
 
 
+## v3.8.29 — Opened walls and a safer Hire button (October 20, 2026)
+
+- **Opened walls:** with a budget inspector, or with none named, there is now a small chance (1 in 6 on the bad outcome) that they open a wall, find something nobody drew, and the engineer has to look again. The top inspection agency never does this.
+- **Hiring a builder** now takes a press-and-hold, like Move on, so one stray tap cannot sign a contract worth hundreds of thousands. A quick tap just tells you what the hold will do.
+
 ## v3.8.27 — Farmingdale classes (October 19, 2026)
 
 - **The /class page** now names SUNY Farmingdale (courses 350 and 409) and says what to do: finish one whole game, win or lose; leave at least one comment with the red bug button; check your course and print the certificate.

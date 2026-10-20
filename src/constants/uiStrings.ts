@@ -132,6 +132,8 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'BUILDER_BIDS.log': 'Hired a builder for {price} and {days} days of work. The work turns out to be {quality} quality.',
   'BUILDER_BIDS.holdsShort': 'good through day {day}',
   'BUILDER_BIDS.hireShort': 'Hire',
+  'BUILDER_BIDS.holdHint': 'Press and hold the button to hire this builder for {price} and {days} days of work.',
+  'BUILDER_BIDS.holdCaption': 'Press and hold to hire',
   'BUILDER_BIDS.lenderShort': 'Short on money? The lender is one door away.',
   'BUILDER_BIDS.bank.likely': 'Builders will likely quote about {price} for your job. This is only a rough guess until you visit them.',
   // The Owner's story, once chance has picked the player's kind of project (fb:612fbdc4).
@@ -410,6 +412,8 @@ export const BUILDER_BIDS = {
   get HIRE_SHORT() { return getUIString('BUILDER_BIDS.hireShort'); },
   get LENDER_SHORT() { return getUIString('BUILDER_BIDS.lenderShort'); },
   hireAria: (price: string, days: number) => getUIString('BUILDER_BIDS.hireAria', { price, days }),
+  holdHint: (price: string, days: number) => getUIString('BUILDER_BIDS.holdHint', { price, days }),
+  get HOLD_CAPTION() { return getUIString('BUILDER_BIDS.holdCaption'); },
   lapsedExpired: (price: string, guarantee: number) => getUIString('BUILDER_BIDS.lapsed.expired', { price, guarantee }),
   get LAPSED_PLAN() { return getUIString('BUILDER_BIDS.lapsed.plan'); },
   get LENDER() { return getUIString('BUILDER_BIDS.lender'); },

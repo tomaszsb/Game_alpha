@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
 import { BuilderBidsCard, BuilderMoneyLine, isShoppingForBuilder } from '../../../src/components/player/BuilderBidsCard';
 import { panelPalettes } from '../../../src/components/player/panelTheme';
 import type { BuilderBidSet } from '../../../src/utils/builderBids';
@@ -38,6 +38,13 @@ function services(player: any, over: any = {}) {
 
 const atDesk = (extra: any = {}) => ({ id: 'p1', currentSpace: 'CON-INITIATION', visitType: 'First', timeSpent: 80, builderBids: bidSet(), ...extra });
 
+/** Press and keep holding for `ms`, then let go (the Hire button signs only after a full hold). */
+async function holdFor(el: Element, ms: number) {
+  fireEvent.pointerDown(el);
+  await act(async () => { await new Promise(r => setTimeout(r, ms)); });
+  fireEvent.pointerUp(el);
+}
+
 describe('BuilderBidsCard', () => {
   it('shows one card per bid with its exact price and days, and keeps the quality out of sight', () => {
     const { gs } = services(atDesk());
@@ -72,14 +79,34 @@ describe('BuilderBidsCard', () => {
   it('hiring sends the clicked bid\'s id', async () => {
     const { gs, hire } = services(atDesk());
     render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
-    fireEvent.click(screen.getAllByTestId('builder-bid-hire')[1]);
+    await holdFor(screen.getAllByTestId('builder-bid-hire')[1], 700);
     await waitFor(() => expect(hire).toHaveBeenCalledWith('p1', 'bid-2'));
+  });
+
+  it('a tap does not hire: it says what a hold would do', async () => {
+    const { gs, hire } = services(atDesk());
+    render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
+    const btn = screen.getAllByTestId('builder-bid-hire')[0];
+    fireEvent.click(btn);
+    await holdFor(btn, 200); // released long before the hold is full
+    expect(hire).not.toHaveBeenCalled();
+    expect(screen.getByTestId('builder-bid-hold-hint').textContent).toContain('Press and hold');
+  });
+
+  it('holding Enter hires, like holding the button', async () => {
+    const { gs, hire } = services(atDesk());
+    render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
+    const btn = screen.getAllByTestId('builder-bid-hire')[0];
+    fireEvent.keyDown(btn, { key: 'Enter' });
+    await act(async () => { await new Promise(r => setTimeout(r, 700)); });
+    fireEvent.keyUp(btn, { key: 'Enter' });
+    await waitFor(() => expect(hire).toHaveBeenCalledWith('p1', 'bid-1'));
   });
 
   it('says so plainly when the prices changed under the player', async () => {
     const { gs } = services(atDesk(), { hireBuilderBid: vi.fn().mockResolvedValue({ success: false, reason: 'bids_changed', message: 'Those prices changed while you were deciding. Look at the new bids.' }) });
     render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
-    fireEvent.click(screen.getAllByTestId('builder-bid-hire')[0]);
+    await holdFor(screen.getAllByTestId('builder-bid-hire')[0], 700);
     expect((await screen.findByTestId('builder-bids-error')).textContent).toContain('prices changed');
   });
 
