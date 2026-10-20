@@ -25,7 +25,7 @@ Tom asked for a Google-required privacy-policy page for his personal Home Assist
 
 ## [3.8.28] - 2026-10-20
 
-Certificate, long names. Checked the printed certificate in a real browser: at 360x640 and 390x844 both course boxes draw and the chosen one shows a check mark; saved to PDF it is one landscape page with the box ticked. One real fault found: a long name ("Alexandria Montgomery-Vasquez") pushed the page 3 px wider than a 360 phone, so its underline poked out of the frame. The name now wraps inside the frame (`src/utils/certificate.ts`). Still not seen: the form on a real end screen. Not deployed.
+Certificate, long names. Checked the printed certificate in a real browser: at 360x640 and 390x844 both course boxes draw and the chosen one shows a check mark; saved to PDF it is one landscape page with the box ticked. One real fault found: a long name ("Alexandria Montgomery-Vasquez") pushed the page 3 px wider than a 360 phone, so its underline poked out of the frame. The name now wraps inside the frame (`src/utils/certificate.ts`). Tests only: `ExpeditorFightsAudit` ("send your expeditor") failed about 1 run in 25 on the Tower's deploy gate. Not a game bug: The Audit draws a life event card on a 5 and Fire Dept. Review on a 1, and a push-back keeps what that card cost, so an unfixed dice roll sometimes added days (one card even took the expeditor). The test now pins the roll to a 6; 0 failures in 60 runs under load, full suite 299 files / 4042 green, build clean. Game behaviour unchanged. Still not seen: the form on a real end screen. Not deployed.
 
 ## [3.8.27] - 2026-10-19
 

@@ -1,9 +1,11 @@
 // PLAYTEST.md Part 2b #3 (2026-10-18), "send your expeditor": at The Audit and
 // Fire Dept. Review, pushing back while you hold an expeditor sends it to fight
 // the finding instead of costing days (SPACE_CONTENT `try_again_e_cost`).
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { bootstrapHeadlessServices } from '../ghost/bootstrapServices';
 import { getTryAgainCostPreview } from '../../src/utils/costPreview';
+
+afterEach(() => { vi.restoreAllMocks(); });
 
 async function atSpace(space: string, hand: string[]) {
   const s: any = await bootstrapHeadlessServices();
@@ -13,6 +15,11 @@ async function atSpace(space: string, hand: string[]) {
   stateService.setCurrentPlayer(playerId);
   stateService.startGame();
   stateService.updatePlayer({ id: playerId, currentSpace: space, visitType: 'First', visitedSpaces: [space], money: 1_000_000, hand } as any);
+  // Pin the dice to a 6. The Audit draws a life event card on a 5 and Fire Dept. Review on a 1 (first arrival), and
+  // a push-back keeps what a life event cost ("bad luck stays"), so an unpinned roll made
+  // this test fail about 1 run in 25 (the card could cost days or even take the expeditor).
+  // The pin stays on for the whole test (afterEach restores it).
+  vi.spyOn(Math, 'random').mockReturnValue(0.99);
   await turnService.startTurn(playerId);
   return { ...s, playerId, player: () => stateService.getPlayer(playerId)! };
 }
