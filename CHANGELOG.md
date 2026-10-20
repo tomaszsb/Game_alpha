@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Housekeeping] 2026-10-20 - board path flowchart (docs only, no version, no game change)
+
+Tom: "I do not see the flow" from hiring a builder through regulatory sign-off. `scripts/build-board-flowchart.mjs` reads MOVEMENT, DICE_OUTCOMES, DICE_EFFECTS, SPACE_EFFECTS, SPACE_CONTENT, LOGIC_QUESTIONS, TROPHIES and Spaces.csv and writes `docs/technical/BOARD_PATH_FLOWCHART.html` (one page; NEW tags come from git: spaces missing just before v3.8.0). Re-run it after any data change. Findings are listed on the page (the Audit / Fire Dept. Review `time` rows in DICE_EFFECTS hold place names; no quality points on these boxes; Final Approval first vs return visit differ). Not checked by eye: dark theme, phone width.
+
 ## [Housekeeping] 2026-10-13 - history moved out of TODO.md (docs only, no version)
 
 TODO.md was cleaned up (Tom: "we have other documents to do those things"). The whole old file is kept word for word in [docs/archive/TODO-full-2026-10-13.md](docs/archive/TODO-full-2026-10-13.md). Shipped-work and fix history that used to sit in TODO items, kept here in short:
