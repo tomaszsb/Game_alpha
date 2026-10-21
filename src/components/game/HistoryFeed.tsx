@@ -99,7 +99,7 @@ interface TurnBlock {
 }
 
 /** Group entries into turn blocks. Presentation only — see the header note. */
-export function buildTurnBlocks(entries: ActionLogEntry[]): TurnBlock[] {
+export function buildTurnBlocks(entries: ActionLogEntry[], labelOf: (spaceId: string) => string = shortName): TurnBlock[] {
   const groups: TurnBlock[] = [];
   const sorted = [...entries].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
@@ -109,7 +109,7 @@ export function buildTurnBlocks(entries: ActionLogEntry[]): TurnBlock[] {
       const raw = entry.details?.spaceName || entry.details?.space || '';
       groups.push({
         turnNumber: entry.globalTurnNumber ?? null,
-        spaceName: raw ? shortName(raw) : 'Setup',
+        spaceName: raw ? labelOf(raw) : 'Setup',
         spaceId: raw || null,
         entries: [],
       });
@@ -119,7 +119,7 @@ export function buildTurnBlocks(entries: ActionLogEntry[]): TurnBlock[] {
     if (!last) {
       // Entries before the first turn_start (game setup) get their own block.
       const raw = entry.details?.spaceName || entry.details?.space || '';
-      last = { turnNumber: null, spaceName: raw ? shortName(raw) : 'Setup', spaceId: raw || null, entries: [] };
+      last = { turnNumber: null, spaceName: raw ? labelOf(raw) : 'Setup', spaceId: raw || null, entries: [] };
       groups.push(last);
     }
     last.entries.push(entry);
@@ -188,7 +188,12 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
     });
   }, [log, playerId, active.who, active.what, extraFilters?.search]);
 
-  const blocks = useMemo(() => buildTurnBlocks(shown), [shown]);
+  // The turn headers use the names players see on the board ("Your Office", "Find an Architect"), not the
+  // internal short names ("PM Check", "Initiation" three times over) the history showed before (Tom, 2026-10-21).
+  const blocks = useMemo(
+    () => buildTurnBlocks(shown, (id) => gameServices.dataService?.getGameConfigBySpace?.(id)?.display_label_override || shortName(id)),
+    [shown, gameServices.dataService],
+  );
 
   const whoOptions = useMemo(() => {
     const m = new Map<string, string>();

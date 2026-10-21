@@ -195,3 +195,13 @@ describe('HistoryFeed — this turn shows live, marked "not final yet"', () => {
     expect(screen.getByText(/Paid the filing fee/).closest('div')!.querySelector('[data-testid="log-row-provisional"]')).toBeNull();
   });
 });
+
+describe('buildTurnBlocks — turn headers use the names players see', () => {
+  it('labels a block with the supplied name, not the internal short name', async () => {
+    const { buildTurnBlocks } = await import('../../../src/components/game/HistoryFeed');
+    const t = makeEntry({ id: 't', type: 'turn_start', details: { spaceName: 'PM-DECISION-CHECK' }, timestamp: new Date('2026-08-25T13:00:00Z') });
+    const e = makeEntry({ id: 'e', timestamp: new Date('2026-08-25T13:01:00Z') });
+    expect(buildTurnBlocks([t, e])[0].spaceName).toBe('PM Check');
+    expect(buildTurnBlocks([t, e], (id) => (id === 'PM-DECISION-CHECK' ? 'Your Office' : id))[0].spaceName).toBe('Your Office');
+  });
+});

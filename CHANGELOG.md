@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.39] - 2026-10-21
+
+**History turn headers use the names players see.** Tom pasted the History of live game G-9PH5-P452 (a Mac, 12:48-12:56 AM): the headers read "Turn 3 · 📍 PM Check", "Turn 4 · 📍 Initiation", "Turn 5 · 📍 Fee Review", "Turn 6 · 📍 Scope Check", "Turn 12 · 📍 Plan Exam" (internal short names, three different spaces all "Initiation" or "Scope Check"). They now read the board names ("Your Office", "Find an Architect", "Architect's Fee", "See the Design", "City Checks Plans"): `HistoryFeed.buildTurnBlocks(entries, labelOf)` with `display_label_override`. The same paste confirmed the push-backs at the plan exam (turns 12 and 13) show "Used Try Again: 10 day penalty applied" (reworded in 3.8.38). Test: 1 in `HistoryFeed.test.tsx`. Other things seen in that history, not changed: "outcome came back at ..." appears twice for a space with two dice rows, and system notes in game language ("Fee not applicable: No loan to charge against", "Cybersecurity Breach still affecting you"). 307 files / 4081 green, build clean. Not deployed.
+
 ## [3.8.38] - 2026-10-21
 
 - **"Visit our other sites: iqarius.com · watchorder.tv" everywhere Tom asked:** the bottom of the setup page (and the phone join page), the bottom of the game board, the bottom of the win and loss screens, and the printed certificate. One list in `src/constants/otherSites.ts`; the line is `components/common/OtherSites.tsx` (new tab, `noopener`). Seen in a real browser on the setup page; the board and end screens are only unit-checked. Tests: `tests/components/common/OtherSites.test.tsx`.
