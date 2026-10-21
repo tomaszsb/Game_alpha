@@ -443,6 +443,30 @@ describe('TurnCommitControl (dark-mode merged control)', () => {
       expect(localStorage.getItem('uc_hold_learned')).toBe('1');
     });
 
+    it('a tap that does not hold says "Hold until it fills" for a few seconds, then goes back to the plain caption', () => {
+      const { endBtn } = setup();
+      act(() => {
+        fireEvent.pointerDown(endBtn);
+        vi.advanceTimersByTime(100); // released long before the 650 ms hold
+        fireEvent.pointerUp(endBtn);
+      });
+      expect(endBtn).toHaveTextContent('Hold until it fills');
+      act(() => { vi.advanceTimersByTime(4100); });
+      expect(endBtn).toHaveTextContent('Press and hold');
+      expect(endBtn).not.toHaveTextContent('Hold until it fills');
+    });
+
+    it('someone who has already held once never sees the nudge', () => {
+      localStorage.setItem('uc_hold_learned', '1');
+      const { endBtn } = setup();
+      act(() => {
+        fireEvent.pointerDown(endBtn);
+        vi.advanceTimersByTime(100);
+        fireEvent.pointerUp(endBtn);
+      });
+      expect(endBtn).not.toHaveTextContent('Hold until it fills');
+    });
+
     it('does not caption it once learned, and keeps the blocked-reason line when not ready', () => {
       localStorage.setItem('uc_hold_learned', '1');
       const learned = setup();

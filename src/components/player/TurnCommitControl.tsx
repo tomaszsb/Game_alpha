@@ -67,6 +67,9 @@ const HOLD_MS = 650;
  *  fades back out on its own. */
 const BUBBLE_MS = 3000;
 
+/** How long the "Hold until it fills" nudge stays after a tap that did not hold. */
+const NUDGE_MS = 4000;
+
 /** Remembered once a player has completed one hold, so the "Press and hold" caption teaches the gesture
  *  only until they have done it (the first space was where most outside players stopped, 2026-10-17). */
 const HOLD_LEARNED_KEY = 'uc_hold_learned';
@@ -138,6 +141,11 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
   const bubbleTimerRef = useRef<number | null>(null);
   const firedRef = useRef(false);
   const [holdLearned, setHoldLearned] = useState<boolean>(readHoldLearned);
+  // A press that ended before the bar filled, from someone who has never completed a hold: say what to do
+  // for a few seconds ("Hold until it fills"). A class game tapped Move on five times in ten seconds on its first
+  // screen (2026-10-21, G-9PH5-P452) and the small "Press and hold" caption had not been enough.
+  const [holdNudge, setHoldNudge] = useState(false);
+  const nudgeTimerRef = useRef<number | null>(null);
   // Which side is mid-press right now, so a pointer that merely hovers over and
   // leaves a button (no press) can't count as opening its cost box.
   const pressedRef = useRef<Side | null>(null);
@@ -178,6 +186,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
     () => () => {
       clearTimer();
       if (bubbleTimerRef.current !== null) window.clearTimeout(bubbleTimerRef.current);
+      if (nudgeTimerRef.current !== null) window.clearTimeout(nudgeTimerRef.current);
     },
     [clearTimer],
   );
@@ -225,7 +234,14 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
       clearTimer();
       setPressing((cur) => (cur === side ? null : cur));
       if (wasPressed) previewedRef.current.add(side); // its cost box was shown, uncommitted
-      if (wasPressed && actionableFor(side)) onTapWithoutHold?.(side);
+      if (wasPressed && actionableFor(side)) {
+        onTapWithoutHold?.(side);
+        if (!readHoldLearned()) {
+          setHoldNudge(true);
+          if (nudgeTimerRef.current !== null) window.clearTimeout(nudgeTimerRef.current);
+          nudgeTimerRef.current = window.setTimeout(() => { setHoldNudge(false); nudgeTimerRef.current = null; }, NUDGE_MS);
+        }
+      }
     },
     [actionableFor, clearTimer, onTapWithoutHold],
   );
@@ -551,7 +567,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         {renderSide('tryAgain', tryAgainLabel, false)}
         {/* "Press and hold" fills the slot the "why not yet" line uses, so the control is no taller than it
             already is before the player has done the two actions; it goes away after their first hold. */}
-        {renderSide('end', endLabel, true, endActionable ? (holdLearned ? undefined : 'Press and hold') : endSubLabel)}
+        {renderSide('end', endLabel, true, endActionable ? (holdLearned ? undefined : (holdNudge ? 'Hold until it fills' : 'Press and hold')) : endSubLabel)}
       </div>
       </div>
     </div>

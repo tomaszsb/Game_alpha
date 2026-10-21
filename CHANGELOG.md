@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.40] - 2026-10-21
+
+**A clearer first-use cue for "press and hold" Move on.** In live game G-9PH5-P452 the player tapped Move on five times in ten seconds on the first screen ("Meet the Owner"); a tap only previews the cost, and the small "Press and hold" caption had not been enough. Now a tap that ends before the hold fills changes that caption to "Hold until it fills" for 4 seconds (then back), for anyone who has never completed a hold (the same remembered flag as the existing caption, `uc_hold_learned`). Same line, same 10 px size, so the panel is no taller (the caption box is the one the "N actions left" line uses; not measured on a real phone). `TurnCommitControl.tsx`; tests: 2 in `TurnCommitControl.test.tsx`. 307 files / 4083 green, build clean. Not deployed.
+
 ## [Housekeeping] 2026-10-21 - one-off failure in the full-game test (tests only, no version)
 
 `tests/E2E-LogicPlaythrough.test.ts` failed once inside a full `npm test` run (3392f388's check) and passed on 120 later reruns (alone, under CPU load, and in a second full run), so the cause was not seen. Its scripted path still uses random arrival rolls and card shuffles; a random life event could in theory change the route. The test now pins `Math.random` to a 6 (no space on its path draws a life event on a 6). A precaution, not a confirmed fix: if the Tower's deploy gate trips on it again, read the failure text before rerunning.
