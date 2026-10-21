@@ -3,6 +3,12 @@
 ---
 
 
+## v3.8.38 to v3.8.40 — Links, clearer History, and a hold cue (October 21, 2026)
+
+- **"Visit our other sites: iqarius.com · watchorder.tv"** at the bottom of the setup page, the game board, the win and loss screens, and the certificate.
+- **History** says "Pushed back on the quote: 10 days added" for a push-back, and its turn headers use the names you see on the board.
+- **A tap that doesn't hold** on Move on now says "Hold until it fills" for a few seconds, for anyone who hasn't done a hold yet.
+
 ## v3.8.36 and v3.8.37 — Clearer history, costs and certificate (October 21, 2026)
 
 - **The Money page shows what an expeditor card costs**, and **History shows the turn in progress** (marked "not final yet").

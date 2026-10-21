@@ -348,6 +348,10 @@ When conducting User Acceptance Testing via browser automation:
 
 ## 🧭 **TACTICAL PATTERNS (Session Learnings)**
 
+### A test that plays or pushes back through a real space must pin `Math.random` (2026-10-21)
+Arrival rolls (`SpaceArrivalProcessor` → `DiceService.rollDice`, one draw off the global `Math.random`) can draw a life event card at spaces whose SPACE_EFFECTS has `draw_L` on a roll (e.g. FDNY plan exam on a 1, The Audit on a 5, Trouble On Site on a 5). A push-back keeps what that card cost, so an unpinned test sees extra days or a missing expeditor about 1 run in 25 on a loaded machine. `vi.spyOn(Math, 'random').mockReturnValue(0.99)` (a 6) for the WHOLE test, restored in `afterEach` — and pin only after checking which roll each space draws on. Pinning to 0 is a roll of 1, which DOES draw at the FDNY plan exam. Found when the Tower's deploy gate stopped on `ExpeditorFightsAudit`; `E2E-LogicPlaythrough` failed once the same night (unreproduced, pinned as a precaution).
+
+
 Compact field notes accumulated from real sessions. Read these BEFORE doing the
 matching kind of work — each pattern saved a real chunk of guess-and-check.
 
