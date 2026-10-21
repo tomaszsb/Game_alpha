@@ -6,7 +6,7 @@
  * Bug (Playwright playtest of game.unravelcodes.com, HIGH priority):
  * Landing on PM-DECISION-CHECK produced TWO "⚡ <player> entered PM Check
  * (first visit)" log lines with two different timestamps, instead of one.
- * (That space's tile label became "Pick Your Path" in v3.2.50 — the
+ * (That space's tile label became "Your Office" in v3.2.50 — the
  * assertions below track the label, the bug above is quoted as it was seen.)
  *
  * Root cause: EffectFactory.createEffectsFromSpaceEntry() always pushes a
@@ -95,11 +95,11 @@ describe('Space entry log dedup regression (PM-DECISION-CHECK)', () => {
     const enteredPmCheckLogs = log.filter(
       (e) =>
         e.details?.action === 'space_effect' &&
-        /entered .*Pick Your Path.*\(first visit\)/i.test(e.description)
+        /entered .*Your Office.*\(first visit\)/i.test(e.description)
     );
 
     expect(enteredPmCheckLogs.map((e) => e.description)).toEqual([
-      'LogTester entered Pick Your Path (first visit)',
+      'LogTester entered Your Office (first visit)',
     ]);
     expect(enteredPmCheckLogs).toHaveLength(1);
 

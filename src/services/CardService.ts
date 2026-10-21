@@ -1559,6 +1559,9 @@ export class CardService implements ICardService {
             amount: moneyAmount,
             source: cardSource,
             sourceType: 'other',  // Card effects categorized as 'other'
+            // What an expeditor card COSTS goes in the paid list and "Spent so far" / "Regulatory & filings",
+            // like every other bill (fb:f3b3cbb7, 0ed31c3c, 2026-10-19: it dropped the cash but showed nowhere else).
+            ...(card.card_type === 'E' && moneyAmount < 0 ? { costCategory: 'expeditor' as const } : {}),
             reason: `${card.card_name}: ${moneyAmount > 0 ? '+' : ''}$${Math.abs(moneyAmount).toLocaleString()}`
           }
         });

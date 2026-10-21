@@ -37,6 +37,10 @@ export interface LogDisplayFilters {
    *  and counts leave this off: a Markdown export scoped to one player should
    *  not carry every other player's turn headers. */
   keepTurnDividers?: boolean;
+  /** Also show this turn's entries that are not final yet (money spent, days, cards played, before the
+   *  turn is committed). The feed marks them "not final yet" so a push-back that undoes them is no
+   *  surprise (fb:d912364b, 0ed31c3c, f3b3cbb7: "update live ... say temporary status"). Off for exports. */
+  includeProvisional?: boolean;
 }
 
 /** Entry types that structure the feed rather than describe an event. They
@@ -62,7 +66,7 @@ export function getDisplayableLogEntries(
 ): ActionLogEntry[] {
   const query = filters.search?.trim().toLowerCase() || '';
   return entries.filter(entry => {
-    if (!entry.isCommitted) return false;
+    if (!entry.isCommitted && !filters.includeProvisional) return false;
     if (entry.visibility !== 'player') return false;
     if (filters.playerId && entry.playerId !== filters.playerId) return false;
 

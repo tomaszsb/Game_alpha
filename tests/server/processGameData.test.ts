@@ -452,7 +452,7 @@ describe('processGameData — engine-data separation: cosmetic overrides', () =>
     const finish = dataRows.find(r => r.startsWith('FINISH,'));
     const pmCheck = dataRows.find(r => r.startsWith('PM-DECISION-CHECK,'));
     expect(fieldAt(finish!, 17)).toBe('Finish');
-    expect(fieldAt(pmCheck!, 17)).toBe('Pick Your Path');
+    expect(fieldAt(pmCheck!, 17)).toBe('Your Office');
 
     const dobPlanExam = dataRows.find(r => r.startsWith('REG-DOB-PLAN-EXAM,'));
     expect(fieldAt(dobPlanExam!, 18)).toContain('examiner found minor issues');

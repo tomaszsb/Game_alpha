@@ -63,9 +63,10 @@ describe('PlayerChronicleV2 — history timeline', () => {
     expect(screen.getByText(/📍/)).toBeInTheDocument();
   });
 
-  it('hides uncommitted entries — REAL/TEMP-safe via the shared filter', () => {
+  it('shows the turn in progress: uncommitted entries live, marked "not final yet" (Tom 2026-10-21; was: hidden until commit)', () => {
     renderChronicle([{ ...committedEntry, isCommitted: false }]);
-    expect(screen.getByText(/Nothing yet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Nothing yet/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('log-row-provisional')).toBeInTheDocument();
   });
 
   it('hides another player\'s entries', () => {

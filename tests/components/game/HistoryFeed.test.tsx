@@ -180,3 +180,18 @@ describe('HistoryFeed — raw detail is opt-in', () => {
     expect(screen.getByRole('button', { name: 'Show raw detail' })).toBeInTheDocument();
   });
 });
+
+describe('HistoryFeed — this turn shows live, marked "not final yet"', () => {
+  afterEach(() => cleanup());
+
+  it('shows an uncommitted entry with a "not final yet" mark, and a committed one without it', () => {
+    renderFeed([
+      turnStart,
+      makeEntry({ id: 'done', description: 'Paid the filing fee' }),
+      makeEntry({ id: 'live', type: 'resource_change', description: '-$8,000 paid (Time Crunch: $8,000)', isCommitted: false }),
+    ]);
+    expect(screen.getByText(/Time Crunch/)).toBeInTheDocument();
+    expect(screen.getAllByTestId('log-row-provisional')).toHaveLength(1);
+    expect(screen.getByText(/Paid the filing fee/).closest('div')!.querySelector('[data-testid="log-row-provisional"]')).toBeNull();
+  });
+});

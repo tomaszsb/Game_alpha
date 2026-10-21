@@ -44,7 +44,7 @@ export type Effect =
         feeCategory?: 'architectural' | 'engineering' | 'construction';  // Category for cost tracking
         // A money deduction that must show up in the player's paid list and "Spent so far" (the bank's
         // up-front loan fee). Charged through ResourceService.recordCost instead of a bare spend.
-        costCategory?: 'loanFee';
+        costCategory?: 'loanFee' | 'expeditor';
         // v3.0.41 — Kid C follow-up. When this effect is registered as an
         // active (multi-turn) effect, applyActiveEffects re-checks the
         // affected player's current phase each turn before applying.

@@ -2,7 +2,7 @@ space_name,phase,path_type,is_starting_space,is_ending_space,min_players,max_pla
 START-QUICK-PLAY-GUIDE,OWNER,none,No,No,1,4,No,No,No,0,flat,,No,,,No,Quick Play,,20,240,,No,,,No,
 OWNER-SCOPE-INITIATION,OWNER,Main,Yes,No,1,4,Yes,No,No,1,flat,,No,,,No,Meet the Owner,,20,130,,No,,,No,
 OWNER-FUND-INITIATION,OWNER,Main,No,No,1,4,No,No,No,0,flat,,Yes,"B,I",,No,Owner's Money,,20,20,owner,No,,,No,
-PM-DECISION-CHECK,OWNER,Special,No,No,1,4,Yes,Yes,No,0,flat,,No,,,No,Pick Your Path,,220,240,,No,,PM,No,
+PM-DECISION-CHECK,OWNER,Special,No,No,1,4,Yes,Yes,No,0,flat,,No,,,No,Your Office,,220,240,,No,,PM,No,
 LEND-SCOPE-CHECK,FUNDING,Side quest money,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Lender Review,,420,240,,No,,,No,
 BANK-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,No,No,No,0,flat,,No,,,No,Bank Review,,420,20,bank,No,,,No,
 INVESTOR-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Investor Review,,420,130,investor,No,,,No,

@@ -530,8 +530,6 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     // Results float up from the building the player is in (after their walk, if they walked).
     if (beforeNumbers) {
       const still = prefersReducedMotion();
-      const fastNow = getGameSpeed() === 'fast';
-      const times = walkTimes(layout.settings);
       // The moment this change was seen, stamped once for every player's pending result. Reading the clock here is
       // deliberate: this block runs once per NEW players list (the "adjust state while rendering" pattern), not on every render.
       // eslint-disable-next-line react-hooks/purity
@@ -543,10 +541,10 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         const nowNumbers = numbersOf(p);
         const moved = before?.get(p.id) !== undefined && before?.get(p.id) !== p.currentSpace && !still;
         if (resultBubbles(was, nowNumbers).length === 0 && !moved) continue;
-        const bid = buildingOfRoom(layout, p.currentSpace, whoOf(p));
-        const from = moved ? buildingOfRoom(layout, before!.get(p.id)!, whoOf(p)) : undefined;
-        const walkMs = !moved ? 0 : from === bid ? times.hopMs : fastNow ? times.fastMs : times.walkMs;
-        held.push({ playerId: p.id, at: now, before: was, after: nowNumbers, space: p.currentSpace, walkMs });
+        // A change that arrives together with a move is the work done at the space the player LEFT (the
+        // architect's days are charged when they end their turn there, then they walk to the office), so the
+        // result floats up from that building, not from the one they just reached (fb:f0de9095, 2026-10-19).
+        held.push({ playerId: p.id, at: now, before: was, after: nowNumbers, space: moved ? before!.get(p.id)! : p.currentSpace, walkMs: 0 });
       }
       if (held.length) setPending(ps => [...ps, ...held]);
     }
@@ -564,20 +562,28 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       const still = prefersReducedMotion();
       const made: Bubble[] = [];
       for (const pid of new Set(batch.map(x => x.playerId))) {
-        const mine = batch.filter(x => x.playerId === pid);
-        const list = mergedResultBubbles(mine);
         const player = players.find(p => p.id === pid);
-        const bid = buildingOfRoom(layout, mine[mine.length - 1].space, player ? whoOf(player) : undefined);
-        const b = bid ? layout.buildings.find(x => x.id === bid) : undefined;
-        if (!b || list.length === 0) continue;
-        const walkWait = Math.max(0, ...mine.map(x => x.walkMs - (Date.now() - x.at)));
-        list.forEach((r, i) => made.push({
-          ...r, key: ++bubbleKey.current, playerId: pid,
-          // Rises from the top of the building's sign, stacked so two results never sit on each other.
-          buildingId: b.id, index: i,
-          delayMs: walkWait + i * 250, ms, still, volume: bubbleVolume(layout.settings),
-          tag: players.length > 1 ? player?.color : undefined,
-        }));
+        const mineAll = batch.filter(x => x.playerId === pid);
+        // One bubble per kind per BUILDING: work done at the space left and at the space entered each rise
+        // from their own building (merged only when both are the same building).
+        const bySpace = new Map<string, PendingResult[]>();
+        for (const x of mineAll) bySpace.set(x.space, [...(bySpace.get(x.space) ?? []), x]);
+        let order = 0;
+        for (const [space, mine] of bySpace) {
+          const list = mergedResultBubbles(mine);
+          const bid = buildingOfRoom(layout, space, player ? whoOf(player) : undefined);
+          const b = bid ? layout.buildings.find(x => x.id === bid) : undefined;
+          if (!b || list.length === 0) continue;
+          const walkWait = Math.max(0, ...mine.map(x => x.walkMs - (Date.now() - x.at)));
+          list.forEach((r, i) => made.push({
+            ...r, key: ++bubbleKey.current, playerId: pid,
+            // Rises from the top of the building's sign, stacked so two results never sit on each other.
+            buildingId: b.id, index: i,
+            delayMs: walkWait + (order + i) * 250, ms, still, volume: bubbleVolume(layout.settings),
+            tag: players.length > 1 ? player?.color : undefined,
+          }));
+          order += list.length;
+        }
       }
       if (made.length) setBubbles(bs => [...bs, ...made]);
     }, BUBBLE_SETTLE_MS);

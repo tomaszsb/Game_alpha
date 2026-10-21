@@ -173,7 +173,7 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
   // BEFORE the chips — this is what the chips get their options from, so the
   // "who" list doesn't shrink to one name the moment you pick a name.
   const scoped = useMemo(
-    () => getDisplayableLogEntries(log, { playerId }),
+    () => getDisplayableLogEntries(log, { playerId, includeProvisional: true }),
     [log, playerId],
   );
 
@@ -184,6 +184,7 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
       filterType: active.what,
       search: extraFilters?.search,
       keepTurnDividers: true,
+      includeProvisional: true,
     });
   }, [log, playerId, active.who, active.what, extraFilters?.search]);
 
@@ -380,7 +381,12 @@ export const HistoryFeed: React.FC<HistoryFeedProps> = ({
                           cursor: clickable ? 'pointer' : undefined,
                         }}
                       >
-                        <span style={{ flex: 1 }}>{formatActionDescription(entry)}</span>
+                        <span style={{ flex: 1, ...(entry.isCommitted ? {} : { fontStyle: 'italic', opacity: 0.85 }) }}>
+                          {formatActionDescription(entry)}
+                          {!entry.isCommitted && (
+                            <span data-testid="log-row-provisional" style={{ marginLeft: px(6), fontSize: px(10), fontStyle: 'normal', fontWeight: 700, color: p.muted, border: `1px dashed ${p.muted}`, borderRadius: px(6), padding: `0 ${px(4)}px`, whiteSpace: 'nowrap' }}>not final yet</span>
+                          )}
+                        </span>
                         <span style={{ color: p.muted, fontSize: px(10), whiteSpace: 'nowrap' }}>
                           {fmtTime(entry.timestamp)}
                         </span>

@@ -139,3 +139,12 @@ describe('getDisplayableLogEntries — user-facing filters', () => {
     ).toEqual(['mine']);
   });
 });
+
+describe('getDisplayableLogEntries — includeProvisional', () => {
+  const base = { id: 'x', type: 'resource_change', timestamp: new Date(), playerId: 'p1', playerName: 'A', description: 'd', details: {}, explorationSessionId: 's', gameRound: 1, turnWithinRound: 1, globalTurnNumber: 1, playerTurnNumber: 1, visibility: 'player' } as any;
+  const rows = [{ ...base, id: 'a', isCommitted: true }, { ...base, id: 'b', isCommitted: false }];
+  it('hides uncommitted entries by default (exports stay final-only) and shows them when asked', () => {
+    expect(getDisplayableLogEntries(rows).map(e => e.id)).toEqual(['a']);
+    expect(getDisplayableLogEntries(rows, { includeProvisional: true }).map(e => e.id)).toEqual(['a', 'b']);
+  });
+});

@@ -1139,7 +1139,7 @@ describe('PlayerPanelV2 — End Turn cost preview drops already-completed action
  * The commit spine must name the gate that is ACTUALLY open.
  *
  * 2026-09-06 and 2026-09-07 robot playtests: all 12 games were abandoned at
- * PM-DECISION-CHECK ("Pick Your Path"). The spine read
+ * PM-DECISION-CHECK ("Your Office"). The spine read
  *   Move forward / Finish “Swap one helper for another” above first
  * while the only outstanding requirement was picking a destination. The named
  * action is SKIPPABLE — StateService.calculateRequiredActions leaves
@@ -1209,7 +1209,7 @@ describe('PlayerPanelV2 — commit spine names the gate that is actually open (2
       completedActions: { diceRoll: undefined, manualActions: {} },
     });
     services.stateService.subscribe.mockReturnValue(() => {});
-    services.dataService.getSpaceContent.mockReturnValue({ title: 'Pick Your Path', story: '' });
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Your Office', story: '' });
     services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
     services.dataService.getSpaceEffects.mockReturnValue(opts.effects);
     services.dataService.getMovement.mockReturnValue(
@@ -1458,7 +1458,7 @@ describe('PlayerPanelV2 — commit spine names the gate that is actually open (2
 // disclosure pattern the action rows already have. getMovementChoiceTooltip
 // (buttonFormatting.ts) and TooltipService.getMovementTooltip already existed
 // and were fully wired to the CSV; nothing called either one from the UI.
-describe('PlayerPanelV2 — destination picker explains each option (TODO #6, "Pick Your Path")', () => {
+describe('PlayerPanelV2 — destination picker explains each option (TODO #6, "Your Office")', () => {
   let services: ReturnType<typeof createAllMockServices>;
 
   const TOOLTIPS_CSV = readFileSync(
@@ -1497,7 +1497,7 @@ describe('PlayerPanelV2 — destination picker explains each option (TODO #6, "P
       completedActions: { diceRoll: undefined, manualActions: {} },
     });
     services.stateService.subscribe.mockReturnValue(() => {});
-    services.dataService.getSpaceContent.mockReturnValue({ title: 'Pick Your Path', story: '' });
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Your Office', story: '' });
     services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
     services.dataService.getSpaceEffects.mockReturnValue([]);
     services.dataService.getMovement.mockReturnValue({ movement_type: 'choice' });
