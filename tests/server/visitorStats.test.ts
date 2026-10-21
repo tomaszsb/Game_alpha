@@ -325,3 +325,19 @@ describe('aggregateVisitorStats', () => {
     expect(result.geography.available).toBe(false);
   });
 });
+
+describe('daily buckets are New York days', () => {
+  const day = (iso: string) => entry({ timestamp: iso, action: 'CREATE_GAME' });
+  const NOW2 = Date.parse('2026-10-21T02:00:00.000Z');
+  it('the class evening (1-9 PM Eastern, summer) stays on one day even after 8 PM, when UTC rolls over', () => {
+    const entries = [day('2026-10-20T17:00:00.000Z'), day('2026-10-20T23:59:00.000Z'), day('2026-10-21T00:30:00.000Z'), day('2026-10-21T01:30:00.000Z')];
+    const stats = aggregateVisitorStats(entries, { now: NOW2, window: '7d' });
+    expect(stats.traffic).toEqual([{ bucket: '2026-10-20', visits: 4, gamesCreated: 4 }]);
+  });
+  it('rolls to the next day at midnight Eastern (04:00 UTC in summer, 05:00 UTC in winter)', () => {
+    const summer = aggregateVisitorStats([day('2026-10-21T03:59:00.000Z'), day('2026-10-21T04:01:00.000Z')], { now: NOW2 + 6 * 3600e3, window: '7d' });
+    expect(summer.traffic.map(b => b.bucket)).toEqual(['2026-10-20', '2026-10-21']);
+    const winter = aggregateVisitorStats([day('2026-12-21T04:59:00.000Z'), day('2026-12-21T05:01:00.000Z')], { now: Date.parse('2026-12-21T06:00:00.000Z'), window: '7d' });
+    expect(winter.traffic.map(b => b.bucket)).toEqual(['2026-12-20', '2026-12-21']);
+  });
+});

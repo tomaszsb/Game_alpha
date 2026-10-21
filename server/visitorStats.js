@@ -161,9 +161,15 @@ export const WINDOW_MS = {
   all: Infinity,
 };
 
+// Days are New York days (Tom, 2026-10-21): the class ran 1-7 PM Eastern, which is 17:00-23:00 UTC, and a UTC
+// day would have started at 8 PM Eastern and split the evening in two. en-CA formats as YYYY-MM-DD.
+const NY_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
+export function newYorkDay(ts) {
+  return NY_DAY.format(new Date(ts));
+}
+
 function bucketKey(ts, hourly) {
-  const iso = new Date(ts).toISOString();
-  return hourly ? iso.slice(0, 13) + ':00:00.000Z' : iso.slice(0, 10);
+  return hourly ? new Date(ts).toISOString().slice(0, 13) + ':00:00.000Z' : newYorkDay(ts);
 }
 
 /**

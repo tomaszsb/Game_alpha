@@ -19,7 +19,7 @@ import { initializeWebSocket, broadcastStateUpdate, broadcastToAllRooms, getRoom
 import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
 import { isHomeIP as isHomeIPPure, ipv6Prefix64 } from './homeIP.js';
-import { parseLogLine, aggregateVisitorStats } from './visitorStats.js';
+import { parseLogLine, aggregateVisitorStats, newYorkDay } from './visitorStats.js';
 import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields, tvSizeKeptLogFields } from './engagementStats.js';
 import geoip from 'geoip-lite';
 import {
@@ -2814,10 +2814,10 @@ app.get('/api/logs/summary', (req, res) => {
     const content = fs.readFileSync(CONFIG.LOG_FILE, 'utf8');
     const lines = content.trim().split('\n').filter(Boolean);
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = newYorkDay(Date.now()); // New York day, same as the Site Stats chart
     const todayLogs = lines
       .map(line => { try { return JSON.parse(line); } catch { return null; } })
-      .filter(log => log && log.timestamp?.startsWith(today));
+      .filter(log => log && log.timestamp && newYorkDay(Date.parse(log.timestamp)) === today);
 
     const uniqueIPs = new Set(todayLogs.map(l => l.ip));
     const gamesCreated = todayLogs.filter(l => l.action === 'CREATE_GAME').length;

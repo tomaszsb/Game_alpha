@@ -16,7 +16,9 @@ const REFRESH_MS = 60 * 1000;
 const CHART_COLORS = ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#17a2b8', '#fd7e14', '#6c757d'];
 
 function fmtBucket(bucket: string, window: StatsWindow): string {
-  const d = new Date(bucket);
+  // A day bucket is a plain 'YYYY-MM-DD' (a New York day). Read it as local noon, not UTC midnight,
+  // so the label is that same day in any time zone (UTC midnight showed as the day before in the US).
+  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(bucket) ? `${bucket}T12:00:00` : bucket);
   if (Number.isNaN(d.getTime())) return bucket;
   return window === '24h'
     ? d.toLocaleTimeString(undefined, { hour: 'numeric' })

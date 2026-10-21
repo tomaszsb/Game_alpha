@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.32] - 2026-10-21
+
+**Site Stats days are New York days, not UTC (Tom 10-21).** The chart's daily buckets and the daily summary (`/api/logs/summary`) cut the day at UTC midnight, which is 8 PM Eastern in summer, so the Farmingdale evening (1-9 PM) was split in two and "today" showed 7 games when the evening had 38. Now `newYorkDay()` in `server/visitorStats.js` (America/New_York, handles summer/winter time) makes the buckets; the chart label reads a day bucket as that day in any time zone (it used to show the day before for US viewers). The "visits today" tile was already a rolling 24 hours and is unchanged. Hourly (24h) buckets are still UTC hours. Tests: 2 in `tests/server/visitorStats.test.ts`. 302 files / 4059 green, build clean. Not deployed.
+
 ## [3.8.31] - 2026-10-21
 
 **The start screen says you need a TV AND phones for TV mode.** Farmingdale class (Tom, 10-20): students on phones kept tapping the middle "TV" button, thinking a phone alone plays, and could not start (TV mode waits until every player scans in). Mechanism found in the setup screen: the TV button said "Phones + TV", and the yellow phone-size banner told people on a phone to "just tap TV above" (meant for a real TV that reports a small screen). Now: buttons read "Play on this screen" / "You need a TV and phones" / "Each on their own device"; on a phone-sized screen a hint says "On a phone? Pick PC to play right here", and if TV is picked it says the phone can't be the TV and to pick PC; the banner's "just tap TV above" is gone. `ModeToggle.tsx`, `PhoneScreenWarning.tsx`. Tests: `tests/components/setup/ModePhoneHint.test.tsx`. Seen in a real browser at 375x812 (hint fits, buttons wrap to 4 short lines); not seen on a real phone. 302 files / 4057 green, build clean. Not deployed.
