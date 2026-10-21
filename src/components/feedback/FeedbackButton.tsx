@@ -9,7 +9,7 @@ import { ModalBase, modalButtonStyles } from '../modals/shared/ModalBase';
 import { colors } from '../../styles/theme';
 import { getGameStateAPIPath, getCurrentGameId } from '../../utils/networkDetection';
 import { getConsoleLogs } from '../../utils/consoleCapture';
-import { liftModalsForCapture } from '../../utils/screenshotClone';
+import { liftModalsForCapture, flattenModernColorsForCapture } from '../../utils/screenshotClone';
 import { collectDiagnostics } from '../../utils/feedbackDiagnostics';
 import { IconBug } from '../icons/SetupIcons';
 
@@ -123,7 +123,7 @@ export function FeedbackButton(): JSX.Element {
         scale: 1, // 1x scale to keep file size manageable
         // A modal opened inside the player panel was clipped out of the
         // capture by the panel's overflow (fb:f33ae50b) — see screenshotClone.
-        onclone: (clonedDoc) => { liftModalsForCapture(clonedDoc); },
+        onclone: (clonedDoc) => { liftModalsForCapture(clonedDoc); flattenModernColorsForCapture(clonedDoc); },
       });
       const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
       setScreenshot(dataUrl);

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.30] - 2026-10-21
+
+**Bug-report screenshots work again inside a game.** 10 of the last 14 reports (10-19 to 10-21, including both of a Farmingdale student's) were saved with no picture: console "Screenshot capture failed: Attempting to parse an unsupported color function "color"". Mechanism: the player-coloured panel frame is `color-mix(in srgb, ...)` (`src/utils/panelFrame.ts`); Chrome reports it as `color(srgb r g b)` and html2canvas 1.4.1 cannot parse that, so the whole capture threw. `flattenModernColorsForCapture` (`src/utils/screenshotClone.ts`, called from `FeedbackButton.tsx` onclone) writes plain rgb() over those values on the clone only. Reproduced and fixed in a real Chrome with html2canvas (fails without, captures with: 6 properties rewritten). Tests: `tests/utils/screenshotColors.test.ts`; 301 files / 4053 green, build clean. Not deployed. The old reports stay without pictures.
+
 ## [3.8.29] - 2026-10-20
 
 Two things Tom asked for after looking at the board path chart.

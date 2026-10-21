@@ -36,3 +36,53 @@ export function liftModalsForCapture(doc: Document): number {
   layers.forEach((layer) => doc.body.appendChild(layer));
   return layers.size;
 }
+
+// fb:feedback-1792542634551-92e01028 / b5689dfa (and 8 more since 2026-10-19) - "Screenshot capture
+// failed: Attempting to parse an unsupported color function "color"". Mechanism: the player-coloured
+// panel frame is `color-mix(in srgb, ...)` (src/utils/panelFrame.ts). Chrome reports a colour made by
+// color-mix as `color(srgb r g b)` in getComputedStyle, and html2canvas 1.4.1 cannot parse that, so
+// the whole capture threw and the report was saved with no picture (10 of the last 14 reports).
+// The fix is again on the CLONE only: write every such value back as plain rgb() before html2canvas reads it.
+
+const COLOR_FN = /color\((?:[^()]|\([^()]*\))*\)/g;
+const COLOR_PROPS = [
+  'color', 'background-color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+  'outline-color', 'text-decoration-color', 'caret-color', 'column-rule-color', 'box-shadow', 'text-shadow', 'background-image',
+];
+
+/** Turns any CSS colour into rgb()/rgba() by painting one pixel; null when the browser cannot read it. */
+export function colorToRgb(doc: Document, value: string): string | null {
+  const canvas = doc.createElement('canvas');
+  canvas.width = canvas.height = 1;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.clearRect(0, 0, 1, 1);
+  ctx.fillStyle = '#000';
+  ctx.fillStyle = value; // an unreadable value leaves the black we just set
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+  return a === 255 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${Math.round((a / 255) * 1000) / 1000})`;
+}
+
+/** Rewrites every `color(...)` in `value` through `toRgb`. Pure so it can be tested without a browser. */
+export function replaceColorFunctions(value: string, toRgb: (c: string) => string | null): string {
+  return value.replace(COLOR_FN, (m) => toRgb(m) ?? 'rgb(0, 0, 0)');
+}
+
+/** On the clone, writes plain rgb() over every computed colour html2canvas cannot parse. Returns how many properties changed. */
+export function flattenModernColorsForCapture(doc: Document, toRgb: (c: string) => string | null = (c) => colorToRgb(doc, c)): number {
+  const view = doc.defaultView;
+  if (!view) return 0;
+  let changed = 0;
+  doc.querySelectorAll<HTMLElement>('*').forEach((el) => {
+    const cs = view.getComputedStyle(el);
+    for (const prop of COLOR_PROPS) {
+      const v = cs.getPropertyValue(prop);
+      if (v && v.includes('color(')) {
+        el.style.setProperty(prop, replaceColorFunctions(v, toRgb), 'important');
+        changed++;
+      }
+    }
+  });
+  return changed;
+}
