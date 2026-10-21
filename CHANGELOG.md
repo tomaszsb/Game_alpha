@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.31] - 2026-10-21
+
+**The start screen says you need a TV AND phones for TV mode.** Farmingdale class (Tom, 10-20): students on phones kept tapping the middle "TV" button, thinking a phone alone plays, and could not start (TV mode waits until every player scans in). Mechanism found in the setup screen: the TV button said "Phones + TV", and the yellow phone-size banner told people on a phone to "just tap TV above" (meant for a real TV that reports a small screen). Now: buttons read "Play on this screen" / "You need a TV and phones" / "Each on their own device"; on a phone-sized screen a hint says "On a phone? Pick PC to play right here", and if TV is picked it says the phone can't be the TV and to pick PC; the banner's "just tap TV above" is gone. `ModeToggle.tsx`, `PhoneScreenWarning.tsx`. Tests: `tests/components/setup/ModePhoneHint.test.tsx`. Seen in a real browser at 375x812 (hint fits, buttons wrap to 4 short lines); not seen on a real phone. 302 files / 4057 green, build clean. Not deployed.
+
 ## [3.8.30] - 2026-10-21
 
 **Bug-report screenshots work again inside a game.** 10 of the last 14 reports (10-19 to 10-21, including both of a Farmingdale student's) were saved with no picture: console "Screenshot capture failed: Attempting to parse an unsupported color function "color"". Mechanism: the player-coloured panel frame is `color-mix(in srgb, ...)` (`src/utils/panelFrame.ts`); Chrome reports it as `color(srgb r g b)` and html2canvas 1.4.1 cannot parse that, so the whole capture threw. `flattenModernColorsForCapture` (`src/utils/screenshotClone.ts`, called from `FeedbackButton.tsx` onclone) writes plain rgb() over those values on the clone only. Reproduced and fixed in a real Chrome with html2canvas (fails without, captures with: 6 properties rewritten). Tests: `tests/utils/screenshotColors.test.ts`; 301 files / 4053 green, build clean. Not deployed. The old reports stay without pictures.

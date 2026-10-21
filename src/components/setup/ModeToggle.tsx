@@ -72,13 +72,13 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
             textAlign: 'center',
             lineHeight: 1.3,
           }}
-          title="All players share one screen, taking turns."
+          title="Play on this one screen. One player alone, or everyone taking turns."
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
             <IconDesktop size="1em" /> PC
           </span>
           <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
-            Shared screen
+            Play on this screen
           </div>
         </button>
         <button
@@ -98,13 +98,13 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
             textAlign: 'center',
             lineHeight: 1.3,
           }}
-          title="Board on the TV; each player on their own phone or tablet."
+          title="You need BOTH: the board on a TV, and each player on their own phone or tablet."
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
             <IconTV size="1em" /> TV
           </span>
           <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
-            Phones + TV
+            You need a TV and phones
           </div>
         </button>
         {/* Remote (maintainer request 2026-07-14, built 2026-09-25): a third
@@ -128,16 +128,31 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
             textAlign: 'center',
             lineHeight: 1.3,
           }}
-          title="Play with everyone in a different location — no shared screen needed."
+          title="Everyone plays on their own device, in different places. Each player opens an invite link."
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
             <IconGlobe size="1em" /> Remote
           </span>
           <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
-            Different places
+            Each on their own device
           </div>
         </button>
       </div>
+      {/* Added 2026-10-21 (Farmingdale class): students on a phone kept picking the middle
+          button, thinking a phone alone can play it. TV mode needs a TV (the board) AND each
+          player's phone, and the game will not start until the others scan in. A phone screen
+          is never the TV, so on a phone the way to play alone is PC. */}
+      {isPhoneScreen() && (
+        <div role={selectedMode === 'tv' ? 'alert' : undefined} data-testid="mode-phone-hint" style={{
+          marginTop: '0.6rem', padding: '0.5rem 0.65rem', borderRadius: 8, fontSize: '0.8rem', lineHeight: 1.35,
+          background: selectedMode === 'tv' ? '#fdecea' : '#eef5ff',
+          border: `1px solid ${selectedMode === 'tv' ? '#f5a6a0' : '#bcd4f6'}`, color: colors.text.primary,
+        }}>
+          {selectedMode === 'tv'
+            ? <>TV needs a TV showing the board <b>and</b> a phone for every player. This phone can&apos;t be the TV, so the game would never start. <b>To play on this phone, pick PC.</b></>
+            : <>On a phone? Pick <b>PC</b> to play right here. TV and Remote need other screens or phones to join too.</>}
+        </div>
+      )}
       {/* The general "every player joins from their phone" instruction
           was dropped from TV mode — vertical room is scarce on TV, and
           each tile's own "⚠ Required: scan to join" label already says

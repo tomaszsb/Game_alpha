@@ -3,6 +3,11 @@
 ---
 
 
+## v3.8.30 and v3.8.31 — Start screen and bug-report pictures (October 21, 2026)
+
+- **The start screen is clearer.** The three buttons now say "Play on this screen", "You need a TV and phones", and "Each on their own device". On a phone it tells you to pick PC to play right there.
+- **Bug-report screenshots** work again once a game is under way.
+
 ## v3.8.29 — Opened walls and a safer Hire button (October 20, 2026)
 
 - **Opened walls:** with a budget inspector, or with none named, there is now a small chance (1 in 6 on the bad outcome) that they open a wall, find something nobody drew, and the engineer has to look again. The top inspection agency never does this.
