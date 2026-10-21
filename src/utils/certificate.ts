@@ -26,6 +26,8 @@ export function buildCertificateHtml(
   date: Date,
   why: Array<{ question: string; answer: string }> = [],
   course: CourseChoice = '',
+  /** Where the page is served from, so the logo loads in the new tab (blank in tests). */
+  origin = '',
 ): string {
   const name = escapeHtml(playerName.trim() || 'A Player');
   const answered = why.filter(w => w.answer.trim());
@@ -45,6 +47,9 @@ ${answered.map(w => `  <p class="q">${escapeHtml(w.question)}</p>
   @page { size: letter landscape; margin: 0.5in; }
   body { font-family: Georgia, 'Times New Roman', serif; color: #1f2937; margin: 0; padding: 16px; text-align: center; }
   .frame { border: 6px double #1e3a5f; padding: 40px 24px; max-width: 900px; margin: 0 auto; }
+  .logo { display: block; margin: 0 auto 8px; height: 64px; width: auto; }
+  .more { margin: 22px 0 0; font-size: 0.9rem; color: #4b5563; }
+  .more a { color: #1e3a5f; text-decoration: underline; }
   h1 { font-size: 2.2rem; margin: 0 0 8px; color: #1e3a5f; }
   .small { font-size: 1rem; color: #4b5563; margin: 8px 0; }
   .name { font-size: 2.4rem; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #9ca3af; display: inline-block; padding: 0 24px 4px; max-width: 100%; box-sizing: border-box; overflow-wrap: anywhere; }
@@ -60,6 +65,7 @@ ${answered.map(w => `  <p class="q">${escapeHtml(w.question)}</p>
   @media print { .print-button { display: none; } }
 </style></head><body>
 <div class="frame">
+  <img class="logo" src="${origin}/images/logo.png" alt="Unravel Codes">
   <h1>Certificate of Completion</h1>
   <p class="small">This certifies that</p>
   <div class="name">${name}</div>
@@ -69,6 +75,7 @@ ${answered.map(w => `  <p class="q">${escapeHtml(w.question)}</p>
   <p class="small"><strong>${dateText}</strong></p>
   <p class="small">Course (SUNY Farmingdale)</p>
   <p class="course">${COURSES.map(c => `<span data-course="${c}"><i class="box">${course === c ? '&#10003;' : ''}</i>Course ${c}</span>`).join('')}</p>
+  <p class="more">Visit our other sites: <a href="https://iqarius.com">iqarius.com</a> &middot; <a href="https://www.watchorder.tv/">watchorder.tv</a></p>
 </div>${answersHtml}
 <button class="print-button" id="print-btn">Print / Save as PDF</button>
 </body></html>`;
@@ -83,7 +90,7 @@ export function openCertificate(
   const win = window.open('', '_blank');
   if (!win) return false;
   win.document.open();
-  win.document.write(buildCertificateHtml(playerName, new Date(), why, course));
+  win.document.write(buildCertificateHtml(playerName, new Date(), why, course, window.location.origin));
   win.document.close();
   // No inline onclick: the app's CSP blocks inline handlers, and the new tab inherits it.
   win.document.getElementById('print-btn')?.addEventListener('click', () => win.print());

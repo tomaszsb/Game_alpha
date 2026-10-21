@@ -32,3 +32,20 @@ describe('Active games list: home / off-network', () => {
     expect(screen.getByText(/2p: Ann, Bo/)).toBeInTheDocument();
   });
 });
+
+describe('AdminGameManager helpers (admin list shows how far each game is)', () => {
+  it('placeWords makes a space id readable', async () => {
+    const { placeWords } = await import('../../../src/components/setup/AdminGameManager');
+    expect(placeWords('ARCH-FEE-REVIEW')).toBe('Arch Fee Review');
+    expect(placeWords(undefined)).toBe('');
+  });
+  it('agoWords says how long ago in plain words', async () => {
+    const { agoWords } = await import('../../../src/components/setup/AdminGameManager');
+    const now = Date.parse('2026-10-21T12:00:00Z');
+    expect(agoWords('2026-10-21T11:59:40Z', now)).toBe('just now');
+    expect(agoWords('2026-10-21T11:56:00Z', now)).toBe('4 min ago');
+    expect(agoWords('2026-10-21T09:00:00Z', now)).toBe('3 h ago');
+    expect(agoWords('2026-10-19T12:00:00Z', now)).toBe('2 days ago');
+    expect(agoWords(undefined, now)).toBe('');
+  });
+});

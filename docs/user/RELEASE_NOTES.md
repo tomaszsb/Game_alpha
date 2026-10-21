@@ -3,6 +3,13 @@
 ---
 
 
+## v3.8.36 and v3.8.37 — Clearer history, costs and certificate (October 21, 2026)
+
+- **The Money page shows what an expeditor card costs**, and **History shows the turn in progress** (marked "not final yet").
+- **"Pick Your Path" is now "Your Office".**
+- **Day and money bubbles** rise from the building where the work was done.
+- **The certificate** has the logo and links to our other sites. **The end screen** is wider and shorter.
+
 ## v3.8.33 to v3.8.35 — Warnings, steadier pop-ups, and a smarter office (October 21, 2026)
 
 - **"You would be short" warnings** now show before you hire a builder or pick a place whose fee you cannot cover.

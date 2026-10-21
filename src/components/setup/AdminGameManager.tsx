@@ -12,6 +12,26 @@ interface GameInfo {
   playerNames: string[];
   gamePhase: string;
   origin?: 'home' | 'foreign' | 'unknown';
+  lastActivity?: string | number;
+  turn?: number;
+  currentSpace?: string;
+  isGameOver?: boolean;
+}
+
+/** "ARCH-FEE-REVIEW" -> "Arch Fee Review": plain words for the admin list. */
+export function placeWords(spaceId: string | undefined): string {
+  return (spaceId || '').toLowerCase().split('-').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+}
+
+/** "just now", "4 min ago", "3 h ago", "2 days ago". */
+export function agoWords(ts: string | number | undefined, now: number = Date.now()): string {
+  const t = typeof ts === 'number' ? ts : ts ? Date.parse(ts) : NaN;
+  if (!Number.isFinite(t)) return '';
+  const min = Math.max(0, Math.round((now - t) / 60000));
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min} min ago`;
+  if (min < 60 * 24) return `${Math.round(min / 60)} h ago`;
+  return `${Math.round(min / 1440)} days ago`;
 }
 
 /**
@@ -167,6 +187,14 @@ export function AdminGameManager(): JSX.Element {
               }}>
                 {game.origin && game.origin !== 'unknown' && (
                   <span
+                    data-testid={`game-whose-${game.origin}`}
+                    style={{ fontSize: '0.65rem', fontWeight: 700, padding: '1px 6px', borderRadius: 8, color: 'white', backgroundColor: game.origin === 'home' ? '#6c757d' : '#198754' }}
+                  >
+                    {game.origin === 'home' ? 'MINE' : 'STUDENT'}
+                  </span>
+                )}
+                {game.origin && game.origin !== 'unknown' && (
+                  <span
                     data-testid={`game-origin-${game.origin}`}
                     title={game.origin === 'home' ? 'Started from the home network' : 'Started from outside the home network'}
                     aria-label={game.origin === 'home' ? 'Home game' : 'Off-network game'}
@@ -180,6 +208,12 @@ export function AdminGameManager(): JSX.Element {
                 <span data-testid="game-players" style={{ color: colors.text.secondary, flex: '1 1 100%', order: 3, fontSize: '0.75rem' }}>
                   {game.playerCount}p{game.playerNames.length > 0 && `: ${game.playerNames.slice(0, 3).join(', ')}`}
                   {game.playerNames.length > 3 && '...'}
+                </span>
+                <span data-testid="game-progress" style={{ color: colors.text.secondary, flex: '1 1 100%', order: 3, fontSize: '0.75rem' }}>
+                  {game.isGameOver ? 'Finished' : game.gamePhase === 'PLAY' || (game.turn ?? 0) > 0 ? 'Playing' : 'Setting up'}
+                  {(game.turn ?? 0) > 0 && ` · turn ${game.turn}`}
+                  {game.currentSpace && !game.isGameOver && ` · at ${placeWords(game.currentSpace)}`}
+                  {agoWords(game.lastActivity) && ` · last move ${agoWords(game.lastActivity)}`}
                 </span>
                 <button
                   type="button"

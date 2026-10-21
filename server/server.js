@@ -2453,7 +2453,11 @@ app.get('/api/games', (req, res) => {
     // 'home' / 'foreign' once the game has started (known from who pressed Start); 'unknown' for a game not started yet.
     origin: data.startedFromHome === true ? 'home' : data.startedFromHome === false ? 'foreign' : 'unknown',
     createdAt: data.createdAt,
-    lastActivity: data.lastActivity
+    lastActivity: data.lastActivity,
+    // How far along (admin list, Tom 2026-10-21 fb:1c3dde23): the turn count, where the current player stands, and whether it is over.
+    turn: data.state?.globalTurnCount ?? 0,
+    currentSpace: (data.state?.players?.find(p => p.id === data.state?.currentPlayerId) ?? data.state?.players?.[0])?.currentSpace || '',
+    isGameOver: data.state?.isGameOver === true
   }));
 
   res.json({

@@ -260,7 +260,7 @@ export function EndGameModal(): JSX.Element {
       onClose={handlePlayAgain}
       title={lossCopy ? lossCopy.title : (customTitle || 'Game Complete!')}
       emoji={lossCopy ? '💸' : theme.emoji.celebration}
-      maxWidth="600px"
+      maxWidth="1000px"
       headerColor={lossCopy ? colors.danger.light : colors.success.light}
       headerBorderColor={lossCopy ? colors.danger.main : colors.success.main}
       footer={footer}
@@ -542,7 +542,7 @@ interface EndGameStatsPanelProps {
 
 function EndGameStatsPanel({ stats, gameEndTime, journeyOpen, onToggleJourney }: EndGameStatsPanelProps): JSX.Element {
   const sectionStyle: React.CSSProperties = {
-    marginBottom: '12px',
+    marginBottom: 0,
     padding: '14px 16px',
     backgroundColor: '#f8f9fa',
     borderRadius: theme.borderRadius.lg,
@@ -559,7 +559,9 @@ function EndGameStatsPanel({ stats, gameEndTime, journeyOpen, onToggleJourney }:
   };
 
   return (
-    <div data-testid="end-game-stats" style={{ textAlign: 'left', marginBottom: '20px' }}>
+    // Wider and shorter (Tom, fb:3ca61654, 2026-10-19): the cards sit side by side where the width allows
+    // (two or three across on a laptop, one column on a phone) instead of one long stack.
+    <div data-testid="end-game-stats" style={{ textAlign: 'left', marginBottom: '20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '12px', alignItems: 'start' }}>
 
       {/* Headline numbers — the four things the user said matter most */}
       <div style={{ ...sectionStyle, backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }}>
@@ -619,7 +621,7 @@ function EndGameStatsPanel({ stats, gameEndTime, journeyOpen, onToggleJourney }:
 
       {/* Movement log — collapsible. Default closed because long. */}
       {stats.journey.length > 0 && (
-        <div style={sectionStyle}>
+        <div style={{ ...sectionStyle, gridColumn: '1 / -1' }}>
           <button
             type="button"
             onClick={onToggleJourney}

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.37] - 2026-10-21
+
+The last three class reports (fb:f2ba1691, 3ca61654, 1c3dde23).
+- **Certificate:** the Unravel logo at the top, and at the bottom "Visit our other sites: iqarius.com · watchorder.tv" as links (Tom's words: his father's and his son's sites). Checked in a real browser at 360x640 and 390x844 (no sideways scroll, boxes drawn) and saved to PDF (one page, logo and links show, course box ticked). `src/utils/certificate.ts` takes the page origin so the logo loads in the new tab.
+- **End-of-game screen is wider and shorter:** the pop-up is 1000 px wide instead of 600, and the summary cards sit side by side (two or three across on a laptop, one column on a phone) instead of one long stack; the journey list spans the full width. `EndGameModal.tsx`. Not seen on a real end screen (no game was played to the end here), so the grid is unverified by eye.
+- **Admin game list shows whose game and how far:** MINE (started from home) or STUDENT, Playing / Finished / Setting up, the turn number, where the current player stands, and "last move N min ago". `/api/games` now sends `turn`, `currentSpace`, `isGameOver`. `AdminGameManager.tsx`. 306 files / 4077 green, build clean. Not deployed.
+
 ## [3.8.36] - 2026-10-21
 
 Four of the Farmingdale class reports (fb:f0de9095, ba8197fa, f3b3cbb7, 0ed31c3c, d912364b).
