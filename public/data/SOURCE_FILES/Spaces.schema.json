@@ -760,6 +760,15 @@
    "x-role": "behaviour",
    "x-group": "Push-back",
    "x-editable-by": "admin"
+  },
+  {
+   "name": "office_unlocked_by",
+   "type": "string",
+   "title": "Offered at the office once this is visited",
+   "description": "The step before this one. Once the player has visited that space, this space is offered at the office (the resume hub) for good, so an unlocked step stays unlocked. Blank = not offered there.",
+   "x-role": "routing",
+   "x-group": "How this space behaves",
+   "x-editable-by": "admin"
   }
  ]
 }

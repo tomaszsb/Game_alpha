@@ -143,6 +143,7 @@ export interface IDataService {
   getGameConfigBySpace(spaceName: string): GameConfig | undefined;
   isStartingSpace(spaceName: string): boolean;
   isResumeHub(spaceName: string): boolean;
+  getOfficeUnlocks(): { space: string; unlockedBy: string }[];
   isPointOfNoReturn(spaceName: string): boolean;
   hasFinalReviewGate(spaceName: string): boolean;
   // 2026-07-16: CSV-portability lift (replaces hardcoded DOB_EXAM_SPACE/

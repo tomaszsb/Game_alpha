@@ -177,6 +177,19 @@ export class MovementService implements IMovementService {
         validMoves = [...validMoves, ...approvedDestinations];
       }
 
+      // SPECIAL HANDLING: the office keeps every step you have unlocked (Tom, 2026-10-21, fb:550a3a99:
+      // "unlocked spaces should stay unlocked"). Once a player has visited a step's `office_unlocked_by`
+      // space (Spaces.csv), that step stays on the resume hub's list for good, even if they went to the
+      // office instead of taking it. Before this, choosing the office over the engineer at "See the
+      // Design" lost the engineer, and the only way back was another architect visit and a die.
+      if (this.dataService.isResumeHub(player.currentSpace) && !player.hasUsedCheatBypass) {
+        const unlocked = this.dataService.getOfficeUnlocks()
+          .filter(u => player.visitedSpaces.includes(u.unlockedBy))
+          .map(u => u.space)
+          .filter(dest => dest !== player.currentSpace && !validMoves.includes(dest));
+        validMoves = [...validMoves, ...unlocked];
+      }
+
       // SPECIAL HANDLING: Stage-1 approval gate bounce.
       // When a player reaches a `has_final_review_gate=Yes` space without the
       // required DOB and/or FDNY approval, ApprovalService.checkFinalReviewGate

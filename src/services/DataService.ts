@@ -248,6 +248,13 @@ export class DataService implements IDataService {
    * space, and offers those resume destinations when arrived-at later (after side
    * quest). Replaces hardcoded `=== 'PM-DECISION-CHECK'` checks in MovementService.
    */
+  /** Spaces that stay on the resume hub's list once their `office_unlocked_by` space has been visited. */
+  getOfficeUnlocks(): { space: string; unlockedBy: string }[] {
+    return this.getGameConfig()
+      .filter((c) => !!c.office_unlocked_by)
+      .map((c) => ({ space: c.space_name, unlockedBy: c.office_unlocked_by as string }));
+  }
+
   isResumeHub(spaceName: string): boolean {
     return this.getGameConfigBySpace(spaceName)?.is_resume_hub === true;
   }
@@ -1254,6 +1261,7 @@ export class DataService implements IDataService {
       // Workstream 6 #4: parse path-choice memory flags.
       const pathChoiceMemoryKey = get(values, 'path_choice_memory_key') || '';
       const isPathChoiceLockPoint = get(values, 'is_path_choice_lock_point') === 'Yes';
+      const officeUnlockedBy = get(values, 'office_unlocked_by') || '';
       // Workstream 6 Phase 6.3: cosmetic per-space overrides. Empty string when
       // missing — callers fall back to existing hardcoded behavior.
       const displayLabelOverride = get(values, 'display_label_override') || '';
@@ -1307,6 +1315,7 @@ export class DataService implements IDataService {
         // Workstream 6 #4: path-choice memory.
         path_choice_memory_key: pathChoiceMemoryKey,
         is_path_choice_lock_point: isPathChoiceLockPoint,
+        office_unlocked_by: officeUnlockedBy,
         // Workstream 6 Phase 6.3: cosmetic overrides.
         display_label_override: displayLabelOverride,
         review_loop_message: reviewLoopMessage,

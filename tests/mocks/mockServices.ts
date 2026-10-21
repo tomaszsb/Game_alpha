@@ -35,6 +35,7 @@ export const createMockDataService = (): any => ({
   getGameConfigBySpace: vi.fn(),
   isStartingSpace: vi.fn(() => false),
   isResumeHub: vi.fn(() => false),
+  getOfficeUnlocks: vi.fn(() => []),
   isPointOfNoReturn: vi.fn(() => false),
   hasFinalReviewGate: vi.fn(() => false),
   getSpaceForApprovalRole: vi.fn(() => null),

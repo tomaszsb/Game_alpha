@@ -11,6 +11,8 @@ export interface GameConfig {
   requires_dice_roll: boolean;
   // Workstream 6 #5+#6: resume-mechanic flags (Spaces.csv columns)
   is_resume_hub?: boolean;
+  /** Space whose visit makes this space stay on the resume hub's list for good (Spaces.csv `office_unlocked_by`). */
+  office_unlocked_by?: string;
   is_point_of_no_return?: boolean;
   // Workstream 6 #2: minimum project-scope cards required to leave this space
   // (0 = no guard). The "w" in the name is historical — which family counts is

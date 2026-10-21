@@ -3,6 +3,13 @@
 ---
 
 
+## v3.8.33 to v3.8.35 — Warnings, steadier pop-ups, and a smarter office (October 21, 2026)
+
+- **"You would be short" warnings** now show before you hire a builder or pick a place whose fee you cannot cover.
+- **A pop-up that freezes mid-swing** now snaps flat after a second.
+- **Neutral button words** ("See what the owner wants").
+- **The office keeps what you unlocked:** once you have finished the architect you can go to the engineer straight from the office, and once the engineer is done, the city filing. Steps inside each part still go in order.
+
 ## v3.8.30 and v3.8.31 — Start screen and bug-report pictures (October 21, 2026)
 
 - **The start screen is clearer.** The three buttons now say "Play on this screen", "You need a TV and phones", and "Each on their own device". On a phone it tells you to pick PC to play right there.

@@ -270,6 +270,8 @@ function processGameConfig(spacesCsv) {
     const isPathChoiceLockPoint = (row.is_path_choice_lock_point || '').trim() === 'Yes';
     // Workstream 6 Phase 6.3 (cosmetic mappings): display label override + review-loop message.
     // Empty values mean "use legacy fallback in code." Educators can set these per-space.
+    // Office revisit (Tom, 2026-10-21): the space whose visit makes THIS space stay on the office's list.
+    const officeUnlockedBy = (row.office_unlocked_by || '').trim();
     const displayLabelOverride = (row.display_label_override || '').trim();
     const reviewLoopMessage = (row.review_loop_message || '').trim();
     // Workstream 3 (Living Map): coordinate-driven board positions.
@@ -328,6 +330,7 @@ function processGameConfig(spacesCsv) {
       auto_trigger_card_types: autoTriggerCardTypes,
       path_choice_memory_key: pathChoiceMemoryKey,
       is_path_choice_lock_point: isPathChoiceLockPoint ? 'Yes' : 'No',
+      office_unlocked_by: officeUnlockedBy,
       display_label_override: displayLabelOverride,
       review_loop_message: reviewLoopMessage,
       pos_x: String(posX),
@@ -353,7 +356,9 @@ function processGameConfig(spacesCsv) {
     'has_final_review_gate',
     'approval_role',
     'npc_speaker',
-    'auto_roll_dice'
+    'auto_roll_dice',
+    // Added last so readers that index columns by position keep working.
+    'office_unlocked_by'
   ];
 
   return toCsv(Object.values(configs), fieldnames);
