@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Housekeeping] 2026-10-21 - one-off failure in the full-game test (tests only, no version)
+
+`tests/E2E-LogicPlaythrough.test.ts` failed once inside a full `npm test` run (3392f388's check) and passed on 120 later reruns (alone, under CPU load, and in a second full run), so the cause was not seen. Its scripted path still uses random arrival rolls and card shuffles; a random life event could in theory change the route. The test now pins `Math.random` to a 6 (no space on its path draws a life event on a 6). A precaution, not a confirmed fix: if the Tower's deploy gate trips on it again, read the failure text before rerunning.
+
 ## [3.8.39] - 2026-10-21
 
 **History turn headers use the names players see.** Tom pasted the History of live game G-9PH5-P452 (a Mac, 12:48-12:56 AM): the headers read "Turn 3 · 📍 PM Check", "Turn 4 · 📍 Initiation", "Turn 5 · 📍 Fee Review", "Turn 6 · 📍 Scope Check", "Turn 12 · 📍 Plan Exam" (internal short names, three different spaces all "Initiation" or "Scope Check"). They now read the board names ("Your Office", "Find an Architect", "Architect's Fee", "See the Design", "City Checks Plans"): `HistoryFeed.buildTurnBlocks(entries, labelOf)` with `display_label_override`. The same paste confirmed the push-backs at the plan exam (turns 12 and 13) show "Used Try Again: 10 day penalty applied" (reworded in 3.8.38). Test: 1 in `HistoryFeed.test.tsx`. Other things seen in that history, not changed: "outcome came back at ..." appears twice for a space with two dice rows, and system notes in game language ("Fee not applicable: No loan to charge against", "Cybersecurity Breach still affecting you"). 307 files / 4081 green, build clean. Not deployed.

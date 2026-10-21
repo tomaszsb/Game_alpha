@@ -75,6 +75,10 @@ describe('Logic E2E: Full Game Playthrough', () => {
     const playerId = player.id;
     stateService.setCurrentPlayer(playerId);
     stateService.startGame();
+    // The path rolls are scripted below, but each space's ARRIVAL roll and the card shuffles use Math.random, and a
+    // random life event card mid-run could change the route (this test failed once in a full run, 2026-10-21, and not in
+    // 120 reruns). Pin it to a 6: no space on this path draws a life event on a 6.
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
     await turnService.startTurn(playerId);
 
     console.log('🏁 Starting Logic Playthrough');
