@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.34] - 2026-10-21
+
+**A pop-up that freezes mid-swing is snapped flat.** Reports fb:b5689dfa ("floating at an angle ... as if the animation froze or broke. Can't read it at all", Windows Chrome, a Farmingdale student, 10-21), fb:83fcc4c4 ("it froze?", 10-19) and probably fb:92e01028 ("text incredibly blurry" while first opening it). Mechanism (read from `ModalBase.tsx`, not reproduced): a clipboard-style pop-up swings down with a `rotateX(-75deg)` flip that framer-motion draws frame by frame from script; on a busy page (that student's log had 9 ResizeObserver loop errors in 3 minutes) a stalled frame leaves it tilted and unreadable. Now, 1.2 s after any pop-up opens, one still tilted is set flat and fully visible (`settleTiltedModal`); a healthy one (the swing takes 0.2 s) is never touched. Tests: `tests/components/modals/ModalSettle.test.tsx`. Not seen to freeze here; the cause of the stall itself (the ResizeObserver loop) is still open. 304 files / 4067 green, build clean. Not deployed.
+
 ## [3.8.33] - 2026-10-21
 
 Two class fixes (Tom 10-21; reports fb:43687abb and the three bankruptcies at Hire a Special Inspector).

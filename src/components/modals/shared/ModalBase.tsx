@@ -107,6 +107,19 @@ const flipVariants = prefersReducedMotion
     exit: { opacity: 0, rotateX: -75, transformPerspective: 900 },
   };
 
+/** How long after opening a pop-up must be flat. The swing-down itself takes 0.2 s. */
+export const MODAL_SETTLE_MS = 1200;
+
+/** Snaps a pop-up that is still tilted (a flip that froze) to flat and fully visible. Returns true if it had to. */
+export function settleTiltedModal(el: HTMLElement | null): boolean {
+  if (!el) return false;
+  const tilted = Array.from(el.style.transform.matchAll(/rotate[XYZ]?\((-?[\d.]+)deg\)/g)).some((m) => Math.abs(parseFloat(m[1])) > 0.5);
+  if (!tilted) return false;
+  el.style.transform = 'none';
+  el.style.opacity = '1';
+  return true;
+}
+
 const shakeTransition = prefersReducedMotion
   ? {}
   : {
@@ -162,6 +175,17 @@ export function ModalBase({
   const clipboardLook = useContext(ClipboardLookContext);
   // A page of the clipboard: asked for outright, or any pop-up you play that opens over the panel.
   const board = clipboard ?? (panelRect && clipboardLook ? { color: clipboardLook.color } : undefined);
+
+  // Failsafe for a pop-up that stops partway through its swing-down (fb:b5689dfa "floating at an
+  // angle ... animation froze", fb:83fcc4c4 "it froze?", 2026-10-19/21, Windows Chrome on a busy
+  // page with ResizeObserver errors): the flip is drawn by script frame by frame, so if the frames
+  // stall the page is left tilted and unreadable. A second after it opens, if it is still tilted,
+  // snap it flat. The swing takes 0.2 s, so a healthy pop-up is never touched.
+  useEffect(() => {
+    if (!isOpen) return;
+    const t = window.setTimeout(() => { settleTiltedModal(modalRef.current); }, MODAL_SETTLE_MS);
+    return () => window.clearTimeout(t);
+  }, [isOpen]);
 
   // Check if mobile on mount and resize
   useEffect(() => {
