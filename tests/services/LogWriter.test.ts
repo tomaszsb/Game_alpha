@@ -34,14 +34,22 @@ describe('LogWriter', () => {
     });
   });
 
-  it('turn_discarded writes "Used Try Again" forcing isCommitted:true (must survive discardCurrentSession)', () => {
+  it('turn_discarded writes a plain "Pushed back" line with the days, forcing isCommitted:true (must survive discardCurrentSession)', () => {
     const { handleEvent, loggingService } = createLogWriter();
     handleEvent({ type: 'turn_discarded', playerId: 'p1', playerName: 'Alice', spaceName: 'REG-DOB-PLAN-EXAM', timePenalty: 2, tryAgainCount: 1 });
 
-    expect(loggingService.info).toHaveBeenCalledWith('Used Try Again: 2 day penalty applied', {
+    expect(loggingService.info).toHaveBeenCalledWith('Pushed back on the quote: 2 days added', {
       playerId: 'p1', playerName: 'Alice', action: 'try_again', spaceName: 'REG-DOB-PLAN-EXAM',
       timePenalty: 2, tryAgainCount: 1, isCommitted: true,
     });
+  });
+
+  it('a push-back that sends an expeditor says no days were lost; one day is singular', () => {
+    const { handleEvent, loggingService } = createLogWriter();
+    handleEvent({ type: 'turn_discarded', playerId: 'p1', playerName: 'Alice', spaceName: 'REG-DOB-AUDIT', timePenalty: 0, tryAgainCount: 1, expeditorsSent: 1 });
+    expect(loggingService.info).toHaveBeenCalledWith('Pushed back and sent an expeditor: no days lost', expect.anything());
+    handleEvent({ type: 'turn_discarded', playerId: 'p1', playerName: 'Alice', spaceName: 'X', timePenalty: 1, tryAgainCount: 2 });
+    expect(loggingService.info).toHaveBeenCalledWith('Pushed back on the quote: 1 day added', expect.anything());
   });
 
   it('dice_rolled (manual trigger) writes the emitter-composed logMessage verbatim', () => {

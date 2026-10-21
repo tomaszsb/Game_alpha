@@ -5,6 +5,8 @@
 // page built from the player's name and today's date, plus (v3.8.15) the student's own
 // answers to the "why" questions, so the teacher can talk them through in class.
 
+import { OTHER_SITES } from '../constants/otherSites';
+
 export const STRUCTURAL_JOKE =
   "A structural engineer's favorite game? Anything where the load is spread evenly and nobody has to take the weight alone.";
 
@@ -75,7 +77,7 @@ ${answered.map(w => `  <p class="q">${escapeHtml(w.question)}</p>
   <p class="small"><strong>${dateText}</strong></p>
   <p class="small">Course (SUNY Farmingdale)</p>
   <p class="course">${COURSES.map(c => `<span data-course="${c}"><i class="box">${course === c ? '&#10003;' : ''}</i>Course ${c}</span>`).join('')}</p>
-  <p class="more">Visit our other sites: <a href="https://iqarius.com">iqarius.com</a> &middot; <a href="https://www.watchorder.tv/">watchorder.tv</a></p>
+  <p class="more">Visit our other sites: ${OTHER_SITES.map(s => `<a href="${s.url}">${s.label}</a>`).join(' &middot; ')}</p>
 </div>${answersHtml}
 <button class="print-button" id="print-btn">Print / Save as PDF</button>
 </body></html>`;

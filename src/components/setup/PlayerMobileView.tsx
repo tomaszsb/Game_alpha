@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { colors } from '../../styles/theme';
+import { OtherSites } from '../common/OtherSites';
 import { AVAILABLE_COLORS, ColorOption } from './usePlayerValidation';
 import { Player } from '../../types/StateTypes';
 import { getCurrentGameId } from '../../utils/networkDetection';
@@ -256,6 +257,7 @@ export function PlayerMobileView({
 
       <footer style={styles.footer}>
         <strong>Beta Version</strong> · Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+        <br /><OtherSites linkColor={colors.primary.main} />
       </footer>
     </div>
   );

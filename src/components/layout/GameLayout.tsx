@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePanelMode, panelPalettes } from '../player/panelTheme';
 import { IconBug } from '../icons/SetupIcons';
 import { colors } from '../../styles/theme';
+import { OtherSites } from '../common/OtherSites';
 import { CardDetailsModal } from '../modals/CardDetailsModal';
 import { ChoiceModal } from '../modals/ChoiceModal';
 import { DiceResultModal } from '../modals/DiceResultModal';
@@ -1671,6 +1672,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           flexShrink: 0,
         }}>
           <strong>Beta</strong> · Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+          {' · '}<OtherSites linkColor={colors.primary.main} />
         </div>
       )}
 

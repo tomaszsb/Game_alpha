@@ -81,6 +81,9 @@ export const formatActionDescription = (entry: ActionLogEntry): string => {
     case 'approval_outcome_determined':
       return `📋 ${entry.description}`;
 
+    case 'try_again':
+      return `⏰ ${entry.description}`;
+
     case 'routed_back_to_review':
       return `🛂 ${entry.description}`;
 
@@ -120,6 +123,7 @@ const LOG_TYPE_LABELS: Record<ActionLogEntry['type'], string> = {
   approval_revoked: 'Approval revoked',
   approval_outcome_determined: 'Approval decided',
   routed_back_to_review: 'Sent back for review',
+  try_again: 'Pushed back',
 };
 
 export const getLogTypeLabel = (type: ActionLogEntry['type']): string =>

@@ -19,6 +19,7 @@ import { STRUCTURAL_JOKE } from '../../utils/certificate';
 import { buildWhyQuestions } from '../../utils/certificateQuestions';
 import { friendlySpaceName } from '../../utils/logFormatting';
 import { CertificateQuestions } from './CertificateQuestions';
+import { OtherSites } from '../common/OtherSites';
 import { getTrophyRules, TROPHY_IDS } from '../../utils/trophyRules';
 import type { TrophyStandings } from '../../utils/trophyScoring';
 
@@ -455,6 +456,10 @@ export function EndGameModal(): JSX.Element {
             </p>
           </div>
         )}
+
+        <p style={{ margin: '16px 0 0', fontSize: '12px', textAlign: 'center', color: colors.text.secondary }}>
+          <OtherSites linkColor={colors.primary.main} />
+        </p>
       </div>
     </ModalBase>
   );

@@ -160,7 +160,7 @@ describe('E2E-03: Complex Space Features Test', () => {
 
     // 5. Verify action was logged
     const actionLogs = finalGameState.globalActionLog || [];
-    const tryAgainLog = actionLogs.find(log => log.description.includes('Try Again'));
+    const tryAgainLog = actionLogs.find(log => log.type === 'try_again' && /Pushed back on the quote: \d+ days? added/.test(log.description));
     expect(tryAgainLog).toBeDefined();
 
     console.log('✅ Space try-again functionality test passed');

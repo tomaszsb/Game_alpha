@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.38] - 2026-10-21
+
+- **"Visit our other sites: iqarius.com · watchorder.tv" everywhere Tom asked:** the bottom of the setup page (and the phone join page), the bottom of the game board, the bottom of the win and loss screens, and the printed certificate. One list in `src/constants/otherSites.ts`; the line is `components/common/OtherSites.tsx` (new tab, `noopener`). Seen in a real browser on the setup page; the board and end screens are only unit-checked. Tests: `tests/components/common/OtherSites.test.tsx`.
+- **A push-back now shows its days in History (fb:c61ec1f2: "turns 2-6 show no days ... they were negotiation").** The line was a "⚙️ Used Try Again: 5 day penalty applied" system note in game language; it is now "⏰ Pushed back on the quote: 5 days added" (or "Pushed back and sent an expeditor: no days lost"), a proper history type (`try_again`, `LogWriter.ts`, `actionLogFormatting.ts`). Confirmed headless that the push-back charges the days (5, 10, 15 over three) and that the old line was logged; could not read Tom's live game G-HWRE-W7ED (its state is in server memory and was not saved yet). Tests updated: `LogWriter.test.ts` (+1), `E2E-03_ComplexSpace.test.ts`. 307 files / 4080 green, build clean. Not deployed.
+
 ## [3.8.37] - 2026-10-21
 
 The last three class reports (fb:f2ba1691, 3ca61654, 1c3dde23).

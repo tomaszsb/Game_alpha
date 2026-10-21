@@ -32,8 +32,14 @@ export class LogWriter {
         // isCommitted:true is deliberate — this entry must survive the
         // discardCurrentSession() call that follows it (see TurnService's
         // tryAgainOnSpace, which emits this event before discarding).
+        // Plain words, player-facing, with the days (fb:c61ec1f2, 2026-10-19: "turns 2-6 show no days ...
+        // they were negotiation - they should show days"). It was a "⚙️ Used Try Again: N day penalty" system note.
         this.loggingService.info(
-          `Used Try Again: ${event.timePenalty} day penalty applied`,
+          event.expeditorsSent && event.expeditorsSent > 0
+            ? `Pushed back and sent an expeditor: no days lost`
+            : event.timePenalty > 0
+              ? `Pushed back on the quote: ${event.timePenalty} day${event.timePenalty === 1 ? '' : 's'} added`
+              : `Pushed back on the quote`,
           {
             playerId: event.playerId,
             playerName: event.playerName,

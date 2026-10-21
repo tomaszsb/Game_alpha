@@ -27,6 +27,7 @@ import { PhoneScreenWarning } from './PhoneScreenWarning';
 import { styles } from './PlayerSetup.styles';
 import { PlayerMobileView } from './PlayerMobileView';
 import { ModeToggle } from './ModeToggle';
+import { OtherSites } from '../common/OtherSites';
 import { ScreenSizeControl } from '../layout/ScreenSizeControl';
 import { GameSettingsPanel } from './GameSettingsPanel';
 import { DeviceSettingsPanel } from './DeviceSettingsPanel';
@@ -1248,6 +1249,7 @@ export function PlayerSetup({
       <footer style={styles.footer}>
         <strong>Beta Version</strong> - We’re improving daily.
         {' '}Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right), or email <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+        <br /><OtherSites linkColor={colors.primary.main} />
       </footer>
 
       {/* Your deck of spaces — browse, then change (CARD_LIBRARY_DESIGN.md stage 3) */}
