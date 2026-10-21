@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.33] - 2026-10-21
+
+Two class fixes (Tom 10-21; reports fb:43687abb and the three bankruptcies at Hire a Special Inspector).
+- **Neutral words on the dice buttons:** "See what he wants built / wants now" is "See what the owner wants built / now", "See what he's asking" (Architect's Fee) is "See what the architect is asking", "See what he'll cover now" (Lender Review) is "See what the lender will cover now", "See who he sends you" is "See who the owner sends you", and the work-added help says "how much work they want done". Data: `SPACE_EFFECTS.csv`, `DiceRoll Info.csv`, `ACTION_TOOLTIPS.csv` (and the 4 test files that quoted them). Other story text still uses "he/she" for named characters; not touched.
+- **"You would be short" before you commit, not only after.** All three class losses (turns 27-31) were bankruptcy checked at End Turn right after a builder was signed; the red End Turn note only appears once the bill has landed. Now: (1) each builder bid your cash cannot cover says so in red under that bid, with the shortfall and "Visit the lender first, or pick a cheaper builder"; (2) in the "where to go" list, a destination whose arrival fee is already known (fixed dollars or percent of scope) and bigger than your cash says "Costs $X when you get there. You have $Y, so you would be $Z short." Nothing is blocked; the fee types that cannot be known ahead (percent of loan, dice) are not guessed. Cards were already refused when unaffordable. `src/utils/moneyWarning.ts`; tests `tests/utils/moneyWarning.test.ts` and 2 in `BuilderBidsCard.test.tsx`. The destination line was unit-tested only, not seen in a real game. 303 files / 4065 green, build clean. Not deployed.
+
 ## [3.8.32] - 2026-10-21
 
 **Site Stats days are New York days, not UTC (Tom 10-21).** The chart's daily buckets and the daily summary (`/api/logs/summary`) cut the day at UTC midnight, which is 8 PM Eastern in summer, so the Farmingdale evening (1-9 PM) was split in two and "today" showed 7 games when the evening had 38. Now `newYorkDay()` in `server/visitorStats.js` (America/New_York, handles summer/winter time) makes the buckets; the chart label reads a day bucket as that day in any time zone (it used to show the day before for US viewers). The "visits today" tile was already a rolling 24 hours and is unchanged. Hourly (24h) buckets are still UTC hours. Tests: 2 in `tests/server/visitorStats.test.ts`. 302 files / 4059 green, build clean. Not deployed.

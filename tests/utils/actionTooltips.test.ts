@@ -23,8 +23,8 @@ import type { SpaceEffect } from '../../src/types/DataTypes';
  *   1. Does every "?" a player can actually press get authored copy? Before
  *      v3.2.69 only the 6 card rows did, and the 45 dice buttons — most of the
  *      action row, and the ones a beginner most needs explained — answered
- *      with the button's own label: tapping "?" on "See what he wants built"
- *      opened a box that said "See what he wants built."
+ *      with the button's own label: tapping "?" on "See what the owner wants built"
+ *      opened a box that said "See what the owner wants built."
  *   2. Is that copy in the game's voice? (No "dice", "roll", "card", "draw".)
  *
  * The check on (1) goes through the panel's OWN collapse helper, because two

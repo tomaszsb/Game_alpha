@@ -283,7 +283,7 @@ describe('E2E-01: Happy Path with New UI', () => {
     // "helper"/"help" confused 28 playtest hits (2026-09-12), and buttons can't
     // say "Expeditor" (that word is jargon, reserved for the tooltip).
     const pickUpCardsButton = await screen.findByRole('button', { name: /^\S*\s*Add a team member$/i }, { timeout: 5000 });
-    const rollForWCardsButton = await screen.findByRole('button', { name: /^\S*\s*See what he wants built$/i });
+    const rollForWCardsButton = await screen.findByRole('button', { name: /^\S*\s*See what the owner wants built$/i });
 
     // UI Interaction 1: Execute Manual Action: hire expeditors
     fireEvent.click(pickUpCardsButton);

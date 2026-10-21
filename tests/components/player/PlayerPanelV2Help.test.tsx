@@ -43,8 +43,8 @@ describe('PlayerPanelV2 — one "?" everywhere', () => {
   // which is exactly how a help card once followed a player to the next space.
   const diceEffect: any = {
     effect_type: 'dice', effect_action: 'dice_outcome', trigger_type: 'manual',
-    condition: '', effect_value: 'W Cards', description: 'See what he wants built',
-    button_label: 'See what he wants built',
+    condition: '', effect_value: 'W Cards', description: 'See what the owner wants built',
+    button_label: 'See what the owner wants built',
   };
 
   const guidance = { title: 'Meet the Owner', story: 'Sit down.', action_description: ACTION, outcome_description: OUTCOME };
@@ -177,7 +177,7 @@ describe('PlayerPanelV2 — one "?" everywhere', () => {
       setup({ effects: [drawEffect, diceEffect] });
       renderPanel();
       fireEvent.click(actionHelp(/What's this\? Bring in extra help/));
-      fireEvent.click(actionHelp(/What's this\? See what he wants built/));
+      fireEvent.click(actionHelp(/What's this\? See what the owner wants built/));
       expect(openCards()).toHaveLength(1);
       expect(actionHelp(/What's this\? Bring in extra help/)).toHaveAttribute('aria-expanded', 'false');
     });
@@ -213,7 +213,7 @@ describe('PlayerPanelV2 — one "?" everywhere', () => {
       // was still open on the next, showing the NEW space's text unasked.
       setup({ effects: [diceEffect] });
       renderPanel();
-      fireEvent.click(actionHelp(/What's this\? See what he wants built/));
+      fireEvent.click(actionHelp(/What's this\? See what the owner wants built/));
       expect(openCards()).toHaveLength(1);
 
       panelPlayer.currentSpace = 'ARCH-FEE-REVIEW';

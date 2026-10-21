@@ -1,7 +1,7 @@
 ﻿space_name,die_roll,visit_type,1,2,3,4,5,6,button_label,roll_group
-OWNER-SCOPE-INITIATION,W Cards,First,Draw 1,Draw 1,Draw 2,Draw 2,Draw 3,Draw 3,See what he wants built
-OWNER-SCOPE-INITIATION,W Cards,Subsequent,Draw 1,Draw 1,Draw 2,Draw 2,Draw 3,Draw 3,See what he wants now
-ARCH-FEE-REVIEW,Fees Paid,First,8%,8%,10%,10%,12%,12%,See what he's asking
+OWNER-SCOPE-INITIATION,W Cards,First,Draw 1,Draw 1,Draw 2,Draw 2,Draw 3,Draw 3,See what the owner wants built
+OWNER-SCOPE-INITIATION,W Cards,Subsequent,Draw 1,Draw 1,Draw 2,Draw 2,Draw 3,Draw 3,See what the owner wants now
+ARCH-FEE-REVIEW,Fees Paid,First,8%,8%,10%,10%,12%,12%,See what the architect is asking
 ARCH-FEE-REVIEW,Fees Paid,Subsequent,0%,0%,1%,1%,2%,2%,See what the extra costs
 ARCH-INITIATION,Next Step,Subsequent,ENG-INITIATION or PM-DECISION-CHECK,ENG-INITIATION or PM-DECISION-CHECK,ENG-INITIATION or PM-DECISION-CHECK,ARCH-FEE-REVIEW,ARCH-FEE-REVIEW,ARCH-FEE-REVIEW,
 ARCH-SCOPE-CHECK,W Cards,First,Remove 1,Draw 1,Replace 1,No change,No change,No change,See what the design adds
@@ -57,11 +57,11 @@ INVESTOR-FUND-REVIEW,I Cards,Subsequent,Draw 1,Draw 1,Draw 1,Draw 2,Draw 2,Draw 
 INVESTOR-FUND-REVIEW,Time outcomes,First,30 days,30 days,30 days,50 days,50 days,70 days ,See how long they take
 INVESTOR-FUND-REVIEW,Time outcomes,Subsequent,30 days,30 days,50 days,50 days,70 days,70 days ,See how long they take
 LEND-SCOPE-CHECK,W Cards,First,Remove 1,Draw 1,Draw 1,Replace 1,Replace 1,No change,See what the plan covers
-LEND-SCOPE-CHECK,W Cards,Subsequent,Remove 1,Draw 1,Replace 1,No change,No change,No change,See what he'll cover now
+LEND-SCOPE-CHECK,W Cards,Subsequent,Remove 1,Draw 1,Replace 1,No change,No change,No change,See what the lender will cover now
 OWNER-DECISION-REVIEW,W Cards,First,Remove 1,Draw 1,Draw 1,Replace 1,Replace 1,No change,See what the owner wants
 OWNER-DECISION-REVIEW,W Cards,Subsequent,Remove 1,Draw 1,Replace 1,No change,No change,No change,See the owner's call
-OWNER-DECISION-REVIEW,E cards,First,Remove 1,Draw 1,Draw 1,Replace 1,Replace 1,No change,See who he sends you
-OWNER-DECISION-REVIEW,E cards,Subsequent,Remove 1,Draw 1,Replace 1,No change,No change,No change,See who he sends you
+OWNER-DECISION-REVIEW,E cards,First,Remove 1,Draw 1,Draw 1,Replace 1,Replace 1,No change,See who the owner sends you
+OWNER-DECISION-REVIEW,E cards,Subsequent,Remove 1,Draw 1,Replace 1,No change,No change,No change,See who the owner sends you
 REG-DOB-AUDIT,Time outcomes,First,REG-DOB-FINAL-REVIEW,REG-DOB-PLAN-EXAM,REG-DOB-PLAN-EXAM,ARCH-INITIATION,ARCH-INITIATION,REG-FDNY-FEE-REVIEW,See how long the audit takes
 REG-DOB-AUDIT,Time outcomes,Subsequent,REG-DOB-FINAL-REVIEW,REG-FDNY-FEE-REVIEW,REG-DOB-PLAN-EXAM,REG-DOB-PLAN-EXAM,ARCH-INITIATION,REG-FDNY-FEE-REVIEW,See how long it takes to close
 REG-DOB-FEE-REVIEW,Time outcomes,First,,,,,,,See how long the counter takes

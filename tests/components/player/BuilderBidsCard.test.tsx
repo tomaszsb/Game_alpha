@@ -83,6 +83,21 @@ describe('BuilderBidsCard', () => {
     await waitFor(() => expect(hire).toHaveBeenCalledWith('p1', 'bid-2'));
   });
 
+  it('warns on exactly the bids the cash cannot cover, before anything is signed', () => {
+    const { gs } = services(atDesk({ money: 1_000_000 })); // covers $900K and $1.0M, not $1.2M
+    render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
+    const warnings = screen.getAllByTestId('builder-bid-short');
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].textContent).toContain('$200,000 short');
+    expect(warnings[0].textContent).toContain('Visit the lender');
+  });
+
+  it('says nothing when the cash covers every bid', () => {
+    const { gs } = services(atDesk({ money: 5_000_000 }));
+    render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
+    expect(screen.queryByTestId('builder-bid-short')).toBeNull();
+  });
+
   it('a tap does not hire: it says what a hold would do', async () => {
     const { gs, hire } = services(atDesk());
     render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);

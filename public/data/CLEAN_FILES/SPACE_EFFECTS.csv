@@ -12,7 +12,7 @@ START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_L,Beware that in the meantime life 
 START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_E,so don't forget to use your Expeditor help. Investor offers large loans at higher rates but takes longer.,,Add a team member,manual,,,,,,,Add a team member
 START-QUICK-PLAY-GUIDE,Subsequent,fee,deduct,Pay attention to fees - they accumulate quickly,,Pay Pay attention to fees - they accumulate quickly fees,auto,FIXED,,,,,,
 OWNER-SCOPE-INITIATION,First,cards,draw_E,1,,Add a team member,manual,,Here's one name: an expeditor I've worked with before. They file the papers and clear the city's objections. Hire more of your own when you need them.,,,,,Add a team member
-OWNER-SCOPE-INITIATION,First,dice,dice_outcome,W Cards,,See what he wants built,manual,,,,,,,See what he wants built
+OWNER-SCOPE-INITIATION,First,dice,dice_outcome,W Cards,,See what the owner wants built,manual,,,,,,,See what the owner wants built
 OWNER-SCOPE-INITIATION,First,time,add,1,,Spend 1 day,auto,,,,,,,
 OWNER-FUND-INITIATION,First,time,add,1,,Spend 1 day,auto,,,,,,,
 PM-DECISION-CHECK,First,cards,draw_L,1,dice_roll_1,Draw 1 if you roll a 1 L cards,auto,,,,,,,
@@ -26,7 +26,7 @@ LEND-SCOPE-CHECK,First,dice,dice_outcome,W Cards,,See what the plan covers,manua
 LEND-SCOPE-CHECK,First,time,add,5,,Spend 5 days,auto,,,,,,,
 LEND-SCOPE-CHECK,Subsequent,cards,draw_L,1,dice_roll_4,Draw 1 if you roll a 4 L cards,auto,,,,,,,
 LEND-SCOPE-CHECK,Subsequent,cards,return_e,1,,Let a team member go,manual,,,,,,,Let a team member go
-LEND-SCOPE-CHECK,Subsequent,dice,dice_outcome,W Cards,,See what he'll cover now,manual,,,,,,,See what he'll cover now
+LEND-SCOPE-CHECK,Subsequent,dice,dice_outcome,W Cards,,See what the lender will cover now,manual,,,,,,,See what the lender will cover now
 LEND-SCOPE-CHECK,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
 BANK-FUND-REVIEW,First,cards,draw_B,1,,See the bank's terms,manual,,,,,Accept Bank Loan,,See the bank's terms
 BANK-FUND-REVIEW,First,time,add,1,per_200k,Spend 1 day per $200K,auto,,,,,,,
@@ -51,7 +51,7 @@ ARCH-INITIATION,Subsequent,cards,draw_L,1,dice_roll_2,Draw 1 if you roll a 2 L c
 ARCH-INITIATION,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
 ARCH-FEE-REVIEW,First,cards,draw_L,1,dice_roll_3,Draw 1 if you roll a 3 L cards,auto,,You've been on this job a while — sometimes things just happen. Keep your head down and hope today isn't one of those days.,,,,,
 ARCH-FEE-REVIEW,First,cards,return_e,1,,Let a team member go,manual,,"You're cutting staff to save budget. One of your expeditors has to go — pick carefully, they're hard to replace.",,,,,Let a team member go
-ARCH-FEE-REVIEW,First,dice,dice_outcome,Fees Paid,,See what he's asking,manual,,,,,,,See what he's asking
+ARCH-FEE-REVIEW,First,dice,dice_outcome,Fees Paid,,See what the architect is asking,manual,,,,,,,See what the architect is asking
 ARCH-FEE-REVIEW,First,time,add,50,,Spend 50 days,auto,,,,,,,
 ARCH-FEE-REVIEW,Subsequent,cards,draw_L,1,dice_roll_4,Draw 1 if you roll a 4 L cards,auto,,"Back again, and life doesn't stop throwing curveballs. Roll the dice and see what lands.",,,,,
 ARCH-FEE-REVIEW,Subsequent,cards,draw_E,1,,Bring in more help,manual,,Your architect friend recommends someone new. Add them to your roster — you'll need the help later.,,,,,Bring in more help
@@ -83,11 +83,11 @@ ENG-SCOPE-CHECK,Subsequent,dice,dice_outcome,W Cards,,See what changed,manual,,,
 ENG-SCOPE-CHECK,Subsequent,time,add,15,,Spend 15 days,auto,,,,,,,
 OWNER-DECISION-REVIEW,First,cards,draw_L,1,dice_roll_1,Draw 1 if you roll a 1 L cards,auto,,,,,,,
 OWNER-DECISION-REVIEW,First,dice,dice_outcome,W Cards,,See what the owner wants,manual,,,,,,,See what the owner wants
-OWNER-DECISION-REVIEW,First,dice,dice_outcome,E cards,,See who he sends you,manual,,,,,,,See who he sends you
+OWNER-DECISION-REVIEW,First,dice,dice_outcome,E cards,,See who the owner sends you,manual,,,,,,,See who the owner sends you
 OWNER-DECISION-REVIEW,First,time,add,10,,Spend 10 days,auto,,,,,,,
 OWNER-DECISION-REVIEW,Subsequent,cards,draw_L,1,dice_roll_2,Draw 1 if you roll a 2 L cards,auto,,,,,,,
 OWNER-DECISION-REVIEW,Subsequent,dice,dice_outcome,W Cards,,See the owner's call,manual,,,,,,,See the owner's call
-OWNER-DECISION-REVIEW,Subsequent,dice,dice_outcome,E cards,,See who he sends you,manual,,,,,,,See who he sends you
+OWNER-DECISION-REVIEW,Subsequent,dice,dice_outcome,E cards,,See who the owner sends you,manual,,,,,,,See who the owner sends you
 OWNER-DECISION-REVIEW,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
 CHEAT-BYPASS,First,cards,draw_L,1,dice_roll_3,Draw 1 if you roll a 3 L cards,auto,,,,,,,
 CHEAT-BYPASS,First,cards,return_e,1,,Let a team member go,manual,,,,,,,Let a team member go

@@ -1661,7 +1661,7 @@ describe('PlayerPanelV2 — "What\'s this?" action explanations (Onboarding Phas
   /**
    * Dice actions (v3.2.69). Before this, the "?" on a dice button opened a box
    * that repeated the button's own label — tapping it on "See what he wants
-   * built" said "See what he wants built." — so the row a beginner most needs
+   * built" said "See what the owner wants built." — so the row a beginner most needs
    * explained was the one that explained nothing. These render the REAL
    * ACTION_TOOLTIPS.csv through the real component; the unit-level guard is
    * tests/utils/actionTooltips.test.ts.

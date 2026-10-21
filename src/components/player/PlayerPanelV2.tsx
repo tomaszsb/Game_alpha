@@ -39,6 +39,7 @@ import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
 import { PlayerNumbersV2, NumbersPage } from './PlayerNumbersV2';
 import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { TurnCommitControl } from './TurnCommitControl';
+import { knownArrivalFee, shortBy, arrivalShortMessage } from '../../utils/moneyWarning';
 import { getEndTurnWarning } from '../../utils/endTurnWarning';
 import { getEndTurnCostPreview, getTryAgainCostPreview, getLoanOnTheTable, isManualEffectCompleted, perAmountUnit, timeRowDays, getActionResultText } from '../../utils/costPreview';
 import { ACTION_ROW, COMMIT, NUMBERS, GLANCE_HELP, SCOPE_APPROVAL } from '../../constants/uiStrings';
@@ -1366,6 +1367,13 @@ ${spaceWhy}` } : baseWhy;
                     // One outline round the destination AND its "?" (Tom, 2026-10-02) — the
                     // row wears the look the button used to have; the button inside is bare.
                     const rowLook = !movementChoiceUnlocked ? doneSubActionRow : isSelected ? selectedSubActionBtn : subActionBtn;
+                    // A fee that is charged on arrival and is already known (fixed dollars, percent of
+                    // scope): say so BEFORE the player picks it when their cash will not cover it.
+                    const arrivalFee = knownArrivalFee(
+                      gameServices.dataService.getSpaceEffects(opt.id, player.visitedSpaces?.includes(opt.id) ? 'Subsequent' : 'First'),
+                      gameServices.gameRulesService.calculateProjectScope(playerId),
+                    );
+                    const arrivalShort = shortBy(player.money, arrivalFee) > 0 ? arrivalShortMessage(player.money, arrivalFee) : null;
                     return (
                       <div key={opt.id} style={{ marginBottom: 5 }}>
                         <div style={{
@@ -1423,6 +1431,9 @@ ${spaceWhy}` } : baseWhy;
                             style={{ alignSelf: 'center' }}
                           />
                         </div>
+                        {arrivalShort && (
+                          <p data-testid="move-option-short" role="note" style={{ fontSize: 11, color: p.bad, margin: '2px 0 0 4px', fontWeight: 600 }}>{arrivalShort}</p>
+                        )}
                         {isHelpOpenForOpt && (
                           <HelpCard
                             id={helpCardId}

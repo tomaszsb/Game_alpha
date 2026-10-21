@@ -15,6 +15,7 @@ import { BUILDER_BIDS } from '../../constants/uiStrings';
 import { getBuilderRules } from '../../utils/trophyRules';
 import { cheapestLiveBid, isBidLive, typicalQuote } from '../../utils/builderBids';
 import { usePhoneWidth } from '../../hooks/usePhoneWidth';
+import { shortBy, builderShortMessage } from '../../utils/moneyWarning';
 
 /** How long the Hire button must be held before it signs. Same length as the turn-end hold, so one gesture means "I mean it" everywhere. */
 const HOLD_MS = 650;
@@ -116,6 +117,11 @@ export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, p
                 ? `${BUILDER_BIDS.days(b.days)} · ${BUILDER_BIDS.holdsShort(b.expiresDay)}`
                 : `${BUILDER_BIDS.days(b.days)} · ${BUILDER_BIDS.holds(b.expiresDay, b.expiresDay - day)}`}
             </div>
+            {shortBy(player.money, b.price) > 0 && (
+              <div data-testid="builder-bid-short" role="alert" style={{ fontSize: 12, marginTop: 3, color: p.bad, fontWeight: 600 }}>
+                {builderShortMessage(player.money, b.price)}
+              </div>
+            )}
             {hintFor === b.id && (
               <div data-testid="builder-bid-hold-hint" role="status" style={{ fontSize: 12, marginTop: 3, color: p.text, fontWeight: 600 }}>
                 {BUILDER_BIDS.holdHint(money(b.price), b.days)}
