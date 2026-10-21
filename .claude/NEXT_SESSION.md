@@ -18,7 +18,7 @@
 - Which logo on the certificate (the game's logo is used; Tom said "my logo").
 
 ## Flip after deploy
-- fb:43687abb, fb:f3b3cbb7, fb:0ed31c3c, fb:d912364b, fb:f0de9095, fb:ba8197fa, fb:550a3a99, fb:f2ba1691, fb:3ca61654, fb:1c3dde23 — fixed in v3.8.33-40; PATCH resolved once live and Tom confirms. fb:1007f455 (start screen) waits for a student to confirm. fb:83fcc4c4, fb:b5689dfa, fb:92e01028 only partly (pop-up snap-flat), leave open. 19 older reports were closed 10-21 (open count 84 to 65).
+- The 10 live-fixed class reports were closed 10-21 (open count 65 to 56). Still open on purpose: fb:1007f455 (start screen, waits for a student to confirm); fb:83fcc4c4, fb:b5689dfa, fb:92e01028 (pop-up snap-flat is only a partial fix).
 
 ## Suggested first move
 Check `/health` for `e99f54b1` (or newer docs-only); if not live, ask Tom to deploy (`ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`, `ssh -t` and type yes if a screen is connected; never 02:45-04:45 EDT). Then read the Jarvis report.
