@@ -61,8 +61,10 @@ export function getCardWordedFor(
 ): Card | undefined {
   const card = source.getCardById(cardId) ?? source.getCardById(baseCardId(cardId));
   if (!card || !projectType) return card;
-  const template = source.getCardScopeTemplate(card.card_id);
+  // A card kind can carry one line for all its cards (`type:B`): the 60 bank loans have names
+  // like "Assisted Living Facility Loan" that clashed with the player's own project.
+  const template = source.getCardScopeTemplate(card.card_id) ?? source.getCardScopeTemplate(`type:${card.card_type}`);
   if (!template) return card;
-  const text = fillProjectBlank(template, projectType);
+  const text = fillProjectBlank(template, projectType).replace(/\{rate\}/g, card.loan_rate ?? '');
   return { ...card, card_name: text, description: text };
 }

@@ -527,7 +527,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         }}
       >
         <span aria-hidden="true">👆</span>
-        Tap to see the cost · press &amp; hold to confirm
+        Tap: see the cost. Hold: do it.
         {/* Same compact "?" as every other one in the panel (26px since
             v3.2.72 — see HelpButton.tsx). */}
         <HelpButton

@@ -13,7 +13,7 @@ describe('feedbackDiagnostics (what a bug report carries beyond the screenshot)'
   beforeEach(() => resetDiagnosticsForTests());
 
   it('always reports the display and the board, and a registered panel snapshot rides along', () => {
-    const off = registerDiagnostic('panel:p1', () => ({ moneyCue: { color: '#d97706', word: '$3M deficit' }, painted: { valueColor: 'rgb(217, 119, 6)' } }));
+    const off = registerDiagnostic('panel:p1', () => ({ moneyCue: { color: '#d97706', word: '$3M to raise' }, painted: { valueColor: 'rgb(217, 119, 6)' } }));
     const d: any = collectDiagnostics();
     expect(d.display.inner).toMatch(/^\d+x\d+$/);
     expect(d.board).toBeNull(); // no board on this page

@@ -155,7 +155,7 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // One shared "?" opens all 4 as sections of one card — see
   // PlayerPanelV2.tsx's `openHelp === 'glance'` block.
   'GLANCE_HELP.money':
-    "Your cash on hand. Green means it's healthy and your project is fully funded. Orange means either it's running low, or your project now costs more than the funding you've secured — that gap is called a deficit; either way you can keep going, just plan how you'll close it. Red means you've gone below zero — that's bankruptcy territory.",
+    "Your cash on hand. Green means it's healthy and your project is fully funded. Orange means either it's running low, or your project now costs more than the funding you've secured — that gap is the money you still have to raise; either way you can keep going, just plan how you'll close it. Red means you've gone below zero — that's bankruptcy territory.",
   'GLANCE_HELP.time':
     "Days used so far. Every action, trip, and delay adds to this — think of it as your project's running clock, not a turn count.",
   'GLANCE_HELP.expeditors': "The helpers you're holding right now. A highlighted number means one is ready to use this turn.",

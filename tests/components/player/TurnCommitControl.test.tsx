@@ -308,7 +308,7 @@ describe('TurnCommitControl (dark-mode merged control)', () => {
   describe('wording (v3.2.74): a tap shows the COST, not a "comparison"', () => {
     it('the visible hint says so', () => {
       setup();
-      expect(screen.getByText('Tap to see the cost · press & hold to confirm')).toBeInTheDocument();
+      expect(screen.getByText('Tap: see the cost. Hold: do it.')).toBeInTheDocument();
       expect(screen.queryByText(/compare/i)).not.toBeInTheDocument();
     });
 

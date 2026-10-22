@@ -901,21 +901,23 @@ describe('PlayerPanelV2 — money runway cue (fb:0aae9865)', () => {
 
   it('shows no warning word when cash is healthy', () => {
     renderWith(makePlayer(80000, { ownerFunding: 100000 })); // 80% left
-    expect(screen.queryByText(/in the red|running low|deficit/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/in the red|running low|to raise/i)).not.toBeInTheDocument();
   });
 
   // Post-deploy playtest of v3.0.91: "$70K green while scope grew to millions".
   // Healthy cash must NOT read green while the full project budget (scope +
   // soft costs) exceeds the funding secured — surface the gap on the cue.
-  // Word "deficit" chosen by the maintainer (2026-07-02) for the tight slot.
-  it('flags "$X deficit" when commitments exceed funding raised', () => {
+  // Word was "deficit" (maintainer, 2026-07-02, for the tight slot); v3.8.44 plain words "to raise"
+  // (the independent review: a student on turn 1 read "$756K deficit" as debt).
+  it('flags "$X to raise" when commitments exceed funding raised', () => {
     const player = makePlayer(80000, { ownerFunding: 100000 }); // cash healthy vs raised
     player.hand = ['W_001'];
     renderWith(player, {
       card_id: 'W_001', card_type: 'W', card_name: 'Test work',
       cost: 500000, work_cost: 400000, work_type_restriction: 'General Construction',
     });
-    expect(screen.getByText(/deficit/i)).toBeInTheDocument();
+    expect(screen.getByText(/to raise/i)).toBeInTheDocument();
+    expect(screen.queryByText(/deficit/i)).not.toBeInTheDocument();
   });
 
   it('prefers "running low" over the funding-gap word when both apply', () => {
@@ -926,7 +928,7 @@ describe('PlayerPanelV2 — money runway cue (fb:0aae9865)', () => {
       cost: 500000, work_cost: 400000, work_type_restriction: 'General Construction',
     });
     expect(screen.getByText(/running low/i)).toBeInTheDocument();
-    expect(screen.queryByText(/deficit/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/to raise/i)).not.toBeInTheDocument();
   });
 });
 

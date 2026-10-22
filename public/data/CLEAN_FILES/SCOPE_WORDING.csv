@@ -192,3 +192,4 @@ card_kind,W136,new
 card_kind,W139,new
 card_kind,W142,new
 card_kind,W145,new
+card_template,type:B,Bank loan for the {project} at {rate}% interest

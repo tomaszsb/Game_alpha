@@ -47,6 +47,26 @@ describe('SCOPE_WORDING.csv (the shipped data)', () => {
   });
 });
 
+describe("bank loans are named for the player's own project (PLAYTEST.md Other things #5)", () => {
+  it('B047 "Assisted Living Facility Loan" reads as a loan for an airport terminal, with its rate from the data', async () => {
+    const { dataService } = await startedPlayer();
+    const card = getCardWordedFor(dataService, 'B047', 'airport terminal')!;
+    expect(card.card_name).toBe('Bank loan for the airport terminal at 10% interest');
+    expect(card.card_name).not.toMatch(/Assisted|[{}]/);
+    expect(card.description).toBe(card.card_name);
+    expect(card.loan_amount).toBe('2500000'); // the money itself is untouched
+  });
+
+  it('every bank loan fills its blanks, and other card kinds keep their own names', async () => {
+    const { dataService } = await startedPlayer();
+    for (const c of dataService.getCards().filter((x: any) => x.card_type === 'B')) {
+      const t = getCardWordedFor(dataService, c.card_id, 'school')!.card_name;
+      expect(t).toBe(`Bank loan for the school at ${c.loan_rate}% interest`);
+    }
+    expect(getCardWordedFor(dataService, 'I001', 'school')!.card_name).toBe(dataService.getCardById('I001')!.card_name);
+  });
+});
+
 describe('the pick', () => {
   it('first draw of work packages hands the player a kind of project; it then stays put', async () => {
     const s = await startedPlayer();

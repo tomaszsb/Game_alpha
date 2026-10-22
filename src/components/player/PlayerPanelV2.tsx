@@ -734,7 +734,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       : fin.totalCapital > 0 && player.money < fin.totalCapital * 0.2
         ? { color: '#d97706', word: 'running low' }
         : fin.fundingGap > 0
-          ? { color: '#d97706', word: `${FormatUtils.formatMoney(fin.fundingGap)} deficit` }
+          ? { color: '#d97706', word: `${FormatUtils.formatMoney(fin.fundingGap)} to raise` }
           : { color: mode === 'dark' ? '#4ade80' : '#1e7e34' };
 
   // --- styles -------------------------------------------------------------

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.44] - 2026-10-22
+
+**Hint line, loan names, "deficit" word, and a proof about the day-saving cards.**
+- **The line under End Turn / Push back now reads "Tap: see the cost. Hold: do it."** (was "Tap to see the cost · press & hold to confirm"). Same press-and-hold. Only one test read the old words (updated); the robot uses handles, not this text; the spoken label for screen readers is unchanged.
+- **Bank loans carry the player's own project (PLAYTEST.md "Other things" #5).** All 60 loans had made-up names like "Assisted Living Facility Loan", so an airport job showed one. Same fix the work packages got in v3.8.x: SCOPE_WORDING.csv now has one line for the bank-loan kind (`type:B`): "Bank loan for the {project} at {rate}% interest"; the rate comes from the card's data (5, 10 or 15). The money amount is untouched. A card kind can now carry one line for all its cards.
+- **"$756K deficit" now reads "$756K to raise"** (PLAYTEST.md diary after space 2). The number is what the whole project will cost (work, design, filing fees, a 10% cushion) minus every dollar the player has been given or lent so far; on turn 1 it is just "the cost of the job, none of it funded yet". The sub-label slot is one line and cuts with "..." when long, so the panel gets no taller; its help ("?") now says "the money you still have to raise". Orange as before.
+- **Efficiency Boost "saved only 2 days" (PLAYTEST-2 #6): proven, no cap on the filing.** Day-saving expeditors take days off the running day count, which cannot go below zero, so they only fall short in the first few days (the button already says "-2 of 3 days"). Mid-game E003 saves its full 3, -1 cards save 1 (new test `tests/ghost/expeditorDaysSaved.test.ts`). The likelier cause of "-1 day did nothing" is a push-back after playing one: see TODO.
+
 ## [3.8.43] - 2026-10-22
 
 **Four small wording fixes (words only; no rules, no prices).**
