@@ -118,7 +118,7 @@ export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, p
                 : `${BUILDER_BIDS.days(b.days)} · ${BUILDER_BIDS.holds(b.expiresDay, b.expiresDay - day)}`}
             </div>
             {shortBy(player.money, b.price) > 0 && (
-              <div data-testid="builder-bid-short" role="alert" style={{ fontSize: 12, marginTop: 3, color: p.bad, fontWeight: 600 }}>
+              <div data-testid="builder-bid-short" role="alert" className="uc-red-pulse" style={{ fontSize: 12, marginTop: 3, padding: '0 4px', borderRadius: 6, color: p.bad, fontWeight: 600 }}>
                 {builderShortMessage(player.money, b.price)}
               </div>
             )}

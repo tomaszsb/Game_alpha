@@ -2,6 +2,7 @@
 
 ## State at handoff
 - **Version:** v3.8.40 **LIVE** (`/health` `e99f54b1` = the /koniec sweep commit, which contains fcd5f8f7; Tom deployed 10-21 ~01:43 EDT, container up 20 s at 05:43 UTC). Only a TODO docs commit (`b9b0f4cf`) is newer.
+- **PENDING DEPLOY: v3.8.41** (pulsing red 'you would be short' warnings; code + tests green, build clean). Live is still v3.8.40.
 - **Branch:** master = origin/master after the wrap-up commit, clean.
 - **Last shipped (all live since the 10-21 deploy):** neutral dice words; "you would be short" warnings (builder bids, known arrival fees); pop-ups snap flat after 1.2 s; the office (Your Office) keeps unlocked steps (engineer, city filing, Fire Dept. intake, first step of each only); expeditor card cost on the Money page; History shows the turn in progress ("not final yet"), push-backs with their days, and board names in turn headers; certificate logo + "Visit our other sites" links (setup, board, win/loss, certificate); wider end screen; admin list shows MINE/STUDENT + progress; "Hold until it fills" cue. Live since 10-20/21: hold-to-hire, opened walls, start screen, screenshots fixed, New York days.
 - **Tests:** `npm test` 307 files / 4083 green; build clean; typecheck only the pre-existing `dataGate.test.ts` errors. Ghost: 45 passed, 1 skipped. One unreproduced failure of `E2E-LogicPlaythrough` in an earlier full run (pinned).
@@ -12,7 +13,6 @@
 3. **Pop-up freeze cause** (ResizeObserver loop on a busy page; v3.8.34 only snaps it flat), plus the N3 design list (Inspector sign-off, Hire an Expeditor fork, TCO vs final CO; should a redesign cancel DOB approval?).
 
 ## Decisions waiting on the user
-- Hire a Builder: grey out a builder the cash cannot cover (not just flag it)? Asked via Manager 10-21; recommended yes, not built (TODO.md has the detail).
 - Samsung/LG TVs from 2021 or older can't run the game (`es2020`); lowering the build target + legacy plugin is Tom's call (CHANGELOG 3.8.16).
 - Backups: nothing copies `.env` or `server/data` off the Tower. Teacher password resets.
 - "Finished games" number next to "created" in Site Stats (offered, not answered).

@@ -90,6 +90,7 @@ describe('BuilderBidsCard', () => {
     expect(warnings).toHaveLength(1);
     expect(warnings[0].textContent).toContain('$200,000 short');
     expect(warnings[0].textContent).toContain('Visit the lender');
+    expect(warnings[0].className).toContain('uc-red-pulse'); // pulses so it is noticed
   });
 
   it('says nothing when the cash covers every bid', () => {

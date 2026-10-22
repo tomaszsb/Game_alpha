@@ -894,8 +894,14 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           50% { box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.45); }
         }
         .uc-hint-glow { animation: uc-hint-glow-kf 1.8s ease-in-out infinite; }
+        @keyframes uc-red-pulse-kf {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+          50% { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.55); }
+        }
+        .uc-red-pulse { animation: uc-red-pulse-kf 1.2s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) {
           .uc-hint-glow { animation: none; box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.5); }
+          .uc-red-pulse { animation: none; box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.55); }
         }
       `}</style>
 
@@ -1501,6 +1507,7 @@ ${spaceWhy}` } : baseWhy;
             role="alert"
             data-testid="end-turn-warning"
             data-level={endTurnWarning.level}
+            className={endTurnWarning.level === 'red' ? 'uc-red-pulse' : undefined}
             style={{
               background: endTurnWarning.level === 'red' ? p.badSurf : p.warnSurf,
               color: endTurnWarning.level === 'red' ? p.bad : (mode === 'dark' ? '#fdba74' : '#9a3412'),

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.41] - 2026-10-22
+
+**The red "you would be short" warnings now pulse.** Two class games ended within minutes of hiring a builder the student could not pay for (G-AAET-J6JR, G-VWQP-5872, both on v3.8.28-32, before the v3.8.33 warning existed). Tom (10-22): the students are far enough in to know the pitfalls, so do not block the Hire button; just make the red warning stand out. The red line under a too-dear builder and the red End Turn warning now pulse with a soft red ring (a still ring when the device asks for less motion). It is a ring only, so the phone panel gets no taller. Hire stays allowed by design (bills count at End Turn; push-back undoes the hire).
+
 ## [3.8.40] - 2026-10-21
 
 **A clearer first-use cue for "press and hold" Move on.** In live game G-9PH5-P452 the player tapped Move on five times in ten seconds on the first screen ("Meet the Owner"); a tap only previews the cost, and the small "Press and hold" caption had not been enough. Now a tap that ends before the hold fills changes that caption to "Hold until it fills" for 4 seconds (then back), for anyone who has never completed a hold (the same remembered flag as the existing caption, `uc_hold_learned`). Same line, same 10 px size, so the panel is no taller (the caption box is the one the "N actions left" line uses; not measured on a real phone). `TurnCommitControl.tsx`; tests: 2 in `TurnCommitControl.test.tsx`. 307 files / 4083 green, build clean. Not deployed.
