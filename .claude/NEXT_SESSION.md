@@ -12,6 +12,7 @@
 3. **Pop-up freeze cause** (ResizeObserver loop on a busy page; v3.8.34 only snaps it flat), plus the N3 design list (Inspector sign-off, Hire an Expeditor fork, TCO vs final CO; should a redesign cancel DOB approval?).
 
 ## Decisions waiting on the user
+- Hire a Builder: grey out a builder the cash cannot cover (not just flag it)? Asked via Manager 10-21; recommended yes, not built (TODO.md has the detail).
 - Samsung/LG TVs from 2021 or older can't run the game (`es2020`); lowering the build target + legacy plugin is Tom's call (CHANGELOG 3.8.16).
 - Backups: nothing copies `.env` or `server/data` off the Tower. Teacher password resets.
 - "Finished games" number next to "created" in Site Stats (offered, not answered).
