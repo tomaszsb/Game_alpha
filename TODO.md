@@ -22,6 +22,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 
 ### Bugs
 - [ ] **From PLAYTEST-2 (10-18):** "Efficiency Boost (-3)" saved only 2 days and some "-1 day" plays seemed to do nothing (likely a cap on the current filing, unverified). PLAYTEST-2.md "Still broken" #6. (Trouble On Site throw-back fixed v3.8.19; "Hire this builder" is now a hold, v3.8.29.)
+- [x] **Lasting life event lost when the drawer pushes back (G-FP58-9Q46).** Proven by test and fixed v3.8.42 (also solo). Phase-gated events sleeping until the right phase is by design. Open question for Tom only if it looks wrong: a player who never reaches the gated phase is never hit.
 - [x] **Hire a Builder bankruptcies (G-AAET-J6JR, G-VWQP-5872).** Tom 10-22: do not grey out Hire, just pulse the red warnings. Done v3.8.41 (builder 'short' line + red End Turn warning). Why they went out: bankruptcy is judged at End Turn, and the v3.8.33 warning did not exist yet.
 - [ ] **Opened walls, next step (Tom 10-20):** should a redesign also cancel the DOB approval you hold, so you must refile? Needs an engine change (only cards revoke approvals today). Also: Jarvis must press-and-hold `builder-bid-hire`; run the robots to see the effect on game length. v3.8.29.
 - [ ] **Loan named "Assisted Living Facility Loan" on an airport job.** PLAYTEST.md "Other things" #5.

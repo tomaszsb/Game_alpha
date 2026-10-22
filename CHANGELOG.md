@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.42] - 2026-10-22
+
+**Pushing back no longer lets you dodge a lasting life event you drew.** In live robot game G-FP58-9Q46, Natural Disaster (+4 days a turn for 2 turns, all players) and Cybersecurity Breach hit every player except the one who drew it and pushed back that same turn. Cause, proven by a failing test first: the drawer's own copy of a multi-turn effect is stored with the turn's provisional changes, and a push-back rolls those back; the other players' copies are stored directly and survived. The life-event record kept money, days, cards and approvals but not this. It now also keeps the lasting effects the event put on the player. Solo play had the same hole (one player pushing back on the draw turn escaped the whole event). Card balance and the phase rule (Construction / Regulatory gates) are untouched. Tests: `tests/ghost/tryAgainKeepsLastingEvents.test.ts`.
+
 ## [3.8.41] - 2026-10-22
 
 **The red "you would be short" warnings now pulse.** Two class games ended within minutes of hiring a builder the student could not pay for (G-AAET-J6JR, G-VWQP-5872, both on v3.8.28-32, before the v3.8.33 warning existed). Tom (10-22): the students are far enough in to know the pitfalls, so do not block the Hire button; just make the red warning stand out. The red line under a too-dear builder and the red End Turn warning now pulse with a soft red ring (a still ring when the device asks for less motion). It is a ring only, so the phone panel gets no taller. Hire stays allowed by design (bills count at End Turn; push-back undoes the hire).

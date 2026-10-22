@@ -1,4 +1,4 @@
-import type { Player } from '../types/DataTypes';
+import type { Player, ActiveEffect } from '../types/DataTypes';
 import type { MutablePlayerState } from '../types/StateTypes';
 
 /**
@@ -13,6 +13,8 @@ export interface LifeEventChange {
   cardsRemoved: string[];
   /** Approval and violation fields the event changed, with their new values. */
   fields: Partial<MutablePlayerState>;
+  /** Lasting (multi-turn) effects the event put on this player; kept like the rest. */
+  activeEffectsAdded: ActiveEffect[];
 }
 
 const KEPT_FIELDS = [
@@ -46,6 +48,9 @@ export function diffLifeEventChange(before: Player, after: Player): LifeEventCha
     cardsAdded: minus(afterHand, beforeHand),
     cardsRemoved: minus(beforeHand, afterHand),
     fields: fields as Partial<MutablePlayerState>,
+    activeEffectsAdded: (after.activeEffects ?? []).filter(
+      (e) => !(before.activeEffects ?? []).some((b) => b.effectId === e.effectId),
+    ),
   };
 }
 
@@ -57,7 +62,8 @@ export function combineLifeEventChanges(changes: LifeEventChange[]): LifeEventCh
     cardsAdded: [...minus(acc.cardsAdded, c.cardsRemoved), ...c.cardsAdded],
     cardsRemoved: [...acc.cardsRemoved, ...minus(c.cardsRemoved, acc.cardsAdded)],
     fields: { ...acc.fields, ...c.fields },
-  }), { moneyDelta: 0, timeDelta: 0, cardsAdded: [], cardsRemoved: [], fields: {} });
+    activeEffectsAdded: [...acc.activeEffectsAdded, ...(c.activeEffectsAdded ?? [])],
+  }), { moneyDelta: 0, timeDelta: 0, cardsAdded: [], cardsRemoved: [], fields: {}, activeEffectsAdded: [] });
 }
 
 /** Apply a combined change to a hand: remove what the event took, add what it gave. */

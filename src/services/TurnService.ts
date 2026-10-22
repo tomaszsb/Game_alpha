@@ -1074,6 +1074,11 @@ export class TurnService implements ITurnService {
         }
         changes.timeSpent = timePenalty + lifeEvents.timeDelta;
         Object.assign(changes, lifeEvents.fields);
+        // A lasting life event (e.g. 2 turns of +4 days) put on this player stays too: its copy
+        // lived in the turn's provisional state, so without this the drawer alone escaped it.
+        if (lifeEvents.activeEffectsAdded.length > 0) {
+          changes.activeEffects = [...(realState.activeEffects ?? []), ...lifeEvents.activeEffectsAdded];
+        }
         // Hand = (REAL hand) − played cards + drawn L cards + what they changed
         // Played cards stay consumed; L cards drawn this turn persist because
         // a law change doesn't unchange just because the player retries.
