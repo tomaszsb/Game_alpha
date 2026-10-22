@@ -100,10 +100,10 @@ describe('LogWriter', () => {
     handleEvent({
       type: 'recurring_card_effect_applied', playerId: 'p1', playerName: 'Alice',
       sourceCardId: 'L002', cardName: 'Sick Kid', moneyDelta: -2000, timeDelta: 0, turnsLeftAfterThis: 2,
-      headline: '🔁 Sick Kid still affecting you: -$2,000 — 2 more turns to go', delta: '-$2,000', tail: ' — 2 more turns to go',
+      headline: '🔁 Sick Kid is still going: -$2,000 this turn — 2 more turns to go', delta: '-$2,000', tail: ' — 2 more turns to go',
     });
 
-    expect(loggingService.info).toHaveBeenCalledWith('🔁 Sick Kid still affecting you: -$2,000 — 2 more turns to go', {
+    expect(loggingService.info).toHaveBeenCalledWith('🔁 Sick Kid is still going: -$2,000 this turn — 2 more turns to go', {
       playerId: 'p1', playerName: 'Alice', action: 'life_event_recurring',
       sourceCardId: 'L002', moneyDelta: -2000, timeDelta: 0, turnsLeftAfterThis: 2,
     });

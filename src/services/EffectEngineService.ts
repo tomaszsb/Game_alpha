@@ -1502,7 +1502,8 @@ export class EffectEngineService implements IEffectEngineService {
       ? ` — ${turnsLeft} more turn${turnsLeft === 1 ? '' : 's'} to go`
       : ' — last one';
 
-    const headline = `🔁 ${cardName} still affecting you: ${delta}${tail}`;
+    // Plain words for the student: what the event is doing to the project this turn.
+    const headline = `🔁 ${cardName} is still going: ${delta} this turn${tail}`;
 
     // Domain-event stage 3: LogWriter + ToastWriter both react to this one
     // emission (replaces the former separate notificationService.notify +

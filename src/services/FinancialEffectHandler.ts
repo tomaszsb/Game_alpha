@@ -176,7 +176,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
       } else if (totalLoanAmount === 0 && (payload.feeType === 'LOAN_PERCENTAGE' || payload.feeType === 'LOAN_TIERED')) {
         // No loan means no fee to pay
         debugLog(`    ℹ️  No loan amount - fee does not apply`);
-        this.loggingService.info(`Fee not applicable: No loan to charge against`, {
+        this.loggingService.info(`No fee here: you have not borrowed anything`, {
           playerId: payload.playerId,
           action: 'fee_skipped',
           source: payload.source || context.source

@@ -138,6 +138,7 @@ const LIVE_ROWS: Array<['cards' | 'dice', string]> = [
   ['dice', 'dice_outcome_time'], ['dice', 'dice_outcome_fee'], ['dice', 'dice_outcome_W'],
   ['dice', 'dice_outcome_I'], ['dice', 'dice_outcome_E'], ['dice', 'dice_outcome_quality'],
   ['dice', 'dice_outcome_multiplier'], ['dice', 'dice_outcome_quality_multiplier'],
+  ['dice', 'dice_outcome_W_ARCH-SCOPE-CHECK'], ['dice', 'dice_outcome_W_ENG-SCOPE-CHECK'], ['dice', 'dice_outcome_W_LEND-SCOPE-CHECK'],
 ];
 
 describe('"What\'s this?" copy reaches every button a player can press', () => {
@@ -180,6 +181,21 @@ describe('"What\'s this?" copy reaches every button a player can press', () => {
     const t = tooltipOf(button);
     expect(t.tooltip).not.toBe(button.label);
     expect(t.tooltip).toBe(row('dice', 'dice_outcome_W').tooltip_why);
+  });
+});
+
+describe('who changes the work is named per space (fb:0a4acf7a)', () => {
+  it.each([['ARCH-SCOPE-CHECK', 'architect'], ['ENG-SCOPE-CHECK', 'engineer'], ['LEND-SCOPE-CHECK', 'lender']])(
+    '%s explains the work button with its own speaker, not the owner', (space, who) => {
+      for (const visit of ['First', 'Subsequent']) {
+        const t = tooltipOf(diceButtonAt(space, visit));
+        expect(t.tooltip.toLowerCase()).toContain(who);
+        expect(t.tooltip.toLowerCase()).not.toContain('owner');
+      }
+    });
+
+  it('the owner spaces keep the owner line', () => {
+    expect(tooltipOf(diceButtonAt('OWNER-SCOPE-INITIATION', 'First')).tooltip).toBe(row('dice', 'dice_outcome_W').tooltip_why);
   });
 });
 

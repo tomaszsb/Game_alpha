@@ -112,11 +112,11 @@ describe('ToastWriter', () => {
     handleEvent({
       type: 'recurring_card_effect_applied', playerId: 'p1', playerName: 'Alice',
       sourceCardId: 'L002', cardName: 'Sick Kid', moneyDelta: -2000, timeDelta: 0, turnsLeftAfterThis: 2,
-      headline: '🔁 Sick Kid still affecting you: -$2,000 — 2 more turns to go', delta: '-$2,000', tail: ' — 2 more turns to go',
+      headline: '🔁 Sick Kid is still going: -$2,000 this turn — 2 more turns to go', delta: '-$2,000', tail: ' — 2 more turns to go',
     });
 
     expect(notificationService.notify).toHaveBeenCalledWith(
-      { short: 'Ongoing event', medium: '🔁 Sick Kid still affecting you: -$2,000 — 2 more turns to go', detailed: 'Recurring life event from Sick Kid: -$2,000 — 2 more turns to go.' },
+      { short: 'Ongoing event', medium: '🔁 Sick Kid is still going: -$2,000 this turn — 2 more turns to go', detailed: 'Recurring life event from Sick Kid: -$2,000 — 2 more turns to go.' },
       { playerId: 'p1', playerName: 'Alice', actionType: 'life_event_recurring', notificationDuration: 5000 }
     );
   });

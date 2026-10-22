@@ -367,6 +367,7 @@ export function getDiceOutcomeTooltip(
 ): { tooltip: string; context: string } | null {
   const tooltipService = getTooltipService();
 
+  const space = effects[0]?.space_name ?? '';
   const categories: DiceCategory[] = [];
   for (const effect of effects) {
     const category = diceCategoryOf(effect.effect_value);
@@ -383,7 +384,9 @@ export function getDiceOutcomeTooltip(
     : categories
         .map((category) => DICE_TOOLTIP_ROW[category])
         .filter((row): row is string => !!row)
-        .map((row) => tooltipService.getDiceTooltip(row))
+        // A space may carry its own line for a category (`dice_outcome_W_ARCH-SCOPE-CHECK`):
+        // the architect, engineer and lender change the work, the owner is not the one deciding.
+        .map((row) => tooltipService.getDiceTooltip(`${row}_${space}`) ?? tooltipService.getDiceTooltip(row))
         .filter((tooltip): tooltip is NonNullable<typeof tooltip> => !!tooltip);
 
   if (rows.length === 0) return null;

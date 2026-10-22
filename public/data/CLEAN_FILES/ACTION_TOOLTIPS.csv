@@ -9,6 +9,9 @@ cards,return_E,Let a team member go,"One of your expeditors leaves your team, an
 cards,give_E,Fire Expeditor,Sometimes you must share your resources with competitors. Choose wisely which expeditor to let go.,Select your least useful expeditor to minimize the advantage you give to opponents.
 cards,transfer_E,Pass a team member,"You hand one of your expeditors to the player next to you. They keep working for them, not for you.","Optional. You need at least one to pass, and someone to pass it to."
 dice,dice_outcome_W,Work added,The owner decides how much work they want done. This shows how much work is added to your project.,"More work means a bigger project, and more money to raise."
+dice,dice_outcome_W_ARCH-SCOPE-CHECK,Work changed by the design,"The architect shows how the design changes your project. Work can be taken out, added, or swapped, or stay the same.","More work means a bigger project, and more money to raise."
+dice,dice_outcome_W_ENG-SCOPE-CHECK,Work changed by the structure,"The engineer shows how the structure changes your project. Work can be taken out, added, or swapped, or stay the same.","More work means a bigger project, and more money to raise."
+dice,dice_outcome_W_LEND-SCOPE-CHECK,Work changed by the lender,"The lender goes through your plan before lending. Work can be cut, added, or swapped, or stay the same.","More work means a bigger project, and more money to raise."
 dice,dice_outcome_I,Investor deal,This shows the deal the investors offer: how much they put in.,They may take longer and charge more than a bank.
 dice,dice_outcome_E,New team member,This shows whether you get a new team member — an expeditor — from this step.,Your Expeditors box shows who you have.
 dice,dice_outcome_fee,Fee,"This shows what you pay for this step. Fees are a share of your project's cost, so a bigger project pays more.",

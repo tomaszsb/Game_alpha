@@ -1208,7 +1208,7 @@ describe('EffectEngineService', () => {
       expect(result.success).toBe(true);
       expect(mockResourceService.spendMoney).not.toHaveBeenCalled();
       expect(mockLoggingService.info).toHaveBeenCalledWith(
-        expect.stringContaining('No loan to charge against'),
+        expect.stringContaining('you have not borrowed anything'),
         expect.any(Object)
       );
     });

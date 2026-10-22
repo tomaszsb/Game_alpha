@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.43] - 2026-10-22
+
+**Four small wording fixes (words only; no rules, no prices).**
+- **The "?" on the work button names who really changes the work (fb:0a4acf7a).** It said "The owner decides how much work they want done" everywhere. At See the Design (architect), Check the Structure (engineer) and the lender it now says that person: "The architect shows how the design changes your project. Work can be taken out, added, or swapped, or stay the same." (engineer and lender the same way; those are the real outcomes in the data). The owner spaces keep the owner line. Each space can now have its own line in `ACTION_TOOLTIPS.csv` (`dice_outcome_W_<SPACE>`), looked up before the shared one.
+- **"turns 2-6 show no days" (fb:c61ec1f2):** the report is from v3.8.26; v3.8.38 now writes "Pushed back on the quote: N days added" in History. Almost certainly the cause; the student has not confirmed.
+- **History:** "X's outcome came back at ..." no longer shows twice where a space has two roll groups (one line per press). "Fee not applicable: No loan to charge against" now reads "No fee here: you have not borrowed anything". "Cybersecurity Breach still affecting you: +1 day" now reads "Cybersecurity Breach is still going: +1 day this turn - 1 more turn to go".
+- **Hint under the commit bar ("Tap to see the cost · press & hold to confirm") was only looked at, not changed.** Proposal in TODO.
+
 ## [3.8.42] - 2026-10-22
 
 **Pushing back no longer lets you dodge a lasting life event you drew.** In live robot game G-FP58-9Q46, Natural Disaster (+4 days a turn for 2 turns, all players) and Cybersecurity Breach hit every player except the one who drew it and pushed back that same turn. Cause, proven by a failing test first: the drawer's own copy of a multi-turn effect is stored with the turn's provisional changes, and a push-back rolls those back; the other players' copies are stored directly and survived. The life-event record kept money, days, cards and approvals but not this. It now also keeps the lasting effects the event put on the player. Solo play had the same hole (one player pushing back on the draw turn escaped the whole event). Card balance and the phase rule (Construction / Regulatory gates) are untouched. Tests: `tests/ghost/tryAgainKeepsLastingEvents.test.ts`.

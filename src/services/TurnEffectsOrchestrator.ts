@@ -177,9 +177,10 @@ export class TurnEffectsOrchestrator {
 
       for (const [groupKey, groupEffects] of groups) {
         const groupDiceRoll = isFirstGroup ? diceRoll : this.diceService.rollDice();
+        const groupIsFirst = isFirstGroup;
         isFirstGroup = false;
 
-        const effects = EffectFactory.createEffectsFromDiceRoll(
+        const made = EffectFactory.createEffectsFromDiceRoll(
           groupEffects,
           playerId,
           currentPlayer.currentSpace,
@@ -187,6 +188,11 @@ export class TurnEffectsOrchestrator {
           currentPlayer.name,
           friendlySpaceName(this.dataService, currentPlayer.currentSpace)
         );
+        // One "outcome came back" line per press, even when a space has two roll groups
+        // (History showed it twice).
+        const effects = groupIsFirst
+          ? made
+          : made.filter((e) => !(e.effectType === 'LOG' && (e.payload as { action?: string }).action === 'dice_roll'));
         allDiceEffects.push(...effects);
         rollGroupResults.push({ rollGroup: groupKey, diceValue: groupDiceRoll, effectCount: effects.length });
       }
