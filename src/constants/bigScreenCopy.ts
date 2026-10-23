@@ -52,14 +52,27 @@ export const BIG_SCREEN = {
   ],
   makersLink: 'Show steps for my TV maker',
   makersHide: 'Hide TV makers',
+  notListed: 'My TV isn’t listed',
   makersNote: 'Listed only so you can find your steps. We are not recommending or selling any of them.',
-  // Alphabetical. Nothing highlighted, no logos.
+  // Alphabetical. Nothing highlighted, no logos. A maker is listed only if its OWN page says what its TVs do about
+  // browsers (checked 2026-10-23); where the official page says less, the words say only what it does support.
   makers: [
+    // Amazon press release (press.aboutamazon.com/2017/12/amazon-brings-web-browsing-to-fire-tv): Firefox and Silk
+    // browsers can be downloaded on every Fire TV device. It is from 2017, so the words stay general.
     { name: 'Amazon Fire TV', steps: 'Install a free browser from the Fire TV app store, open it, and type the game address.' },
-    { name: 'Apple TV', steps: 'Apple TV has no web browser. Use a laptop on HDMI, or AirPlay a laptop or phone screen to it.' },
-    { name: 'Google TV', steps: 'Look for a browser app. If there is none, install a free browser from the TV’s app store, then type the game address.' },
+    // Apple's AirPlay page (support.apple.com/en-gb/guide/tv/atvbf2be9ef7/tvos) covers mirroring a phone, tablet or
+    // Mac to Apple TV. Apple has no official page found that says "no browser"; that part is only forum talk, so unsaid.
+    { name: 'Apple TV', steps: 'Apple’s help shows how to AirPlay a phone, tablet or Mac screen to Apple TV. Open the game on that device in an up-to-date browser and pick TV, or use a laptop on HDMI.' },
+    // Google's help pages (support.google.com/chromecast/answer/3228332) only describe CASTING a Chrome tab from a
+    // computer. No official page found for a browser app on the TV itself, so that is only "look in the app store".
+    { name: 'Google TV', steps: 'Google’s help shows how to cast a Chrome tab from a laptop to the TV. You can also look in the TV’s app store for a free browser.' },
+    // LG support page (lg.com/us/support/help-library/lg-tv-how-to-use-the-web-browser--20153257222107): press Home,
+    // open Web browser, type an address. The 2021-or-older line is our own finding (CHANGELOG 3.8.16).
     { name: 'LG', steps: 'Press Home, open Web Browser, and type the game address. LG TVs from 2021 or older cannot run this game: use a laptop on HDMI.' },
-    { name: 'Roku', steps: 'Roku has no web browser. Use a laptop on HDMI, or cast or mirror a laptop or phone screen to it.' },
+    // Roku support (support.roku.com/article/can-i-browse-the-internet): says plainly Roku has no web browser.
+    { name: 'Roku', steps: 'Roku says its players and TVs have no web browser. Use a laptop on HDMI, or cast or mirror a laptop or phone screen to it.' },
+    // Samsung support (samsung.com/hk_en/support/tv-audio-video/how-to-open-website-in-smart-tv/): open the web
+    // browser app and type an address. The 2021-or-older line is our own finding (CHANGELOG 3.8.16, Samsung's chart).
     { name: 'Samsung', steps: 'Open the Internet (or Web Browser) app and type the game address. Samsung TVs from 2021 or older cannot run this game: use a laptop on HDMI.' },
   ],
 } as const;

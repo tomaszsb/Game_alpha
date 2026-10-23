@@ -9,7 +9,7 @@
 // student's own choice. The words live in constants/bigScreenCopy.ts so /challenge and /class
 // say the same thing.
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { colors } from '../../styles/theme';
 import { IconPhone } from '../icons/SetupIcons';
 import { BIG_SCREEN, TvKind } from '../../constants/bigScreenCopy';
@@ -50,6 +50,7 @@ export function BigScreenGuide({ onPlayAlone, onReady }: BigScreenGuideProps): J
   const [kind, setKind] = useState<TvKind | null>(null);
   const [showMakers, setShowMakers] = useState(false);
   const [maker, setMaker] = useState<string | null>(null);
+  const guideRef = useRef<HTMLDivElement>(null);
 
   if (!open) {
     return (
@@ -75,7 +76,7 @@ export function BigScreenGuide({ onPlayAlone, onReady }: BigScreenGuideProps): J
   const steps = kind === 'stick' ? BIG_SCREEN.stepsStick : BIG_SCREEN.stepsBrowser;
 
   return (
-    <div data-testid="big-screen-guide" style={{
+    <div ref={guideRef} data-testid="big-screen-guide" style={{
       ...card, background: colors.primary.lighter, border: `1px solid ${colors.primary.main}`, color: colors.text.primary,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
@@ -143,6 +144,10 @@ export function BigScreenGuide({ onPlayAlone, onReady }: BigScreenGuideProps): J
                   {maker === m.name && <p style={{ margin: '0.25rem 0.2rem 0.1rem' }}>{m.steps}</p>}
                 </div>
               ))}
+              {/* Last line, so nobody is stuck: back to the question that names no brand. */}
+              <button type="button" data-testid="big-screen-not-listed"
+                onClick={() => { setShowMakers(false); setMaker(null); setKind(null); guideRef.current?.scrollIntoView?.({ block: 'start' }); }}
+                style={{ ...bigButton, fontWeight: 700 }}>{BIG_SCREEN.notListed}</button>
             </div>
           </div>
         )}

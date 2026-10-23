@@ -84,4 +84,27 @@ describe('BigScreenGuide', () => {
     const shown = screen.getAllByRole('button', { expanded: false }).map((b) => b.textContent).filter((t) => (names as string[]).includes(t ?? ''));
     expect(shown).toEqual(names);
   });
+
+  it('"My TV isn’t listed" is the last maker line and returns to the question with no brand', () => {
+    render(<BigScreenGuide />);
+    fireEvent.click(screen.getByTestId('big-screen-open'));
+    fireEvent.click(screen.getByTestId('big-screen-none'));
+    fireEvent.click(screen.getByTestId('big-screen-makers-link'));
+    const list = screen.getByTestId('big-screen-makers');
+    const last = list.querySelectorAll('button')[BIG_SCREEN.makers.length];
+    expect(last).toBe(screen.getByTestId('big-screen-not-listed'));
+    expect(last).toHaveTextContent(/isn.t listed/);
+    fireEvent.click(last);
+    expect(screen.queryByTestId('big-screen-makers')).toBeNull();
+    expect(screen.queryByTestId('big-screen-answer-none')).toBeNull();
+    expect(screen.getByTestId('big-screen-guide')).toHaveTextContent(/What can your TV do\?/);
+  });
+
+  it('Apple TV and Google TV words claim only what their official pages support', () => {
+    const apple = BIG_SCREEN.makers.find((m) => m.name === 'Apple TV')!.steps;
+    const google = BIG_SCREEN.makers.find((m) => m.name === 'Google TV')!.steps;
+    expect(apple).toMatch(/AirPlay/);
+    expect(apple).not.toMatch(/no web browser/i);
+    expect(google).toMatch(/cast a Chrome tab/);
+  });
 });

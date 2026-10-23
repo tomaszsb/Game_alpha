@@ -66,7 +66,7 @@ export interface StatsSummary {
   };
   traffic: TrafficBucket[];
   sources: { tagged: SourceCount[]; untagged: number };
-  devices: { byOS: NamedCount[]; byBrowser: NamedCount[]; byFormFactor: NamedCount[] };
+  devices: { byOS: NamedCount[]; byBrowser: NamedCount[]; byFormFactor: NamedCount[]; byTvFamily: { name: string; visits: number; devices: number }[] };
   geography: { available: boolean; byCountry: CountryCount[]; unknownCount: number; note?: string };
   homeVsForeign: { home: number; foreign: number };
   recent: RecentEntry[];

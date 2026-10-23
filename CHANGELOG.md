@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.48] - 2026-10-23
+
+**Three follow-ups to the Step 1 card (Tom, 10-23).**
+- **The TV-maker list says only what each maker's own page supports, and `bigScreenCopy.ts` names the source of each.** Amazon Fire TV (Amazon's 2017 press release: browsers can be downloaded on every Fire TV), LG (LG support: Home, Web browser), Roku (Roku support: no web browser), Samsung (Samsung support: open the web browser app) keep their steps. **Apple TV** now says what Apple's own AirPlay page supports (show a phone, tablet or Mac screen on it) instead of "no browser" (only forum posts said that); **Google TV** now says what Google's help shows (cast a Chrome tab from a laptop; "look in the app store for a free browser" is a suggestion, not a promise). Still alphabetical, nothing highlighted, with the "not recommending or selling" line.
+- **"My TV isn't listed"** is the last line of the maker list; it closes the list and goes back to "What can your TV do?" so nobody is stuck.
+- **Site Stats shows a TV-family count** (Devices section): Samsung Tizen, LG webOS, Fire TV, Android / Google TV, Roku, Apple TV, Other TV, as visits and different devices (different addresses; a class behind one router counts once). No new logging: `visitors.log` already stores each visit's user agent, so this is read-only (`detectTvFamily` in `server/visitorStats.js`) and shows no address or name. Fire TV is told apart by "AFT" + a letter in the user agent, LG by "Web0S"/"NetCast", Samsung by "Tizen"; a TV the list does not know counts as "Other TV". Nothing is counted before the data's start (the log's age is whatever is on the Tower).
+- Tests: +2 in `BigScreenGuide.test.tsx`, +2 in `visitorStats.test.ts`.
+
 ## [3.8.47] - 2026-10-23
 
 **"Step 1: put the game on a big screen" for a student who opens the game on a phone first (Tom, 10-23; Farmingdale class worry).** Before: a phone saw a yellow "works best on a bigger screen" note and nothing said HOW to get the board onto a TV, nor that the TV needs a browser. Now the same yellow card (same place, phone-sized screens only, `BigScreenGuide.tsx`, shown through `PhoneScreenWarning`) says "A phone alone is not enough: the board needs a TV or laptop" with two links: **Put it on a TV** and **Play alone on this phone** (switches the picker to PC). Words live in one file, `src/constants/bigScreenCopy.ts`.

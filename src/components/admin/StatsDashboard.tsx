@@ -321,6 +321,12 @@ export function StatsDashboard(): JSX.Element {
             </ResponsiveContainer>
           </div>
         </div>
+        <div data-testid="tv-family-counts" style={{ fontSize: '0.8rem', color: colors.text.secondary, marginTop: 12 }}>
+          <b>TV families</b> (visits from a TV browser; “devices” = different addresses, so one classroom behind one router counts once):{' '}
+          {(data.devices.byTvFamily ?? []).length === 0
+            ? 'none in this window.'
+            : (data.devices.byTvFamily ?? []).map((t) => `${t.name}: ${t.visits} visits, ${t.devices} device${t.devices === 1 ? '' : 's'}`).join(' · ')}
+        </div>
         <div style={{ fontSize: '0.75rem', color: colors.text.tertiary, marginTop: 8 }}>
           Screen-size histogram isn’t available yet — the client doesn’t currently report its screen size to the server.
         </div>

@@ -3,6 +3,11 @@
 ---
 
 
+## v3.8.48 — Step 1 card follow-ups (October 23, 2026)
+
+- **The TV-maker list is worded from each maker's own help page**, and has a last line "My TV isn't listed" that goes back to "What can your TV do?".
+- **Site Stats counts which kinds of TV open the game** (Samsung, LG, Fire TV, Google TV, Roku, Apple TV, other), with no names or addresses.
+
 ## v3.8.47 — "Step 1: put the game on a big screen" for phone-first students (October 23, 2026)
 
 - **A phone now explains how to get the board onto a TV.** The yellow note says a phone alone is not enough, and a "Put it on a TV" link asks what your TV can do (a browser app, a stick or box, or no browser) and shows three plain steps: open the browser, type the game address, type the code the TV shows.

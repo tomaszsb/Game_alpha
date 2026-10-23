@@ -154,6 +154,22 @@ function detectFormFactor(userAgent) {
   return 'desktop';
 }
 
+/**
+ * Which TV family a TV-looking user agent belongs to (Tom, 2026-10-23: so the "TV maker" list on the phone's
+ * Step 1 card can later be cut or grown from real numbers). null = not a TV. Order matters: a Fire TV's UA also
+ * says Android, a Sony BRAVIA is Android TV, and a Chromecast says CrKey.
+ */
+export function detectTvFamily(userAgent) {
+  if (typeof userAgent !== 'string' || !TV_UA_PATTERN.test(userAgent)) return null;
+  if (/Tizen/i.test(userAgent)) return 'Samsung Tizen';
+  if (/Web0S|NetCast/i.test(userAgent)) return 'LG webOS';
+  if (/AFT[A-Z]/.test(userAgent)) return 'Fire TV';
+  if (/Roku/i.test(userAgent)) return 'Roku';
+  if (/AppleTV|tvOS/i.test(userAgent)) return 'Apple TV';
+  if (/Android\s?TV|GoogleTV|Google TV|CrKey|BRAVIA/i.test(userAgent)) return 'Android / Google TV';
+  return 'Other TV';
+}
+
 export const WINDOW_MS = {
   '24h': 24 * 60 * 60 * 1000,
   '7d': 7 * 24 * 60 * 60 * 1000,
@@ -292,6 +308,7 @@ export function aggregateVisitorStats(rawEntries, options = {}) {
   const byOS = new Map();
   const byBrowser = new Map();
   const byFormFactor = new Map();
+  const tvFamilies = new Map();
   for (const e of pool) {
     const os = e.device || 'Unknown';
     byOS.set(os, (byOS.get(os) || 0) + 1);
@@ -299,7 +316,18 @@ export function aggregateVisitorStats(rawEntries, options = {}) {
     byBrowser.set(browser, (byBrowser.get(browser) || 0) + 1);
     const ff = detectFormFactor(e.userAgent);
     byFormFactor.set(ff, (byFormFactor.get(ff) || 0) + 1);
+    const tvFamily = detectTvFamily(e.userAgent);
+    if (tvFamily) {
+      const row = tvFamilies.get(tvFamily) || { visits: 0, ips: new Set() };
+      row.visits++;
+      row.ips.add(e.ip);
+      tvFamilies.set(tvFamily, row);
+    }
   }
+  // Counts only: how many visits and how many different addresses per family. The addresses themselves never leave here.
+  const byTvFamily = Array.from(tvFamilies.entries())
+    .map(([name, row]) => ({ name, visits: row.visits, devices: row.ips.size }))
+    .sort((a, b) => b.visits - a.visits);
   const toSorted = (m) => Array.from(m.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
 
   // ---- home vs foreign (given HOME_IP auto-detection added earlier) ----
@@ -361,7 +389,7 @@ export function aggregateVisitorStats(rawEntries, options = {}) {
     kpis,
     traffic,
     sources: { tagged: sources, untagged: untaggedCount },
-    devices: { byOS: toSorted(byOS), byBrowser: toSorted(byBrowser), byFormFactor: toSorted(byFormFactor) },
+    devices: { byOS: toSorted(byOS), byBrowser: toSorted(byBrowser), byFormFactor: toSorted(byFormFactor), byTvFamily },
     geography: geoAvailable
       ? { available: true, byCountry, unknownCount: geoUnknownCount }
       : { available: false, byCountry: [], unknownCount: pool.length, note: 'Local geo database did not load -- see server startup logs.' },

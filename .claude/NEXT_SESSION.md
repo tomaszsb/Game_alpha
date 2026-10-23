@@ -6,7 +6,7 @@
 - **Last shipped (all live):** v3.8.41 pulsing red "you would be short" warnings; v3.8.42 a push-back no longer erases the drawer's own lasting life event (also solo); v3.8.43 per-space "?" help on the work button, plain History notes, no doubled "outcome came back"; v3.8.44 hint "Tap: see the cost. Hold: do it.", bank loans named for your project, "$X to raise" instead of "deficit"; v3.8.45 days saved by a played expeditor stay saved through a push-back (Tom: spent means spent); v3.8.46 certificate asks for a real name when the game name is "Player N".
 - **Tests:** `npm test` 307 files / 4095 green; ghost 15 passed, 1 skipped; build clean; typecheck only the old `dataGate.test.ts` errors.
 
-## Added after the wrap-up: v3.8.47 (committed + pushed, NOT deployed; Tom deploys)
+## Added after the wrap-up: v3.8.47 and v3.8.48 (committed + pushed, NOT deployed; Tom deploys)
 - "Step 1: put the game on a big screen" for phone-first students (see CHANGELOG 3.8.47). Open for Tom: a real-TV test (Samsung, Fire TV, Google TV), what TV type his TV Bro is on and how he installed it, and whether the host should get a nudge to add one player per phone before students type the code (a new TV game starts with only "Player 1").
 
 ## Top 3 open items

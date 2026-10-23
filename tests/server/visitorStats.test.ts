@@ -4,7 +4,7 @@
 // same pattern as authGuards.test.ts / homeIP.test.ts.
 
 import { describe, it, expect } from 'vitest';
-import { parseLogLine, aggregateVisitorStats, ipPrefix } from '../../server/visitorStats.js';
+import { parseLogLine, aggregateVisitorStats, ipPrefix, detectTvFamily } from '../../server/visitorStats.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.parse('2026-07-24T12:00:00.000Z');
@@ -339,5 +339,37 @@ describe('daily buckets are New York days', () => {
     expect(summer.traffic.map(b => b.bucket)).toEqual(['2026-10-20', '2026-10-21']);
     const winter = aggregateVisitorStats([day('2026-12-21T04:59:00.000Z'), day('2026-12-21T05:01:00.000Z')], { now: Date.parse('2026-12-21T06:00:00.000Z'), window: '7d' });
     expect(winter.traffic.map(b => b.bucket)).toEqual(['2026-12-20', '2026-12-21']);
+  });
+});
+
+describe('TV family count (Site Stats, v3.8.48)', () => {
+  it('names the family from the user agent; null for a non-TV', () => {
+    expect(detectTvFamily('Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/537.36 Chrome/76')).toBe('Samsung Tizen');
+    expect(detectTvFamily('Mozilla/5.0 (Web0S; Linux/SmartTV) AppleWebKit/537.36 Chrome/79')).toBe('LG webOS');
+    expect(detectTvFamily('Mozilla/5.0 (Linux; Android 9; AFTMM Build/PS7233) AppleWebKit/537.36 Silk/120')).toBe('Fire TV');
+    expect(detectTvFamily('Mozilla/5.0 (Linux; Android 12; BRAVIA 4K GB) Chrome/120 Safari/537.36')).toBe('Android / Google TV');
+    expect(detectTvFamily('Mozilla/5.0 (Linux; Android 10; Android TV) Chrome/120')).toBe('Android / Google TV');
+    expect(detectTvFamily('Roku/DVP-9.10 (519.10E04111A)')).toBe('Roku');
+    expect(detectTvFamily('AppleTV11,1/11.1')).toBe('Apple TV');
+    expect(detectTvFamily('Mozilla/5.0 (Linux; Android 14; Smart TV Pro Build/UTT) Chrome/150 Mobile Safari/537.36')).toBe('Other TV');
+    expect(detectTvFamily('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) Safari/604.1')).toBeNull();
+    expect(detectTvFamily(undefined as unknown as string)).toBeNull();
+  });
+
+  it('counts visits and different addresses per family, and never exposes an address', () => {
+    const tizen = 'Mozilla/5.0 (SMART-TV; Linux; Tizen 7.0) Chrome/94 TV Safari/537.36';
+    const entries = [
+      at(1, { ip: '1.1.1.1', userAgent: tizen }),
+      at(2, { ip: '1.1.1.1', userAgent: tizen }),
+      at(3, { ip: '2.2.2.2', userAgent: tizen }),
+      at(1, { ip: '3.3.3.3', userAgent: 'AppleTV11,1/11.1' }),
+      at(1, { ip: '4.4.4.4' }),
+    ].filter(Boolean);
+    const result = aggregateVisitorStats(entries, { now: NOW, window: '24h' });
+    expect(result.devices.byTvFamily).toEqual([
+      { name: 'Samsung Tizen', visits: 3, devices: 2 },
+      { name: 'Apple TV', visits: 1, devices: 1 },
+    ]);
+    expect(JSON.stringify(result.devices.byTvFamily)).not.toMatch(/\d+\.\d+\.\d+\.\d+/);
   });
 });
