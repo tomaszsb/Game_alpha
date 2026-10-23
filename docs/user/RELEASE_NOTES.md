@@ -3,6 +3,15 @@
 ---
 
 
+## v3.8.41 to v3.8.46 — Warnings you can see, plainer words, a name on the certificate (October 22, 2026)
+
+- **The red "you would be short" warnings pulse** (under a builder you can't afford, and above End Turn).
+- **The "?" on the work button names who changes the work**: the architect, the engineer or the lender, not "the owner".
+- **Bank loans are named for your own project** ("Bank loan for the airport terminal at 10% interest"), and the orange money word says "$X to raise" instead of "deficit".
+- **The hint under End Turn reads "Tap: see the cost. Hold: do it."**
+- **A push-back keeps what you already did**: the days an expeditor saved stay saved, and a lasting life event you drew stays on you.
+- **The certificate asks for your name** when the game only called you "Player 1".
+
 ## v3.8.38 to v3.8.40 — Links, clearer History, and a hold cue (October 21, 2026)
 
 - **"Visit our other sites: iqarius.com · watchorder.tv"** at the bottom of the setup page, the game board, the win and loss screens, and the certificate.
