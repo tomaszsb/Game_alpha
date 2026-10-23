@@ -18,6 +18,9 @@ interface Props {
   whyQuestions: WhyQuestion[];
 }
 
+/** The name the game hands out when nobody typed one at setup ("Player 1", "Player 2"... see PlayerSetup). */
+export const isDefaultPlayerName = (name: string): boolean => /^Player \d+$/.test(name.trim());
+
 /** Sends the answers; never blocks or fails the certificate. */
 export async function saveCertificateAnswers(
   body: { name: string; gameCode: string | null; answers: CertificateAnswers; course?: CourseChoice },
@@ -58,16 +61,26 @@ export function CertificateQuestions({ playerName, gameCode, whyQuestions }: Pro
   const [why, setWhy] = useState<string[]>(() => whyQuestions.map(() => ''));
   const [course, setCourse] = useState<CourseChoice>('');
   const [saved, setSaved] = useState(false);
+  // A player who never typed a name at setup is "Player 1" in the game. That stays as it is, but the
+  // certificate and the saved class answers need a real name, so ask for one here (G-W47H-U839).
+  const needsName = isDefaultPlayerName(playerName);
+  const [typedName, setTypedName] = useState('');
+  const [nameMissing, setNameMissing] = useState(false);
+  const certName = needsName ? typedName.trim() : playerName;
 
   const onPrint = () => {
+    if (needsName && !certName) {
+      setNameMissing(true);
+      return;
+    }
     const whyAnswers = whyQuestions.map((q, i) => ({ question: q.question, answer: why[i] ?? '' }));
     // Open the tab first, inside the click, or the browser blocks it as a pop-up.
-    if (!openCertificate(playerName, whyAnswers, course)) {
+    if (!openCertificate(certName, whyAnswers, course)) {
       window.alert('Your browser blocked the certificate window. Allow pop-ups for this site and try again.');
     }
     if (!saved) {
       void saveCertificateAnswers({
-        name: playerName, gameCode,
+        name: certName, gameCode,
         answers: { playAgain, mostBoring, bestPart, why: whyAnswers }, course,
       }).then(ok => { if (ok) setSaved(true); });
     }
@@ -142,6 +155,19 @@ export function CertificateQuestions({ playerName, gameCode, whyQuestions }: Pro
       <p style={{ margin: '10px 0 0', fontSize: 13, color: colors.text.secondary }}>
         Your teacher also needs at least one comment from you. Tap the red bug button in the corner and leave one.
       </p>
+
+      {needsName && (
+        <>
+          <label style={labelStyle} htmlFor="cert-name">Type your name for the certificate</label>
+          <input id="cert-name" data-testid="cert-name" type="text" maxLength={60} autoComplete="name" style={boxStyle}
+            value={typedName} onChange={e => { setTypedName(e.target.value); setNameMissing(false); }} />
+          {nameMissing && (
+            <p data-testid="cert-name-missing" role="alert" style={{ margin: '4px 0 0', fontSize: 13, color: colors.error.main }}>
+              Please type your name first.
+            </p>
+          )}
+        </>
+      )}
 
       <div style={{ textAlign: 'center', marginTop: 14 }}>
         <button

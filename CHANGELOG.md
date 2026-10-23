@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.46] - 2026-10-22
+
+**The certificate asks for a real name when the game only has "Player 1".** A student in the Farmingdale class (G-W47H-U839, course 409) never typed a name at setup, so the certificate and the saved class answers said "Player 1" and the professor could not tell whose they were. Now, when the name is the game's own default ("Player" and a number, as made in the setup screen), a box "Type your name for the certificate" shows right above Print certificate. It must be filled in before printing (a short red line says so), and that name goes on the printed page and into the saved class answers. A real name shows nothing new and is used as before (Tom 10-16). The name inside the game is not changed. The old "Player 1" answers already saved are left as they are. Tests: `tests/components/modals/CertificateCourse.test.tsx`.
+
 ## [3.8.45] - 2026-10-22
 
 **A push-back no longer takes back the days an expeditor saved.** Tom (10-22): "once an expeditor is used they are spent; you cannot negotiate and undo an action: the card cannot return and the money cannot be returned", and the days it saved belong to the same action. Before: day 100, play Efficiency Boost (-3) -> 97, push back -> 110 (the card gone, its 3 days back on the clock). Now the days saved are written on the turn's ledger when the card is played and stay saved through a push-back (the day count still cannot go below zero). This makes day-saving cards a little stronger in a turn that ends in a push-back (Tom's call, by his rule). Tests: `tests/ghost/expeditorDaysStick.test.ts`.
