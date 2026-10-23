@@ -6,6 +6,7 @@ import { shortName } from '../../utils/boardCommon';
 import { SpaceRegionAnchor, regionForAnchor, regionHeading, regionShortLabel } from './spaceRegions';
 import { SpaceSchema, SchemaField, moreSettings, groupMoreSettings } from './utils/spaceSchema';
 import { TEXT_LIMITS } from '../classroom/textLimits';
+import { loadStandardWhy } from './utils/standardWhy';
 
 /**
  * The safe subset a teacher may change: what a space SAYS and what it costs,
@@ -129,6 +130,14 @@ export function SpaceEditor({
   extraSchema,
   onExtraColumnChange,
 }: SpaceEditorProps): JSX.Element {
+  // The standard "why" text, shown grey in the Why box so a teacher sees what they would replace.
+  const [standardWhy, setStandardWhy] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let live = true;
+    loadStandardWhy().then((m) => { if (live) setStandardWhy(m); });
+    return () => { live = false; };
+  }, []);
+
   const currentSpace = visitType === 'First' ? spaceFirst : spaceSubsequent;
   const formRef = useRef<HTMLDivElement | null>(null);
   // Ids for the two fields whose visible label (LabelWithRevert) and control
@@ -472,6 +481,7 @@ export function SpaceEditor({
             onChange={(v) => handleChange('Why', v)}
             original={originalValue('Why')}
             rows={3}
+            placeholder={standardWhy[currentSpace.space_name]}
           />}
         </EditorSection>
 
@@ -1228,7 +1238,7 @@ function SpaceSelectField({ label, value, options, onChange, anchor, id: idProp 
   );
 }
 
-function TextareaField({ label, value, onChange, rows = 2, original, anchor, maxLength = TEXT_LIMITS.long }: {
+function TextareaField({ label, value, onChange, rows = 2, original, anchor, placeholder, maxLength = TEXT_LIMITS.long }: {
   label: string; value: string; onChange: (v: string) => void; rows?: number;
   /** The server refuses longer text (server/textLimits.js). */
   maxLength?: number;
@@ -1236,6 +1246,8 @@ function TextareaField({ label, value, onChange, rows = 2, original, anchor, max
   original?: string;
   /** Where a click on the player view lands. See spaceRegions.ts. */
   anchor?: string;
+  /** Grey hint shown while the box is empty. */
+  placeholder?: string;
 }): JSX.Element {
   const differs = original !== undefined && (value || '') !== original;
   const id = useId();
@@ -1249,6 +1261,7 @@ function TextareaField({ label, value, onChange, rows = 2, original, anchor, max
         style={differs ? { ...styles.textarea, ...CHANGED_INPUT } : styles.textarea}
         rows={rows}
         maxLength={maxLength}
+        placeholder={placeholder}
       />
     </div>
   );

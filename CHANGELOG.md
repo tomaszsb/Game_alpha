@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.55] - 2026-10-23
+
+**Research notes only (no game change): the robot's real loop numbers, and the accessibility deadline.**
+- **Bad-luck cap (`BETA_PLAN_V3.md` N3 item 4):** counted from 36 logged robot games (Mac, read-only). The loops are early, in design and filing: City Checks Plans visited 3 or more times in 11 of 36 games, 21% of plan-exam arrivals go back to the architect. The back half is barely reached by these time-boxed robot games, so full game length is not re-measured. Pick firmed up: count "sent back to an earlier step" in a row, starting with the plan-exam to architect circle.
+- **Accessibility (TODO, the existing "Accessibility deadline" item):** DOJ page read; two automatic checks run on the setup and board screens (only colour contrast was flagged, 6 and 11 spots); the rest labelled unverified. General information, not legal advice.
+
+## [3.8.54] - 2026-10-23
+
+**The teacher's "Why this happens" box now shows the standard text in grey.**
+- A teacher opening a space sees the standard explanation as a grey hint inside the empty box, so they know what they would replace (the gap noted in v3.8.52). The box itself stays empty: only what they type is saved. Read once from `ACTION_TOOLTIPS.csv` (`standardWhy.ts`); no file or no network just means no hint. Test: `SpaceEditorWhyHint.test.tsx`.
+
 ## [3.8.53] - 2026-10-23
 
 **Design notes only (no game change): the five N3 questions written up.**
