@@ -435,3 +435,68 @@ Status as of v2.58.0 (April 30, 2026):
 - **Architect / Engineer / Contractor are hardcoded by name** (Tom's proposal 2026-09-28: one data-driven "vendor" concept, like the five card flavors). `CON-INITIATION` alone is named in ~10 files. Pairs with the CardType unification.
 - **Small:** the end-game "regulatory-heavy" insight is keyed on a phase NAME (`EndGameModal.tsx`, `endGameInsights.ts`; fails soft); the replace-picker phase chip shows only for `cardType === 'E'` (`CardReplacementModal.tsx`; cosmetic); a condition expression grammar (`<stat> <op> <literal>`) would retire A1's named-threshold table (a proposal, not a leak).
 - **Left typed in code on purpose after Job 2:** the quality/event ids (`HIGH/MED/LOW`, `review_passed`, `review_sent_back`, `violation`), the header-menu words (the robot reads them), `BoardCheckStrip` (teacher tool), `LEND-SCOPE-CHECK` in `server/spaceProtection.js`, the stock names and the `CHEAT-BYPASS` default in `trophyRules.ts`.
+
+---
+
+## N3 design prep: five open design questions (2026-10-23, design only, nothing built)
+
+Written by the Game_Alpha session for the Manager. Sources: the independent review notes in `D:\Unravel\Independent_Review\` (`PLAYTEST.md` Part 2, `RESEARCH-2.md` §1d and §6, `CHECK.md` §6), plus the current data files. No per-space visitor or robot hit counts exist in this repo, so numbers are counted from `DICE_OUTCOMES.csv` and `MOVEMENT.csv`, or taken from `CHECK.md` (six robot games: 20, 47, 83, 89, 126 and 170 turns). The picks are mine; every item still needs Tom before anything is built. Each lists the plain problem, the options with the real cost, what could go wrong, and one pick.
+
+### 1. Inspector sign-off (full report vs sign today)
+- **The student's problem.** After Site Inspection the game walks straight to Final Approval. A real job cannot close until every special inspection item is signed (TR1), but the student never meets that wait, and the Special Inspector they may have hired (live since v3.8.22) does nothing at the end.
+- **Options.**
+  - **A. Two new spaces, data only (the review's version).** `SI-SIGNOFF` (choice) leads to `SI-FULL-REPORT` (+10 days, safe) or `SI-RUSH` (+1 day; 2 in 6 an item is missing and you go back to Trouble On Site). About 10 rows across `MOVEMENT`, `SPACE_CONTENT`, `SPACE_EFFECTS`, `DICE_OUTCOMES`, `TROPHIES`; the Site Inspection outcomes that point at `REG-DOB-FINAL-REVIEW` are re-pointed. About a day. Tests: the pipeline-faithful test, a ghost game that passes through, a data test that every space reached exists. Two new tile positions on the board.
+  - **B. Only if you hired a Special Inspector.** Same spaces, reached only by a player who has the inspector. Teaches why the hire matters, but needs a conditional edge in the engine and is the riskiest for the ghost games.
+  - **C. Do nothing, add a line to the Final Approval "?" tip.** Hours, no new decision.
+- **What could go wrong.** One more stop on a back half that already runs long. If "sign today" is too cheap everyone rushes; if it is too costly nobody does. The rush path sends you back to Trouble On Site, which feeds the loop it was meant to shorten.
+- **Pick: A.** Data only, sourced, and the first real time-against-risk choice at the end. Build it together with item 3 so the board is re-drawn once.
+- **Needs Tom first:** yes, the 10 days / 1 day / 2-in-6 numbers and the wording.
+
+### 2. Hire an Expeditor fork (veteran / junior / yourself)
+- **The student's problem.** Forced expeditors were cut in v3.8.20 (5 `draw_E` rows remain), but the student still never *chooses* to hire one. A real expeditor does not make the city faster; they stop you losing time to mistakes.
+- **Options.**
+  - **A. A fork space `EXP-HIRE` before the filing choice (data only).** Veteran (-$15K, +3 days, 3 steady cards), Junior (-$3K, +1 day, 2 cards, 1 in 6 a "filing error" event), Do it yourself (+15 days once, no cards). About 12 rows in the same files as item 1, and the owner's `draw_E,3` becomes `draw_E,1`. Tests: pipeline/data tests, a ghost game, and the card-count checks beside `tests/ghost/expeditorDaysSaved.test.ts`.
+  - **B. Make it a three-button choice at the Owner, no new tile.** Fewer tiles; needs a small code change because spaces offer card draws, not priced choices.
+  - **C. Bids, like the builder bids.** Most teaching, medium code, most risk (TODO: "bids for expeditors").
+- **What could go wrong.** "Junior can be bad" depends on the open product choice about day-adding cards in a solo hand (TODO, Decisions waiting on Tom). If Veteran is always best, the fork teaches nothing. "Yourself" at +15 days can put Fastest out of reach.
+- **Pick: A, after the day-adding-cards decision.** It stays in the data and copies the `SI-HIRE` pattern.
+- **Needs Tom first:** yes, that decision, then the three prices.
+
+### 3. TCO vs final CO at the end
+- **The student's problem.** The last step is a dice space (first visit: 4 in 6 finish, 1 Site Inspection, 1 Fire Dept. fees). Nothing at the end asks the student to pick between Fastest and Best built, which is where the trophy race is hottest.
+- **Options.**
+  - **A. Two short spaces before FINISH (data only).** "Open now on a Temporary CO" (+5 days, -$10K renewal, 1 quality point for open items) or "Wait for the final CO" (+30 days, $0). About 10 rows, same files as item 1. Tests as item 1, plus the end-screen trophy-count tests.
+  - **B. Make the choice on the Final Approval screen, no new tile.** Fewer rows; needs an end-of-game code path.
+  - **C. Also model the TCO expiring** (the old parking-lot item "Loan-repayment deadline + TCO mechanic"). Most real; needs a timer in the engine. Weeks.
+- **What could go wrong.** "TCOs expire about every 90 days" is the reviewer's own guess, marked "check" and not sourced; do not print it as fact. With items 1 and 3 together the end gets three extra stops: measure game length before and after.
+- **Pick: A, no expiry.** Park the expiry (C).
+- **Needs Tom first:** yes, numbers, wording, and a source for the TCO rules (the NYC Buildings CO worksheet linked in `PLAYTEST.md`).
+
+### 4. "After 2 failed rolls at one space, the 3rd is a choice"
+- **The student's problem.** Some games run very long (CHECK: 20 to 170 turns, middle about 85) because bad luck loops.
+- **What the data says (counted from `DICE_OUTCOMES.csv`).** The rule as written would almost never fire. Only two spaces send you back to *the same space*: DOB Plan Exam (1 in 6) and Fire Dept. Review (2 in 6). The other loops are bigger circles: Audit back to Plan Exam or the architect (3 in 6 on a first visit), Final Approval back to Site Inspection, Site Inspection back to Trouble On Site. Hypothesis, unverified: those circles, not same-space repeats, make the 170-turn robot games. The Jarvis nightly logs would confirm it; they are not on this machine.
+- **Options.**
+  - **A. Count "sent backwards" in a row, at any space.** After 2 in a row the 3rd step is a choice (pay days or money, or redesign). A counter in player state; the choice reuses push-back pricing (`try_again_days`). About 3 days: a small change in `MovementService`, a state field, a pop-up, ghost tests for a loop, and a saved-game check.
+  - **B. The rule as written (same space only).** Cheaper but covers perhaps 1 in 6 of the bad loops. I would not build it.
+  - **C. Soften the back-step chances in the data.** Hours, but it makes the game easier everywhere and later collides with a teacher "luck level".
+- **What could go wrong.** If the price is not real, rework stops costing anything and the lesson goes. A counter not reset when a game loads, or when Try Again undoes a move, will miscount.
+- **Pick: A, after a read-only look at the robot's long games** to confirm which loop dominates.
+- **Needs Tom first:** yes, two in a row or three, and what the choice costs.
+
+### 5. "Show the trophy race all game; approvals stamp the mat"
+- **The student's problem.** Students cannot steer toward their two trophies if they cannot see where they stand.
+- **What already exists.** The live trophy board is built (`LiveTrophyBoard.tsx`, Job 5): each player's place and how far behind, in the Progress strip (`ProjectProgress.tsx`) and on the TV (`TVDisplay.tsx`). So the first half is largely done. Not checked: whether a phone shows it without scrolling (hypothesis, unverified: it sits in the Progress panel only). The second half is not built: nothing stamps when DOB or FDNY approves or a builder is hired.
+- **Options.**
+  - **A. Stamps only.** A small stamp and a line on the mat when `dobApprovalStatus`, `fdnyApprovalStatus` or the builder changes. About 2 days: one event from `ApprovalService`, one component, tests for the event and a render test, and the phone check at 360x640 and 390x844 (Tom's rule: the panel never grows).
+  - **B. A one-line strip on the phone** ("2nd fastest, 1st on budget") always in view. About 2 days; risks a taller panel.
+  - **C. Both.** About 4 days.
+- **What could go wrong.** Phone space. The Browser pane fires no animation frames, so animation needs another way to check. Stamps on a TV need a real-TV look. Wording must stay real-world, no game words.
+- **Pick: A first.** It is the missing half and adds no height if it appears in the existing mat area.
+- **Needs Tom first:** not to build A (no new rules), but he should see it on a phone.
+
+### Which of these need Tom before any building
+1. Inspector sign-off: yes (numbers and wording).
+2. Hire an Expeditor fork: yes (the day-adding-cards choice first, then prices).
+3. TCO vs final CO: yes (numbers, wording, a source for TCO rules).
+4. Bad-luck cap: yes (the count and the price), after reading the robot's long games.
+5. Trophy race: no for the stamps; he should look at it on a phone.

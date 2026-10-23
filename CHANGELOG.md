@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.53] - 2026-10-23
+
+**Design notes only (no game change): the five N3 questions written up.**
+- `docs/core/BETA_PLAN_V3.md` has a new section "N3 design prep": Inspector sign-off, Hire an Expeditor fork, TCO vs final CO, the bad-luck cap, and the trophy race. Each has the student's problem, options with cost, what could go wrong, and one pick. All five need Tom before building.
+- Finding worth knowing: only DOB Plan Exam (1 in 6) and Fire Dept. Review (2 in 6) send you back to the same space, so "2 failed rolls at one space" would almost never fire; the long loops are bigger circles (hypothesis, unverified: confirm with the robot logs). The live trophy board already exists (`LiveTrophyBoard`), so only the approval stamps are missing.
+
 ## [3.8.52] - 2026-10-23
 
 **A teacher can now write the "Why this happens" help for a space (Tom's standing rule: teacher-editable).**
