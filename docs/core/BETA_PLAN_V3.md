@@ -505,3 +505,23 @@ Written by the Game_Alpha session for the Manager. Sources: the independent revi
 3. TCO vs final CO: yes (numbers, wording, a source for TCO rules).
 4. Bad-luck cap: yes (the count and the price), after reading the robot's long games.
 5. Trophy race: no for the stamps; he should look at it on a phone.
+
+---
+
+## Design prep: role play step 1, the Banker/Lender as a second role (2026-10-23, inventory first, nothing built)
+
+Source: `D:\Unravel\Independent_Review\RESEARCH-2.md` §4.
+
+- **The goal in plain words.** Today every player is the project manager and the bank, the lender and the investor are scenery. Step 1 lets a second person (or a robot) be the Banker/Lender who decides the money terms, so waiting players have a job and the money spaces become a real deal between two people. Any empty seat must be a robot, so a solo student still plays the whole game.
+- **What already exists.**
+  - **The characters are in the data**: `CHARACTERS.csv` has The Banker (`BANK`), The Lender and The Investor; each money space has a speaker (`npc_speaker` in `GAME_CONFIG.csv`). Spaces: `LEND-SCOPE-CHECK` (choice), `BANK-FUND-REVIEW` and `INVESTOR-FUND-REVIEW` (fixed), with the lender's wording in `AUTHORED_COPY_REVIEW.md`.
+  - **The money terms are mostly data already**: loan cards (60 B cards at 5, 10 or 15 percent), fee reviews that charge a share of the scope (`try_again_scope_pct`), the quote-comes-back push-back model (Tom 2026-10-02), and the game's own limit of 20 percent plus bankruptcy checked at End Turn.
+  - **Players are all the same kind** (1 to 4, one project manager each), with a join picker, per-phone ids and a TV spectator. There is no "seat" that is not a project manager.
+  - **A robot exists, but only as a tester** (`src/headless/ghostPlayer.ts`; it picks random legal moves and the nightly Jarvis run plays through the browser). Neither plays a role well. No code path today lets a robot fill a seat in a live game (hypothesis, unverified: a grep for bot or AI player seats found nothing outside the ghost player and the stats code).
+- **Options.**
+  1. **Robot banker only (smallest, recommended first).** No second person. The Banker is a rule table: given the project manager's scope and the cost to raise (the number the panel already shows as "to raise"), the Banker offers a rate and a limit. The player still chooses among the same buttons, but the offers now depend on rules written in a data file (for example: lend if the cost is under 80 percent of the limit, charge more if the builder is cheap). Steps: (a) write the rule table as a small CSV and read it in one service; (b) show the Banker's reasoning in the existing pop-up (the "why" tip pattern); (c) tests that the offers follow the rules and never break the 20 percent cap; (d) one ghost game with the rules. About 1 week. It teaches the Banker's side without a new seat.
+  2. **Second human seat for the Banker.** A new seat kind, a join choice, a banker's screen on a phone, turn rules for when the banker acts, and saving. It touches turns, phones, the TV and the saved game. Weeks to months (the review says so too), and not before the dice-to-choice work.
+  3. **Banker as a robot that a person can take over later** (the final shape the review wants). Build option 1 so its decisions come through one function (`decide(offer, situation)`), so a human screen can answer the same question later. No extra cost now beyond that one rule.
+- **What could go wrong.** A banker who only says yes or no teaches nothing; each side needs its own goal (the review's lesson). A rule table can make the game easier or unwinnable at some projects: measure with the robot across the 400 project cards before shipping. Saved games and the TV need no change in option 1, but any new state goes in the saved game and needs a loading test. A seat model added later will have to replace today's "every player is a project manager" rule in several places, so keep the Banker out of the player list for now.
+- **Pick: option 3 (build option 1 through one `decide` function).** It is small, it teaches the lender's side, and it leaves the human-seat path open without committing to it.
+- **Needs Tom first:** yes. (1) Is a rule-following banker acceptable as step 1, rather than a human? (2) The Banker's own goal in one plain sentence (for example "lend safely and be repaid"). (3) Whether the lender should refuse a project outright, since today nothing can end a game before the project manager chooses to go on.

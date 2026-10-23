@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.56] - 2026-10-23
+
+**A real-server boot test, two security audits written up, and three design-prep notes (no game change).**
+- **New test `tests/server/serverBootLive.test.ts`:** boots the real `server/server.js` as a child process on a scratch data folder, checks `/health`, creates one game and reads it back (join-info, then the token-guarded state route, which must refuse without the token), then stops it and checks nothing still answers. No change to `server.js` was needed: it already walks up from port 3001 to the first free one and prints it. Three other tests already boot the real server this way (`securityLimitsLive`, `classAnswersLive`, `teacherRiskNumbersLive`, since v3.8.6), so the review's "no test boots the real server" was already out of date; the TODO item is deleted. Only the test's own child is stopped.
+- **Audit (TODO lines, no code changed):** the unused classroom write key is still accepted on 9 routes but is no longer downloadable; the co-teacher overwrite check is real but never sent, and no screen can add a co-teacher yet. Each has a pick; the key removal needs Tom's yes.
+- **Design prep (existing docs):** school branding in `TEACHER_LAYER_DESIGN.md`, the fantasy RPG board in `DND_RESKIN_EXPERIMENT.md`, the Banker role in `BETA_PLAN_V3.md`. All three need Tom first.
+
 ## [3.8.55] - 2026-10-23
 
 **Research notes only (no game change): the robot's real loop numbers, and the accessibility deadline.**
