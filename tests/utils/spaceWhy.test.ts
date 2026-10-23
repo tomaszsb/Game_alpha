@@ -33,15 +33,17 @@ describe('space "why" help', () => {
       'How it usually goes here: 5 in 6 times you go to Final Approval; 1 in 6 times you go to Trouble On Site.');
   });
 
-  it('each of the three spaces has a cause row, and cause + odds stay one short paragraph with no game words', () => {
+  it('each of the seven spaces has a cause row, and cause + odds stay one short paragraph with no game words', () => {
     // VIOLATION (fb:c1dc207d) is not a space: its help is built by buildViolationWhy, tested below.
     const why = csvRows('ACTION_TOOLTIPS.csv').filter((r) => r[0] === 'why' && r[1] !== 'VIOLATION');
-    expect(why.map((r) => r[1]).sort()).toEqual(['CON-INSPECT', 'CON-ISSUES', 'REG-DOB-AUDIT']);
+    expect(why.map((r) => r[1]).sort()).toEqual(['CON-INSPECT', 'CON-ISSUES', 'REG-DOB-AUDIT', 'REG-DOB-FINAL-REVIEW', 'REG-DOB-PLAN-EXAM', 'REG-DOB-PROF-CERT', 'REG-FDNY-PLAN-EXAM']);
     for (const r of why) {
       for (const visit of ['First', 'Subsequent']) {
         const text = buildSpaceWhy(r[3], outcome(r[1], visit), title)!;
         expect(text).toContain(r[3]);
-        if (outcome(r[1], visit)) expect(text).toContain('in 6 times');
+        // a choice-list outcome (Fire Dept. Review's early rolls) gets the cause only
+        const o = outcome(r[1], visit);
+        if (o && !Object.values(o).some((v) => String(v).includes(' or '))) expect(text).toContain('in 6 times');
         expect(text).not.toMatch(/\b(dice|die|roll|card)\b/i);
         expect(text).not.toContain('\n');
         expect(text.length).toBeLessThan(700);

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.51] - 2026-10-23
+
+**"Why this happens" help on four more places.**
+- New `why,<SPACE>` rows in `ACTION_TOOLTIPS.csv` for Fire Dept. Review (`REG-FDNY-PLAN-EXAM`), City Checks Plans (`REG-DOB-PLAN-EXAM`), Prof Cert (`REG-DOB-PROF-CERT`) and Final Approval (`REG-DOB-FINAL-REVIEW`). One short paragraph each, real-world cause only; the odds are still counted from `DICE_OUTCOMES` (nothing typed). Fire Dept. Review shows the cause only, because its early outcomes are a choice list. **Draft wording for Tom**: the Fire Dept. Review last sentence ("what happens next depends on what the examiner found, so you may have more than one place you can go").
+- Chosen by structure (every game passes through plan exam and final review; Prof Cert is the other road in): no per-space hit counts exist in the repo to rank by.
+- Test: `spaceWhy.test.ts` now expects all seven spaces and still blocks game words.
+
 ## [3.8.50] - 2026-10-23
 
 **Result pop-up no longer a thin column on a small laptop window; three old TODO lines closed.**
