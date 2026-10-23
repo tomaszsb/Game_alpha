@@ -411,11 +411,11 @@ describe('restrictChangesToWording', () => {
     expect(out[0].rows[0].space_1).toBe('ZETA-END');
   });
 
-  it('lists exactly the six editable columns', () => {
+  it('lists exactly the seven editable columns', () => {
     // If this list grows, it is a decision about what a teacher may change —
     // not a refactor. Pinned so it cannot drift quietly.
     expect([...TEACHER_EDITABLE_COLUMNS]).toEqual(
-      ['Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee']
+      ['Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee', 'Why']
     );
   });
 });

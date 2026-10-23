@@ -28,7 +28,7 @@ const SKIPPED_FIELDS = new Set(['spacesCSV', 'diceRollCSV', 'modalConfigCSV', 'p
 const FRIENDLY_NAMES = {
   displayName: 'name', name: 'name', story: 'story', title: 'title', Title: 'title',
   time: 'time', Time: 'time', fee: 'fee', Fee: 'fee',
-  Event: 'Event text', Action: 'Action text', Outcome: 'Outcome text',
+  Event: 'Event text', Action: 'Action text', Outcome: 'Outcome text', Why: 'Why text',
 };
 
 function limitFor(field) {

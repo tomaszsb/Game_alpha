@@ -769,6 +769,17 @@
    "x-role": "routing",
    "x-group": "How this space behaves",
    "x-editable-by": "admin"
+  },
+  {
+   "name": "Why",
+   "type": "string",
+   "title": "Why this happens",
+   "description": "The help text a player opens with the ? on this space's button: the real-world reason, in a short paragraph. Blank = the standard explanation (ACTION_TOOLTIPS.csv, rows 'why').",
+   "x-role": "content",
+   "x-group": "What players read",
+   "x-editable-by": "teacher",
+   "x-placed": true,
+   "x-multiline": true
   }
  ]
 }

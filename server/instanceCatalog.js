@@ -23,7 +23,7 @@ import { copyDiceRowsBySpace } from './instanceResolver.js';
 // The safe field subset the catalog editor exposes (spec: UI starts with
 // title, narrative text, and fees; the data model stores full copies
 // underneath, so widening this later is a UI change only).
-export const EDITABLE_FIELDS = ['Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee'];
+export const EDITABLE_FIELDS = ['Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee', 'Why'];
 
 /**
  * @param {{ stockSpacesCsv: string, pathChoiceCsv?: string, diceCsv?: string,

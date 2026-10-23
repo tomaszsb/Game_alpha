@@ -1221,7 +1221,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             // WHY it happens and the odds of each result, counted from the dice data.
             const spaceWhy = a.effect.effect_type === 'dice'
               ? buildSpaceWhy(
-                  getTooltipService().getTooltip('why', player.currentSpace)?.tooltip_why,
+                  content?.why_text?.trim() || getTooltipService().getTooltip('why', player.currentSpace)?.tooltip_why,
                   gameServices.dataService.getDiceOutcome(player.currentSpace, player.visitType),
                   (name) => friendlySpaceName(gameServices.dataService, name),
                 )

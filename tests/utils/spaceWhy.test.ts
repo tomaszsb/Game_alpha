@@ -57,6 +57,23 @@ describe('space "why" help', () => {
   });
 });
 
+// v3.8.52: a teacher can write their own "why" for a space (Spaces.csv `Why` -> SPACE_CONTENT `why_text`).
+describe('teacher-written why', () => {
+  it('ships as an empty column, so the standard ACTION_TOOLTIPS explanation is what shows', () => {
+    const rows = csvRows('SPACE_CONTENT.csv');
+    const col = rows[0].indexOf('why_text');
+    expect(col).toBeGreaterThan(-1);
+    expect(rows.slice(1).every((r) => (r[col] ?? '') === '')).toBe(true);
+  });
+
+  it('their text replaces the standard cause, and the odds are still counted from the data', () => {
+    const mine = 'In my class the inspector always comes on Friday.';
+    const text = buildSpaceWhy(mine, outcome('CON-INSPECT', 'Subsequent'), title)!;
+    expect(text.startsWith(mine)).toBe(true);
+    expect(text).toContain('in 6 times');
+  });
+});
+
 // fb:c1dc207d ("Is it part of the L cards? Or is it because of plan exam?")
 describe('violation "why" help', () => {
   const cause = csvRows('ACTION_TOOLTIPS.csv').find((r) => r[0] === 'why' && r[1] === 'VIOLATION')?.[3];

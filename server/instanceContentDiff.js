@@ -189,7 +189,7 @@ export function diffSubmittedContent({
  * fixed").
  */
 export const TEACHER_EDITABLE_COLUMNS = Object.freeze([
-  'Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee',
+  'Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee', 'Why',
 ]);
 
 /** "2% of scope" / "0.5 % of scope": a percent-of-project fee (SCOPE_PERCENTAGE). */

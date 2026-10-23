@@ -365,6 +365,8 @@ export interface SpaceContent {
   story: string;
   action_description: string;
   outcome_description: string;
+  /** A teacher's own "why this happens" help for this space; blank = the standard ACTION_TOOLTIPS 'why' row. */
+  why_text?: string;
   can_negotiate: boolean;
   end_turn_label?: string;
   try_again_label?: string;

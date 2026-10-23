@@ -373,6 +373,7 @@ function processSpaceContent(spacesCsv) {
     story: row.Event || '',
     action_description: row.Action || '',
     outcome_description: row.Outcome || '',
+    why_text: row.Why || '',
     can_negotiate: row.Negotiate || 'No',
     end_turn_label: row.end_turn_label || 'End Turn',
     try_again_label: row.try_again_label || 'Try Again',
@@ -396,7 +397,7 @@ function processSpaceContent(spacesCsv) {
 
   const fieldnames = [
     'space_name', 'visit_type', 'title', 'story', 'action_description',
-    'outcome_description', 'can_negotiate', 'end_turn_label', 'try_again_label',
+    'outcome_description', 'why_text', 'can_negotiate', 'end_turn_label', 'try_again_label',
     'shake_on', 'tts_field', 'try_again_days', 'try_again_scope_pct', 'try_again_e_cost'
   ];
 

@@ -1485,6 +1485,7 @@ export class DataService implements IDataService {
         story: get(values, 'story') as string,
         action_description: get(values, 'action_description') as string,
         outcome_description: get(values, 'outcome_description') as string,
+        why_text: (get(values, 'why_text') as string) || '',
         // Was `values[6].toUpperCase()` — a positional read that threw outright
         // if the row was short. Name lookup can legitimately return undefined
         // for a column the file does not have, so this guards instead.

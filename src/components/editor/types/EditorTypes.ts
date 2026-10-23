@@ -14,6 +14,7 @@ export interface SpaceRow {
   Event: string;      // Story text
   Action: string;     // Action description
   Outcome: string;    // Outcome description
+  Why?: string;       // "Why this happens" help text (blank = the standard one)
   w_card: string;     // W card effect
   b_card: string;     // B card effect
   i_card: string;     // I card effect

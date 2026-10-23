@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.52] - 2026-10-23
+
+**A teacher can now write the "Why this happens" help for a space (Tom's standing rule: teacher-editable).**
+- One more text box in the Story part of the space editor (the same editor the teacher already uses, no new screen), labelled "Why this happens (the ? help; leave empty for the standard explanation)". Saved with the space like Event and Action, capped at 2000 characters like the story (`server/textLimits.js`).
+- How it travels: new `Why` column at the end of `Spaces.csv` (empty everywhere; listed in `Spaces.schema.json` as teacher-editable) -> `why_text` in `SPACE_CONTENT.csv` (regenerated) -> `PlayerPanelV2` uses it as the cause instead of the `why,<SPACE>` row in `ACTION_TOOLTIPS.csv`. The odds line after it is still counted from the dice data, so a teacher cannot make the odds wrong. Empty = the standard explanation, as before.
+- Added to the teacher lists that must agree (`EDITABLE_FIELDS`, `TEACHER_EDITABLE_COLUMNS`, `SAFE_FIELD_SUBSET`) and to the editor's known columns, so Save writes it back. Tests updated for the extra column; two new ones in `spaceWhy.test.ts`.
+- Limit: the box starts empty, so a teacher cannot see the standard text to edit it. Hypothesis, unverified: they will want that. Cheap next step if so: show the standard text as the grey hint.
+- Note: `instanceResolver.test.ts` failed with a Windows EPERM file-rename error in two of three runs under the parallel run, and passed on its own.
+
 ## [3.8.51] - 2026-10-23
 
 **"Why this happens" help on four more places.**

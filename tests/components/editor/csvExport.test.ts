@@ -281,7 +281,7 @@ describe('csvExport', () => {
 
     // Build the fixture column-by-column so column counts can't drift silently.
     const fixtureHeaders = [
-      'space_name', 'phase', 'visit_type', 'Title', 'Event', 'Action', 'Outcome',
+      'space_name', 'phase', 'visit_type', 'Title', 'Event', 'Action', 'Outcome', 'Why',
       'w_card', 'b_card', 'i_card', 'l_card', 'e_card',
       'Time', 'Fee',
       'space_1', 'space_2', 'space_3', 'space_4', 'space_5',
@@ -432,7 +432,7 @@ describe('csvExport', () => {
       const parsed = parseSpacesCSV(minimalCSV);
       expect(parsed[0]._extraColumns).toBeUndefined();
       const exported = exportSpacesCSV(parsed);
-      expect(exported.split('\n')[0].split(',').length).toBe(37);
+      expect(exported.split('\n')[0].split(',').length).toBe(38); // 37 known + Why (v3.8.52: always written)
     });
   });
 

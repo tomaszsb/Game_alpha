@@ -13,7 +13,7 @@ import { TEXT_LIMITS } from '../classroom/textLimits';
  * which the catalog also ships as `editableFields` — the words a teacher can
  * rewrite for their own classroom, without being able to rewire the board.
  */
-export const SAFE_FIELD_SUBSET = ['Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee'];
+export const SAFE_FIELD_SUBSET = ['Title', 'Event', 'Action', 'Outcome', 'Time', 'Fee', 'Why'];
 
 interface SpaceEditorProps {
   spaceFirst: SpaceRow | null;
@@ -465,6 +465,14 @@ export function SpaceEditor({
             original={originalValue('Event')}
             rows={2}
           />
+          {shows('Why') && <TextareaField
+            anchor="field:Why"
+            label="Why this happens (the ? help; leave empty for the standard explanation)"
+            value={currentSpace.Why ?? ''}
+            onChange={(v) => handleChange('Why', v)}
+            original={originalValue('Why')}
+            rows={3}
+          />}
         </EditorSection>
 
         {/* Split out of the old "Story & Narrative", so that each section

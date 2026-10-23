@@ -15,7 +15,7 @@ import { SpaceRow, DiceRollRow, ModalConfigRow } from '../types/EditorTypes';
 import { parseCsvLine as parseCsvLineCore, splitCsvRecords as splitCsvRecordsCore } from '../../../utils/csvCore.js';
 
 export const SPACES_KNOWN_HEADERS = [
-  'space_name', 'phase', 'visit_type', 'Title', 'Event', 'Action', 'Outcome',
+  'space_name', 'phase', 'visit_type', 'Title', 'Event', 'Action', 'Outcome', 'Why',
   'w_card', 'b_card', 'i_card', 'l_card', 'e_card',
   'Time', 'Fee',
   'space_1', 'space_2', 'space_3', 'space_4', 'space_5',
@@ -106,6 +106,7 @@ export function parseSpacesCSV(csvText: string): SpaceRow[] {
       Event: get(cols, 'Event'),
       Action: get(cols, 'Action'),
       Outcome: get(cols, 'Outcome'),
+      Why: get(cols, 'Why'),
       w_card: get(cols, 'w_card'),
       b_card: get(cols, 'b_card'),
       i_card: get(cols, 'i_card'),
@@ -173,6 +174,7 @@ export function exportSpacesCSV(spaces: SpaceRow[]): string {
       escapeCSV(space.Event),
       escapeCSV(space.Action),
       escapeCSV(space.Outcome),
+      escapeCSV(space.Why ?? ''),
       escapeCSV(space.w_card),
       escapeCSV(space.b_card),
       escapeCSV(space.i_card),
