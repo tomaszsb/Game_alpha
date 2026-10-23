@@ -1072,7 +1072,11 @@ export class TurnService implements ITurnService {
         if (moneyKept > 0 || lifeEvents.moneyDelta !== 0) {
           changes.money = realState.money - moneyKept + lifeEvents.moneyDelta;
         }
-        changes.timeSpent = timePenalty + lifeEvents.timeDelta;
+        // Days a played card saved stay saved (the card is spent), but the clock cannot go below zero.
+        changes.timeSpent = Math.max(
+          timePenalty + lifeEvents.timeDelta - (ledger.daysSaved ?? 0),
+          -(realState.timeSpent ?? 0),
+        );
         Object.assign(changes, lifeEvents.fields);
         // A lasting life event (e.g. 2 turns of +4 days) put on this player stays too: its copy
         // lived in the turn's provisional state, so without this the drawer alone escaped it.

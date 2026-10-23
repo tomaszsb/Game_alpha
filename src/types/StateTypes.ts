@@ -211,6 +211,9 @@ export interface TurnCostLedger {
   // calculatePushBackMoneyKept in costPreview.ts. Optional: older ledgers omit it.
   moneyDeliberate?: number;
   cardsConsumed: string[];     // card IDs played by user-initiated playCard
+  // Days that played cards took off the day count this turn. A played card is spent for good and so
+  // is what it did: Try Again does not give these days back (Tom, 2026-10-22). Optional: older ledgers omit it.
+  daysSaved?: number;
   lifeEventsDrawn: string[];   // L card IDs drawn this turn — permanent (a law change doesn't unchange)
   // What each of those life events DID (money, days, cards, approvals), so
   // Try Again keeps it too. Optional: older ledgers omit it.

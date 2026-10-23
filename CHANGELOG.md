@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.45] - 2026-10-22
+
+**A push-back no longer takes back the days an expeditor saved.** Tom (10-22): "once an expeditor is used they are spent; you cannot negotiate and undo an action: the card cannot return and the money cannot be returned", and the days it saved belong to the same action. Before: day 100, play Efficiency Boost (-3) -> 97, push back -> 110 (the card gone, its 3 days back on the clock). Now the days saved are written on the turn's ledger when the card is played and stay saved through a push-back (the day count still cannot go below zero). This makes day-saving cards a little stronger in a turn that ends in a push-back (Tom's call, by his rule). Tests: `tests/ghost/expeditorDaysStick.test.ts`.
+
 ## [3.8.44] - 2026-10-22
 
 **Hint line, loan names, "deficit" word, and a proof about the day-saving cards.**

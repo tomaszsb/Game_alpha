@@ -612,7 +612,11 @@ export class CardService implements ICardService {
       this.stateService.recordTurnOutflow(playerId, { cardConsumed: cardId });
 
       // Step 3: Apply card effects FIRST (validate they work before charging cost)
+      const daysBefore = this.stateService.getPlayer(playerId)?.timeSpent ?? 0;
       await this.applyCardEffects(playerId, cardId);
+      // Days the card took off the clock are kept by a push-back, like the card itself and its cost.
+      const daysSaved = daysBefore - (this.stateService.getPlayer(playerId)?.timeSpent ?? daysBefore);
+      if (daysSaved > 0) this.stateService.recordTurnOutflow(playerId, { daysSaved });
 
       // Step 4: Pay card cost AFTER effects succeed
       if (card.cost && card.cost > 0) {

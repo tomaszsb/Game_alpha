@@ -549,7 +549,7 @@ export class TurnStateManager {
    */
   public recordTurnOutflow(
     playerId: string,
-    entry: { moneySpent?: number; moneyDeliberate?: number; cardConsumed?: string; lifeEventDrawn?: string; lifeEventChange?: import('../utils/lifeEventChange').LifeEventChange }
+    entry: { moneySpent?: number; moneyDeliberate?: number; cardConsumed?: string; lifeEventDrawn?: string; lifeEventChange?: import('../utils/lifeEventChange').LifeEventChange; daysSaved?: number }
   ): void {
     const existing: TurnCostLedger = this.turnStateModel.costLedgers?.[playerId] ?? {
       moneySpent: 0,
@@ -565,6 +565,7 @@ export class TurnStateManager {
       lifeEventsDrawn: entry.lifeEventDrawn
         ? [...(existing.lifeEventsDrawn ?? []), entry.lifeEventDrawn]
         : (existing.lifeEventsDrawn ?? []),
+      daysSaved: (existing.daysSaved ?? 0) + (entry.daysSaved ?? 0),
       lifeEventChanges: entry.lifeEventChange
         ? [...(existing.lifeEventChanges ?? []), entry.lifeEventChange]
         : (existing.lifeEventChanges ?? [])
