@@ -21,11 +21,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 **Tom's 10-18 decisions (settled):** buyer = schools, paid; order is fun → teacher end (no training needed) → per-school branding; second product = a general **fantasy RPG** version (never the D&D name), sold per owner · text alert dropped (done v3.8.7) · everyone-is-a-PM stays; role play later · scores are for play, no anti-cheat; trade schools count credit by completion (trustworthy proof parked until one asks) · fun is measured by 3 questions on the certificate page · "why" questions on the certificate page · why-tips go into the EXISTING tips/hover/help, max one paragraph · no new restore document: a restore section in an existing doc, tested once, kept current by /koniec · teacher content is the school's responsibility; terms of use + LLC + lawyer parked until the first paying school.
 
 ### Bugs
-- [ ] **From PLAYTEST-2 (10-18):** "Efficiency Boost (-3)" saved only 2 days and some "-1 day" plays seemed to do nothing (likely a cap on the current filing, unverified). PLAYTEST-2.md "Still broken" #6. (Trouble On Site throw-back fixed v3.8.19; "Hire this builder" is now a hold, v3.8.29.)
 - [ ] **Opened walls, next step (Tom 10-20):** should a redesign also cancel the DOB approval you hold, so you must refile? Needs an engine change (only cards revoke approvals today). Also: Jarvis must press-and-hold `builder-bid-hire`; run the robots to see the effect on game length. v3.8.29.
-- [ ] **Loan named "Assisted Living Facility Loan" on an airport job.** PLAYTEST.md "Other things" #5.
-- [ ] **Result pop-up at 1024x768 is a narrow column, title one word per line.** PLAYTEST.md "Other things" #8, UI #10.
-- [ ] **"$756K deficit" shown on turn 1 before any money, unexplained.** PLAYTEST.md diary after space 2.
 - [ ] **Expeditor cards that ADD days sit in a solo hand forever.** PLAYTEST.md "Other things" #7, Part 2b.
 - [ ] **No test boots the real server** (server.js starts itself on import). REVIEW.md §6 Missing #2, §3 Fragile #3.
 - [ ] **Two editors for one job drift; unused classroom write key still accepted; co-teacher overwrite check never switched on.** REVIEW.md §1 "What can go wrong" #4-5.

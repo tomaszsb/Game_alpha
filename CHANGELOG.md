@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.50] - 2026-10-23
+
+**Result pop-up no longer a thin column on a small laptop window; three old TODO lines closed.**
+- **Pop-up at 1024x768 (PLAYTEST.md "Other things" #8, UI #10):** the pop-up that sits over the right-hand panel was 270px wide there (the panel is 300px) and its title broke to one word per line. `MIN_PANEL_WIDTH` in `panelAnchor.tsx` went from 240 to 320, so a panel narrower than that gets the normal centred 500px pop-up instead. At 1366 wide the panel is 350px and nothing changes; phones and narrow windows were already full-screen. Test added in `ModalBasePanelAnchor.test.tsx`.
+- **TODO lines deleted as already fixed in v3.8.44/45:** the Efficiency Boost "saved only 2 days" (no cap; the day count cannot go below zero early on, and the push-back undoing days was fixed in 3.8.45), the "Assisted Living Facility Loan" name on an airport job, and the "$756K deficit" label (now "to raise"). Not re-played in a full game this round.
+
 ## [3.8.49] - 2026-10-23
 
 **The Step 1 card is now pictures, and on a phone the middle (TV) button IS the card (Tom, 10-23: "a picture says a thousand words"; "the middle button should become this and just expand when clicked"; "if not on tv already").**

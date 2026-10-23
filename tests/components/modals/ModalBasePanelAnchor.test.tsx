@@ -29,11 +29,13 @@ function PanelPage({ anchor, width = 1280 }: { anchor?: 'panel'; width?: number 
 }
 
 describe('ModalBase anchor="panel"', () => {
+  let panelWidth = 350;
   beforeEach(() => {
+    panelWidth = 350;
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       const isCol = this.getAttribute('data-testid') === 'col';
       return (isCol
-        ? { top: 55, left: 4, width: 350, height: 800, right: 354, bottom: 855, x: 4, y: 55, toJSON: () => ({}) }
+        ? { top: 55, left: 4, width: panelWidth, height: 800, right: 4 + panelWidth, bottom: 855, x: 4, y: 55, toJSON: () => ({}) }
         : { top: 0, left: 0, width: 0, height: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
     });
   });
@@ -63,6 +65,12 @@ describe('ModalBase anchor="panel"', () => {
 
   it('stays full-screen in a narrow window even when asked', () => {
     render(<PanelPage anchor="panel" width={700} />);
+    expect(screen.getByTestId('m-overlay').style.right).toBe('0px');
+  });
+
+  it('stays full-screen when the panel is too narrow to read in (1024x768 panel is 300px)', () => {
+    panelWidth = 300;
+    render(<PanelPage anchor="panel" width={1024} />);
     expect(screen.getByTestId('m-overlay').style.right).toBe('0px');
   });
 

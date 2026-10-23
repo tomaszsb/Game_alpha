@@ -23,8 +23,10 @@ export interface AnchorRect {
 
 /** Below this window width the layout is one column (the panel is not beside a board). */
 export const PANEL_ANCHOR_MIN_WINDOW = 769;
-/** A panel smaller than this is not a place to read a pop-up. */
-const MIN_PANEL_WIDTH = 240;
+/** A panel narrower than this is not a place to read a pop-up. v3.8.50: was 240. At a 1024x768 window the panel is 300px
+ *  wide, so the pop-up was a 270px column with its title one short line per word (PLAYTEST.md "Other things" #8, UI #10);
+ *  at 1366 the panel is 350px and reads fine. Under the limit the pop-up opens centred, as it did before panel anchoring. */
+export const MIN_PANEL_WIDTH = 320;
 const MIN_PANEL_HEIGHT = 240;
 
 export function usePanelAnchorRect(wanted: boolean, isOpen: boolean): AnchorRect | null {
