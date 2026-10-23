@@ -262,6 +262,24 @@ export function PlayerSetup({
 
   const handleJoinByCode = (): void => { void performJoinByCode(joinCode); };
 
+  // "Step 1: put the game on a big screen" (BigScreenGuide, phone-sized screens only): the
+  // student has the TV's code in front of them, so open the Join box and put the cursor in it;
+  // or they decided to play alone, which on a phone is PC.
+  const joinInputRef = useRef<HTMLInputElement>(null);
+  const handleTvCodeReady = (): void => {
+    setEntryMode('join');
+    setJoinPicker(null);
+    // The box only exists once Join is showing, so wait for that render.
+    window.setTimeout(() => {
+      joinInputRef.current?.scrollIntoView({ block: 'center' });
+      joinInputRef.current?.focus();
+    }, 50);
+  };
+  const handlePlayAloneOnPhone = (): void => {
+    setEntryMode('new');
+    setSelectedMode('pc');
+  };
+
   /**
    * Picker choice: a specific player → their own actionable panel.
    *
@@ -724,7 +742,7 @@ export function PlayerSetup({
           {/* Phone-size warning — informational, non-blocking. Only on this
               host/setup view; the viewPlayerId branch above is the per-player
               TV-mode controller view, which is *meant* to run on a phone. */}
-          <PhoneScreenWarning />
+          <PhoneScreenWarning onPlayAlone={handlePlayAloneOnPhone} onReady={handleTvCodeReady} />
 
           {/* "New game" / "Join" — a real segmented selector (same visual
               pattern as the PC/TV toggle below): exactly one side is ever
@@ -907,6 +925,7 @@ export function PlayerSetup({
                     <div style={{ position: 'relative' }}>
                       <input
                         type="text"
+                        ref={joinInputRef}
                         aria-label="Game code to join or resume"
                         placeholder="e.g., G-A7F9-K3PX"
                         value={joinCode}

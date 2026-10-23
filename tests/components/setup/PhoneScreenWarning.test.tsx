@@ -32,7 +32,7 @@ describe('PhoneScreenWarning', () => {
   it('renders the warning when the physical screen is phone-sized', () => {
     setScreenSize(390, 844); // short side 390 < 600
     render(<PhoneScreenWarning />);
-    expect(screen.getByRole('status')).toHaveTextContent(/bigger screen/i);
+    expect(screen.getByRole('status')).toHaveTextContent(/big screen/i);
   });
 
   it('includes the "Request desktop site" hint for TV users spoofed as phones', () => {

@@ -3,6 +3,14 @@
 ---
 
 
+## v3.8.47 — "Step 1: put the game on a big screen" for phone-first students (October 23, 2026)
+
+- **A phone now explains how to get the board onto a TV.** The yellow note says a phone alone is not enough, and a "Put it on a TV" link asks what your TV can do (a browser app, a stick or box, or no browser) and shows three plain steps: open the browser, type the game address, type the code the TV shows.
+- **"Play alone on this phone"** is one tap away.
+- **TVs with no browser, or too old (Samsung and LG from 2021 or older):** the card says so and shows the laptop-with-a-cable and screen-sharing ways out.
+- **TV makers are listed behind a small link**, alphabetically, only so you can find your steps.
+- The same card shows on the /challenge and /class pages when they are opened on a phone.
+
 ## v3.8.41 to v3.8.46 — Warnings you can see, plainer words, a name on the certificate (October 22, 2026)
 
 - **The red "you would be short" warnings pulse** (under a builder you can't afford, and above End Turn).

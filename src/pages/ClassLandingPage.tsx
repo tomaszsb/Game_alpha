@@ -8,6 +8,7 @@
 import React, { useEffect, useRef } from 'react';
 import { trackPlaytestEvent } from '../playtest/playtestAnalytics';
 import { IconBug } from '../components/icons/SetupIcons';
+import { PhoneScreenWarning } from '../components/setup/PhoneScreenWarning';
 
 const page: React.CSSProperties = {
   maxWidth: 640,
@@ -78,6 +79,9 @@ export function ClassLandingPage(): JSX.Element {
         A game takes about 30 minutes. It plays best on a computer or tablet, and you can use your
         phone as the controller. Your game is saved, so you can come back to it.
       </p>
+
+      {/* Phone first? Same "Step 1: put the game on a big screen" words as the game's setup screen. */}
+      <PhoneScreenWarning />
 
       <a
         href="/"

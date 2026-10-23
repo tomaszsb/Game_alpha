@@ -19,6 +19,7 @@ import { GameTour } from './GameTour';
 import { trackPlaytestEvent } from './playtestAnalytics';
 import { hasVisitedPlaytest, markPlaytestVisited } from './playtestStorage';
 import { isPhoneScreen } from '../utils/deviceDetection';
+import { BigScreenGuide } from '../components/setup/BigScreenGuide';
 import { isIOSSafari, isPwaInstallable, isPwaInstalled, promptPwaInstall } from './pwaInstall';
 
 function landingCopy(returning: boolean, isPhone: boolean): { heading: string; body: string } {
@@ -225,6 +226,9 @@ export function PlaytesterLandingPage(): JSX.Element {
 
       <h1 style={{ fontSize: '1.6rem', marginBottom: '0.5rem' }}>{heading}</h1>
       <p style={{ maxWidth: 420, lineHeight: 1.5, marginBottom: '1.25rem' }}>{body}</p>
+
+      {/* Same "Step 1: put the game on a big screen" words as the game's own setup screen. */}
+      {isPhone && <div style={{ width: '100%', maxWidth: 420 }}><BigScreenGuide /></div>}
 
       <GameTour />
 
