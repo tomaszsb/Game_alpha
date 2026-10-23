@@ -8,7 +8,7 @@
 **Last Updated:** October 23, 2026 (v3.8.46 LIVE)
 **Current Phase:** Beta — live in production
 **Current Version:** **v3.8.46 LIVE** (`/health` `22f1de48`, checked 10-23 13:00 UTC). v3.8.41-46: pulsing red warnings, per-space work-button help, plain History notes, shorter commit hint, loans named for your project, "to raise", push-back keeps expeditor days and the drawer's lasting life event, certificate asks for a name.
-**v3.8.47-48 (committed + pushed, not deployed; 48 = maker-list sources, "My TV isn't listed", TV-family count in Site Stats):** "Step 1: put the game on a big screen" card for phone-first students (setup screen, /challenge, /class); suite 308 files / 4102 green.
+**v3.8.47-49 (committed + pushed, not deployed; 49 = picture card, TV button opens it on a phone; 48 = maker-list sources, "My TV isn't listed", TV-family count in Site Stats):** "Step 1: put the game on a big screen" card for phone-first students (setup screen, /challenge, /class); suite 308 files / 4102 green.
 
 ## Current sprint
 10-22/23, answering the Farmingdale class games: two bankruptcies right after hiring a builder (warnings now pulse; Hire stays allowed), a lasting life event the drawer escaped by pushing back (fixed), "Player 1" certificates (name box), wording fixes. Tom's rule this week: a played card is spent for good, and so is what it did.

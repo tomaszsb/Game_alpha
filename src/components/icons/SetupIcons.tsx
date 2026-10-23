@@ -279,3 +279,44 @@ export function IconHourglass(props: IconProps): JSX.Element {
     </Svg>
   );
 }
+
+/** A streaming stick / box plugged in (Step 1 card: "I plug in a stick or box") */
+export function IconPlug(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
+      <path d="M9 2.5v5M15 2.5v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M6 7.5h12v4a6 6 0 0 1-12 0v-4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <line x1="12" y1="17.5" x2="12" y2="21.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** A laptop (Step 1 card: use a laptop on HDMI) */
+export function IconLaptop(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
+      <rect x="4.5" y="5" width="15" height="10.5" rx="1.5" stroke="currentColor" strokeWidth="2" />
+      <path d="M2 19h20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** A keyboard / remote typing (Step 1 card: type the address) */
+export function IconKeyboard(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M7 14.2h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** A screen sharing to another (Step 1 card: AirPlay / Cast / Miracast) */
+export function IconShareScreen(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
+      <path d="M4 17.5h-.5A1.5 1.5 0 0 1 2 16V6a1.5 1.5 0 0 1 1.5-1.5h17A1.5 1.5 0 0 1 22 6v10a1.5 1.5 0 0 1-1.5 1.5H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 12l5 6.5H7L12 12Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </Svg>
+  );
+}

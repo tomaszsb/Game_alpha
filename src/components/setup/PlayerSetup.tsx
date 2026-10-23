@@ -23,7 +23,6 @@ import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectio
 import { useGitHubSyncStatus, getVersionBadgeTier, getVersionBadgeDetail, getVersionBadgeAccessibleLabel } from './useGitHubSyncStatus';
 import { debugLog } from '../../utils/debugLog';
 import { ShareGameButton } from './ShareGameButton';
-import { PhoneScreenWarning } from './PhoneScreenWarning';
 import { styles } from './PlayerSetup.styles';
 import { PlayerMobileView } from './PlayerMobileView';
 import { ModeToggle } from './ModeToggle';
@@ -739,11 +738,8 @@ export function PlayerSetup({
           ...styles.panel,
           ...(selectedMode === 'tv' ? { padding: '0.6rem 0.85rem' } : {}),
         }}>
-          {/* Phone-size warning — informational, non-blocking. Only on this
-              host/setup view; the viewPlayerId branch above is the per-player
-              TV-mode controller view, which is *meant* to run on a phone. */}
-          <PhoneScreenWarning onPlayAlone={handlePlayAloneOnPhone} onReady={handleTvCodeReady} />
-
+          {/* Phone: the TV button below opens "Step 1: put the game on a big screen" (ModeToggle -> BigScreenGuide);
+              a real TV browser is never a phone (isPhoneScreen is false there), so it just picks TV mode. */}
           {/* "New game" / "Join" — a real segmented selector (same visual
               pattern as the PC/TV toggle below): exactly one side is ever
               active, highlighted; the other reads as inactive/grayed. Join
@@ -997,7 +993,7 @@ export function PlayerSetup({
             )}
           </div>
 
-          <ModeToggle selectedMode={selectedMode} onSelectMode={setSelectedMode} />
+          <ModeToggle selectedMode={selectedMode} onSelectMode={setSelectedMode} onPlayAlone={handlePlayAloneOnPhone} onReady={handleTvCodeReady} />
 
           {/* This "Players" section is about THIS blank game — while Join is
               selected, we have no data yet on which game the player is

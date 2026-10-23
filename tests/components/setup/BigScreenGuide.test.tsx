@@ -28,9 +28,9 @@ describe('BigScreenGuide', () => {
     render(<BigScreenGuide />);
     fireEvent.click(screen.getByTestId('big-screen-open'));
     const guide = screen.getByTestId('big-screen-guide');
-    expect(guide).toHaveTextContent(/It has a web browser app/);
+    expect(guide).toHaveTextContent(/My TV has a browser/);
     expect(guide).toHaveTextContent(/I plug in a stick or box/);
-    expect(guide).toHaveTextContent(/It has no browser/);
+    expect(guide).toHaveTextContent(/No browser: use a laptop/);
     for (const m of BIG_SCREEN.makers) expect(screen.queryByText(m.name)).toBeNull();
   });
 

@@ -3,6 +3,12 @@
 ---
 
 
+## v3.8.49 — Step 1 is pictures, and the TV button explains itself on a phone (October 23, 2026)
+
+- **On a phone, tapping the TV button opens a picture guide** instead of choosing TV mode: pick what your TV can do, then follow three picture steps (open the TV browser, type the address with the remote, type the TV's code on the phone).
+- The yellow "bigger screen" note at the top is gone, so the phone setup screen is shorter.
+- On a TV, tablet or laptop the TV button works as before.
+
 ## v3.8.48 — Step 1 card follow-ups (October 23, 2026)
 
 - **The TV-maker list is worded from each maker's own help page**, and has a last line "My TV isn't listed" that goes back to "What can your TV do?".

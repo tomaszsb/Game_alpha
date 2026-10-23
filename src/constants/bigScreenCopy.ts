@@ -11,6 +11,8 @@
 export const GAME_ADDRESS = 'game.unravelcodes.com';
 
 export type TvKind = 'browser' | 'stick' | 'none';
+export type StepIcon = 'tv' | 'keyboard' | 'phone' | 'plug' | 'laptop' | 'share' | 'globe';
+export interface Step { icon: StepIcon; text: string; code?: string; note?: string }
 
 export const BIG_SCREEN = {
   headline: 'Playing with a group? Put the board on a big screen.',
@@ -21,35 +23,37 @@ export const BIG_SCREEN = {
   desktopSiteHint: 'On a real TV but seeing this? Turn off “Request desktop site” in the browser menu.',
   title: 'Step 1: put the game on a big screen',
   question: 'What can your TV do?',
+  pairTitle: 'Phone and TV, together',
+  // Picture-first (v3.8.49, Tom: "a picture says a thousand words"): each choice and step is an icon plus a few words.
   options: {
-    browser: { label: 'It has a web browser app', hint: 'Look for an app called Internet, Web Browser or Browser.' },
-    stick: { label: 'I plug in a stick or box', hint: 'For example a streaming stick or a set-top box.' },
-    none: { label: 'It has no browser', hint: 'Or you are not sure.' },
-  } as Record<TvKind, { label: string; hint: string }>,
+    browser: { label: 'My TV has a browser', hint: 'Internet, Web Browser', icon: 'globe' },
+    stick: { label: 'I plug in a stick or box', hint: '', icon: 'plug' },
+    none: { label: 'No browser: use a laptop', hint: 'HDMI cable or share screen', icon: 'laptop' },
+  } as Record<TvKind, { label: string; hint: string; icon: StepIcon }>,
   back: 'Back',
   // Steps for a TV that has (or can get) a browser. Step 1 changes by kind.
   stepsBrowser: [
-    'On the TV, open the browser app (Internet, Web Browser or Browser).',
-    `Type this address with the TV remote: ${GAME_ADDRESS}`,
-    'The TV shows a game code (like G-A7F9-K3PX). Type it on this phone and pick your name. Whoever runs the TV adds one player per phone first.',
-  ],
+    { icon: 'tv', text: 'Open the TV browser', note: 'Internet, Web Browser or Browser' },
+    { icon: 'keyboard', text: 'Type with the remote', code: GAME_ADDRESS },
+    { icon: 'phone', text: 'Type the TV’s code here', code: 'G-A7F9-K3PX', note: 'Pick your name. Whoever runs the TV adds one player per phone first.' },
+  ] as Step[],
   stepsStick: [
-    'On the stick or box, open its web browser. No browser? Install a free one from its app store.',
-    `Type this address with the remote: ${GAME_ADDRESS}`,
-    'The TV shows a game code (like G-A7F9-K3PX). Type it on this phone and pick your name. Whoever runs the TV adds one player per phone first.',
-  ],
+    { icon: 'plug', text: 'Open the stick’s browser', note: 'None? Install a free one from its app store.' },
+    { icon: 'keyboard', text: 'Type with the remote', code: GAME_ADDRESS },
+    { icon: 'phone', text: 'Type the TV’s code here', code: 'G-A7F9-K3PX', note: 'Pick your name. Whoever runs the TV adds one player per phone first.' },
+  ] as Step[],
   ready: 'I see the code on the TV',
   readyElsewhere: 'Then, on this phone, open the game and tap Join to type the code.',
   // Stuck on "Loading..." for 10+ seconds, or no browser at all.
-  stuckTitle: 'TV stays on “Loading…”, or has no browser?',
+  stuckTitle: 'Stuck on “Loading…”? Too old?',
   stuckInstall: 'Install a free browser from your TV’s app store. A browser seen working: TV Bro. It is free and we get nothing from it. We cannot promise every TV works.',
   stuckOld: 'Samsung and LG TVs from 2021 or older cannot run this game.',
   laptopTitle: 'Use a laptop instead',
   laptop: [
-    'Plug the laptop into the TV with an HDMI cable and switch the TV to that input.',
-    'On the laptop, open the game in an up-to-date browser and pick TV.',
-    'Or show a laptop or phone screen on the TV with the TV’s screen sharing (AirPlay, Cast or Miracast).',
-  ],
+    { icon: 'laptop', text: 'Laptop to TV with an HDMI cable', note: 'Switch the TV to that input.' },
+    { icon: 'tv', text: 'On the laptop, open the game and pick TV', note: 'Use an up-to-date browser.' },
+    { icon: 'share', text: 'Or share a laptop or phone screen', note: 'AirPlay, Cast or Miracast.' },
+  ] as Step[],
   makersLink: 'Show steps for my TV maker',
   makersHide: 'Hide TV makers',
   notListed: 'My TV isn’t listed',

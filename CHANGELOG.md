@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.49] - 2026-10-23
+
+**The Step 1 card is now pictures, and on a phone the middle (TV) button IS the card (Tom, 10-23: "a picture says a thousand words"; "the middle button should become this and just expand when clicked"; "if not on tv already").**
+- **On a phone-sized screen, tapping TV in "How are you playing?" opens the guide right under the buttons** (`ModeToggle` -> `BigScreenGuide`) instead of picking TV mode (a phone is never the TV). The separate yellow "bigger screen" card at the top of the setup screen is gone, so the closed phone screen is 174px shorter than in v3.8.46; the blue "On a phone? Pick PC" line stays until the guide is opened (then the guide takes its place).
+- **Not on a TV already:** a real TV browser is never counted as a phone (`isPhoneScreen` is false for a known smart-TV user agent), a tablet or laptop is not a phone, so there the TV button just picks TV mode as before. Tests cover phone, big screen and a small-screen Samsung TV. A TV that hides its identity (a "Request desktop site" browser) still looks like a phone; the guide carries the "turn off Request desktop site" line for that.
+- **Pictures, not paragraphs:** a phone + TV picture heading; three picture buttons (browser app / stick or box / laptop); three picture steps (open the TV browser, type with the remote, type the TV's code) with the address and an example code in boxes; the laptop way out is three picture steps too. New small icons in `SetupIcons.tsx`: plug, laptop, keyboard, share-screen (inline SVG like the rest, not emoji, since TV browsers draw emoji differently). The words are shorter, in `bigScreenCopy.ts`. /challenge and /class keep the closed card, with the same pictures once opened.
+- **Measured** (Browser pane): closed, the phone shows nothing extra (the card is gone, the 70px hint line is unchanged) at 360x640 and 390x844; opened, the guide is 476px (390 wide) / 504px (360 wide) on its first question and 462px / 478px on the steps, no sideways scroll.
+- Tests: three in `ModePhoneHint.test.tsx`; the guide tests were reworded for the new labels.
+
 ## [3.8.48] - 2026-10-23
 
 **Three follow-ups to the Step 1 card (Tom, 10-23).**

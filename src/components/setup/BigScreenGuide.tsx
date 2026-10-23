@@ -8,17 +8,25 @@
 // advice in index.html. Closed it is no taller than the banner it replaced; opening it is the
 // student's own choice. The words live in constants/bigScreenCopy.ts so /challenge and /class
 // say the same thing.
+//
+// v3.8.49: picture-first (Tom, 10-23: "a picture says a thousand words"). Every choice and
+// every step is an icon plus a few words; the icons are the game's own inline SVG set
+// (SetupIcons), not an emoji font, because smart-TV and phone browsers draw emoji differently.
 
 import React, { useRef, useState } from 'react';
 import { colors } from '../../styles/theme';
-import { IconPhone } from '../icons/SetupIcons';
-import { BIG_SCREEN, TvKind } from '../../constants/bigScreenCopy';
+import {
+  IconPhone, IconTV, IconGlobe, IconPlug, IconLaptop, IconKeyboard, IconShareScreen,
+} from '../icons/SetupIcons';
+import { BIG_SCREEN, TvKind, Step, StepIcon } from '../../constants/bigScreenCopy';
 
 interface BigScreenGuideProps {
   /** "Play alone on this phone" - the setup screen switches to PC mode. Omit on pages with no mode picker. */
   onPlayAlone?: () => void;
   /** "I see the code on the TV" - the setup screen opens its Join box. Omit where there is no Join box here. */
   onReady?: () => void;
+  /** Set when the guide is opened from the TV button itself (setup screen): it starts open, and Close folds it back into the button. */
+  onClose?: () => void;
 }
 
 const card: React.CSSProperties = {
@@ -32,21 +40,61 @@ const linkButton: React.CSSProperties = {
 };
 
 const bigButton: React.CSSProperties = {
-  display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer', padding: '0.5rem 0.7rem',
-  borderRadius: 8, border: `2px solid ${colors.secondary.border}`, background: 'white',
+  display: 'flex', alignItems: 'center', gap: '0.7rem', width: '100%', textAlign: 'left', cursor: 'pointer',
+  padding: '0.45rem 0.7rem', borderRadius: 8, border: `2px solid ${colors.secondary.border}`, background: 'white',
   color: colors.text.primary, font: 'inherit',
 };
 
-function Steps({ items }: { items: readonly string[] }): JSX.Element {
+const mono: React.CSSProperties = {
+  fontFamily: 'monospace', fontSize: '0.8rem', background: colors.secondary.bg, padding: '1px 7px', borderRadius: 6,
+  display: 'inline-block', marginTop: 2, wordBreak: 'break-all',
+};
+
+function Pic({ icon, size = '1.6rem' }: { icon: StepIcon; size?: string }): JSX.Element {
+  const props = { size };
+  switch (icon) {
+    case 'tv': return <IconTV {...props} />;
+    case 'keyboard': return <IconKeyboard {...props} />;
+    case 'phone': return <IconPhone {...props} />;
+    case 'plug': return <IconPlug {...props} />;
+    case 'laptop': return <IconLaptop {...props} />;
+    case 'share': return <IconShareScreen {...props} />;
+    default: return <IconGlobe {...props} />;
+  }
+}
+
+/** A round-cornered picture tile, the same blue wherever it appears. */
+function Tile({ icon }: { icon: StepIcon }): JSX.Element {
   return (
-    <ol style={{ margin: '0.4rem 0', paddingLeft: '1.2rem' }}>
-      {items.map((s) => <li key={s} style={{ marginBottom: 3 }}>{s}</li>)}
+    <span aria-hidden="true" style={{
+      width: 44, height: 44, borderRadius: 10, background: colors.primary.light, color: colors.primary.dark,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    }}><Pic icon={icon} /></span>
+  );
+}
+
+function Steps({ items, numbered = true }: { items: readonly Step[]; numbered?: boolean }): JSX.Element {
+  return (
+    <ol style={{ listStyle: 'none', margin: '0.4rem 0', padding: 0 }}>
+      {items.map((s, i) => (
+        <li key={s.text} style={{
+          display: 'flex', gap: '0.65rem', alignItems: 'center', padding: '0.4rem 0',
+          borderTop: i === 0 ? 'none' : `1px solid ${colors.secondary.border}`,
+        }}>
+          <Tile icon={s.icon} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{numbered ? `${i + 1}. ` : ''}{s.text}</div>
+            {s.code && <code style={mono}>{s.code}</code>}
+            {s.note && <div style={{ fontSize: '0.74rem', color: colors.text.secondary }}>{s.note}</div>}
+          </div>
+        </li>
+      ))}
     </ol>
   );
 }
 
-export function BigScreenGuide({ onPlayAlone, onReady }: BigScreenGuideProps): JSX.Element {
-  const [open, setOpen] = useState(false);
+export function BigScreenGuide({ onPlayAlone, onReady, onClose }: BigScreenGuideProps): JSX.Element {
+  const [open, setOpen] = useState(!!onClose);
   const [kind, setKind] = useState<TvKind | null>(null);
   const [showMakers, setShowMakers] = useState(false);
   const [maker, setMaker] = useState<string | null>(null);
@@ -58,7 +106,9 @@ export function BigScreenGuide({ onPlayAlone, onReady }: BigScreenGuideProps): J
         ...card, background: colors.warning.bg, border: `1px solid ${colors.warning.border}`, color: colors.warning.text,
       }}>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-          <span style={{ flexShrink: 0, display: 'inline-flex', marginTop: 2 }} aria-hidden="true"><IconPhone size="1.1rem" /></span>
+          <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 2, marginTop: 2 }} aria-hidden="true">
+            <IconPhone size="1.1rem" /><IconTV size="1.3rem" />
+          </span>
           <span><b>{BIG_SCREEN.headline}</b> {BIG_SCREEN.body}</span>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
@@ -81,17 +131,24 @@ export function BigScreenGuide({ onPlayAlone, onReady }: BigScreenGuideProps): J
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
         <b style={{ fontSize: '0.95rem' }}>{BIG_SCREEN.title}</b>
-        <button type="button" onClick={() => { setOpen(false); setKind(null); }} style={linkButton}>Close</button>
+        <button type="button" onClick={() => { setKind(null); if (onClose) onClose(); else setOpen(false); }} style={linkButton}>Close</button>
       </div>
 
       {kind === null && (
         <>
-          <p style={{ margin: '0.35rem 0 0.5rem' }}>{BIG_SCREEN.body} <b>{BIG_SCREEN.question}</b></p>
+          <div aria-hidden="true" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, color: colors.primary.dark, margin: '0.4rem 0 0.1rem' }}>
+            <IconPhone size="2.2rem" /><span style={{ fontSize: '1.2rem' }}>+</span><IconTV size="2.8rem" />
+          </div>
+          <p style={{ margin: '0 0 0.15rem', textAlign: 'center', fontWeight: 700 }}>{BIG_SCREEN.pairTitle}</p>
+          <p style={{ margin: '0 0 0.5rem', textAlign: 'center', color: colors.text.secondary }}>{BIG_SCREEN.body} <b>{BIG_SCREEN.question}</b></p>
           <div style={{ display: 'grid', gap: '0.4rem' }}>
             {(['browser', 'stick', 'none'] as TvKind[]).map((k) => (
               <button key={k} type="button" data-testid={`big-screen-${k}`} onClick={() => setKind(k)} style={bigButton}>
-                <b>{BIG_SCREEN.options[k].label}</b>
-                <div style={{ fontSize: '0.75rem', color: colors.text.secondary }}>{BIG_SCREEN.options[k].hint}</div>
+                <Tile icon={BIG_SCREEN.options[k].icon} />
+                <span>
+                  <b>{BIG_SCREEN.options[k].label}</b>
+                  {BIG_SCREEN.options[k].hint && <div style={{ fontSize: '0.74rem', color: colors.text.secondary }}>{BIG_SCREEN.options[k].hint}</div>}
+                </span>
               </button>
             ))}
           </div>
@@ -106,7 +163,7 @@ export function BigScreenGuide({ onPlayAlone, onReady }: BigScreenGuideProps): J
               <Steps items={steps} />
               {onReady
                 ? <button type="button" data-testid="big-screen-ready" onClick={onReady}
-                    style={{ ...bigButton, textAlign: 'center', fontWeight: 700, background: colors.primary.main, color: 'white', border: `2px solid ${colors.primary.main}` }}>{BIG_SCREEN.ready}</button>
+                    style={{ ...bigButton, justifyContent: 'center', fontWeight: 700, background: colors.primary.main, color: 'white', border: `2px solid ${colors.primary.main}` }}>{BIG_SCREEN.ready}</button>
                 : <p style={{ margin: '0.3rem 0' }}>{BIG_SCREEN.readyElsewhere}</p>}
               {/* Folded away so the three steps stay the first thing on a small phone. */}
               <details data-testid="big-screen-stuck" style={{ marginTop: '0.6rem' }}>
@@ -114,19 +171,20 @@ export function BigScreenGuide({ onPlayAlone, onReady }: BigScreenGuideProps): J
                 <p style={{ margin: '0.3rem 0 0.1rem' }}>{BIG_SCREEN.stuckInstall}</p>
                 <p style={{ margin: '0.1rem 0' }}>{BIG_SCREEN.stuckOld}</p>
                 <p style={{ margin: '0.5rem 0 0.1rem' }}><b>{BIG_SCREEN.laptopTitle}</b></p>
-                <Steps items={BIG_SCREEN.laptop} />
+                <Steps items={BIG_SCREEN.laptop} numbered={false} />
               </details>
             </>
           )}
           {kind === 'none' && (
             <>
               <p style={{ margin: '0.4rem 0 0.1rem' }}>{BIG_SCREEN.stuckOld}</p>
-              <p style={{ margin: '0.5rem 0 0.1rem' }}><b>{BIG_SCREEN.laptopTitle}</b></p>
-              <Steps items={BIG_SCREEN.laptop} />
+              <Steps items={BIG_SCREEN.laptop} numbered={false} />
             </>
           )}
         </div>
       )}
+
+      <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: colors.text.secondary }}>{BIG_SCREEN.desktopSiteHint}</p>
 
       <div style={{ marginTop: '0.5rem' }}>
         <button type="button" data-testid="big-screen-makers-link" aria-expanded={showMakers}
@@ -155,7 +213,7 @@ export function BigScreenGuide({ onPlayAlone, onReady }: BigScreenGuideProps): J
 
       {onPlayAlone && (
         <div style={{ marginTop: '0.5rem' }}>
-          <button type="button" data-testid="big-screen-alone-open" onClick={() => { onPlayAlone(); setOpen(false); setKind(null); }} style={linkButton}>
+          <button type="button" data-testid="big-screen-alone-open" onClick={() => { onPlayAlone(); setKind(null); if (onClose) onClose(); else setOpen(false); }} style={linkButton}>
             {BIG_SCREEN.playAloneButton}
           </button>
         </div>

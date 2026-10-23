@@ -1,14 +1,18 @@
 // src/components/setup/ModeToggle.tsx
 
-import React from 'react';
+import React, { useState } from 'react';
 import { colors } from '../../styles/theme';
 import { IconDesktop, IconTV, IconGlobe } from '../icons/SetupIcons';
 import { setStoredPreferredMode, PlayMode } from '../../utils/modePreference';
 import { isPhoneScreen } from '../../utils/deviceDetection';
+import { BigScreenGuide } from './BigScreenGuide';
 
 interface ModeToggleProps {
   selectedMode: PlayMode;
   onSelectMode: (mode: PlayMode) => void;
+  /** Phone only: the TV button opens the picture guide; its "Play alone" and "I see the code" links call these. */
+  onPlayAlone?: () => void;
+  onReady?: () => void;
 }
 
 /**
@@ -26,12 +30,17 @@ interface ModeToggleProps {
  * specifically so the player list below gets the room. fb: TV real-hardware
  * feedback, 2026-07-15.
  */
-export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX.Element {
+export function ModeToggle({ selectedMode, onSelectMode, onPlayAlone, onReady }: ModeToggleProps): JSX.Element {
+  // v3.8.49 (Tom, 10-23): on a phone the middle button IS "Step 1: put the game on a big screen" - tapping it
+  // opens the picture guide right under the buttons instead of picking TV mode (a phone is never the TV).
+  const [guideOpen, setGuideOpen] = useState(false);
   // Remember an explicit tap so a reload (e.g. Fire TV Silk's "Request
   // Desktop Site" toggle) doesn't lose the player's mode choice — see
   // modePreference.ts. Only fires on an actual click here, never on the
   // ?mode= URL param or the isSmartTV() auto-detect fallback in PlayerSetup.
   const handleSelectMode = (mode: PlayMode): void => {
+    if (mode === 'tv' && isPhoneScreen()) { setGuideOpen((v) => !v); return; }
+    setGuideOpen(false);
     // Not on a phone-sized screen: a phone is never the shared TV, so a 'tv'
     // tapped there must not be remembered for later visits.
     if (!(mode === 'tv' && isPhoneScreen())) setStoredPreferredMode(mode);
@@ -142,7 +151,12 @@ export function ModeToggle({ selectedMode, onSelectMode }: ModeToggleProps): JSX
           button, thinking a phone alone can play it. TV mode needs a TV (the board) AND each
           player's phone, and the game will not start until the others scan in. A phone screen
           is never the TV, so on a phone the way to play alone is PC. */}
-      {isPhoneScreen() && (
+      {isPhoneScreen() && guideOpen && (
+        <div style={{ marginTop: '0.6rem' }}>
+          <BigScreenGuide onClose={() => setGuideOpen(false)} onPlayAlone={() => { setGuideOpen(false); (onPlayAlone ?? (() => onSelectMode('pc')))(); }} onReady={onReady} />
+        </div>
+      )}
+      {isPhoneScreen() && !guideOpen && (
         <div role={selectedMode === 'tv' ? 'alert' : undefined} data-testid="mode-phone-hint" style={{
           marginTop: '0.6rem', padding: '0.5rem 0.65rem', borderRadius: 8, fontSize: '0.8rem', lineHeight: 1.35,
           background: selectedMode === 'tv' ? '#fdecea' : '#eef5ff',
