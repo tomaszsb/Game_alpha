@@ -1306,7 +1306,7 @@ export function FeeInput({ value, onChange, id }: { value: string; onChange: (v:
           style={{ ...styles.input, flex: 1 }}
           aria-label="Fee, percent of the project's cost"
         />
-        <span style={styles.helperSuffix}>% of the project's cost</span>
+        <span style={styles.helperSuffix}>% of the project&apos;s cost</span>
       </div>
     );
   }

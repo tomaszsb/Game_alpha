@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.67] - 2026-10-24
+
+**Lint: the last error fixed (Tom's ask via the Manager).** `npm run lint` on src went from 1 error + 24 warnings to 0 errors + 24 warnings. The one error was an unescaped apostrophe in the teacher editor's cost line (`SpaceEditor.tsx`, now `&apos;`). The `ClassLandingPage.tsx` apostrophe and the other errors seen at v3.8.64 were already gone. Warnings left alone. No behaviour change.
+
 ## [3.8.66] - 2026-10-24
 
 **The robot Banker (BETA_PLAN_V3 Banker, steps 1-3; Tom's answers 2026-10-24). BUILT, NOT DEPLOYED.** The bank now answers a loan with approve, counter (smaller amount or higher rate) or refuse, from one pure `decide(offer, situation)` in `src/utils/bankerRules.ts`. Goal weight 50/50: repaid on time and profit. Every band, cut-off and reason line lives in the new `public/data/CLEAN_FILES/BANKER.csv` (a test pins it equal to the built-in table).
