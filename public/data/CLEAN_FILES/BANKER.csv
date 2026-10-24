@@ -1,0 +1,48 @@
+kind,key,value,text
+param,safe_weight,0.5,Half of the banker's goal: be repaid on time (finish on schedule).
+param,profit_weight,0.5,Half of the banker's goal: earn the most.
+param,approve_first,0.70,First visit: score at or above this and the bank lends what the card says.
+param,counter_first,0.50,First visit: score at or above this (and below the line above) and the bank counters.
+param,approve_return,0.60,"Return visit, only when the bank already lent to this project."
+param,counter_return,0.40,"Return visit, only when the bank already lent to this project."
+param,counter_safe,0.60,A smaller counter-offer must reach this safe score.
+param,profit_ref,18,"Interest rate plus filing fee, in percent, that counts as profit 1.0 (what the bank earns on each dollar lent)."
+param,max_refusals,2,After this many refusals the bank declines for good.
+param,rate_step,5,A rate counter goes up by this many percent.
+param,rate_max,15,The bank never charges more than this percent.
+param,pushback_penalty,0.08,Safe score lost for each push-back so far.
+param,builder_bonus,0.08,Safe score gained when a builder is already chosen.
+param,expeditor_bonus,0.05,Safe score gained when the student holds an expeditor.
+pace,0.25,1,Up to a quarter of the planned days used.
+pace,0.5,0.85,Up to half.
+pace,0.75,0.65,Up to three quarters.
+pace,1,0.4,Up to the whole plan.
+pace,99,0.15,Already past the plan.
+share,0.1,1,Loan up to 10% of the cost.
+share,0.2,0.8,Up to 20%.
+share,0.3,0.55,Up to 30%.
+share,0.4,0.3,Up to 40%.
+share,99,0.1,More than 40%.
+fee,1400000,1,Up to $1.4M
+fee,2750000,2,Up to $2.75M
+fee,999999999,3,Above
+settle,early_within_pct,10,Finished this many percent early or more: the bank gives back part of its interest.
+settle,early_refund_share,25,Percent of the interest given back on an early finish.
+settle,ontime_within_pct,10,Within this many percent either way: nothing.
+settle,late_to_50,0.5,Percent of the loan paid when 11 to 50 percent late.
+settle,late_to_100,1,Percent of the loan paid when 51 to 100 percent late.
+settle,late_over_100,2,Percent of the loan paid when more than twice the plan.
+reason,approve_clean,5,The numbers hold together. I will lend you {amount} at {rate} percent.
+reason,share_high,9,You are asking me for {share} percent of what this job costs. That is a lot of my money on one project.
+reason,share_low,4,"This is a small part of what the job costs, so I am comfortable with it."
+reason,pace_late,9,You have already used more of your schedule than I like for a project that still has to be built.
+reason,pace_good,4,"You are well inside your schedule, and I lend to projects that finish on time."
+reason,pushbacks,6,"You have pushed back more than once. Every round costs days, and days are what I worry about."
+reason,builder,5,You have a builder lined up. That tells me the work can start.
+reason,expeditor,3,Having an expeditor on your side helps the permits move.
+reason,counter_smaller,8,"I will not lend {asked}. I will lend you {amount} at {rate} percent, which I can stand behind."
+reason,counter_rate,8,"I will lend you {amount}, but at {rate} percent. The rate pays me for the risk."
+reason,refuse_first,10,"I cannot lend on this project as it stands. Look at the investor, or at what you can trim."
+reason,refuse_final,10,I have looked twice now and my answer is no. The investor is your next stop.
+reason,return_trust,7,"You have borrowed from us before and the file is in good order, so I will look at this more kindly."
+reason,first_visit,2,"This is your first time at our desk, so I look closely."

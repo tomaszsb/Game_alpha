@@ -10,6 +10,8 @@ import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlyCardList } from '../utils/logFormatting';
 import { diffLifeEventChange } from '../utils/lifeEventChange';
 import { computeProjectFinances } from '../utils/projectFinances';
+import { decide, BankerDecision } from '../utils/bankerRules';
+import { bankerInputs, cappedBankOffer } from '../utils/bankerInputs';
 import { getViolationTier, computeFilingFee, computeDailyAccrual, VIOLATION_DEADLINE_DAYS, ViolationVariant } from '../utils/violationRules';
 
 export class CardService implements ICardService {
@@ -1245,6 +1247,11 @@ export class CardService implements ICardService {
       return this.stateService.getGameState();
     }
 
+    // The robot banker answers the bank's offer before any money moves: approve as drawn, counter with
+    // other terms, or refuse (no loan). Only at the bank's own space; money code below is unchanged.
+    const bankerVerdict = options?.onlyResourceEffects ? undefined : this.consultBanker(playerId, effectiveCard);
+    if (bankerVerdict) effectiveCard = bankerVerdict.card;
+
     // Step 1: Parse card data into standardized Effect objects
     let effects = this.parseCardIntoEffects(effectiveCard, playerId);
 
@@ -1288,6 +1295,12 @@ export class CardService implements ICardService {
         console.error(`❌ Error processing card effects:`, error);
         throw error;
       }
+    }
+
+    // The loan the banker just allowed carries the schedule fixed at this moment, so the finish can judge
+    // "repaid on time" against it. Optional fields on the loan record: older saves simply lack them.
+    if (bankerVerdict && bankerVerdict.decision.answer !== 'refuse') {
+      this.stampLoanSchedule(playerId, bankerVerdict.decision);
     }
 
     // L021 "High-Profile Client" (2026-07-26) — second, independent effect.
@@ -1546,6 +1559,45 @@ export class CardService implements ICardService {
    * Parse card CSV data into standardized Effect objects for the UnifiedEffectEngine
    * This bridges the gap between CSV field structure and the Effect system
    */
+  /** Ask the robot banker about a B card drawn at the bank's space. Returns the card with the banker's terms. */
+  private consultBanker(playerId: string, card: Card): { card: Card; decision: BankerDecision } | undefined {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player || card.card_type !== 'B' || !card.loan_amount) return undefined;
+    if (this.dataService.getFundingSource(player.currentSpace) !== 'bank') return undefined;
+    const lookup = (id: string) => this.dataService.getCardById(id) ?? this.dataService.getCardById(id.split('_')[0]);
+    const gap = computeProjectFinances(player, lookup as never).fundingGap;
+    const offer = cappedBankOffer(parseInt(card.loan_amount, 10), parseFloat(card.loan_rate ?? '0'), gap);
+    if (offer.amount <= 0) return undefined;
+    const situation = bankerInputs(player, {
+      getCardById: lookup as never,
+      plannedDays: this.gameRulesService.calculateEstimatedProjectLength(playerId).estimatedDays,
+    });
+    const decision = decide(offer, situation);
+    this.stateService.updateTempState(playerId, {
+      lastBankerDecision: { answer: decision.answer, amount: decision.amount, rate: decision.rate, reasons: decision.reasons, final: decision.final },
+      ...(decision.answer === 'refuse' ? { bankRefusals: (player.bankRefusals ?? 0) + 1 } : {}),
+    });
+    if (decision.answer === 'refuse') return { card: { ...card, loan_amount: '0' }, decision };
+    if (decision.answer === 'counter') return { card: { ...card, loan_amount: String(decision.amount), loan_rate: String(decision.rate) }, decision };
+    return { card, decision };
+  }
+
+  /** Write the schedule at the moment of the loan next to the newest bank loan record. */
+  private stampLoanSchedule(playerId: string, decision: BankerDecision): void {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player?.loans?.length) return;
+    const loans = [...player.loans];
+    const last = loans.length - 1;
+    if (loans[last].plannedDays !== undefined) return;
+    loans[last] = {
+      ...loans[last],
+      plannedDays: this.gameRulesService.calculateEstimatedProjectLength(playerId).estimatedDays,
+      daysAtLoan: player.timeSpent ?? 0,
+      interest: Math.round(loans[last].principal * (decision.rate / 100)),
+    };
+    this.stateService.updateTempState(playerId, { loans });
+  }
+
   private parseCardIntoEffects(card: Card, playerId: string): Effect[] {
     const effects: Effect[] = [];
     const cardSource = `card:${card.card_id}`;

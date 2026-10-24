@@ -35,6 +35,7 @@ import { LogWriter } from '../services/LogWriter';
 import { ToastWriter } from '../services/ToastWriter';
 import { TrophyScorekeeper } from '../services/TrophyScorekeeper';
 import { configureTrophyRules } from '../utils/trophyRules';
+import { configureBankerRules } from '../utils/bankerRules';
 
 class NodeDataService extends DataService {
   private readonly cleanFilesDir: string;
@@ -65,6 +66,7 @@ class NodeDataService extends DataService {
     // temp classroom) may not carry it, and a board without it simply keeps every card's own wording.
     try { (this as any).parseScopeWordingCsv(read('SCOPE_WORDING.csv')); } catch { /* feature off */ }
     try { (this as any).trophyRuleRows = (this as any).parseTrophyRulesCsv(read('TROPHIES.csv')); } catch { /* built-in defaults */ }
+    try { (this as any).bankerRows = (this as any).parseTrophyRulesCsv(read('BANKER.csv')); } catch { /* built-in table */ }
     (this as any).buildSpaces();
     (this as any).loaded = true;
   }
@@ -94,6 +96,7 @@ export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise
   new LogWriter(stateService, loggingService);
   new TrophyScorekeeper(stateService);
   configureTrophyRules(dataService.getTrophyRuleRows());
+  configureBankerRules(dataService.getBankerRows());
   const resourceService = new ResourceService(stateService);
   const gameRulesService = new GameRulesService(dataService, stateService);
   stateService.setGameRulesService(gameRulesService);

@@ -120,6 +120,8 @@ export class DataService implements IDataService {
   private violationRuleRows: ViolationRuleCsvRow[] = [];
   // TROPHIES.csv: the three-trophy win rule's names, point sizes and quality events. Optional.
   private trophyRuleRows: TrophyRuleCsvRow[] = [];
+  // BANKER.csv: the robot banker's bands, cut-offs and reason lines (same columns as TROPHIES.csv). Optional.
+  private bankerRows: TrophyRuleCsvRow[] = [];
   // TOWN.csv: the town board's layout (a look only). Optional — empty means classic board only.
   private townRows: TownCsvRow[] = [];
   // SCOPE_WORDING.csv: the project types a dice throw can pick, and each work
@@ -158,6 +160,7 @@ export class DataService implements IDataService {
           this.loadCharacters(),
           this.loadViolationRules(),
           this.loadTrophyRules(),
+          this.loadBanker(),
           this.loadTown(),
           this.loadScopeWording(),
           this.loadUIStrings()
@@ -215,6 +218,7 @@ export class DataService implements IDataService {
       this.loadCharacters(),
       this.loadViolationRules(),
       this.loadTrophyRules(),
+      this.loadBanker(),
       this.loadTown(),
       this.loadScopeWording(),
       this.loadUIStrings()
@@ -1047,6 +1051,20 @@ export class DataService implements IDataService {
 
   getTrophyRuleRows(): TrophyRuleCsvRow[] {
     return [...this.trophyRuleRows];
+  }
+
+  /** Load BANKER.csv (kind,key,value,text). Optional: a missing file keeps the built-in table in bankerRules.ts. */
+  private async loadBanker(): Promise<void> {
+    try {
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/BANKER.csv?_=' + Date.now());
+      this.bankerRows = response.ok ? this.parseTrophyRulesCsv(await response.text()) : [];
+    } catch {
+      this.bankerRows = [];
+    }
+  }
+
+  getBankerRows(): TrophyRuleCsvRow[] {
+    return [...this.bankerRows];
   }
 
   /**

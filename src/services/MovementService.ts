@@ -218,6 +218,16 @@ export class MovementService implements IMovementService {
           : (builder.door && validMoves.includes(builder.door) ? [builder.door] : []);
       }
 
+      // SPECIAL HANDLING: the bank has declined for good (two refusals). The student goes STRAIGHT to the
+      // investor, who can never refuse, instead of the two hops through the decision check and the lender.
+      // The investor space is whichever space the data marks funding_source = investor.
+      if (player.lastBankerDecision?.answer === 'refuse' && player.lastBankerDecision.final &&
+          this.dataService.getFundingSource(player.currentSpace) === 'bank') {
+        const investorSpace = this.dataService.getGameConfig()
+          .find(c => this.dataService.getFundingSource(c.space_name) === 'investor')?.space_name;
+        if (investorSpace) validMoves = [investorSpace];
+      }
+
       return validMoves;
     } catch (error) {
       console.error(`Error getting valid moves for player ${playerId}:`, error);

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.66] - 2026-10-24
+
+**The robot Banker (BETA_PLAN_V3 Banker, steps 1-3; Tom's answers 2026-10-24). BUILT, NOT DEPLOYED.** The bank now answers a loan with approve, counter (smaller amount or higher rate) or refuse, from one pure `decide(offer, situation)` in `src/utils/bankerRules.ts`. Goal weight 50/50: repaid on time and profit. Every band, cut-off and reason line lives in the new `public/data/CLEAN_FILES/BANKER.csv` (a test pins it equal to the built-in table).
+- First visit is stricter than the old 60/30/10 guess; a return visit is easier ONLY when the bank already lent to this project. A student refused earlier is judged like a new one.
+- Two refusals: the bank declines for good and the only move is `INVESTOR-FUND-REVIEW` (one hop). A refusal moves no money, takes no loan, never ends the game, and survives a push-back (`bankRefusals`, `lastBankerDecision` are outside the snapshot). The investor is unchanged.
+- The schedule at the moment of the loan (`plannedDays`, `daysAtLoan`, `interest`) is stored next to the loan record (optional fields, old saves still load). At the finish, one settlement: 10% or more early gives back 25% of the interest; within 10% nothing; 11-50% late 0.5% of the loan; 51-100% 1%; over twice the plan 2%. Written through `updateTempState`. It does not touch the trophy money race (`loanFee` is not counted in `spent`) and cannot bankrupt a finisher.
+- The bank pop-up shows the banker's top two reason lines in place of the old story text. The return-visit text is reworded to be supportive.
+- Tests: `bankerRules.test.ts`, `bankerCounting.test.ts` (400 projects x 60 bank cards, first vs return), `RobotBanker.test.ts` (engine wiring and settlement); `DataService.test.ts` now expects 18 fetches.
+
 ## [3.8.65] - 2026-10-25
 
 **School logo and school name, version 1: name + logo only, no colour (Tom's logo answers, 2026-10-24; design in TEACHER_LAYER_DESIGN.md "Safe logo upload").** Server side first, then the screens.

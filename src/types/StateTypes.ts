@@ -137,6 +137,10 @@ export interface MutablePlayerState {
   peakScope?: number;
   /** Same idea for the planned days (the time cap). */
   peakPlanDays?: number;
+  /** Times the bank has refused this player; kept across a push-back like peakScope. */
+  bankRefusals?: number;
+  /** The banker's last answer, shown in the bank pop-up. */
+  lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean };
 }
 
 /**
@@ -522,6 +526,8 @@ export interface PlayerUpdateData {
   builderBids?: import('../utils/builderBids').BuilderBidSet;
   peakScope?: number;
   peakPlanDays?: number;
+  bankRefusals?: number;
+  lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean };
   finishedAtTurn?: number;
   outReason?: 'bankruptcy' | 'design_fee_cap' | 'time_cap';
   outAtTurn?: number;

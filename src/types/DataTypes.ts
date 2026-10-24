@@ -404,6 +404,13 @@ export interface Loan {
   principal: number;
   interestRate: number; // e.g., 0.05 for 5%
   startTurn: number;
+  /** Bank loans only: the schedule fixed at the moment of the loan, so "repaid on time" is judged against it. */
+  plannedDays?: number;
+  daysAtLoan?: number;
+  /** Interest the bank charged on this loan (dollars). */
+  interest?: number;
+  /** True once the finish settlement has been applied. */
+  settled?: boolean;
 }
 
 export interface MoneySources {
@@ -574,6 +581,10 @@ export interface Player {
   /** The biggest project scope this player has had at the end of any turn. The 20% design-fee cap is measured against it,
    *  so a roll that shrinks the plan cannot, by itself, push fees over the limit. */
   peakScope?: number;
+  /** Times the bank has refused this player. Survives a push-back (written through updateTempState, not in the snapshot). */
+  bankRefusals?: number;
+  /** The banker's last answer, shown in the bank pop-up in place of the usual text. */
+  lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean };
   /** The most planned days this player's project has called for at the end of any turn; the 300% time cap is
    *  measured against it for the same reason as peakScope (dropping work must not make a project "late"). */
   peakPlanDays?: number;

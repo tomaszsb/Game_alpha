@@ -17,6 +17,7 @@ import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlySpaceName } from '../utils/logFormatting';
 import { calculatePushBackDays, calculatePushBackMoneyKept, getLoanOnTheTable, expeditorsForPushBack } from '../utils/costPreview';
 import { computeFilingFee } from '../utils/violationRules';
+import { settlementAmount } from '../utils/bankerRules';
 import { combineLifeEventChanges, applyLifeEventHand } from '../utils/lifeEventChange';
 
 export class TurnService implements ITurnService {
@@ -435,6 +436,31 @@ export class TurnService implements ITurnService {
             action: 'end_game_violation_penalty',
             penaltyFee: fee,
           });
+        }
+
+        // The bank settles at the finish: judged against the schedule fixed when each loan was taken.
+        // Through TEMP like the charges above, so a push-back cannot undo it. A loan is settled once.
+        const settleFrom = this.stateService.getPlayer(winnerId);
+        if (settleFrom?.loans?.some(l => l.plannedDays !== undefined && !l.settled)) {
+          let net = 0;
+          const settledLoans = settleFrom.loans.map(l => {
+            if (l.plannedDays === undefined || l.settled) return l;
+            net += settlementAmount(l.principal, l.interest ?? 0, l.plannedDays, settleFrom.timeSpent ?? 0);
+            return { ...l, settled: true };
+          });
+          this.stateService.updateTempState(winnerId, { loans: settledLoans });
+          if (net > 0) {
+            this.resourceService?.recordCost(winnerId, 'loanFee', net, 'Late finish: the bank charges for the delay', 'bank_settlement', true);
+          } else if (net < 0) {
+            this.stateService.updateTempState(winnerId, { money: (this.stateService.getPlayer(winnerId)?.money ?? 0) - net });
+          }
+          if (net !== 0) {
+            this.loggingService.info(net > 0
+              ? `The bank charged $${net.toLocaleString()} for finishing late.`
+              : `The bank gave back $${(-net).toLocaleString()} of its interest for finishing early.`, {
+              playerId: winnerId, playerName: winnerPlayer?.name, action: 'bank_settlement', amount: net,
+            });
+          }
         }
 
         this.stateService.updatePlayer({

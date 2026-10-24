@@ -415,9 +415,16 @@ export class ManualActionProcessor {
     const rawVisualSummary = this.dataService.getSpaceContent(
       currentPlayer.currentSpace, currentPlayer.visitType
     )?.story;
-    const visualSummary = rawVisualSummary
+    let visualSummary = rawVisualSummary
       ? resolveFundingAmountToken(rawVisualSummary, updatedPlayer || currentPlayer, this.dataService.getFundingSource(currentPlayer.currentSpace))
       : undefined;
+
+    // The banker's answer takes the place of the usual story in the bank's pop-up (same size: top two lines only).
+    const banker = updatedPlayer?.lastBankerDecision;
+    if (banker && banker.reasons.length > 0 && /^draw_b$/i.test(manualEffect.effect_action || '') &&
+        this.dataService.getFundingSource(currentPlayer.currentSpace) === 'bank') {
+      visualSummary = banker.reasons.slice(0, 2).join(' ');
+    }
 
     return {
       diceValue: 0, // No dice roll for manual effects
