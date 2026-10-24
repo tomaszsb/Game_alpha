@@ -41,7 +41,10 @@ COPY package*.json ./
 # Exact version, not the floating "@12" (2026-10-06): the floating pin pulled whatever 12.x
 # was newest on every build, so a new npm release could change or break a deploy with
 # no change in this repo. Bump this line deliberately, with a test build.
-RUN npm install -g npm@12.2.0
+# 2026-10-24: 12.2.0 -> 12.2.1 (a small fix release: allowScripts keys under install-strategy=linked, plus
+# dependency bumps; nothing for `npm ci` or the lockfile). deploy.sh's test gate installs the SAME pin, so
+# when you bump this line, bump NPM_PIN in deploy.sh too.
+RUN npm install -g npm@12.2.1
 
 # Install ALL dependencies (including build tools)
 # Skip Puppeteer browser download — not needed in production

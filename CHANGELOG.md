@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.61] - 2026-10-24
+
+**npm in the Docker build moves from 12.2.0 to 12.2.1, and the deploy test gate now uses the same npm (Tom said yes, 2026-10-24).**
+- `Dockerfile` line 44 (now `RUN npm install -g npm@12.2.1`, comment updated). 12.2.1 is a small fix release (allowScripts keys under install-strategy=linked, plus dependency bumps); nothing in the notes touches `npm ci` or the lockfile. This repo has an `allowScripts` field but no `.npmrc` and no linked strategy.
+- `deploy.sh`: new `NPM_PIN=12.2.1` above the test gate, passed into the throw-away `node:24-alpine` container, which installs that npm first and prints `npm 12.2.1 (pinned)`. Before, the gate ran with the npm that ships inside the image, so a bad pinned npm would only have shown up at the image build. Nothing that stops or starts the live container was changed.
+- **Not tested here:** no Docker on this PC or in WSL, so neither the image build nor the gate was run. The first deploy after this is the real test of 12.2.1. If the gate or the build fails, the old container keeps running: in `deploy.sh` the tests run first and `docker build` runs before `docker stop`/`docker rm`, and the script has `set -e` (re-read 2026-10-24).
+- **Undo:** `git revert` this commit, or set `npm@12.2.0` in the Dockerfile and delete the `NPM_PIN` lines and the `npm install -g` line in `deploy.sh`'s gate.
+
 ## [3.8.60] - 2026-10-23
 
 **Design notes only, no code changed.**

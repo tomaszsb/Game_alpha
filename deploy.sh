@@ -24,10 +24,14 @@ git pull origin master
 # code (live player data in server/data is left out), so nothing on this box
 # changes and nothing is built or restarted unless every test passes.
 # Emergency only: SKIP_TESTS=1 bash deploy.sh
+# Same npm as the Dockerfile's pin (2026-10-24), so a bad npm fails HERE, before the image build.
+# Keep in step with the `npm install -g npm@...` line in Dockerfile.
+NPM_PIN=12.2.1
 if [ "$SKIP_TESTS" != "1" ]; then
   echo "Running the test suite (the deploy goes ahead only if every test passes)..."
-  if ! docker run --rm -v "$(pwd)":/src:ro -e PUPPETEER_SKIP_DOWNLOAD=true node:24-alpine sh -c '
+  if ! docker run --rm -v "$(pwd)":/src:ro -e PUPPETEER_SKIP_DOWNLOAD=true -e NPM_PIN="$NPM_PIN" node:24-alpine sh -c '
       set -o pipefail
+      npm install -g "npm@$NPM_PIN" >/dev/null && echo "   npm $(npm -v) (pinned)"
       mkdir /w && cd /src && tar --exclude=./server/data --exclude=./node_modules --exclude=./.git -cf - . | tar -xf - -C /w
       cd /w && npm ci --no-audit --no-fund --loglevel=error >/dev/null && npm test 2>&1 | grep -E "FAIL|×|Test Files|Tests " | tail -n 40'; then
     echo ""
