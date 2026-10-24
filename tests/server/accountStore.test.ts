@@ -164,8 +164,9 @@ describe('ownership binding (instanceStore + accounts)', () => {
     expect(instanceOwnedBy(config, 'teacher-x')).toBe(false);
   });
 
-  it('the instance write token still works alongside ownership', () => {
+  it('the old instance write token is no longer accepted (v3.8.58)', () => {
     const config = createInstance(root, { id: 'classroom-4' });
-    expect(checkInstanceWriteAccess(config, { token: config.meta.writeToken })).toEqual({ ok: true, via: 'token' });
+    const result = checkInstanceWriteAccess(config, { token: config.meta.writeToken } as any);
+    expect(result.ok).toBe(false);
   });
 });

@@ -114,13 +114,14 @@ describe('loadInstance / saveInstance', () => {
 });
 
 describe('checkInstanceWriteAccess', () => {
-  it('accepts the instance write token', () => {
+  it('refuses the old instance write token (v3.8.58: nothing sends it; the field stays in config.json for one release)', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     const result = checkInstanceWriteAccess(config, {
       token: config.meta.writeToken,
       adminPasswordHash: ADMIN_HASH,
-    });
-    expect(result).toEqual({ ok: true, via: 'token' });
+    } as any);
+    expect(result.ok).toBe(false);
+    expect((result as any).status).toBe(401);
   });
 
   it('accepts the admin password', () => {
@@ -132,7 +133,7 @@ describe('checkInstanceWriteAccess', () => {
     expect(result).toEqual({ ok: true, via: 'admin' });
   });
 
-  it('rejects a wrong token, wrong password, and no credentials at all', () => {
+  it('rejects the old write key, wrong password, and no credentials at all', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     expect(checkInstanceWriteAccess(config, { token: 'f'.repeat(64), adminPasswordHash: ADMIN_HASH }))
       .toMatchObject({ ok: false, status: 401 });
@@ -762,15 +763,14 @@ describe("the 'official' tier privilege boundary (Card Library stage 1 slice 2)"
     expect(checkAdminPassword(undefined, ADMIN_HASH).ok).toBe(false);
   });
 
-  it("a co-teacher and the instance write token are write access, not admin either", () => {
+  it("a co-teacher is write access, not admin either, and the old write token is neither", () => {
     const config = createInstance(root, { id: 'classroom-1' });
     config.meta.coTeachers = ['teacher-bbb'];
     expect(checkInstanceWriteAccess(config, { accountId: 'teacher-bbb', adminPasswordHash: ADMIN_HASH }))
       .toEqual({ ok: true, via: 'coteacher' });
-    expect(checkInstanceWriteAccess(config, { token: config.meta.writeToken, adminPasswordHash: ADMIN_HASH }))
-      .toEqual({ ok: true, via: 'token' });
-    // Neither credential is the admin password, and the write token is not
-    // accepted as one (a teacher must not be able to substitute it).
+    expect(checkInstanceWriteAccess(config, { token: config.meta.writeToken, adminPasswordHash: ADMIN_HASH } as any).ok)
+      .toBe(false);
+    // The write token is not the admin password either (a teacher must not be able to substitute it).
     expect(checkAdminPassword(config.meta.writeToken, ADMIN_HASH).ok).toBe(false);
   });
 

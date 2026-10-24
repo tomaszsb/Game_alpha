@@ -1330,7 +1330,6 @@ app.post('/api/instances/:id/board-check', (req, res) => {
     const config = loadInstance(instancesRoot, req.params.id);
     if (!config) return res.status(404).json({ success: false, error: 'No such instance' });
     const access = guardedInstanceWriteAccess(req, res, config, {
-      token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
       accountId: resolveTeacherAccountId(req),
     });
@@ -1433,7 +1432,6 @@ function handleInstanceMutation(req, res, mutate) {
       return res.status(404).json({ success: false, error: 'No such instance' });
     }
     const access = guardedInstanceWriteAccess(req, res, config, {
-      token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
       accountId: resolveTeacherAccountId(req),
     });
@@ -1948,7 +1946,6 @@ app.post('/api/instances/:id/positions', (req, res) => {
     }
 
     const access = guardedInstanceWriteAccess(req, res, config, {
-      token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || req.body.password,
       accountId: resolveTeacherAccountId(req),
     });
@@ -2018,7 +2015,6 @@ app.post('/api/instances/:id/edge-waypoints', (req, res) => {
     }
 
     const access = guardedInstanceWriteAccess(req, res, config, {
-      token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || req.body.password,
       accountId: resolveTeacherAccountId(req),
     });
@@ -2060,7 +2056,6 @@ app.delete('/api/instances/:id/edge-waypoints/:edgeId', (req, res) => {
     }
 
     const access = guardedInstanceWriteAccess(req, res, config, {
-      token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
       accountId: resolveTeacherAccountId(req),
     });
@@ -2097,7 +2092,6 @@ app.delete('/api/instances/:id/edge-waypoints', (req, res) => {
     }
 
     const access = guardedInstanceWriteAccess(req, res, config, {
-      token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
       accountId: resolveTeacherAccountId(req),
     });
@@ -2162,7 +2156,6 @@ app.post('/api/instances/:id/edge-anchors', (req, res) => {
     }
 
     const access = guardedInstanceWriteAccess(req, res, config, {
-      token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || req.body.password,
       accountId: resolveTeacherAccountId(req),
     });
@@ -2208,7 +2201,6 @@ app.delete('/api/instances/:id/edge-anchors/:edgeId/:end', (req, res) => {
     }
 
     const access = guardedInstanceWriteAccess(req, res, config, {
-      token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
       accountId: resolveTeacherAccountId(req),
     });
@@ -2245,7 +2237,6 @@ app.delete('/api/instances/:id/edge-anchors', (req, res) => {
     }
 
     const access = guardedInstanceWriteAccess(req, res, config, {
-      token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
       accountId: resolveTeacherAccountId(req),
     });

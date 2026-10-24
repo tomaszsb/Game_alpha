@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.58] - 2026-10-23
+
+**The old per-classroom write key no longer opens anything (Tom said yes, 2026-10-23).**
+- `checkInstanceWriteAccess` (`server/instanceStore.js`) now lets in only the classroom's owner or co-teacher (teacher login) or the admin password. The `x-instance-token` header is no longer read by any of the 9 teacher routes. The `writeToken` field is still created and kept in each classroom's saved `config.json` for one release (and still stripped from responses), so it can be removed later without a data change.
+- Checked: nothing in `src/`, the scripts or the docs ever sent the key, so no screen depends on it. Not checked: the live Tower's data and any hand-made script of Tom's that might still send it (hypothesis, unverified; if one exists it gets a 401 and needs the admin password or a teacher login).
+- Tests: five test files switched to the admin password or a teacher session (`teacherRiskNumbersLive` now logs in a real teacher who owns the room, because teacher saves are content-checked and admin saves are not). New: an old-key-only request is refused on three routes (`securityLimitsLive`), and no route reads the old header (`serverEndpointAuth`). `teacherRiskNumbersLive` also retries one connection reset on a reused socket.
+
 ## [3.8.57] - 2026-10-23
 
 **A solo game no longer deals the expeditor cards that ADD days (Tom chose option A, 2026-10-23).**

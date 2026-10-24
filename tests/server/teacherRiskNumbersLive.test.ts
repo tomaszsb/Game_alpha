@@ -20,11 +20,19 @@ const diceCSV = fs.readFileSync(path.join(SRC, 'DiceRoll Info.csv'), 'utf-8');
 const modalConfigCSV = fs.readFileSync(path.join(SRC, 'ModalConfig.csv'), 'utf-8');
 
 const cfgPath = () => path.join(dataDir, 'game-data', 'instances', 'classroom-1', 'config.json');
-const token = () => JSON.parse(fs.readFileSync(cfgPath(), 'utf8')).meta.writeToken;
+const ADMIN = 'pw-risk';
+// The classroom's old write key is no longer accepted (v3.8.58). This is a TEACHER
+// test (teacher saves are content-checked, admin saves are not), so a real teacher
+// account owns the classroom and its login session signs every request.
+let session = '';
 const post = (route: string, body: unknown) => fetch(base + route, {
-  method: 'POST', headers: { 'Content-Type': 'application/json', 'x-instance-token': token() }, body: JSON.stringify(body),
+  method: 'POST', headers: { 'Content-Type': 'application/json', 'x-teacher-session': session }, body: JSON.stringify(body),
 });
-const bakedDice = async () => (await fetch(base + '/data/i/classroom-1/CLEAN_FILES/DICE_EFFECTS.csv')).text();
+// A pooled keep-alive socket the server already closed shows up as ECONNRESET: retry once on a fresh one.
+const bakedDice = async (): Promise<string> => {
+  const url = base + '/data/i/classroom-1/CLEAN_FILES/DICE_EFFECTS.csv';
+  try { return await (await fetch(url)).text(); } catch { return (await fetch(url)).text(); }
+};
 const steerTime = (csv: string) => csv.split(/\r?\n/).find((l) => l.startsWith('CON-STEER,First,time,')) ?? '';
 
 beforeAll(async () => {
@@ -51,6 +59,13 @@ beforeAll(async () => {
     if (r && r.ok) break;
     await new Promise((r2) => setTimeout(r2, 250));
   }
+  const admin = { 'Content-Type': 'application/json', 'x-admin-password': ADMIN };
+  const made = await (await fetch(base + '/api/admin/accounts', { method: 'POST', headers: admin,
+    body: JSON.stringify({ username: 'risk-teacher', password: 'risk-teacher-pw-1', displayName: 'Risk Teacher' }) })).json();
+  await fetch(base + '/api/admin/instances/classroom-1/owner', { method: 'POST', headers: admin, body: JSON.stringify({ owner: made.account.id }) });
+  const login = await (await fetch(base + '/api/accounts/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'risk-teacher', password: 'risk-teacher-pw-1' }) })).json();
+  session = login.sessionToken;
 }, 90_000);
 
 afterAll(() => {
@@ -93,7 +108,7 @@ describe('teacher risk numbers on the real server', () => {
 
     // Reset: stop playing the teacher's card, the original numbers come back.
     const copyId = JSON.parse(fs.readFileSync(cfgPath(), 'utf8')).slots['CON-STEER'].card;
-    const del = await fetch(base + `/api/instances/classroom-1/copies/${copyId}`, { method: 'DELETE', headers: { 'x-instance-token': token() } });
+    const del = await fetch(base + `/api/instances/classroom-1/copies/${copyId}`, { method: 'DELETE', headers: { 'x-teacher-session': session } });
     expect(del.status).toBe(200);
     for (let i = 0; i < 40; i++) { baked = await bakedDice(); if (steerTime(baked).includes('30 days')) break; await new Promise((x) => setTimeout(x, 250)); }
     expect(steerTime(baked)).toContain('30 days');

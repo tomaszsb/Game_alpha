@@ -401,24 +401,22 @@ export function saveInstance(instancesRoot, config) {
 }
 
 /**
- * Instance-mutating requests need (in order): the instance's write token,
- * a logged-in teacher who OWNS this classroom (Phase 3 — session resolved to
+ * Instance-mutating requests need (in order): a logged-in teacher who OWNS this classroom (Phase 3 — session resolved to
  * an accountId by the caller), or the admin password (mirrors
  * requireGameTokenOrAdmin). Fail-closed: nothing valid and no admin hash
  * configured → 401/503, never a pass.
  *
- * The session is "just a key to" the per-instance write token (spec): the
- * caller resolves the session token to an accountId via accountStore and
+ * The caller resolves the session token to an accountId via accountStore and
  * passes it here as `accountId`; ownership is `meta.owner` or `meta.coTeachers`.
  * instanceStore stays free of any session dependency.
  * @param {InstanceConfig} config
- * @param {{ token?: string|string[], adminPassword?: string|string[], adminPasswordHash?: string, accountId?: string }} creds
+ * @param {{ adminPassword?: string|string[], adminPasswordHash?: string, accountId?: string }} creds
  * @returns {{ ok: true, via: string } | { ok: false, status?: number, error?: string }}
  */
-export function checkInstanceWriteAccess(config, { token, adminPassword, adminPasswordHash, accountId }) {
-  if (token && timingSafeEqualStr(token, config.meta.writeToken)) {
-    return { ok: true, via: 'token' };
-  }
+export function checkInstanceWriteAccess(config, { adminPassword, adminPasswordHash, accountId }) {
+  // v3.8.58: the per-classroom write token (`meta.writeToken`) is no longer accepted here. Nothing in the app
+  // ever sent it, and it was a master key with no user (REVIEW.md section 1, item 4). The field stays in
+  // config.json for one release so a rollback loses nothing; a later version removes it.
   if (accountId) {
     const owner = config.meta?.owner;
     if (owner && timingSafeEqualStr(accountId, owner)) return { ok: true, via: 'owner' };
@@ -430,7 +428,7 @@ export function checkInstanceWriteAccess(config, { token, adminPassword, adminPa
     if (admin.ok) return { ok: true, via: 'admin' };
     return admin;
   }
-  return { ok: false, status: 401, error: 'Instance write token, classroom ownership, or admin password required' };
+  return { ok: false, status: 401, error: 'Classroom ownership or the admin password required' };
 }
 
 /**

@@ -79,6 +79,53 @@ afterAll(() => {
   try { fs.rmSync(dataDir, { recursive: true, force: true }); } catch { /* Windows may hold a file briefly */ }
 });
 
+describe('old classroom write key (v3.8.58)', () => {
+  it.each([
+    ['/api/instances/classroom-1/insertions', { from: 'A', to: 'B', displayName: 'X', dryRun: true }],
+    ['/api/instances/classroom-1/positions', { positions: { 'OWNER-SCOPE-INITIATION': { x: 1, y: 1 } } }],
+    ['/api/instances/classroom-1/board-check', {}],
+  ])('refuses a request that carries only the old key: %s', async (route, body) => {
+    const r = await post(route, body, { 'x-instance-token': writeToken() });
+    expect(r.status).toBe(401);
+    // And the right admin password still gets in, so the refusal is about the key, not the route.
+    const ok = await post(route, body, { 'x-admin-password': PASSWORD });
+    expect(ok.status).not.toBe(401);
+  });
+});
+
+describe('story size cap', () => {
+  it('refuses a 5,000,000-letter story fast, and the server stays responsive', async () => {
+    const started = Date.now();
+    const r = await post('/api/instances/classroom-1/insertions',
+      { from: 'A', to: 'B', displayName: 'Big', story: 'x'.repeat(5_000_000) },
+      { 'x-admin-password': PASSWORD });
+    expect([400, 413]).toContain(r.status);
+    expect((await r.json()).error).toMatch(/too/i);
+    expect(Date.now() - started).toBeLessThan(2000);
+
+    const h0 = Date.now();
+    const health = await fetch(base + '/health');
+    expect(health.ok).toBe(true);
+    expect(Date.now() - h0).toBeLessThan(1000);
+  });
+
+  it('refuses a story just over 2,000 characters with a plain-English 400', async () => {
+    const r = await post('/api/instances/classroom-1/insertions',
+      { from: 'A', to: 'B', displayName: 'Long', story: 'x'.repeat(2001), dryRun: true },
+      { 'x-admin-password': PASSWORD });
+    expect(r.status).toBe(400);
+    expect((await r.json()).error).toBe(
+      'The story is too long (2,001 characters). Please keep it under 2,000 characters and save again.');
+  });
+
+  it('accepts a 2,000-character story (the cap itself is allowed)', async () => {
+    const r = await post('/api/instances/classroom-1/insertions',
+      { from: 'A', to: 'B', displayName: 'Ok', story: 'x'.repeat(2000), dryRun: true },
+      { 'x-admin-password': PASSWORD });
+    expect(r.status).toBe(200);
+  });
+});
+
 describe('admin password side door (classroom routes)', () => {
   it('5 wrong admin passwords get 401, then 429 — even for the right one', async () => {
     const statuses: number[] = [];
@@ -106,44 +153,12 @@ describe('admin password side door (classroom routes)', () => {
     expect(debug.status).toBe(429);
   });
 
-  it('the classroom write token still works from the blocked connection', async () => {
+  it('the old classroom write key opens nothing, blocked or not', async () => {
+    // (v3.8.58) Nothing in the app sent it; it is no longer accepted anywhere, so it is a plain 401.
     const r = await post('/api/instances/classroom-1/insertions',
       { from: 'A', to: 'B', displayName: 'X', dryRun: true },
       { 'x-instance-token': writeToken() });
-    // Past auth: a dry run answers 200 with a validation report (A→B is not a real edge).
-    expect(r.status).toBe(200);
-  });
-});
-
-describe('story size cap', () => {
-  it('refuses a 5,000,000-letter story fast, and the server stays responsive', async () => {
-    const started = Date.now();
-    const r = await post('/api/instances/classroom-1/insertions',
-      { from: 'A', to: 'B', displayName: 'Big', story: 'x'.repeat(5_000_000) },
-      { 'x-instance-token': writeToken() });
-    expect([400, 413]).toContain(r.status);
-    expect((await r.json()).error).toMatch(/too/i);
-    expect(Date.now() - started).toBeLessThan(2000);
-
-    const h0 = Date.now();
-    const health = await fetch(base + '/health');
-    expect(health.ok).toBe(true);
-    expect(Date.now() - h0).toBeLessThan(1000);
-  });
-
-  it('refuses a story just over 2,000 characters with a plain-English 400', async () => {
-    const r = await post('/api/instances/classroom-1/insertions',
-      { from: 'A', to: 'B', displayName: 'Long', story: 'x'.repeat(2001), dryRun: true },
-      { 'x-instance-token': writeToken() });
-    expect(r.status).toBe(400);
-    expect((await r.json()).error).toBe(
-      'The story is too long (2,001 characters). Please keep it under 2,000 characters and save again.');
-  });
-
-  it('accepts a 2,000-character story (the cap itself is allowed)', async () => {
-    const r = await post('/api/instances/classroom-1/insertions',
-      { from: 'A', to: 'B', displayName: 'Ok', story: 'x'.repeat(2000), dryRun: true },
-      { 'x-instance-token': writeToken() });
-    expect(r.status).toBe(200);
+    expect([401, 429]).toContain(r.status);
+    expect(r.status).not.toBe(200);
   });
 });

@@ -145,6 +145,10 @@ describe('server.js endpoint auth wiring', () => {
     expect(head).not.toContain('requireAdmin(req');
   });
 
+  it('no route reads the old classroom write key header any more (v3.8.58)', () => {
+    expect(source).not.toContain('x-instance-token');
+  });
+
   it('POST /api/games is gated on a fresh bake (configVersion == resolvedVersion)', () => {
     // Spec: a game may only be seeded from a resolved board matching the
     // current classroom config; a half-failed bake can never seed a game.
