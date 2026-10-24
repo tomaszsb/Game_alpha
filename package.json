@@ -1,6 +1,6 @@
 {
   "name": "unravel-codes",
-  "version": "3.8.64",
+  "version": "3.8.65",
   "type": "module",
   "description": "Unravel Codes: The Game - Multi-player board game simulating NYC construction permitting",
   "main": "index.js",
@@ -73,7 +73,6 @@
     "playwright": "^1.57.0",
     "puppeteer": "^25.8.0",
     "qrcode": "^1.5.4",
-    "sharp": "^0.35.4",
     "terser": "^5.27.0",
     "typescript": "~6.0.3",
     "vite": "^8.0.16",
@@ -92,6 +91,7 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "recharts": "^3.10.0",
+    "sharp": "^0.35.4",
     "tsx": "^4.20.5",
     "web-push": "^3.6.7",
     "ws": "^8.14.0"

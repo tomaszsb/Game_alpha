@@ -19,14 +19,14 @@ export const TEXT_LIMITS = Object.freeze({
 
 // Fields that are a name or a number-ish value, not a paragraph.
 const SHORT_FIELDS = new Set([
-  'displayName', 'name', 'title', 'Title', 'time', 'Time', 'fee', 'Fee', 'label',
+  'displayName', 'schoolName', 'name', 'title', 'Title', 'time', 'Time', 'fee', 'Fee', 'label',
 ]);
 
 // Whole files (checked cell by cell with findOverlongCsvCell) and secrets.
 const SKIPPED_FIELDS = new Set(['spacesCSV', 'diceRollCSV', 'modalConfigCSV', 'password']);
 
 const FRIENDLY_NAMES = {
-  displayName: 'name', name: 'name', story: 'story', title: 'title', Title: 'title',
+  displayName: 'name', schoolName: 'school name', name: 'name', story: 'story', title: 'title', Title: 'title',
   time: 'time', Time: 'time', fee: 'fee', Fee: 'fee',
   Event: 'Event text', Action: 'Action text', Outcome: 'Outcome text', Why: 'Why text',
 };

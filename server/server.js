@@ -57,6 +57,7 @@ import { validateConfig } from './instanceValidation.js';
 import { buildCatalog } from './instanceCatalog.js';
 import { compareBoardReports } from './boardCheck.js';
 import { createPlaytestRunner } from './boardPlaytest.js';
+import { saveLogo, removeLogo, createUploadLimiter, removeClassroomAssets, logoPath, logoVersion, LogoError } from './instanceLogo.js';
 import { parseCsvWithHeaders } from './processGameData.js';
 import { findOverlongText, findOverlongCsvCell, overlongMessage } from './textLimits.js';
 import {
@@ -148,6 +149,9 @@ app.use(cors({
 // refuses) before the general 10 MB one below. The biggest legitimate
 // classroom post is the editor's three whole CSVs, ~45 KB today. The 10 MB
 // limit stays for everything else (game state, admin save-source-files).
+// The school logo travels as base64 (a 1 MB picture is ~1.4 MB of text), so its route gets a bigger
+// body limit. This must come BEFORE the general /api/instances parser, which would refuse it first.
+app.use('/api/instances/:id/logo', express.json({ limit: '2mb' }));
 app.use('/api/instances', express.json({ limit: '1mb' }));
 app.use(express.json({ limit: '10mb' }));
 
@@ -1278,6 +1282,7 @@ app.delete('/api/instances/:id', (req, res) => {
   }
   try {
     deleteInstance(instancesRoot, id);
+    try { removeClassroomAssets(CONFIG.DATA_DIR, id); } catch { /* the classroom is gone either way */ }
     logVisitor(req, 'INSTANCE_DELETED', { instanceId: id, via: access.via });
     res.json({ success: true });
   } catch (err) {
@@ -1310,10 +1315,116 @@ app.get('/api/instances/:id', (req, res) => {
       teacherCopies: config.teacherCopies,
       resolved: readBakeStamp(instancesRoot, req.params.id),
       validation,
+      // A number when this classroom has a school logo (used to refresh a cached picture), else null.
+      logoVersion: logoVersion(CONFIG.DATA_DIR, req.params.id),
     });
   } catch (err) {
     console.error(`❌ Instance read failed for "${req.params.id}":`, err.message);
     res.status(500).json({ success: false, error: 'Instance config unreadable' });
+  }
+});
+
+// ===== SCHOOL LOGO + NAME (TEACHER_LAYER_DESIGN.md "Safe logo upload") =====
+// One logo per classroom, kept at DATA_DIR/instance-assets/<id>/logo.png, outside everything that is
+// served openly. Reading it is open (a public logo link is fine: it is the school's own picture and
+// carries no student data); changing or removing it needs the classroom's teacher or the admin.
+const checkLogoIpRateLimit = createRateLimiter(20, 60 * 60 * 1000); // 20 requests per hour per address
+const logoUploadLimiter = createUploadLimiter(5, 60 * 60 * 1000); // 5 finished uploads per classroom per hour
+
+function logoWriteAccess(req, res) {
+  if (!instanceLayerActive) {
+    res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+    return null;
+  }
+  let config;
+  try {
+    config = loadInstance(instancesRoot, req.params.id);
+  } catch {
+    res.status(400).json({ success: false, error: 'Invalid classroom' });
+    return null;
+  }
+  if (!config) {
+    res.status(404).json({ success: false, error: 'No such classroom' });
+    return null;
+  }
+  const access = guardedInstanceWriteAccess(req, res, config, {
+    adminPassword: req.headers['x-admin-password'],
+    accountId: resolveTeacherAccountId(req),
+  });
+  if (!access) return null; // 429 already sent
+  if (!access.ok) {
+    logVisitor(req, 'INSTANCE_LOGO_DENIED', { instanceId: req.params.id });
+    res.status(access.status || 401).json({ success: false, error: access.error || 'Not authorized to change this classroom' });
+    return null;
+  }
+  return { config, access };
+}
+
+app.get('/api/instances/:id/logo', (req, res) => {
+  let file;
+  try {
+    file = logoPath(CONFIG.DATA_DIR, req.params.id);
+  } catch {
+    return res.status(404).end();
+  }
+  if (!fs.existsSync(file)) return res.status(404).end();
+  res.set({
+    'Content-Type': 'image/png',
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Disposition': 'inline; filename="logo.png"',
+    'Cache-Control': 'public, max-age=300',
+  });
+  res.sendFile(path.resolve(file));
+});
+
+app.put('/api/instances/:id/logo', async (req, res) => {
+  if (!checkLogoIpRateLimit(req, res)) return;
+  const ctx = logoWriteAccess(req, res);
+  if (!ctx) return;
+  if (!logoUploadLimiter.allowed(req.params.id)) {
+    return res.status(429).json({ success: false, error: 'Too many logo uploads for this classroom. Try again in an hour.' });
+  }
+  try {
+    const { version, bytes } = await saveLogo(CONFIG.DATA_DIR, instancesRoot, req.params.id, req.body && req.body.image);
+    logoUploadLimiter.record(req.params.id);
+    logVisitor(req, 'INSTANCE_LOGO_SET', { instanceId: req.params.id, via: ctx.access.via, bytes });
+    res.json({ success: true, logoVersion: version });
+  } catch (err) {
+    if (err instanceof LogoError) return res.status(err.status).json({ success: false, error: err.message, code: err.code });
+    console.error(`❌ Logo save failed for "${req.params.id}":`, err.message);
+    res.status(500).json({ success: false, error: 'Could not save the logo' });
+  }
+});
+
+app.delete('/api/instances/:id/logo', (req, res) => {
+  if (!checkLogoIpRateLimit(req, res)) return;
+  const ctx = logoWriteAccess(req, res);
+  if (!ctx) return;
+  try {
+    const had = removeLogo(CONFIG.DATA_DIR, instancesRoot, req.params.id);
+    logVisitor(req, 'INSTANCE_LOGO_REMOVED', { instanceId: req.params.id, via: ctx.access.via });
+    res.json({ success: true, removed: had });
+  } catch {
+    res.status(500).json({ success: false, error: 'Could not remove the logo' });
+  }
+});
+
+// The school name shown next to the logo. Same access as the logo; empty clears it.
+app.put('/api/instances/:id/school-name', (req, res) => {
+  if (!checkLogoIpRateLimit(req, res)) return;
+  const ctx = logoWriteAccess(req, res);
+  if (!ctx) return;
+  const schoolName = String((req.body && req.body.schoolName) || '').trim();
+  const tooLong = findOverlongText({ schoolName });
+  if (tooLong) return res.status(400).json({ success: false, error: overlongMessage(tooLong) });
+  try {
+    if (schoolName) ctx.config.meta.schoolName = schoolName;
+    else delete ctx.config.meta.schoolName;
+    saveInstance(instancesRoot, ctx.config);
+    logVisitor(req, 'INSTANCE_SCHOOL_NAME_SET', { instanceId: req.params.id, via: ctx.access.via });
+    res.json({ success: true, schoolName: schoolName || null });
+  } catch {
+    res.status(500).json({ success: false, error: 'Could not save the school name' });
   }
 });
 

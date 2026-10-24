@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.65] - 2026-10-25
+
+**School logo and school name, part 1 of 2: the server side (Tom's logo answers, 2026-10-24; design in TEACHER_LAYER_DESIGN.md "Safe logo upload").**
+- New `server/instanceLogo.js`: decides PNG or JPEG from the file's own first bytes (never the name), refuses SVG and everything else, caps the upload at 1 MB and the picture at 64 to 2000 pixels a side (read from the header before any decoding, so a huge picture hidden in a small file is refused), re-encodes through `sharp` into a fresh PNG of at most 512 pixels (extra data such as location tags and anything after the picture is dropped), and stores only that copy at `DATA_DIR/instance-assets/<classroom-id>/logo.png`, outside `game-data` and outside everything `express.static` serves. `sharp` is loaded on first use, so if it ever cannot load the game still starts and only the upload says it is not available. `sharp` moved from devDependencies to dependencies (the Docker image prunes dev tools).
+- Routes: `GET /api/instances/:id/logo` (open; `image/png`, `nosniff`, inline, 5-minute cache; 404 when none), `PUT` and `DELETE` on the same address and `PUT /api/instances/:id/school-name` (the classroom's teacher or the admin; the same access check as every other classroom edit). Limits: 20 changes an hour per address and 5 finished uploads an hour per classroom. The classroom read now carries `logoVersion` (a number, or null). The logo route accepts a 2 MB body (base64), the rest stay 1 MB. Deleting a classroom deletes its logo. A replaced or removed logo is first copied to `game-data/backups/instance-assets/<id>/` (last 5), next to the other classroom backups.
+- Tests: `instanceLogo.test.ts` (17: real bytes decide, SVG named .png, trailing text and camera tags thrown away, too small or too large including a 5000 x 5000 picture, 1 MB cap, climbing ids, replace and remove backups, the hourly limiter) and `instanceLogoLive.test.ts` (11, on a real server: stranger, other teacher and wrong admin password refused, owner and admin can set and remove, headers, not reachable through `/data` or a climbing path, school name, backups). Part 2 (the teacher form and the screens) follows in the same version.
+- Not verified: that `sharp` installs on the Tower's Docker image (it ships prebuilt binaries for Alpine and the lockfile lists them, but the first deploy is the real test; if it fails the upload says "not available" and nothing else breaks).
+
 ## [3.8.64] - 2026-10-25
 
 **The typed email on the playtest reminder form is checked before it reaches the mailer (Manager yes, 2026-10-25).**
