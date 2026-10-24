@@ -59,7 +59,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 - [ ] **A classroom export button.** RESEARCH.md §6b #5.
 
 ### Branding
-- [ ] **Smallest branding: school name, logo, one colour on start screen, header and certificate, plus a school link.** RESEARCH-2.md §3c, §6 #11 (57 files hard-code colours).
+- [ ] **Smallest branding: school name, logo, one colour on start screen, header and certificate, plus a school link.** RESEARCH-2.md §3c, §6 #11 (57 files hard-code colours). **Logo upload spec written 2026-10-23** (teachers upload their own; PNG/JPEG only, re-encoded on the server, stored outside any open link, served by one route; certificate option A = school logo big on top, Unravel logo small at the bottom with the credit line): `docs/core/TEACHER_LAYER_DESIGN.md` "Safe logo upload". Open for Tom: the 5 questions at the end of that note; first build step needs his go.
 
 ### Schools and trade-school credit
 - [ ] **Stop collecting student data: nicknames, counts-only visitor log, one plain privacy page that says "scores never count".** CHECK.md top 5 #2; RESEARCH.md §6 #6, #13 (text alert part done v3.8.7).

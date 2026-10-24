@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.60] - 2026-10-23
+
+**Design notes only, no code changed.**
+- `docs/core/TEACHER_LAYER_DESIGN.md`: "Safe logo upload" spec and build plan (teachers upload their own logo; PNG/JPEG only, re-encoded on the server, one file per classroom outside every open link, one route to read it, owner-only write behind the existing teacher login, rate limits, certificate layout option A). Five questions for Tom listed at its end.
+- `docs/core/BETA_PLAN_V3.md`: rule-table robot Banker build plan (50/50 "can the project carry the loan" vs "what the bank earns"; one `decide()` function so a human seat can use it later; approve/counter/refuse with a refusal cap; six small steps, test plan with the ghost robot). Five questions for Tom at its end.
+- Two things in them are unchecked: the `sharp` image library building on the Tower's Docker image, and the certificate's other-sites text (taken from `src/constants/otherSites.ts`).
+
 ## [3.8.59] - 2026-10-23
 
 **Fixed the 17 low-contrast spots found by the automatic accessibility check (Tom said yes, 2026-10-23).**

@@ -525,3 +525,53 @@ Source: `D:\Unravel\Independent_Review\RESEARCH-2.md` §4.
 - **What could go wrong.** A banker who only says yes or no teaches nothing; each side needs its own goal (the review's lesson). A rule table can make the game easier or unwinnable at some projects: measure with the robot across the 400 project cards before shipping. Saved games and the TV need no change in option 1, but any new state goes in the saved game and needs a loading test. A seat model added later will have to replace today's "every player is a project manager" rule in several places, so keep the Banker out of the player list for now.
 - **Pick: option 3 (build option 1 through one `decide` function).** It is small, it teaches the lender's side, and it leaves the human-seat path open without committing to it.
 - **Needs Tom first:** yes. (1) Is a rule-following banker acceptable as step 1, rather than a human? (2) The Banker's own goal in one plain sentence (for example "lend safely and be repaid"). (3) Whether the lender should refuse a project outright, since today nothing can end a game before the project manager chooses to go on.
+
+
+### Banker role, step 1 update (2026-10-23): the rule-table robot banker, build plan (design only, nothing built)
+
+Tom's decisions: step 1 is a rule-table robot banker (no AI), built through one `decide` function a human seat can use later. Its goal, in Tom's words "a and b 50 50 weight": half **a, get repaid on time** (a cautious lender) and half **b, earn the most profit** (bigger, riskier loans at a higher cost).
+
+**What the lender and bank spaces already do (inventory, read from the data and code).**
+- **The route.** `LEND-SCOPE-CHECK` (the lender looks over the plan; a dice row "see what the plan covers", 5 days, may hand an L card) leads by a choice to `BANK-FUND-REVIEW` or `INVESTOR-FUND-REVIEW`, and both go on to `PM-DECISION-CHECK`. A return visit is the "you again" version with colder wording and fewer options.
+- **The bank.** The player draws one B card ("See the bank's terms"). There are 60 B cards, each with a fixed `loan_amount` ($500K to above $1.4M in steps) and `loan_rate` (5, 10 or 15). The bank lends the smaller of the card's amount and the player's funding gap rounded up to the next $10K (`CardService`, around line 1775, v3.8.x). The interest is charged once, at that moment, as a fee (`loan_amount x loan_rate`). A filing fee also applies: 1% up to $1.4M, 2% up to $2.75M, 3% above (`LOAN_TIERED`), plus 1 day per $200K. Push-back on the terms is the existing "push back" button (the quote comes back, a fee review charges 0.5% of scope and days).
+- **The investor.** An I card ("what they'll put in") with a dice outcome for the amount and for how long they take, and a 5% of amount borrowed fee (`LOAN_PERCENTAGE`). `investor_payout` exists on I cards.
+- **The numbers a banker could read.** `computeProjectFinances` (`src/utils/projectFinances.ts`) already gives scope, the design, regulatory and contingency budgets (20%, 5%, 10%), the commitments and the **funding gap**, and `player.moneySources` (owner funding, bank loans, investment deals). The turn history has the days used and how many times the player has pushed back.
+- **What does not exist.** There is **no repayment**: interest is a one-time fee and nothing ever comes due, so "get repaid on time" has no moment in the game today (the parked item "Loan-repayment deadline + TCO mechanic" is exactly this). The game's real money endings are the 20% design-fee cap and bankruptcy, both checked once at End Turn (`FinancialEffectHandler`).
+
+**Inputs the banker sees.** The player's funding gap, scope and total cost (from `computeProjectFinances`); money already raised from each source; days used against days planned; how many times this player has already asked this lender (the visit count); whether the player holds a builder bid and an expeditor (they lower risk); the card the player drew (its amount and rate); the project type. These are all already in state; the banker invents nothing.
+
+**How the 50/50 score is made.** Score = 0.5 x `safe` + 0.5 x `profit`, each from 0 to 1.
+- **`safe` (a): the likelihood the loan is repaid.** Because nothing comes due yet, define it as the likelihood the project can carry the loan to the end: `safe = 1 - clamp(loan / (cost to finish))` blended with a cushion term `(cash on hand + other money raised) / cost to finish`, then lowered a step for each push-back already made and for a project already past its planned days. Source: all from `computeProjectFinances` and the turn history. This is a rule table, not a model: five bands (for example loan under 40% of the cost = 1.0, 40 to 60% = 0.75, 60 to 80% = 0.5, 80 to 100% = 0.25, over 100% = 0) with the bands in a data file so Tom can tune them.
+- **`profit` (b): what the banker earns.** `earn = interest (loan x rate) + filing fee (tier) + investor-style fee`, divided by the most any B card could earn at that cost (the biggest amount at the 15% rate). Source: `loan_amount`, `loan_rate`, the tiered fee rule, all in the data already.
+- **Why it is a real trade-off.** A bigger loan at a higher rate raises `profit` and lowers `safe`; a small cheap loan does the reverse. With a 50/50 weight the score peaks in the middle, which is the lesson ("the bank wants to be repaid and to earn").
+- **Where each number comes from, in one line for Tom:** the repayment number comes from the player's own project numbers; the profit number from the loan card's own terms.
+
+**The approve / refuse / counter rule (one `decide(offer, situation)` function, data-driven).**
+- Score at or above 0.60: **approve** the card's terms as drawn.
+- Between 0.35 and 0.60: **counter**: a smaller amount (to the biggest amount that keeps `safe` at 0.6) at the same rate, or the same amount at the next rate up (5 to 10 to 15), whichever scores higher. The student can accept, push back (existing button) or go to the investor.
+- Below 0.35: **refuse**, with the reason, and an alternative (the investor, or a smaller scope). A refusal never ends the game: the student always keeps the investor route and the push-back.
+- All three outcomes use today's buttons and today's money code; only the terms offered change. The result is returned as a small object `{ answer, amount, rate, reasons[] }`, so a human seat can later return the same object.
+
+**How a student is told why, in plain words (the main teaching value).** The banker's pop-up lists the top two reasons from `reasons[]`, written in the banker's own voice and real-world words (no scores, no dice or card talk): "You are asking me for 80 percent of what the job costs, and you have almost no cushion. I would want less on the table." "I would lend you this much at 10 percent: the rate pays me for the risk." Each reason is a line in a data file keyed by band, so it can be edited like the other authored copy. The existing "why" tip pattern (`ACTION_TOOLTIPS.csv` `why,<SPACE>`) carries the real-world cause (banks lend against the project, and they price risk).
+
+**Build plan in small steps, with cost (about 1 to 1.5 weeks).**
+1. The rule table file (bands, thresholds, reason lines) and a pure `decide()` with tests (2 days).
+2. Read the inputs from state in one adapter (`bankerInputs(player)`), with tests on real projects from the 400 cards (1 day).
+3. Wire the decision into the bank pop-up only: the terms shown follow `decide()`; the money code is untouched (1 day).
+4. The reason lines in the pop-up, measured on the phone (the panel must not grow: the pop-up replaces existing text, not adds a block) (1 day).
+5. The same for the investor, if step 3 works (1 day, optional).
+6. Robot runs (below) and tuning (1 to 2 days).
+
+**What could go wrong.**
+- **Too easy.** If the bands approve nearly everything, the banker teaches nothing. Measure the approve share per project size.
+- **Impossible.** A project that is cheap to build but has a large soft cost could be refused by every route, a dead end. The investor route and push-back must always stay, and a "last offer" at the bottom band should exist so no player is locked out.
+- **A bankruptcy loop.** A refusal that leaves the player short, then a push-back that costs days and money, then another refusal, can end in bankruptcy or the 20% cap. Cap the refusals per game (for example two, then the third is a counter) the same way the bad-luck-cap pick works.
+- **A "repaid on time" with no repayment.** The word promises something the game does not do. Either word it as "can this project carry the loan" (this plan), or build the parked repayment deadline first. I would not build the repayment deadline in step 1.
+- **Saved games.** The decision is computed when the pop-up opens and not stored, so there is no new saved state in this plan.
+- **The 50/50 weight is Tom's choice** and may later become a teacher dial.
+
+**Test plan with the existing robot.** (1) Unit tests of `decide()` per band and per weight. (2) The ghost player (`src/headless/ghostPlayer.ts`, random legal moves) plays 50 games with the new banker and the suite checks the old things: no crash, the win-rate floor, no bankruptcy loop (a game never refuses the same player more than the cap). (3) A new counting test over the 400 projects: the approve, counter and refuse share by project size must stay within a band Tom picks (my starting guess: about 60% approve, 30% counter, 10% refuse; unverified). (4) The nightly Jarvis run (read-only report) after it ships, looking at game length and how often the robot reaches the end.
+
+**Pick: build steps 1 to 4 only (the bank, not the investor), with the refusal cap and the always-open investor route, wording the first number as "can this project carry the loan".** It reuses every number the game has, adds no saved state and leaves the human seat open through the single `decide` function.
+
+**Still needing Tom (not asked).** (1) The first-pass bands and the approve, counter and refuse cut-offs (0.60 and 0.35 are my guesses). (2) The wording of the reason lines (the banker's voice). (3) Whether "get repaid on time" may mean "can carry the loan" for now, or whether the repayment deadline comes first. (4) The refusal cap per game. (5) Whether the investor gets the same treatment in a second step.
