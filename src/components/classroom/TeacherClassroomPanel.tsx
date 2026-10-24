@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { listMyClassrooms, createMyClassroom, deleteClassroom, type ClassroomMeta } from './classroomAdminApi';
 import { ClassroomSetup } from './ClassroomSetup';
 import { BoardCheckStrip } from './BoardCheckStrip';
+import { SchoolBrandingStrip } from './SchoolBrandingStrip';
 import { teacherLogout, getTeacherAccount } from '../../utils/teacherAuth';
 import { colors } from '../../styles/theme';
 
@@ -113,6 +114,7 @@ export function TeacherClassroomPanel({ onStartGame, onLoggedOut }: TeacherClass
           </div>
           {/* "Check my board" lives on the classroom's own row so a teacher can find it (it used to be four screens deep). */}
           <BoardCheckStrip instanceId={c.id} changeToken={0} bare />
+          <SchoolBrandingStrip instanceId={c.id} />
         </div>
       ))}
 

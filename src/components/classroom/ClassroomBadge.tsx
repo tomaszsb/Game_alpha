@@ -14,6 +14,7 @@ import React, { useEffect, useState } from 'react';
 import { getInstanceId } from '../../utils/dataInstance';
 import { getBackendURL } from '../../utils/networkDetection';
 import { IconSchool } from '../icons/SetupIcons';
+import { logoUrl } from './schoolBrandingApi';
 
 interface ClassroomBadgeProps {
   style?: React.CSSProperties;
@@ -22,6 +23,7 @@ interface ClassroomBadgeProps {
 export function ClassroomBadge({ style }: ClassroomBadgeProps): JSX.Element | null {
   const instanceId = getInstanceId();
   const [name, setName] = useState<string | null>(null);
+  const [logo, setLogo] = useState<{ version: number; school: string } | null>(null);
 
   useEffect(() => {
     if (!instanceId) return;
@@ -30,8 +32,10 @@ export function ClassroomBadge({ style }: ClassroomBadgeProps): JSX.Element | nu
       try {
         const res = await fetch(`${getBackendURL()}/api/instances/${instanceId}`);
         if (!res.ok) return;
-        const data = await res.json().catch(() => null) as { meta?: { displayName?: string } } | null;
-        if (!cancelled && data?.meta?.displayName) setName(data.meta.displayName);
+        const data = await res.json().catch(() => null) as { meta?: { displayName?: string; schoolName?: string }; logoVersion?: number | null } | null;
+        if (cancelled) return;
+        if (data?.meta?.displayName) setName(data.meta.displayName);
+        if (typeof data?.logoVersion === 'number') setLogo({ version: data.logoVersion, school: data.meta?.schoolName || '' });
       } catch {
         // best-effort: the id fallback below still names the classroom
       }
@@ -42,7 +46,17 @@ export function ClassroomBadge({ style }: ClassroomBadgeProps): JSX.Element | nu
   if (!instanceId) return null;
   return (
     <span style={{ ...badgeStyle, ...style }} title={`Classroom: ${name || instanceId}`}>
-      <IconSchool size="1em" /> {name || instanceId}
+      {logo ? (
+        <img
+          src={logoUrl(instanceId, logo.version)}
+          alt={logo.school || 'School logo'}
+          data-testid="classroom-badge-logo"
+          style={{ height: '1.2em', width: 'auto', maxWidth: '3em', objectFit: 'contain', borderRadius: 2 }}
+        />
+      ) : (
+        <IconSchool size="1em" />
+      )}{' '}
+      {name || instanceId}
     </span>
   );
 }

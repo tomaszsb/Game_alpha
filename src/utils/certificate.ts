@@ -23,6 +23,12 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/** A classroom's school, when it has set one. `logoUrl` must be a full address: the certificate is its own page. */
+export interface CertificateSchool {
+  name: string | null;
+  logoUrl: string | null;
+}
+
 export function buildCertificateHtml(
   playerName: string,
   date: Date,
@@ -30,7 +36,21 @@ export function buildCertificateHtml(
   course: CourseChoice = '',
   /** Where the page is served from, so the logo loads in the new tab (blank in tests). */
   origin = '',
+  school: CertificateSchool | null = null,
 ): string {
+  const schoolName = school?.name?.trim() ? escapeHtml(school.name.trim()) : '';
+  const schoolLogo = school?.logoUrl && /^https?:\/\//i.test(school.logoUrl) ? escapeHtml(school.logoUrl) : '';
+  const unravelLogo = `<img class="${schoolLogo ? 'logo small-logo' : 'logo'}" src="${origin}/images/logo.png" alt="Unravel Codes">`;
+  // With a school logo it leads the page and Unravel's own small logo moves to the foot with the credit.
+  const topLogo = schoolLogo
+    ? `<img class="logo school-logo" src="${schoolLogo}" alt="${schoolName || 'School'} logo">`
+    : unravelLogo;
+  const playedAt = schoolName ? `
+  <p class="small" data-testid="played-at">Played at <strong>${schoolName}</strong></p>` : '';
+  const footLogo = schoolLogo
+    ? `
+  <div class="foot">${unravelLogo}<p class="small">Unravel Codes: The Game</p></div>`
+    : '';
   const name = escapeHtml(playerName.trim() || 'A Player');
   const answered = why.filter(w => w.answer.trim());
   const answersHtml = answered.length === 0 ? '' : `
@@ -50,6 +70,9 @@ ${answered.map(w => `  <p class="q">${escapeHtml(w.question)}</p>
   body { font-family: Georgia, 'Times New Roman', serif; color: #1f2937; margin: 0; padding: 16px; text-align: center; }
   .frame { border: 6px double #1e3a5f; padding: 40px 24px; max-width: 900px; margin: 0 auto; }
   .logo { display: block; margin: 0 auto 8px; height: 64px; width: auto; }
+  .school-logo { height: 96px; max-width: 320px; object-fit: contain; }
+  .foot { margin-top: 18px; }
+  .small-logo { height: 36px; margin-bottom: 2px; }
   .more { margin: 22px 0 0; font-size: 0.9rem; color: #4b5563; }
   .more a { color: #1e3a5f; text-decoration: underline; }
   h1 { font-size: 2.2rem; margin: 0 0 8px; color: #1e3a5f; }
@@ -67,17 +90,17 @@ ${answered.map(w => `  <p class="q">${escapeHtml(w.question)}</p>
   @media print { .print-button { display: none; } }
 </style></head><body>
 <div class="frame">
-  <img class="logo" src="${origin}/images/logo.png" alt="Unravel Codes">
+  ${topLogo}
   <h1>Certificate of Completion</h1>
   <p class="small">This certifies that</p>
   <div class="name">${name}</div>
   <p class="small">played a full game of</p>
   <p class="game">Unravel Codes: The Game</p>
   <p class="small">a board game about getting a building permitted and built in New York City,<br>and reached the end of the game on</p>
-  <p class="small"><strong>${dateText}</strong></p>
+  <p class="small"><strong>${dateText}</strong></p>${playedAt}
   <p class="small">Course (SUNY Farmingdale)</p>
   <p class="course">${COURSES.map(c => `<span data-course="${c}"><i class="box">${course === c ? '&#10003;' : ''}</i>Course ${c}</span>`).join('')}</p>
-  <p class="more">Visit our other sites: ${OTHER_SITES.map(s => `<a href="${s.url}">${s.label}</a>`).join(' &middot; ')}</p>
+  ${footLogo}<p class="more">Visit our other sites: ${OTHER_SITES.map(s => `<a href="${s.url}">${s.label}</a>`).join(' &middot; ')}</p>
 </div>${answersHtml}
 <button class="print-button" id="print-btn">Print / Save as PDF</button>
 </body></html>`;
@@ -88,11 +111,12 @@ export function openCertificate(
   playerName: string,
   why: Array<{ question: string; answer: string }> = [],
   course: CourseChoice = '',
+  school: CertificateSchool | null = null,
 ): boolean {
   const win = window.open('', '_blank');
   if (!win) return false;
   win.document.open();
-  win.document.write(buildCertificateHtml(playerName, new Date(), why, course, window.location.origin));
+  win.document.write(buildCertificateHtml(playerName, new Date(), why, course, window.location.origin, school));
   win.document.close();
   // No inline onclick: the app's CSP blocks inline handlers, and the new tab inherits it.
   win.document.getElementById('print-btn')?.addEventListener('click', () => win.print());

@@ -9,6 +9,9 @@
 import React, { useState } from 'react';
 import { colors } from '../../styles/theme';
 import { openCertificate, COURSES, type CourseChoice } from '../../utils/certificate';
+import { getInstanceId } from '../../utils/dataInstance';
+import { useSchoolBranding } from '../classroom/useSchoolBranding';
+import { logoUrl } from '../classroom/schoolBrandingApi';
 import { FUN_QUESTIONS, type CertificateAnswers, type WhyQuestion } from '../../utils/certificateQuestions';
 import { getBackendURL } from '../../utils/networkDetection';
 
@@ -67,6 +70,18 @@ export function CertificateQuestions({ playerName, gameCode, whyQuestions }: Pro
   const [typedName, setTypedName] = useState('');
   const [nameMissing, setNameMissing] = useState(false);
   const certName = needsName ? typedName.trim() : playerName;
+  // A classroom's school name and logo, when it has them. The logo needs a full address because the
+  // certificate opens as its own page.
+  const classroomId = getInstanceId();
+  const branding = useSchoolBranding(classroomId);
+  const school = classroomId && branding && (branding.schoolName || branding.logoVersion)
+    ? {
+        name: branding.schoolName,
+        logoUrl: branding.logoVersion
+          ? new URL(logoUrl(classroomId, branding.logoVersion), window.location.origin).href
+          : null,
+      }
+    : null;
 
   const onPrint = () => {
     if (needsName && !certName) {
@@ -75,7 +90,7 @@ export function CertificateQuestions({ playerName, gameCode, whyQuestions }: Pro
     }
     const whyAnswers = whyQuestions.map((q, i) => ({ question: q.question, answer: why[i] ?? '' }));
     // Open the tab first, inside the click, or the browser blocks it as a pop-up.
-    if (!openCertificate(certName, whyAnswers, course)) {
+    if (!openCertificate(certName, whyAnswers, course, school)) {
       window.alert('Your browser blocked the certificate window. Allow pop-ups for this site and try again.');
     }
     if (!saved) {

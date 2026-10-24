@@ -2,6 +2,13 @@
 
 ---
 
+## v3.8.65 — Your school's name and logo (October 25, 2026)
+
+- **A teacher can add the school's name and logo to a classroom.** On the classroom row, open "School name & logo", type the name, and choose a PNG or JPEG picture under 1 MB. Replace or remove it any time (the administrator can remove it too).
+- **It shows on the class page, in the game header and on the certificate.** The certificate says "Played at <school>" with the school's logo on top and Unravel's small logo at the bottom.
+- **Safe by design:** the picture is checked by what is really inside the file, redrawn as a clean copy, and kept where nobody can browse to it. Pictures that are not PNG or JPEG are refused.
+- A school colour comes later.
+
 
 ## v3.8.49 — Step 1 is pictures, and the TV button explains itself on a phone (October 23, 2026)
 

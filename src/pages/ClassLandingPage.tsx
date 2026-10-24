@@ -9,6 +9,8 @@ import React, { useEffect, useRef } from 'react';
 import { trackPlaytestEvent } from '../playtest/playtestAnalytics';
 import { IconBug } from '../components/icons/SetupIcons';
 import { PhoneScreenWarning } from '../components/setup/PhoneScreenWarning';
+import { useSchoolBranding, CLASSROOM_ID_PATTERN } from '../components/classroom/useSchoolBranding';
+import { logoUrl } from '../components/classroom/schoolBrandingApi';
 
 const page: React.CSSProperties = {
   maxWidth: 640,
@@ -19,7 +21,19 @@ const page: React.CSSProperties = {
   color: '#1f2937',
 };
 
+/** A teacher's class link can carry the classroom: /class?i=<classroom-id>. Anything else is ignored. */
+function classroomFromAddress(): string | null {
+  try {
+    const id = new URLSearchParams(window.location.search).get('i');
+    return id && CLASSROOM_ID_PATTERN.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 export function ClassLandingPage(): JSX.Element {
+  const classroomId = classroomFromAddress();
+  const school = useSchoolBranding(classroomId);
   // Records the visit and, because trackPlaytestEvent reads ?src= / ?utm_campaign= and keeps it in
   // sessionStorage, tags every later event of this tab's game with the class link it came from
   // (/class?src=kosi). The Start link below must stay a same-tab link or that tag is lost.
@@ -33,6 +47,19 @@ export function ClassLandingPage(): JSX.Element {
 
   return (
     <main style={page} data-testid="class-landing">
+      {classroomId && school && (school.logoVersion || school.schoolName) && (
+        <div data-testid="class-school" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          {school.logoVersion && (
+            <img
+              src={logoUrl(classroomId, school.logoVersion)}
+              alt={school.schoolName ? `${school.schoolName} logo` : 'School logo'}
+              data-testid="class-school-logo"
+              style={{ height: 56, maxWidth: 160, objectFit: 'contain' }}
+            />
+          )}
+          {school.schoolName && <strong style={{ fontSize: '1.1rem' }}>{school.schoolName}</strong>}
+        </div>
+      )}
       <h1 style={{ marginBottom: 8 }}>Unravel Codes</h1>
       <p style={{ fontSize: '1.1rem', marginTop: 0 }}>
         A board game about getting a building permitted and built in New York City.
@@ -42,7 +69,7 @@ export function ClassLandingPage(): JSX.Element {
       <p>
         Before a single beam goes up, the project has to get through the city: plans, reviews,
         inspections, fees, and the people who sign off. You play the project manager. Every choice
-        costs days and money, and the engineers' work only gets built if the paperwork gets through.
+        costs days and money, and the engineers&apos; work only gets built if the paperwork gets through.
       </p>
 
       <h2>What to do (SUNY Farmingdale, courses 350 and 409)</h2>
