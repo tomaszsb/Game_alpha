@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.64] - 2026-10-25
+
+**The typed email on the playtest reminder form is checked before it reaches the mailer (Manager yes, 2026-10-25).**
+- `/api/playtest/remind-me` used to pass whatever was typed straight to nodemailer. Now `resolveRecipient` (`server/mailer.js`, already called by the route up front and so covering both the instant send and the scheduled one) accepts ONE plain address: at most 254 characters (64 before the @), no spaces, commas, semicolons, colons, quotes, angle brackets, brackets, parentheses, backslashes or control characters (so no line breaks), and it must look like name@host.tld. Anything else is a 400 with "Please type one email address, like name@example.com". The existing rate limit is unchanged. No validator existed in the code to reuse.
+- Same trivial fix for the free-text "when" label, which went raw into the HTML mail body: it is now flattened to one line, capped at 80 characters, and HTML-escaped in the HTML part.
+- Other public routes checked (read-only): `sendMail` is called only from `sendReminder` (the route and the scheduler, both now covered) and `sendOwnerAlert` (a fixed env phone number, no user text). `campaignSource` is `encodeURIComponent`-ed into the link. No route passes user text to a shell; file paths from ids are guarded by the existing id patterns (not re-audited here).
+- Tests: `mailerRecipient.test.ts` (good address with spaces trimmed; two addresses; header-injection and display-name style values; empty, not-an-address, over-long; plain message) and `mailerSmtp.test.ts` (the label is escaped and capped in the real SMTP path). Not tested: the route itself returning 400 end to end (it needs a configured mailer); it already maps the coded error to 400.
+- `BuilderBids.test.ts`: the bids are drawn with the unpinned `Math.random`, so the test now pins it to a fixed pseudo-random sequence. I could NOT find the cause of the one-off failure: a sweep over 80 different draws (every quality and roll) never failed, and it passed alone 31 times. Hypothesis, unverified: load in the full run. The full failure text was lost (I only saw the summary line).
+- eslint 10 (dev-only major upgrade, because eslint 9 is unsupported) added to "Decisions waiting on Tom".
+
 ## [3.8.63] - 2026-10-25
 
 **Security: `npm audit fix` (the safe route), 9 advisories → 0 (Tom: "fix the vulnerabilities").**

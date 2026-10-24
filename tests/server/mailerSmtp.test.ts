@@ -107,6 +107,20 @@ afterEach(() => {
   }
 });
 
+describe('mailer.js: the free-text "when" label in the mail body', () => {
+  it('is escaped in the HTML part, flattened to one line and capped at 80 characters', async () => {
+    const { sendReminder } = await import('../../server/mailer.js');
+    captured.length = 0;
+    await sendReminder({ method: 'email', email: 'player@example.test', whenLabel: '<script>alert(1)</script>\r\nBcc: x@y.com ' + 'z'.repeat(200) });
+    const m = captured[0];
+    const html = m.data.split(/Content-Type: text\/html/i)[1] ?? '';
+    expect(html).not.toMatch(/<script>/); // the plain-text part may show it as text; the HTML part must not carry a tag
+    expect(html).toMatch(/&lt;script&gt;/);
+    expect(m.data).not.toMatch(/z{81}/);
+    expect(m.to.join(' ')).not.toMatch(/x@y\.com/);
+  });
+});
+
 describe('mailer.js through the real nodemailer SMTP client', () => {
   it('sends a reminder email: authenticates, addresses it, carries subject, text and HTML', async () => {
     const { sendReminder, isMailerConfigured } = await import('../../server/mailer.js');

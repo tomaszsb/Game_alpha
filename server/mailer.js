@@ -57,7 +57,8 @@ function buildReminderUrl(campaignSource) {
 // entirely rather than show an ugly link; the email plain-text fallback
 // keeps it, since almost every modern client renders the HTML version below
 // instead, where the tracking is hidden behind clean anchor text.
-function buildReminderText(whenLabel, campaignSource, method) {
+function buildReminderText(whenLabelRaw, campaignSource, method) {
+  const whenLabel = cleanWhenLabel(whenLabelRaw);
   const url = method === 'sms' ? BASE_URL : buildReminderUrl(campaignSource);
   return (
     `Reminder to play Unravel Codes${whenLabel ? ` (${whenLabel})` : ''}.\n\n` +
@@ -66,7 +67,8 @@ function buildReminderText(whenLabel, campaignSource, method) {
   );
 }
 
-function buildReminderHtml(whenLabel, campaignSource) {
+function buildReminderHtml(whenLabelRaw, campaignSource) {
+  const whenLabel = escapeHtml(cleanWhenLabel(whenLabelRaw));
   const url = buildReminderUrl(campaignSource);
   return (
     `<p>Reminder to play Unravel Codes${whenLabel ? ` (${whenLabel})` : ''}.</p>` +
@@ -85,12 +87,36 @@ function buildReminderHtml(whenLabel, campaignSource) {
 // later — a bad address should be rejected while the visitor is still looking
 // at the form, not silently dropped when the scheduler fires hours later.
 // Throws a BAD_REQUEST-coded Error on invalid input.
+// v3.8.64: the typed address reaches nodemailer's address parser, which (before its 10.2 fix) could be
+// talked into mailing a recipient the text does not show. So accept exactly ONE plain address: no spaces,
+// commas, semicolons, quotes, angle brackets, brackets, parentheses, backslashes, colons or control characters.
+const EMAIL_BAD_CHARS = /[\s,;:<>"'()[\]\\\x00-\x1f\x7f]/;
+const EMAIL_SHAPE = /^[^@]+@[^@]+\.[^@.]+$/;
+
+export function cleanEmailAddress(raw) {
+  const bad = () => Object.assign(new Error('Please type one email address, like name@example.com'), { code: 'BAD_REQUEST' });
+  if (typeof raw !== 'string') throw bad();
+  const email = raw.trim();
+  const [local] = email.split('@');
+  if (!email || email.length > 254 || local.length > 64 || EMAIL_BAD_CHARS.test(email) || !EMAIL_SHAPE.test(email)) throw bad();
+  return email;
+}
+
+// The "when" label is free text from the form. It goes into the mail body, so cap it, flatten line breaks,
+// and (for the HTML part) escape it.
+function cleanWhenLabel(raw) {
+  return typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim().slice(0, 80) : '';
+}
+function escapeHtml(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 export function resolveRecipient(opts) {
   if (opts.method === 'email') {
     if (!opts.email || typeof opts.email !== 'string') {
       throw Object.assign(new Error('email is required'), { code: 'BAD_REQUEST' });
     }
-    return opts.email;
+    return cleanEmailAddress(opts.email);
   }
   if (opts.method === 'sms') {
     const gateway = CARRIER_GATEWAYS[opts.carrier];

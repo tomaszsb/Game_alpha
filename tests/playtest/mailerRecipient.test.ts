@@ -42,3 +42,46 @@ describe('mailer.resolveRecipient', () => {
     }
   });
 });
+
+// v3.8.64: exactly ONE plain address reaches nodemailer's address parser.
+describe('mailer.resolveRecipient: the typed email is one plain address', () => {
+  const rejected = (email: unknown) => {
+    try { resolveRecipient({ method: 'email', email } as any); } catch (err: any) { return err.code; }
+    return 'accepted';
+  };
+
+  it('accepts a good address and trims stray spaces around it', () => {
+    expect(resolveRecipient({ method: 'email', email: ' Name.Last+tag@school.example.edu ' })).toBe('Name.Last+tag@school.example.edu');
+  });
+
+  it('rejects two addresses (comma, semicolon, space)', () => {
+    expect(rejected('a@b.com,c@d.com')).toBe('BAD_REQUEST');
+    expect(rejected('a@b.com;c@d.com')).toBe('BAD_REQUEST');
+    expect(rejected('a@b.com c@d.com')).toBe('BAD_REQUEST');
+  });
+
+  it('rejects header-injection and display-name style values', () => {
+    expect(rejected('a@b.com\r\nBcc: victim@example.com')).toBe('BAD_REQUEST');
+    expect(rejected('a@b.com\nSubject: hi')).toBe('BAD_REQUEST');
+    expect(rejected('"a@b.com" <c@d.com>')).toBe('BAD_REQUEST');
+    expect(rejected('<a@b.com>')).toBe('BAD_REQUEST');
+    expect(rejected('a(comment)@b.com')).toBe('BAD_REQUEST');
+    expect(rejected('a@b.com\u0000')).toBe('BAD_REQUEST');
+  });
+
+  it('rejects empty, not-an-address and over-long values', () => {
+    expect(rejected('')).toBe('BAD_REQUEST');
+    expect(rejected('   ')).toBe('BAD_REQUEST');
+    expect(rejected('no-at-sign')).toBe('BAD_REQUEST');
+    expect(rejected('a@b')).toBe('BAD_REQUEST');
+    expect(rejected(['a@b.com'])).toBe('BAD_REQUEST');
+    expect(rejected('x'.repeat(65) + '@b.com')).toBe('BAD_REQUEST');
+    expect(rejected('a@' + 'b'.repeat(260) + '.com')).toBe('BAD_REQUEST');
+  });
+
+  it('gives a plain message the form can show', () => {
+    try { resolveRecipient({ method: 'email', email: 'a@b.com, c@d.com' }); } catch (err: any) {
+      expect(err.message).toBe('Please type one email address, like name@example.com');
+    }
+  });
+});

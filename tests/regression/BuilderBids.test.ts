@@ -10,10 +10,19 @@
 //  - the hire counts once in the quality ledger, at the size TROPHIES.csv gives that quality;
 //  - a push-back throws the hire (and the bids drawn this turn) away with the money it cost.
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { bootstrapHeadlessServices } from '../ghost/bootstrapServices';
 import { getBuilderRules, pointsFor } from '../../src/utils/trophyRules';
 import { computeContractorTerms } from '../../src/utils/contractorTerms';
+
+// The bids' quality, roll and guarantee are drawn with Math.random: pin it to a fixed pseudo-random
+// sequence so every run draws the same bids (v3.8.64; one unexplained one-off failure of the "counts
+// once" test in a full-suite run on 2026-10-25, not reproducible alone or in 25 repeats).
+beforeEach(() => {
+  let seed = 12345;
+  vi.spyOn(Math, 'random').mockImplementation(() => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; });
+});
+afterEach(() => { vi.restoreAllMocks(); });
 
 async function atBuilder(money = 5_000_000, hand: string[] = ['W001', 'W003']) {
   const s: any = await bootstrapHeadlessServices();
