@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.63] - 2026-10-25
+
+**Security: `npm audit fix` (the safe route), 9 advisories → 0 (Tom: "fix the vulnerabilities").**
+- Lockfile only; `package.json` ranges untouched; no `--force`; every bump stays inside its major version.
+- **In the shipped image (3, all fixed):** nodemailer 10.0.13 → 10.2.1 (address-parser bugs: a mail could go to a recipient the typed address did not show), body-parser 2.3.0 → 2.4.0 (a small compressed request body with trailing bytes could tie up the server), ip-address 10.7.2 → 10.7.4 (a very long IPv6-with-zone string could stall the process, only via geoip-lite).
+- **Dev tools only (6, all fixed):** vite 8.3.1 → 8.3.5 (dev-server file exposure and launch-editor), undici 7.30.0 → 7.30.1 (via jsdom, tests only), zod 4.6.5 → 4.6.7, and puppeteer 25.12.0 → 25.16.0 with its helpers (chromium-bidi, zod 3), plus rolldown, postcss, nanoid.
+- Checked: typecheck, build, `npm test` (4129), a clean `npm ci` of this lockfile in an empty folder (then `npm audit` = 0 with and without dev tools), ghost suite. One unexplained one-off failure of `BuilderBids.test.ts` in the first full run (passed alone, 31 more times, and in the next full run; see 3.8.64).
+- Not done, needs Tom: eslint 9.39.5 (dev only) is marked unsupported and 9.x has no newer release; the fix is eslint 10 (a major upgrade). TODO has it.
+
 ## [3.8.62] - 2026-10-24
 
 **On a phone-sized screen the mode buttons say what they do (Tom, option B, 2026-10-24).**
