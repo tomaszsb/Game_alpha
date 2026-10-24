@@ -59,7 +59,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 - [ ] **A classroom export button.** RESEARCH.md §6b #5.
 
 ### Branding
-- [ ] **Smallest branding: school name, logo, one colour on start screen, header and certificate, plus a school link.** RESEARCH-2.md §3c, §6 #11 (57 files hard-code colours). **Logo upload spec written 2026-10-23** (teachers upload their own; PNG/JPEG only, re-encoded on the server, stored outside any open link, served by one route; certificate option A = school logo big on top, Unravel logo small at the bottom with the credit line): `docs/core/TEACHER_LAYER_DESIGN.md` "Safe logo upload". Open for Tom: the 5 questions at the end of that note; first build step needs his go.
+- [ ] **Smallest branding: school name, logo, one colour on start screen, header and certificate, plus a school link.** RESEARCH-2.md §3c, §6 #11 (57 files hard-code colours). **Logo upload spec written 2026-10-23** (teachers upload their own; PNG/JPEG only, re-encoded on the server, stored outside any open link, served by one route; certificate option A = school logo big on top, Unravel logo small at the bottom with the credit line): `docs/core/TEACHER_LAYER_DESIGN.md` "Safe logo upload". All 5 questions ANSWERED 2026-10-24 (PNG/JPEG only, public logo link ok, "Played at <school>", teacher AND admin can remove, colour later). Version 1 = name + logo only; building in v3.8.65.
 
 ### Schools and trade-school credit
 - [ ] **Stop collecting student data: nicknames, counts-only visitor log, one plain privacy page that says "scores never count".** CHECK.md top 5 #2; RESEARCH.md §6 #6, #13 (text alert part done v3.8.7).
@@ -77,7 +77,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
   - **Pick for the smallest first step (needs Tom's yes):** one small version that fixes the 17 measured contrast spots by darkening the few colours involved (about 4 colours, 1 day, tests plus a re-run of the same axe check), then a second check on the pop-ups, certificate and teacher editor. Do not start the full audit until a school asks for it. Say "built to WCAG 2.1 AA" nowhere until a person has tested with a screen reader.
 
 ### Roles
-- [ ] **Role play, step 1: Banker/Lender as a second role (person or robot), robots fill empty seats; then the City examiner, then Owner/Architect.** Tom Q3; RESEARCH-2.md §4c, §6 #12.
+- [ ] **Role play, step 1: Banker/Lender as a second role (person or robot), robots fill empty seats; then the City examiner, then Owner/Architect.** Tom Q3; RESEARCH-2.md §4c, §6 #12. Banker plan: `docs/core/BETA_PLAN_V3.md` "Banker role, step 1 update"; Tom's 5 questions ANSWERED 2026-10-24 (repaid = finishes on schedule vs the schedule at the loan; two refusals then investor; bank only first; stricter first visit; reason lines drafted for Tom to read on a phone). Build NOT started.
 
 ### Fantasy RPG version
 - [ ] **One fantasy RPG board, data only, own names, no "D&D"; owner pays.** Tom 10-18; RESEARCH-2.md §5, §6 #13. Old item: "D&D skin" in the Parking lot.

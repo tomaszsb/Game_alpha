@@ -303,4 +303,11 @@ Tom's rule for this: a teacher uploads their school logo on their own, and nothi
 
 **Pick: option A, with option C as the fallback if the Docker build fails.**
 
-**What Tom must still decide.** (1) PNG/JPEG only, SVG refused: yes or no (my pick: yes). (2) Is a public logo link acceptable (my pick: yes, the logo is not student data)? (3) The certificate wording: "played at <school>" and never "approved by". (4) Who removes a logo that is not appropriate: the admin only, or also the teacher (teacher can; admin can too). (5) Whether a school colour comes in the same version (the branding pick above says yes, one colour) or later.
+**What Tom had to decide: ALL FIVE ANSWERED 2026-10-24 (every one followed the pick).**
+1. **PNG and JPEG only; SVG refused.** ANSWERED.
+2. **A public link for the logo only is fine** (not student data, one file per classroom, no student name in the file name). ANSWERED.
+3. **Certificate wording: "Played at <school>"; never "approved by" or "awarded by".** ANSWERED.
+4. **The teacher AND the admin can both remove a logo.** ANSWERED.
+5. **School colour comes LATER, not in this version.** The first version is school name + logo only (this replaces the "one colour" line in the branding pick above). ANSWERED.
+
+Build status: version 1 (name + logo, no colour) built in v3.8.65 (see CHANGELOG).

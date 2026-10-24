@@ -574,4 +574,11 @@ Tom's decisions: step 1 is a rule-table robot banker (no AI), built through one 
 
 **Pick: build steps 1 to 4 only (the bank, not the investor), with the refusal cap and the always-open investor route, wording the first number as "can this project carry the loan".** It reuses every number the game has, adds no saved state and leaves the human seat open through the single `decide` function.
 
-**Still needing Tom (not asked).** (1) The first-pass bands and the approve, counter and refuse cut-offs (0.60 and 0.35 are my guesses). (2) The wording of the reason lines (the banker's voice). (3) Whether "get repaid on time" may mean "can carry the loan" for now, or whether the repayment deadline comes first. (4) The refusal cap per game. (5) Whether the investor gets the same treatment in a second step.
+**Tom's answers, 2026-10-24 (all five questions ANSWERED; these WIN over the older text above where they differ).**
+1. **"Repaid on time" now means: the project finishes on schedule, judged against the schedule fixed at the moment of the loan.** Early is best, on time is good, late is bad. This REPLACES the "can this project carry the loan" wording and the "no end-of-game change" line. The banker's `safe` score becomes the likelihood of finishing on schedule. A settlement at finish (late costs extra, early saves something) touches game balance: see the safety check below.
+2. **After TWO refusals the bank declines for good and sends the student to the investor.** This REPLACES the forced counter-offer at the cap.
+3. **Bank only in the first build; the investor stays as it is today.** Tom's later idea (parked, not designed): the investor could face a HARDER approval than the bank, because it gives away much more.
+4. **First visit is reviewed more strictly; a return visit is easier ONLY when the bank has already lent to this project.** A student refused on the first visit and coming back is judged as new. The 60/30/10 mix and the 0.60/0.35 cut-offs stay unverified guesses: the Game session tunes them with the robot and shows Tom (first visit stricter than 60/30/10). The existing colder "you again" return wording must be reworded to sound supportive.
+5. **The Game session drafts the reason lines** (banker's voice, plain words, no scores, fit the phone without growing the pop-up); Tom reads them in the game on a phone before they ship and marks the ones that sound wrong.
+
+Not started: the Banker BUILD waits for the safety check below and for Tom's go.
