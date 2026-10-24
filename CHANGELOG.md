@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.62] - 2026-10-24
+
+**On a phone-sized screen the mode buttons say what they do (Tom, option B, 2026-10-24).**
+- PC button now reads "Play alone on this phone", TV button reads "Put it on a TV" (it still opens the Step 1 guide), Remote is unchanged. The words come from `MODE_BUTTONS_PHONE` in `src/constants/bigScreenCopy.ts`, which reuses the guide's own `playAloneButton` / `openButton` strings. Nothing is hidden: still three buttons, and the phone hint line under them is unchanged.
+- Wide screens (PC, laptop) keep "PC / Play on this screen" and "TV / You need a TV and phones" exactly. A real TV browser is not a phone-sized screen (same `isPhoneScreen()` test), so it keeps the TV labels and still picks TV mode by itself. No TV-side code changed.
+- Layout on a phone: icon above the words, the three buttons now the same width. Measured in the Browser pane: button height 112 → 106 px and the whole "How are you playing?" box 247 → 241 px at both 360x640 and 390x844, no sideways scroll. So the phone panel did not grow (it is 6 px shorter). Not measured: a real phone, other widths.
+- Tests: three new in `ModePhoneHint.test.tsx` (phone words and three buttons, wide labels unchanged, a small TV browser keeps TV labels). Left alone on purpose: the wide-screen "how to play with TV and phones" line (Tom has not answered).
+
 ## [3.8.61] - 2026-10-24
 
 **npm in the Docker build moves from 12.2.0 to 12.2.1, and the deploy test gate now uses the same npm (Tom said yes, 2026-10-24).**

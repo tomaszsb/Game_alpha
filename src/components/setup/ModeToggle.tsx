@@ -6,6 +6,7 @@ import { IconDesktop, IconTV, IconGlobe } from '../icons/SetupIcons';
 import { setStoredPreferredMode, PlayMode } from '../../utils/modePreference';
 import { isPhoneScreen } from '../../utils/deviceDetection';
 import { BigScreenGuide } from './BigScreenGuide';
+import { MODE_BUTTONS_PHONE } from '../../constants/bigScreenCopy';
 
 interface ModeToggleProps {
   selectedMode: PlayMode;
@@ -47,6 +48,10 @@ export function ModeToggle({ selectedMode, onSelectMode, onPlayAlone, onReady }:
     onSelectMode(mode);
   };
 
+  const phone = isPhoneScreen();
+  // Phone: one line of plain words per button (no PC / TV name, no second line), so the buttons are no taller than before.
+  const phoneLabel = { flexDirection: 'column', gap: '0.25em', fontSize: '0.8rem', lineHeight: 1.2, textAlign: 'center' } as const;
+
   return (
     <div style={{
       marginBottom: selectedMode === 'tv' ? '0.3rem' : '1rem',
@@ -70,6 +75,7 @@ export function ModeToggle({ selectedMode, onSelectMode, onPlayAlone, onReady }:
           aria-pressed={selectedMode === 'pc'}
           style={{
             flex: 1,
+            minWidth: phone ? 0 : undefined,
             padding: selectedMode === 'tv' ? '0.3rem 0.6rem' : '0.7rem 0.9rem',
             borderRadius: 8,
             border: `2px solid ${selectedMode === 'pc' ? colors.primary.main : colors.secondary.border}`,
@@ -83,12 +89,18 @@ export function ModeToggle({ selectedMode, onSelectMode, onPlayAlone, onReady }:
           }}
           title="Play on this one screen. One player alone, or everyone taking turns."
         >
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
-            <IconDesktop size="1em" /> PC
-          </span>
-          <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
-            Play on this screen
-          </div>
+          {phone ? (
+            <span data-testid="mode-label-pc" style={{ display: 'inline-flex', alignItems: 'center', ...phoneLabel }}>
+              <IconDesktop size="1.2em" /><span>{MODE_BUTTONS_PHONE.pc}</span>
+            </span>
+          ) : (<>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
+              <IconDesktop size="1em" /> PC
+            </span>
+            <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
+              Play on this screen
+            </div>
+          </>)}
         </button>
         <button
           type="button"
@@ -96,6 +108,7 @@ export function ModeToggle({ selectedMode, onSelectMode, onPlayAlone, onReady }:
           aria-pressed={selectedMode === 'tv'}
           style={{
             flex: 1,
+            minWidth: phone ? 0 : undefined,
             padding: selectedMode === 'tv' ? '0.3rem 0.6rem' : '0.7rem 0.9rem',
             borderRadius: 8,
             border: `2px solid ${selectedMode === 'tv' ? '#9c27b0' : colors.secondary.border}`,
@@ -109,12 +122,18 @@ export function ModeToggle({ selectedMode, onSelectMode, onPlayAlone, onReady }:
           }}
           title="You need BOTH: the board on a TV, and each player on their own phone or tablet."
         >
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
-            <IconTV size="1em" /> TV
-          </span>
-          <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
-            You need a TV and phones
-          </div>
+          {phone ? (
+            <span data-testid="mode-label-tv" style={{ display: 'inline-flex', alignItems: 'center', ...phoneLabel }}>
+              <IconTV size="1.2em" /><span>{MODE_BUTTONS_PHONE.tv}</span>
+            </span>
+          ) : (<>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35em' }}>
+              <IconTV size="1em" /> TV
+            </span>
+            <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
+              You need a TV and phones
+            </div>
+          </>)}
         </button>
         {/* Remote (maintainer request 2026-07-14, built 2026-09-25): a third
             option for players in genuinely separate locations — no shared
@@ -126,6 +145,7 @@ export function ModeToggle({ selectedMode, onSelectMode, onPlayAlone, onReady }:
           aria-pressed={selectedMode === 'remote'}
           style={{
             flex: 1,
+            minWidth: phone ? 0 : undefined,
             padding: selectedMode === 'tv' ? '0.3rem 0.6rem' : '0.7rem 0.9rem',
             borderRadius: 8,
             border: `2px solid ${selectedMode === 'remote' ? colors.success.main : colors.secondary.border}`,

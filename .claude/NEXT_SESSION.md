@@ -1,7 +1,7 @@
-# Next session starter — written 2026-10-23 by /koniec (updated after v3.8.61)
+# Next session starter — written 2026-10-23 by /koniec (updated after v3.8.62)
 
 ## State at handoff
-- **Version:** v3.8.61 (3.8.47-61; live is e15f13aa = 3.8.49) committed + pushed, **PENDING DEPLOY** (Tom deploys; v3.8.46 was LIVE, `/health` `22f1de48` = HEAD, checked 10-23 13:00 UTC; Tom deployed 3.8.41-46 in one go).
+- **Version:** v3.8.62 (3.8.47-62; live is e15f13aa = 3.8.49) committed + pushed, **PENDING DEPLOY** (Tom deploys; v3.8.46 was LIVE, `/health` `22f1de48` = HEAD, checked 10-23 13:00 UTC; Tom deployed 3.8.41-46 in one go).
 - **Branch:** master = origin/master after the wrap-up commit, clean.
 - **Last shipped (3.8.41-46 live; 3.8.47-49 pending deploy):** v3.8.41 pulsing red "you would be short" warnings; v3.8.42 a push-back no longer erases the drawer's own lasting life event (also solo); v3.8.43 per-space "?" help on the work button, plain History notes, no doubled "outcome came back"; v3.8.44 hint "Tap: see the cost. Hold: do it.", bank loans named for your project, "$X to raise" instead of "deficit"; v3.8.45 days saved by a played expeditor stay saved through a push-back (Tom: spent means spent); v3.8.46 certificate asks for a real name when the game name is "Player N".
 - **Tests:** `npm test` 308 files / 4109 green (v3.8.49); ghost 15 passed, 1 skipped (last run on 3.8.48; 3.8.49 touched only setup UI); build clean; typecheck only the old `dataGate.test.ts` errors.

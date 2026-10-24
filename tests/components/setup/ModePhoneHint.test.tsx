@@ -86,3 +86,34 @@ describe('ModeToggle: the TV button on a phone is Step 1 (v3.8.49)', () => {
     ua.mockRestore();
   });
 });
+
+describe('ModeToggle: mode button words by screen (v3.8.62)', () => {
+  const originalScreen = window.screen;
+  afterEach(() => { cleanup(); Object.defineProperty(window, 'screen', { configurable: true, value: originalScreen }); });
+
+  it('on a phone: PC reads "Play alone on this phone", TV reads "Put it on a TV", Remote is unchanged, nothing hidden', () => {
+    setScreenSize(390, 844);
+    render(<ModeToggle selectedMode="pc" onSelectMode={() => {}} />);
+    expect(screen.getByTestId('mode-label-pc')).toHaveTextContent('Play alone on this phone');
+    expect(screen.getByTestId('mode-label-tv')).toHaveTextContent('Put it on a TV');
+    expect(screen.getAllByRole('button')).toHaveLength(3);
+    expect(screen.getByRole('button', { name: /Remote/ })).toHaveTextContent(/Each on their own device/);
+  });
+
+  it('on a wide screen the old labels stay exactly as they were', () => {
+    setScreenSize(1920, 1080);
+    render(<ModeToggle selectedMode="pc" onSelectMode={() => {}} />);
+    expect(screen.queryByTestId('mode-label-pc')).toBeNull();
+    expect(screen.queryByTestId('mode-label-tv')).toBeNull();
+    expect(screen.getByRole('button', { name: /PC/ })).toHaveTextContent(/PC\s*Play on this screen/);
+    expect(screen.getByRole('button', { name: /TV/ })).toHaveTextContent(/TV\s*You need a TV and phones/);
+  });
+
+  it('a real TV browser with a small screen keeps the TV labels', () => {
+    setScreenSize(1280, 720);
+    const ua = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/537.36 TV Safari/537.36');
+    render(<ModeToggle selectedMode="pc" onSelectMode={() => {}} />);
+    expect(screen.queryByTestId('mode-label-tv')).toBeNull();
+    ua.mockRestore();
+  });
+});

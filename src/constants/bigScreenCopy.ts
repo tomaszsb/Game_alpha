@@ -80,3 +80,8 @@ export const BIG_SCREEN = {
     { name: 'Samsung', steps: 'Open the Internet (or Web Browser) app and type the game address. Samsung TVs from 2021 or older cannot run this game: use a laptop on HDMI.' },
   ],
 } as const;
+
+// The mode buttons on a PHONE-sized screen (v3.8.62, Tom 2026-10-24, option B): "PC" and "TV" mean little on a
+// phone, so each button says what it does, with the same words the Step 1 guide already uses. Wide screens keep
+// their "PC" / "TV" labels and Remote is the same everywhere (ModeToggle.tsx).
+export const MODE_BUTTONS_PHONE = { pc: BIG_SCREEN.playAloneButton, tv: BIG_SCREEN.openButton };
