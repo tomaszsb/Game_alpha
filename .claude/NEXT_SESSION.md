@@ -1,7 +1,9 @@
 # Next session starter — written 2026-10-25 by /koniec (v3.8.64)
 
+*2026-10-24 addendum: a side session tried the eslint 10 upgrade and stopped (no game work; see TODO). Lint currently has 4 errors + 23 warnings.*
+
 ## State at handoff
-- **Version:** v3.8.64 (3.8.47-64; live is e15f13aa = 3.8.49) committed + pushed, **PENDING DEPLOY** (Tom deploys; v3.8.46 was LIVE, `/health` `22f1de48` = HEAD, checked 10-23 13:00 UTC; Tom deployed 3.8.41-46 in one go).
+- **Version:** v3.8.64 (3.8.47-64; live is e15f13aa = 3.8.49) committed + pushed; **LIVE** (`/health` 228e187b checked 2026-10-24; Tom deployed) (older note: v3.8.46 was LIVE, `/health` `22f1de48` = HEAD, checked 10-23 13:00 UTC; Tom deployed 3.8.41-46 in one go).
 - **Branch:** master = origin/master after the wrap-up commit, clean.
 - **Last shipped 3.8.58-64 (all pending deploy; live is 3.8.49):** 58 old classroom write key refused; 59 the 17 contrast spots fixed (axe 17 → 0); 60 design notes (logo upload, robot banker); 61 npm 12.2.1 in Dockerfile + deploy gate (first deploy is its real test); 62 phone mode buttons say "Play alone on this phone" / "Put it on a TV"; 63 npm audit fix 9 → 0; 64 reminder email validated + BuilderBids random pinned. Earlier, **3.8.41-57:** v3.8.41 pulsing red "you would be short" warnings; v3.8.42 a push-back no longer erases the drawer's own lasting life event (also solo); v3.8.43 per-space "?" help on the work button, plain History notes, no doubled "outcome came back"; v3.8.44 hint "Tap: see the cost. Hold: do it.", bank loans named for your project, "$X to raise" instead of "deficit"; v3.8.45 days saved by a played expeditor stay saved through a push-back (Tom: spent means spent); v3.8.46 certificate asks for a real name when the game name is "Player N".
 - **Tests:** `npm test` 311 files / 4135 green (v3.8.64); ghost 15 passed, 1 skipped (v3.8.63; 3.8.64 touched no game logic); build clean; typecheck only the old `dataGate.test.ts` errors. One unexplained one-off `BuilderBids.test.ts` failure seen once (test now pins Math.random; cause unknown, hypothesis: load).
