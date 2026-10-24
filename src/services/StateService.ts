@@ -46,6 +46,11 @@ interface SelectiveListener<T> {
   equalityFn: (a: T, b: T) => boolean;
 }
 
+/** An expeditor card whose own effect adds days (tick_modifier above zero). */
+export function addsDays(card: { tick_modifier?: string }): boolean {
+  return (parseInt(card.tick_modifier ?? '0', 10) || 0) > 0;
+}
+
 export class StateService implements IStateService {
   private currentState: GameState;
   private readonly dataService: IDataService;
@@ -516,11 +521,11 @@ export class StateService implements IStateService {
   private startGameBattleRoyale(): GameState {
     // Initialize shuffled decks for each card type (shared by all players)
     const decks: Decks = {
-      W: this.shuffleArray([...this.dataService.getCardsByType('W').map(card => card.card_id)]),
-      B: this.shuffleArray([...this.dataService.getCardsByType('B').map(card => card.card_id)]),
-      E: this.shuffleArray([...this.dataService.getCardsByType('E').map(card => card.card_id)]),
-      L: this.shuffleArray([...this.dataService.getCardsByType('L').map(card => card.card_id)]),
-      I: this.shuffleArray([...this.dataService.getCardsByType('I').map(card => card.card_id)])
+      W: this.shuffleArray(this.deckCardIds('W')),
+      B: this.shuffleArray(this.deckCardIds('B')),
+      E: this.shuffleArray(this.deckCardIds('E')),
+      L: this.shuffleArray(this.deckCardIds('L')),
+      I: this.shuffleArray(this.deckCardIds('I'))
     };
 
     // Initialize empty discard piles
@@ -1857,8 +1862,19 @@ export class StateService implements IStateService {
    * Create a shuffled deck for a specific card type using a seed.
    */
   private createSeededDeck(cardType: 'W' | 'B' | 'E' | 'L' | 'I', seed: number): string[] {
-    const cards = this.dataService.getCardsByType(cardType).map(card => card.card_id);
-    return this.seededShuffle(cards, seed);
+    return this.seededShuffle(this.deckCardIds(cardType), seed);
+  }
+
+  /**
+   * The card ids a new deck is built from. In a SOLO game (one player) the expeditor cards that ADD days
+   * are left out: the only player they could hit is the one holding them, so they just sat in the hand
+   * forever (PLAYTEST.md "Other things" #7; Tom chose "do not deal them", 2026-10-23). Group games keep
+   * the full deck. Only the deck changes: a card already in a hand is never taken away.
+   */
+  private deckCardIds(cardType: 'W' | 'B' | 'E' | 'L' | 'I'): string[] {
+    const cards = this.dataService.getCardsByType(cardType);
+    const solo = this.currentState.players.length === 1;
+    return (solo && cardType === 'E' ? cards.filter(card => !addsDays(card)) : cards).map(card => card.card_id);
   }
 
   // Action logging methods

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.57] - 2026-10-23
+
+**A solo game no longer deals the expeditor cards that ADD days (Tom chose option A, 2026-10-23).**
+- In a one-player game the 15 of 75 expeditor cards whose own effect adds days (`tick_modifier` above zero: E002, E004, E006, E009, E012, E013, E015, E019, E021, E031, E042, E043, E051, E056, E059) are left out when the deck is built (`StateService.deckCardIds`, used by both game modes). They used to sit in a solo hand forever because nobody else could be hit. Group games (2 to 4 players) keep the full deck. The check is the number of players at the moment the game starts.
+- Only the deck changes; a card already in a hand is never taken away. Tests: `StateService-soloDeck.test.ts` (a solo deck has none, a two-player deck has all, both game modes).
+- Could still go wrong: the starting-card picker for the educational start (`EducationalCardSelectionModal`) lists every expeditor card, so a solo student who picks one by hand can still hold it (not changed); card counts in a solo game are 60, not 75; the solo trophy and day numbers were not re-measured (the dropped cards only added days, so a solo game can only get a little faster).
+
 ## [3.8.56] - 2026-10-23
 
 **A real-server boot test, two security audits written up, and three design-prep notes (no game change).**
