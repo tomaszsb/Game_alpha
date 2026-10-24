@@ -423,7 +423,9 @@ export class ManualActionProcessor {
     const banker = updatedPlayer?.lastBankerDecision;
     if (banker && banker.reasons.length > 0 && /^draw_b$/i.test(manualEffect.effect_action || '') &&
         this.dataService.getFundingSource(currentPlayer.currentSpace) === 'bank') {
-      visualSummary = banker.reasons.slice(0, 2).join(' ');
+      // Two reasons when they fit in about the old story's length, else just the first: the phone card must not grow.
+      const two = banker.reasons.slice(0, 2).join(' ');
+      visualSummary = two.length <= 150 ? two : banker.reasons[0];
     }
 
     return {

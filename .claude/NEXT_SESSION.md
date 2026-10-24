@@ -3,6 +3,7 @@
 *2026-10-24 addendum: a side session tried the eslint 10 upgrade and stopped (no game work; see TODO). Lint currently has 4 errors + 23 warnings.*
 
 *2026-10-25 addendum (Game session started by the Manager): v3.8.65 school logo + school name is BUILT and pushed (server 039669fd, screens d1a7c25e), NOT deployed (live `/health` was 228e187b = 3.8.64). Full `npm test` 318 files / 4187 green, build clean, `npm audit` 0. The one lint error in ClassLandingPage (apostrophe) is fixed. NOT verified: phone width (360x640, 390x844) of the teacher form and header chip, a real TV, and `sharp` on the Tower image (first deploy is its test; if it fails the upload says "not available" and nothing else breaks). The Banker safety check is written into BETA_PLAN_V3.md; the Banker BUILD has not started and waits for Tom's go.*
+*2026-10-24 Game session (Manager task): v3.8.66 robot Banker BUILT and pushed, NOT deployed. v3.8.65 IS live (`/health` 7a4d0d31 = HEAD at the time). Open: phone-width measure of the bank pop-up, pushBacks wiring, Tom's cut-off call (see BETA_PLAN_V3.md 'Robot Banker BUILT'). Ghost suite flaked once under load in expeditorDaysSaved/Stick (passes alone x3).*
 
 ## State at handoff
 - **Version:** v3.8.64 (3.8.47-64; live is e15f13aa = 3.8.49) committed + pushed; **LIVE** (`/health` 228e187b checked 2026-10-24; Tom deployed) (older note: v3.8.46 was LIVE, `/health` `22f1de48` = HEAD, checked 10-23 13:00 UTC; Tom deployed 3.8.41-46 in one go).
