@@ -1784,6 +1784,8 @@ function BoardCanvasInner({
           valid-move green, so "look here" doesn't read as "you can move
           here." */}
       <style>{`
+        /* v3.8.59: the React Flow credit link was #999 on the pale board (2.2:1); same link, darker. */
+        .react-flow .react-flow__attribution a { color: #4b5563; }
         @keyframes board-canvas-chronicle-highlight-kf {
           0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
           50% { box-shadow: 0 0 0 6px rgba(59,130,246,0.55); }

@@ -13,7 +13,7 @@ export const colors = {
     light: '#e3f2fd',       // Light primary background
     lighter: '#f0f9ff',     // Lighter primary background
     bg: '#e3f2fd',          // Light primary background
-    text: '#1976d2',        // Primary text color
+    text: '#1565c0',        // Primary text color (v3.8.59: was #1976d2, 4.0:1 on the pale blue; now 5.0:1)
   },
 
   // Secondary Colors
@@ -132,7 +132,7 @@ export const colors = {
   // Text Colors
   text: {
     primary: '#212529',     // Primary text
-    secondary: '#6c757d',   // Secondary text
+    secondary: '#5a6268',   // Secondary text (v3.8.59: was #6c757d, 4.1:1 on the pale blue footer; now 5.4:1)
     tertiary: '#9ca3af',    // Tertiary text (lighter than secondary)
     muted: '#6b7280',       // Muted text
     light: '#9ca3af',       // Light text
@@ -508,6 +508,18 @@ export const {
   game,
   status,
 } = colors;
+
+/**
+ * Mix a #rrggbb colour with black so text drawn in a character's own colour can reach 4.5:1 on a
+ * light panel (v3.8.59). Anything that is not a 6-digit hex is returned unchanged.
+ */
+export function darkenHex(hex: string, amount: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const ch = (shift: number) => Math.round(((n >> shift) & 255) * (1 - amount)).toString(16).padStart(2, '0');
+  return `#${ch(16)}${ch(8)}${ch(0)}`;
+}
 
 // Export type for TypeScript support
 export type Theme = typeof theme;

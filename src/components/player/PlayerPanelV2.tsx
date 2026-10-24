@@ -27,6 +27,7 @@ import { PlayerPanelProps } from './panelTypes';
 import type { SpaceEffect } from '../../types/DataTypes';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { PanelMode, panelPalettes } from './panelTheme';
+import { darkenHex } from '../../styles/theme';
 import { HelpButton } from '../help/HelpButton';
 import { HelpCard } from '../help/HelpCard';
 import { shortName } from '../../utils/boardCommon';
@@ -1141,7 +1142,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                   <span style={{
                     fontSize: isPhone ? 8 : 11,
                     fontWeight: 600,
-                    color: npcInfo.color,
+                    color: mode === 'dark' ? npcInfo.color : darkenHex(npcInfo.color, 0.4),
                     lineHeight: 1.15,
                     display: 'block',
                     whiteSpace: 'normal',

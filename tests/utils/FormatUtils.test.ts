@@ -114,7 +114,7 @@ describe('FormatUtils', () => {
     it('should handle zero changes', () => {
       const neutral = FormatUtils.formatResourceChange(0, 'money');
       expect(neutral.text).toBe('$0');
-      expect(neutral.color).toBe('#6c757d'); // Updated to match theme colors.secondary.main
+      expect(neutral.color).toBe('#5a6268'); // theme colors.text.secondary (v3.8.59: darkened for 4.5:1 contrast)
       expect(neutral.className).toBe('resource-neutral');
     });
   });

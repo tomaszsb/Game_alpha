@@ -256,8 +256,8 @@ export function PlayerMobileView({
       </main>
 
       <footer style={styles.footer}>
-        <strong>Beta Version</strong> · Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
-        <br /><OtherSites linkColor={colors.primary.main} />
+        <strong>Beta Version</strong> · Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.dark }}>game@unravelcodes.com</a>
+        <br /><OtherSites linkColor={colors.primary.dark} />
       </footer>
     </div>
   );

@@ -1671,8 +1671,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           borderTop: `1px solid ${colors.primary.main}`,
           flexShrink: 0,
         }}>
-          <strong>Beta</strong> · Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
-          {' · '}<OtherSites linkColor={colors.primary.main} />
+          <strong>Beta</strong> · Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.dark }}>game@unravelcodes.com</a>
+          {' · '}<OtherSites linkColor={colors.primary.dark} />
         </div>
       )}
 

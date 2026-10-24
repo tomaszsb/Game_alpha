@@ -133,9 +133,9 @@ describe('checkInstanceWriteAccess', () => {
     expect(result).toEqual({ ok: true, via: 'admin' });
   });
 
-  it('rejects the old write key, wrong password, and no credentials at all', () => {
+  it('rejects the old write key (even the real one), wrong password, and no credentials at all', () => {
     const config = createInstance(root, { id: 'classroom-1' });
-    expect(checkInstanceWriteAccess(config, { token: 'f'.repeat(64), adminPasswordHash: ADMIN_HASH }))
+    expect(checkInstanceWriteAccess(config, { token: config.meta.writeToken, adminPasswordHash: ADMIN_HASH } as unknown as Parameters<typeof checkInstanceWriteAccess>[1]))
       .toMatchObject({ ok: false, status: 401 });
     expect(checkInstanceWriteAccess(config, { adminPassword: 'wrong', adminPasswordHash: ADMIN_HASH }))
       .toMatchObject({ ok: false });

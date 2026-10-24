@@ -791,6 +791,8 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
 
   return (
     <div ref={wrapperRef} data-testid="town-board" style={{ width: '100%', height: '100%', position: 'relative', background: GROUND[mode].water }}>
+      {/* v3.8.59: the React Flow credit link was #999 (2.2:1); same link, darker. Its own panel is a pale veil in both modes. */}
+      <style>{'.react-flow .react-flow__attribution a { color: #4b5563; }'}</style>
       <ReactFlow
         nodes={nodes}
         edges={[]}

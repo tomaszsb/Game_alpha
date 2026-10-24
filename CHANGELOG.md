@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.59] - 2026-10-23
+
+**Fixed the 17 low-contrast spots found by the automatic accessibility check (Tom said yes, 2026-10-23).**
+- Colours darkened (central file `src/styles/theme.ts` unless noted): `colors.text.secondary` #6c757d → #5a6268 (footer grey, 4.1:1 → 5.4:1); `colors.primary.text` #1976d2 → #1565c0 (the "2 Players" chip, 4.0:1 → 5.0:1); the footer links (the e-mail and the two other-sites links) now use the existing `colors.primary.dark` #0056b3 instead of `primary.main` (3.5:1 → 6.2:1; buttons keep the bright blue); the version badge background 45% → 70% black and its text 85% → 95% white (3.2:1 → well over 4.5:1); the speaker name under the portrait is drawn 40% darker on the light panel (new `darkenHex` in `theme.ts`; Owner 2.8:1 → about 5.6:1; the dark panel is unchanged); the React Flow credit link #999 → #4b5563 (2.2:1 → about 6:1; the link and credit stay).
+- Measured with the same axe-core 4.10 check (WCAG 2.0/2.1 A and AA, 1366x768): setup screen colour contrast 6 → 0; board screen (PC, Player 1) 11 → 0. Not measured: dark mode, TV, phone, pop-ups, certificate, teacher editor, end-game screens, and the other speakers' colours (all get the same darkening). axe also reports one `svg-img-alt` on the setup screen (a 100px svg with no label, probably the QR code); not changed here.
+- Tests: `FormatUtils.test.ts` now expects the new grey. Phone panel: no size change (colours only; the label keeps its font size and line height).
+
 ## [3.8.58] - 2026-10-23
 
 **The old per-classroom write key no longer opens anything (Tom said yes, 2026-10-23).**

@@ -458,7 +458,7 @@ export function EndGameModal(): JSX.Element {
         )}
 
         <p style={{ margin: '16px 0 0', fontSize: '12px', textAlign: 'center', color: colors.text.secondary }}>
-          <OtherSites linkColor={colors.primary.main} />
+          <OtherSites linkColor={colors.primary.dark} />
         </p>
       </div>
     </ModalBase>
