@@ -1,9 +1,9 @@
 # Showing time on the town board: design
 
-**Status:** design only (2026-10-25). Nothing drawn, nothing built, no version, no deploy.
+**Status:** design only. First written 2026-10-25; **revised 2026-10-25 for Tom's answer: one clock and one season PER PLAYER, the board split into areas, a finished player's area taken over by the others.** Nothing drawn, nothing built, no version, no deploy.
 **Asked by:** Tom. **Written for:** Tom (plain words first, file names in brackets for the builder).
 
-Tom's wish, short version: the board should *feel* time pass. (1) A flip-board date in the control corner, with the controls reshaped into a d-pad. (2) The blue area changes look every month (12 looks). (3) Scattered props: trees that grow, flowers, grass, snow drifts, falling snow, rain, sun, clouds.
+Tom's wish: the board should *feel* time pass. (1) A flip-board date. (2) The blue area changes look every month (12 looks). (3) Scattered props: trees that grow, flowers, grass, snow drifts, falling snow, rain, sun, clouds. Tom's answer on "whose date": every player's own days are true for that player, so **divide the board into 2, 3 or 4 areas, each with its own clock in that player's colour, and when a player finishes, the remaining players take over their area.**
 
 ---
 
@@ -11,182 +11,204 @@ Tom's wish, short version: the board should *feel* time pass. (1) A flip-board d
 
 | Piece | What I found |
 |---|---|
-| **The town board** | [TownBoard.tsx](../../src/components/board/TownBoard.tsx). Built on React Flow. One "ground" node (grass island + streets, `TownGround`) and one node per building (`TownBuildingNode`). Layout comes from `TOWN.csv` through [townLayout.ts](../../src/utils/townLayout.ts) (buildings, streets, rooms, and `setting` rows such as `walk_ms`, `bubble_ms`). |
-| **The controls** | React Flow's stock `<Controls>` box, bottom-left (TownBoard.tsx ~line 815): zoom in, zoom out, fit view, plus four extra "pan" arrow buttons added as `ControlButton`s. So today it is a tall column of 7 small buttons. The classic board ([BoardCanvas.tsx](../../src/components/board/BoardCanvas.tsx)) has its own copy. |
-| **The "blue area"** | It is the **water**, i.e. everything outside the grass island. It is the colour `GROUND[mode].water` (`#8fd0f0` light, `#0f172a` dark) painted twice: behind React Flow and as the React Flow background. The grass island, streets and edge colours sit in the same `GROUND` table. So the blue area is one colour today, no picture. |
-| **How days are counted** | Each player has their own `timeSpent` ([DataTypes.ts](../../src/types/DataTypes.ts)), a plain count of days used. Moving to a space adds days to **that player only**. It can also go **down** (good-luck life events and saved days, see `TurnService` around the `timePenalty`/`lifeEvents.timeDelta` code). There is **no calendar date anywhere** in the game. `gameStartTime` exists on the game state but is optional and is a real-clock timestamp, not a game date. |
-| **Turn order** | Players take turns in order (`TurnService.nextPlayer`). Several players, each with a different day count, share one board. |
-| **How characters and buildings are drawn** | Buildings are flat SVG blocks in a slightly 3-D (isometric) angle, with name signs on top that never tilt. Characters are PixelLab pixel portraits (`public/images/characters`, 400x400; avatars `public/images/avatars`, 64x64 transparent). The recipe, from the trophy-art plan in [BETA_PLAN_V3.md](BETA_PLAN_V3.md): one **locked prompt template** for a whole set, `no_background: true`, 64x64, about **$0.0064 per picture**. |
-| **Screens** | **PC:** panel + board. **TV:** board only, big, camera follows the current player, nobody touches it. **Phone:** panel only, **no board at all**. **Remote:** panel + a small board strip on top ([TOWN_BOARD_REVIEW.md](TOWN_BOARD_REVIEW.md) part 7). Phone panel must never get bigger (360x640 and 390x844); this design adds nothing to the phone panel. |
-| **Animation facts** | The walk, bubbles and pop-ups already end **by the clock** (`setTimeout`), not by counting frames, because weak TVs give no animation frames. `prefersReducedMotion()` is already used in TownBoard. Game speed (Normal/Fast) already exists. The built-in Browser pane fires **no** animation frames, so animation must be checked with Playwright + Edge (see CLAUDE.md). |
-
-**Plain summary:** there is a board, a pile of buttons in one corner, one flat blue colour, and day counts per player. There is no date, no season, no scenery.
+| **The town board** | [TownBoard.tsx](../../src/components/board/TownBoard.tsx), built on React Flow. One "ground" node (grass island + streets) and one node per building. Layout comes from `TOWN.csv` through [townLayout.ts](../../src/utils/townLayout.ts). |
+| **The controls** | React Flow's stock `<Controls>` box, bottom-left (about line 815): zoom in, zoom out, fit, plus four extra "pan" arrow buttons. A column of 7 small buttons. The classic board has its own copy. |
+| **The "blue area"** | The **water** outside the grass island: the colour `GROUND[mode].water` (`#8fd0f0` light, `#0f172a` dark), painted behind React Flow and as its background. One flat colour today. |
+| **Days** | Each player has their own `timeSpent` ([DataTypes.ts](../../src/types/DataTypes.ts)). Moving adds days to **that player only**. It can also go **down** (good-luck life events, saved days). **There is no calendar date anywhere** in the game; `gameStartTime` is an optional real-clock stamp, not a game date. |
+| **How the town is built for several players** *(important for the areas)* | With 2 to 4 players the town is drawn as **stacked bands, one under the other** ([townLayout.ts](../../src/utils/townLayout.ts) ~line 145, `seat_drow = 16.4` in `TOWN.csv`). Only the buildings marked `perplayer` (Owner's house, Your office, the two construction sites and their trailers) get a **copy per player**, placed one band further down for each player. The **shared** buildings (Architect, Buildings Dept, Engineer, Firehouse, Bank, Investor, Ribbon cutting) exist **once**, in the top band. Between two bands there is a strip of bare grass (about 1.4 tiles). |
+| **Characters and buildings** | Buildings are flat SVG blocks in a slightly 3-D angle with name signs on top that never tilt. Characters are PixelLab pictures. Recipe from [BETA_PLAN_V3.md](BETA_PLAN_V3.md): one locked prompt template per set, `no_background`, 64x64, about **$0.0064 per picture**. |
+| **Screens** | **PC:** panel + board. **TV:** board only, camera follows the current player. **Phone:** panel only, **no board**. **Remote:** panel + a small board strip. The phone panel must never get bigger (360x640, 390x844); this design adds nothing to the phone. |
+| **Animation facts** | The walk and bubbles end **by the clock** (timers), because weak TVs give no animation frames. `prefersReducedMotion()` is already used. The Browser pane fires no frames; animation is checked with Playwright + Edge. |
 
 ---
 
 ## 2. The design, in plain words
 
-### 2.1 Whose date does the board show?
+### 2.1 The areas: how the board is cut
 
-Days belong to each player, but the board is **one picture shared by everybody** (PC table, TV). If the board followed whoever's turn it is, the whole town would jump from winter to summer every time the turn passed to a player with fewer days. That would look broken.
+**The honest finding first:** the town is already built as **stripes**, one per player, stacked top to bottom, not as a round pie. Each player's own house, office and site sit in their own stripe. If we cut a real pie from the middle, a player's own house could land inside someone else's season. So:
 
-**Plan: the board shows the "town clock" = the latest date among all players** (the player furthest along in days). It only moves forward, except when a good-luck event hands days back to the front player. Under the calendar, one small line names whose day count it is when you want to look ("Sam is on day 42"). One shared scene, one date, nobody sees a jump on a turn change.
+**Plan (my pick): cut along the stripes that already exist.** Each player's area is their stripe, full width, from the island edge out across the water to the frame. The cut line runs **through the bare grass strip between two bands**, halfway between the lowest wall of one band and the highest wall of the next (about row 16.1 for the first cut; the builder works it out from the layout so a different board works). So:
 
-(Other choices are in the questions at the end.)
+- **No building ever sits on a cut line.** The strip is empty by design. A test checks it for 2, 3 and 4 players.
+- **No tree sits on a line** (trees are authored away from the strip, same test).
+- **The shared buildings** (Architect, Buildings Dept, Bank and the rest) all stand in the top stripe, so the ground *around* them shows player 1's season. The **buildings themselves look the same in every season** (they are not tinted), so a shared building never looks "wrong". Honest cost: the top player's winter is the backdrop of the shared buildings. I think that is acceptable; a true pie would fix it (below).
+- **One player:** no cut, the whole board is theirs.
 
-### 2.2 Where does the date come from?
+**The true pie** (pie slices meeting in the middle, shared buildings in the centre where all slices touch) is possible, but only by **redrawing the town for 2, 3 and 4 players** (own buildings placed round the middle like a clock face, new streets, new walking routes). I estimate about **+4 days** and it re-opens the walk tests. It is option 2 in the questions.
 
-- The game stores **one start date** when it begins (new field, set once from the real "today" on the host). Every screen already receives game state, so every phone and TV gets it with the rest. **No new network traffic.**
-- The date shown = start date + the town clock's day count. That is plain date arithmetic, same answer on every device.
-- Old games without a start date fall back to the game's creation date.
-- Real months, real month lengths. "Year" is the real year of the start date (question 2 lets Tom pick an invented one instead).
+### 2.2 What each area shows
 
-### 2.3 The flip board (train-station style)
+Each area shows **its owner's own date and its owner's own season**: the water, grass, light, trees, flowers and weather for the month that player's day count has reached. Dates all start from the **same start date** (the day the game began), so every clock starts equal and drifts apart as players use different numbers of days.
 
-- Three groups of flaps: **YEAR**, **MONTH** (3 letters, like JAN), **DAY** (number). Order: year, then month, then day, like Tom said.
-- When the town clock changes (a player moves and adds days), the groups that changed **shuffle**: each flap cycles through random letters/digits for about 0.6 seconds, staggered left to right, then settles on the new value. Year flips rarely, day flips almost every move.
-- **How it is built (cheap):** about 10 small HTML boxes with a CSS flip. The shuffle is a text swap on a timer (`setInterval` every ~70 ms, stopped by a `setTimeout` at ~600 ms). That means it **ends on time even if the TV gives no animation frames**, which is the same safety the walk already has. The 3-D flap tilt is only decoration on top; on a weak TV it is skipped and you just see the characters change.
-- **Cost:** no pictures to draw, no libraries. Roughly 10 elements and 10 timers for under a second per move. Negligible.
-- **Reduce motion:** no shuffle. The new date appears at once with a short highlight ring so the eye still catches it.
-- If the town clock did not change (moves that cost 0 days), nothing flips.
+- The **start date** is stored once in the game state (new field, set from the real "today" on the host). Date = start date + that player's days. Every phone and TV already gets game state, so every screen computes the same answer with **no extra network traffic**.
+- Old games without the field use the game's creation date.
 
-### 2.4 The controls become a d-pad (without growing the panel)
+### 2.3 The edges: do the colours blend?
 
-New piece replaces the stock `<Controls>` box in the bottom-left corner:
+**Yes, softly.** Water and grass colours fade into each other over about 2 tiles on each side of the cut (a plain colour gradient strip, which is cheap; I avoid CSS masks because weak TV chips handle them badly). Along the cut a **thin dotted line in each player's colour**, on their own side, makes it obvious whose ground is whose, so the blend never leaves it unclear. Trees and buildings are never cut or blended (they pick one owner; see 2.7).
+
+### 2.4 Where each clock sits
+
+Each area has **one flip-board clock in the player's colour** (the frame and the little flap tops in that colour, a small name tag under it).
+
+- **Where:** pinned to the **left edge of the player's area, in the middle of the part you can see**, near the start of the player's stripe where their own house is. It is a **screen-size** object, not a map object: at fit view four stripes shrink to a quarter of the screen each, and a map-size clock would be too small to read. Pinned this way it stays the same readable size at any zoom and slides along as you pan. If less than about 60 pixels of the area is on screen, its clock hides.
+- **PC:** all clocks shown, about the size of a big wristwatch face. The clock of whoever's turn it is gets a soft glow ring.
+- **TV:** same, bigger (readable from the couch), because the camera follows the current player and the others are off to the side.
+- **Remote strip:** the strip follows the current player, so it shows **one clock, the current player's**, in the strip's top-right corner, one slim line with their colour dot. No other clocks.
+- **Phone:** no board, nothing changes.
+- **One-player game:** one clock, pinned the same way.
+- **The shuffle:** when a player's days change, **only that player's clock** shuffles (year, month, day flaps cycle through random characters for about 0.6 seconds, staggered, then settle). Built from text swaps on a timer (`setInterval` ~70 ms, stopped by `setTimeout` ~600 ms), so it ends on time even without animation frames. The 3-D flap tilt is decoration only and is skipped on weak TVs. Reduce motion: no shuffle, the new date appears at once with a short highlight ring.
+
+### 2.5 What the controls corner holds now
+
+**Only the d-pad box; the single date there is dropped.** There are now up to four dates, each living in its own area; one more date in the corner would be a duplicate and would raise "whose date is this?".
 
 ```
- [ calendar flip board ]
         ^
    <  [fit]  >      [ + ]
         v           [ - ]
 ```
 
-- **Up / down / left / right** pan the view (same 120-pixel steps as today's arrows). **Middle = fit view.** **+ and -** are zoom, as side buttons.
-- Everything is in **one box in the same corner**, drawn as a small wooden/clipboard-style plate to match the town look. It takes about the room today's 7-button column takes, so the board does not lose space.
-- **PC:** full size (calendar + d-pad + zoom), buttons at least 40 px.
-- **Remote (small strip):** compact. The calendar is one slim line, and the d-pad is folded into a single "view" button; tap it to open the d-pad and tap away to close. The strip does not get taller.
-- **TV:** nobody touches a TV and the camera follows the current player, so **no d-pad is drawn there**. The calendar is shown larger (readable from the couch). Keyboard/remote-control arrows still work as today.
-- **Phone panel:** untouched. Phones do not show the board, so nothing here can make the phone panel bigger. I would still measure the card (360x640 and 390x844) once, as the existing rule asks.
-- The classic board keeps its old controls. (Question: do we want the calendar there too? I say no; the town is the future board.)
+- Up/down/left/right pan (same 120-pixel steps as today), **middle = fit view**, zoom + and - on the side. One small plate in the same corner, no bigger than today's 7-button column.
+- **Remote strip:** folds to one "view" button that opens the d-pad. **TV:** no d-pad drawn (nobody touches it; remote-control arrows still work). **Phone:** nothing.
+- If Tom wants the corner to also hold a date, the choice is "the current player's date, in their colour" (it would duplicate that player's area clock), listed in the questions.
+- The classic board keeps its old controls and gets no clocks.
 
-### 2.5 The 12 monthly looks for the blue area (data, not code)
+### 2.6 The 12 monthly looks (data, not code)
 
-A new table, **`TOWN_SEASONS.csv`**, 12 rows (Jan to Dec), loaded the same way as `TOWN.csv`. A different board (a reskin, a teacher's board) swaps the file and gets a different year, no code change. Columns, each in words:
+A new table **`TOWN_SEASONS.csv`**, 12 rows, loaded like `TOWN.csv`. A different board swaps the file and gets a different year. Because up to four months show at once, **every colour is chosen so any two neighbours still look good side by side**, and the tint is capped at a low strength.
 
 | Column | What it controls |
 |---|---|
 | `month` | 1 to 12 |
-| `water_light`, `water_dark` | the blue (or grey-blue, or icy) for light and dark mode |
-| `grass_light`, `grass_dark`, `grass_edge` | the island's colour (fresh green, dry yellow, brown, snowy white) |
-| `tint`, `tint_opacity` | a see-through colour laid over the whole scene for the month's **light** (warm gold in summer evening, cold grey in January) |
-| `daylight` | 0 to 100, how bright (a dark January is dimmer, but never darker than still-readable; names must stay readable on a TV) |
-| `tree_look` | which tree picture (spring blossom, summer, autumn, bare, snowy) |
-| `flowers` | how many flower props (0 in winter) |
-| `grass_fresh_pct` | share of grass patches that are fresh vs dying |
-| `snow_cover_pct` | how many snow drifts show |
-| `sun_pct`, `cloud_pct`, `rain_pct`, `snow_pct` | the weather odds (add to 100) |
+| `water_light`, `water_dark` | the blue (or grey-blue, icy) for light and dark mode |
+| `grass_light`, `grass_dark`, `grass_edge` | the island's colour |
+| `tint`, `tint_opacity` | a see-through colour over the area for the month's light (capped about 18%) |
+| `daylight` | how bright (never so dark that names are hard to read) |
+| `tree_look` | which tree picture (blossom, summer, autumn, bare, snowy) |
+| `flowers` | flower count (0 in winter) |
+| `grass_fresh_pct` | fresh vs dying grass patches |
+| `snow_cover_pct` | how many snow drifts |
+| `sun_pct`, `cloud_pct`, `rain_pct`, `snow_pct` | weather odds (add to 100) |
 
-The water changes smoothly: when the month changes, the water colour fades over about 1.5 seconds (a simple CSS colour transition, no frames needed to end, the final colour is set at once). In reduce-motion it just switches.
+Moods for the New York year: Jan/Feb icy grey-blue and snow; March slate and a little snow; April/May bright blue and blossom; June to August deep warm blue and sun; Sept/Oct steel blue and autumn leaves; November grey with early snow chance; December cold blue and snow. A colour change fades over about 1.5 seconds (the end colour is set at once, so it never gets stuck if frames are missing).
 
-Seed values for the New York year (the game is about NYC permits): Jan and Feb icy grey-blue, lots of snow chance; March slate blue, a little snow; April/May bright blue, blossom, rain showers; June to August deep warm blue, sun; September/October steel blue, autumn leaves; November grey with early snow chance; December cold blue with snow.
+### 2.7 Props, trees and the "correct places" rules
 
-### 2.6 The props: trees, flowers, grass, drifts, weather
+**Trees are fixed and in data.** Rows say `tree, id, col, row, species, seed`, placed by hand once on open grass for the **top band**, then **copied for each player** the same way the player buildings are (each copy moved down by `seat_drow`). So each area has the same number of trees. Never on a street, a building, a sign or a cut line. Each tree **belongs to its home area** forever; its **look** (leaves, bare, snow) follows whoever owns the ground under it right now (see 2.8).
 
-**Two kinds of prop rules:**
+- **Size, 10% a year, trees never shrink:** a tree's size is 1.1 to the power of (days / 365), counted from the **highest day count that player ever had** (a new small state field, `peakDays`, the same pattern the game already uses for `peakScope` / `peakPlanDays`). So when a lucky event hands days back and the **season goes back**, the **date and the leaves go back but the trees keep their biggest size**. Cap about 1.5x. After a takeover a tree uses the bigger of its home player's peak and the new owner's peak, so a takeover never shrinks a tree either.
 
-1. **Trees are fixed.** Their places are **data**: rows in the same new file (or `kind=prop` rows in `TOWN.csv`): `tree, id, col, row, species, seed`. Placed by hand once on open grass (not on streets, not touching buildings, not under a sign). Never move during the game. About 14 trees.
-   - Look by month (leafy, autumn, bare, blossom, snowy) from the table above.
-   - **10% bigger each year:** size = start size x 1.1 to the power of (days / 365), capped at about 1.5x so a long game cannot make giants. Smooth, no jump on New Year.
-2. **Everything else moves around.** Each non-tree prop has a "slot" and a lifetime (for example flowers live 20 to 40 days). Which spot a slot uses, and when it "expires" so a new prop appears somewhere else, is **calculated from the day number and a fixed seed** (a small hash, `hash(scene_seed, slot, epoch)`), never `Math.random`. Same day number in, same scene out, on every phone, TV and PC, with nothing sent over the network.
+**Everything else moves around.** Each other prop has a "slot" and a lifetime (flowers about 20 to 40 days). Its spot, and when it expires so a new one appears elsewhere, is **calculated from the owner's day number and a fixed seed** (`hash(scene_seed, slot, epoch)`), never `Math.random`. Same inputs, same scene, on every screen.
 
-**"Correct places":** spots are drawn only from a list of **free grass tiles** the code works out from the layout (inside the island, not on a street, not inside a building plus a one-tile margin, not under a name sign). Then each kind has a taste:
+**"Correct places":** spots come only from **free grass tiles inside that area**: not a street, not inside a building plus a one-tile margin, not under a name sign, not within 2 tiles of a cut.
 
 | Prop | Where | When |
 |---|---|---|
-| Flowers | near trees and along the island edge, on grass | grow bud then bloom through the months; **none in Dec to Feb** |
-| Fresh / dying grass patches | open grass | fresh in spring/summer, dying (brown) in late autumn and winter, by `grass_fresh_pct` |
-| Snow drifts | against building walls and tree bases, the shady side | only months with snow cover above 0 |
-| Falling snow / rain | over the whole screen, not tied to the map | by the weather odds, and **snow only when the month says so** (cold months). Rain never in a snow month's snowy block. |
-| Sun | a warm glow in the top-left corner plus a lighter tint | sunny blocks |
-| Clouds | 2 to 4 soft shapes drifting slowly over the town, **below the name signs** so they never hide a name | cloudy blocks |
+| Flowers | near trees and the island edge | bud then bloom through the months; **none Dec to Feb** |
+| Fresh / dying grass | open grass | by `grass_fresh_pct` |
+| Snow drifts | against building walls and tree bases, shady side | only months with snow cover above 0 |
+| Falling snow / rain | over the area | by the weather odds; snow only in snow months |
+| Sun | warm glow in the area's top-left plus lighter tint | sunny blocks |
+| Clouds | 2 to 4 soft shapes drifting, **below the name signs** | cloudy blocks |
 
-**Weather is picked per 3-day block:** `hash(scene_seed, floor(day/3))` against the month's odds. So one day is not stormy then sunny then stormy; it holds for a few days, and still every screen agrees.
+Weather is picked per **3-day block** of that player's days: `hash(scene_seed, seat, floor(day/3))` against the month's odds.
 
-**Layering (so nothing hurts play):** ground decals (grass, flowers, drifts) sit on one extra node *under* buildings; trees are nodes sorted with buildings by depth like the buildings (same z-index rule); clouds sit above ground but below signs; falling rain/snow is a plain overlay on the board's frame (not scaled with zoom), with `pointer-events: none`, below the pop-ups. Signs, walkers, bubbles and the glow on the current building stay on top and unchanged.
+**Layering:** ground decals on one extra node under buildings; trees are nodes sorted with the buildings by depth; clouds above ground and below signs; falling bits one overlay with `pointer-events: none`, below pop-ups. Signs, walkers, bubbles and the current-building glow stay on top and unchanged.
 
-### 2.7 Limits so old TVs survive
+### 2.8 When a player finishes: the takeover
 
-Three detail levels, set by data (`scene_detail` in `TOWN.csv` settings, default chosen by screen type):
+**Rule (one function, no history needed):** the board is told **which players have finished**. Every piece of ground belongs to the **nearest unfinished player's area** (nearest by distance from the ground to that player's stripe centre; ties go to the lower seat). That gives:
 
-| Level | Used on | Trees | Other props | Falling bits | Clouds |
+- A finished player in the **middle** (3 players): the upper half of their stripe goes to the player above, the lower half to the player below.
+- A finished player at the **top or bottom edge**: all of their stripe goes to the one neighbour next to it.
+- With two finishers in a 4-player game: the same rule on the new set, so ownership is **recomputed from scratch from the finished list**, not patched step by step.
+- **Last player standing:** the whole board is theirs. If everyone is finished the end screen takes over as it does today.
+
+**Whose season shows where:** every tile shows the season of the player who owns that tile *now*. Their clock stays pinned to the left edge of the **visible part of their (now larger) area**; the finished player's clock is removed from the board.
+
+**All screens agree** because ownership is a pure function of three things every screen already has: the list of finished players, the seat order, and the layout. It uses no timers, no "who finished first" order and no messages between screens. (Detail to confirm in step B: I have not yet checked the exact field that marks a finished player; the race places already depend on it, so I expect it exists.)
+
+**Fade, not snap:** the ground changes with a crossfade of about 1.5 seconds (two stacked colour layers swap opacity); if frames are missing the end state is set at once by timer. Trees: look crossfades (two images, opacity); props in a taken-over area expire and are re-spotted by the same hash rule, so they simply appear/disappear with a short fade. Walkers and signs are never faded. In reduce motion it is an instant swap.
+
+**Which player gets which part of a trees' ground:** a tree keeps its home position, but the ground (and therefore the tree's look) follows the ownership above. A tree sitting exactly on the halfway line between two receivers uses the tie rule (lower seat), so it never flickers between two looks.
+
+### 2.9 Weather with up to four seasons at once: too busy?
+
+**Yes, if all four move; so only one moves.** Rule: **falling rain and snow, drifting clouds and the flip shuffle only animate in the area of the player whose turn it is** (the TV camera is already there). Every other area shows only still hints: snow cover on the ground, a still cloud shadow, the month's colour and tint. That keeps the picture rich ("I can see the others are in different seasons") without four storms. The total number of falling bits stays at the level cap, not per area.
+
+### 2.10 Cost on a 2021 TV with four seasons
+
+The extra work of four seasons is mostly **colour layers** (four flat rectangles and two gradient strips, trivial) and **four small clocks** (about 10 boxes each; usually only one shuffles at a time). The costly parts (falling bits, cloud drift, moving props) are **capped and shared across the whole board**, not per player. So four seasons cost nearly the same as one. Level table (set by data, `scene_detail`):
+
+| Level | Used on | Trees (total) | Other props (total) | Falling bits | Clouds |
 |---|---|---|---|---|---|
-| Full | PC, tablets | 14 | up to 40 | up to 40 | drift |
-| Light | TV (all TVs, since I cannot tell a 2021 from a 2025 set) and the Remote strip | 12 | up to 12 | up to 14 | still |
-| Calm / off | reduce motion, or a player switch | 14 (still) | up to 12, still | none (a still sprinkle drawn once) | still |
+| Full | PC, tablets | up to 14 per area | up to 40 | up to 40, one area | drift |
+| Light | TV and the Remote strip | up to 12 total | up to 12 total | up to 14, one area | still |
+| Calm / off | reduce motion, or the player switch | still | up to 12, still | none | still |
 
-- Everything animated uses only `transform` and `opacity` (cheap on weak chips). Falling bits are one overlay with CSS animations, not one React element per frame.
-- A player-visible **Menu to View to Scene: Full / Calm / Off** switch, matching the "menus hide" rule (no loose buttons). A teacher or a class with a slow TV can turn it down in one tap. Nothing about play depends on it.
-- The existing hidden-tab/self-heal camera logic is untouched.
+Animation uses only `transform` and `opacity`. A **Menu to View to Scene: Full / Calm / Off** switch (no loose buttons) lets a class with a slow TV turn it down in one tap. A takeover briefly shows two tree pictures per tree (about 14 extra images for 1.5 s), which the Light level skips (instant swap).
 
-### 2.8 How I would check it
+### 2.11 How I would check it
 
-- The scene is **one pure function**: `sceneFor(startDate, day, layout, tables, level)` returns the date, month look, tree sizes, prop spots, weather. It is unit-tested: same input twice gives the same answer; no `Math.random` in the file (a test greps for it); months 1 to 12 all have a row; no prop lands on a street or a building; no flowers in winter; snow only in snow months.
-- Looks and the flip are checked in Playwright + Edge (the Browser pane cannot play animation), at PC 1920, TV 960x540, remote strip, light and dark; then **Tom on the real TV**.
-- The flip ends by timer, so it is also tested with frames switched off.
+- The scene is **one pure function**: `sceneFor(startDate, players[{seat, colour, days, peakDays, finished}], layout, tables, level)`. Unit-tested: same input twice gives the same output; no `Math.random` in the file; all 12 months present; no prop on a street, a building or a cut line; no flowers in winter; snow only in snow months; **takeover agrees from any starting order of finishing**; trees never shrink when days go backward.
+- Looks and the flip are checked in Playwright + Edge at PC 1920, TV 960x540 and the remote strip, light and dark, 1 to 4 players, then **Tom on the real TV**. The flip is also tested with animation frames switched off.
 
 ---
 
-## 3. Cost: steps that ship one at a time
+## 3. Cost: steps that ship one at a time (revised)
 
-Days are working sessions of AI build time. Pictures are PixelLab, 64x64, one locked prompt template per set (Tom's rule: one template, `no_background`, check the corner pixel).
+Days are working sessions of AI build time. Pictures: PixelLab, 64x64, one locked template per set (corner-pixel transparency check).
 
 | Step | What ships | Days | Pictures | Depends on |
 |---|---|---|---|---|
-| **A. The control dock** | New bottom-left box: d-pad, fit in the middle, zoom on the side; compact form for the Remote strip; hidden on TV. No date yet, no art. | 1.5 | 0 | nothing |
-| **B. The date + flip board** | Start-date field in the game, date arithmetic, `TOWN_SEASONS.csv` loader (with the classroom-bake and pipeline tests such a new file needs), the flip-board calendar in the dock, big on TV. | 2.5 | 0 | A (for the place) |
-| **C. Monthly water and grass** | The 12 looks as colours and light tints, smooth fade. Pure data, no pictures. | 1 | 0 | B |
-| **D. Trees** | Fixed tree places as data, 5 looks, growth 10% a year, depth-sorted with buildings. | 2.5 | 10 (2 kinds of tree x 5 looks) | C |
-| **E. Weather and light** | Sun glow, clouds, rain, falling snow, reduce-motion and the Scene switch, the TV "Light" level. | 2 | 3 (cloud shapes; rain, snow and sun are drawn in code) | C |
-| **F. Flowers, grass, drifts** | Moving props with lifetimes, the free-tile finder. | 2 | 11 (3 flowers x bud/bloom = 6; grass fresh/dying/dead = 3; drifts = 2) | D |
-| **G. Polish and real-TV pass** | Old-TV tuning, phone-panel measure, dark mode, fixes from Tom's TV look. | 1.5 | 0 | all |
+| **A. The control dock** | New bottom-left d-pad box (no date in it), compact for the Remote strip, hidden on TV. | 1.2 | 0 | nothing |
+| **B. Dates and clocks** | Start-date field, date arithmetic per player, `TOWN_SEASONS.csv` loader (with the classroom-bake and pipeline tests), the flip-board clock in player colours pinned at the left edge of each area, bigger on TV, one slim clock on the Remote strip. At this step the areas are not drawn yet; the clocks float where the areas will be. | 3.5 | 0 | A |
+| **C. Areas and monthly looks** | Cut lines in the band gaps, per-area water/grass/tint from the month table, soft blends and coloured dotted edge, takeover with crossfade, `peakDays` field. | 3 | 0 | B |
+| **D. Trees** | Tree places as data, copied per player, 5 looks, 10% a year from peak days, never shrink, home-area rule and takeover look. | 3 | 10 (2 tree kinds x 5 looks) | C |
+| **E. Weather and light** | Sun glow, clouds, rain, falling snow in the current player's area only, still hints elsewhere, reduce motion, Scene switch, TV Light level. | 2.5 | 3 (cloud shapes; rain, snow, sun drawn in code) | C |
+| **F. Flowers, grass, drifts** | Moving props with lifetimes per area, the free-tile finder with cut margins, re-spotting after a takeover. | 2.5 | 11 (3 flowers x bud/bloom = 6; grass fresh/dying/dead = 3; drifts = 2) | D |
+| **G. Polish and real-TV pass** | Old-TV tuning, 4-player tests, phone-panel measure, dark mode, fixes from Tom's TV look. | 2 | 0 | all |
 
-**Total about 13 days, 24 pictures.** Money for pictures: at $0.0064 each, 24 pictures with up to 3 tries each (72 generations) is **about $0.46**; with no retries about $0.15. Tom says credits are plentiful, so cost is not the limit. If a picture comes out badly after 4 tries, a plain code-drawn shape stands in so nothing is ever missing.
+**Total about 17.7 days (was 13), 24 pictures.** Pictures cost about **$0.46** at most (24 pictures, up to 3 tries each, $0.0064 apiece), about $0.15 with no retries. The extra days over the first design are the areas, the takeover rule, the pinned clocks and the peak-days rule. If Tom wants the **true pie instead of stripes**, add about **+4 days** (town redrawn for 2, 3, 4 players) inside step C, making about 21.7 days.
 
-**Order I would build in:** A, then B (Tom sees a working calendar and new controls fast, nothing else changes), then C (cheap and already changes the mood), then D, E, F, G. Each step can be switched off with the Scene setting and can stand alone. A and B ship even if Tom never wants the scenery.
+**Order:** A, B (Tom sees real working clocks and the new controls quickly), C, then D, E, F, G. After B and C the idea is already visible; D to F are scenery.
 
 ---
 
 ## 4. What could go wrong
 
-1. **Days run backwards.** Life events and saved days can lower a player's day count. If the front player gets days back, the town clock steps back: the date flips backward and a tree shrinks slightly. Rare, and it is true to the game, but it looks odd. Fix if it bothers Tom: only move the clock forward (keep a "highest date seen" number in the game state).
-2. **Growth may not be visible.** If a typical game covers under a year of days, "10% bigger each year" is barely noticeable. Tom may want a faster growth rate (still data-driven).
-3. **A game that starts in winter** starts in snow; one that starts in July never sees winter. That is true to "today's date" but classes will see different seasons. (Question 2.)
-4. **Old TVs choke.** Many moving pieces on a weak chip is the real risk. Hence the caps, the Light level, the Scene switch, and transform/opacity-only animation. I cannot test a 2021 TV here; Tom's TV look in step G is the real test.
-5. **Names must stay readable.** Tints, clouds, snow and darker winter light must never reduce the name signs' readability on the TV from the couch. Signs sit above all of it; the tint has a floor on brightness.
-6. **Props land in odd places.** The free-tile finder depends on the layout, and a teacher's board with an added square changes it. It needs the same "no building, no street" rule recalculated from that layout; a test covers it.
-7. **A new CSV file** needs the loader, the classroom bake and the "pipeline faithful" test taught about it (repeat of past gaps where a data file was written but never read). Budgeted inside step B.
-8. **Picture consistency.** A mixed set of tree/flower pictures looks messy. One locked template per set; regenerate a whole set rather than patching one.
-9. **Dark mode.** 12 months x light/dark doubles the colour work; the table has both columns so it is done once, but it needs a look.
-10. **The built-in Browser pane cannot play animation**, so I cannot show Tom a flip in my own pane; I will check with Playwright and Edge and send a short video or frames.
+1. **A player's days go backward (lucky event).** Their clock flips backward, their season goes back, their weather re-shuffles. Trees keep their biggest size (the `peakDays` rule), so nothing visibly shrinks. Rare.
+2. **Stripes are not a round pie.** Tom said "like a pie". Stripes match how the town is already built and keep each player's own buildings inside their own season; a pie costs about 4 more days and a town redraw. This is question 1.
+3. **Shared buildings sit in the top player's stripe.** Their ground shows player 1's season. Buildings look the same everywhere, so only the grass around them differs.
+4. **Clocks pinned to the screen** are a bit of new code (positions follow pan and zoom). They hide when almost off screen. Risk: clocks overlapping a name sign on a small screen; I will nudge them to stay clear of signs.
+5. **The finished-player flag.** I have not confirmed the exact field. If the "finished" moment is not a simple flag, step B adds one. Takeover waits for that.
+6. **Growth may not be visible.** If a typical game covers under a year of days, "10% a year" barely shows (rate is data, can be raised).
+7. **A winter start** starts in snow; a July start never sees winter. True to "today's date" (question 3).
+8. **Old TVs.** Caps, Light level, Scene switch, one animated area at a time. I cannot test a 2021 TV here; Tom's TV look in step G is the real test.
+9. **Names must stay readable** through tints, snow and darker winter light. Signs sit above everything; tint strength is capped and has a brightness floor.
+10. **Odd prop spots** on a teacher's board with an added square: the free-tile finder works from the layout and a test covers it.
+11. **A new CSV file** needs the loader, the classroom bake and the pipeline-faithful test taught about it. Budgeted in step B.
+12. **Picture consistency.** One locked template per set; regenerate a whole set rather than patching one.
+13. **Dark mode** doubles the colour work (both columns are in the table).
+14. **The built-in Browser pane cannot play animation**, so I check with Playwright and Edge and send frames.
 
 ---
 
-## 5. Questions for Tom (4, my pick first)
+## 5. Questions for Tom
 
-1. **Whose date does the board show?**
-   - **The latest date among all players (my pick)**: one town clock, only moves forward, no jumping on turn changes.
-   - Whoever's turn it is: the town changes season whenever the turn passes between players with different days.
-   - The player furthest behind: the board "waits" for the slowest player.
+**Two to answer now (my pick first):**
 
-2. **Which start date and year?**
-   - **Today's real date and year, as you said (my pick).** Classes see the real season.
-   - An invented calendar ("Year 1") with a fixed start in spring, so every class sees all four seasons in the same order.
+1. **What shape are the areas?**
+   - **Stripes along the bands the town already has (my pick).** Each player's own buildings stay inside their own season. About 17.7 days.
+   - A true pie with the shared buildings in the middle. About +4 days (the town is redrawn).
+2. **Does the corner box also show a date?**
+   - **No, only the d-pad (my pick).** Each player's clock lives in their own area; a corner date would be a copy.
+   - Yes, the current player's date, in their colour, next to the d-pad.
 
-3. **How busy may the town get?**
-   - **Calm (my pick): about 14 trees, up to 12 other things at a time, light weather. Easy on old TVs.**
-   - Lively: about 40 other things and more weather on PC (TV stays Light).
-   - Minimal: trees and the monthly colours only, no weather.
+**Settled by my pick unless Tom says otherwise** (wording updated for the areas):
 
-4. **How do we ship it?**
-   - **Controls and calendar first, on their own (my pick), then scenery step by step.**
-   - Everything together as one release after step G.
+3. **Start date:** everyone's clock starts at **today's real date**, as Tom said (the other choice is an invented spring start so every class sees all four seasons).
+4. **How busy:** **calm**. Only the current player's area moves (rain, snow, clouds, shuffle); the other areas show still hints. About 14 trees per area, up to 12 other things on a TV (the other choices: lively on PC, or minimal).
+5. **Ship order:** **controls and clocks first, on their own (A then B), then the areas and scenery step by step** (the other choice: everything in one release after step G).
