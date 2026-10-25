@@ -462,6 +462,43 @@ Written by the Game_Alpha session for the Manager. Sources: the independent revi
 - **Pick: A, after the day-adding-cards decision.** It stays in the data and copies the `SI-HIRE` pattern.
 - **Needs Tom first:** yes, that decision, then the three prices.
 
+#### 2 REPLACED (2026-10-25, design only, nothing built): "reps you hold, with a salary" instead of the three-person fork
+Tom's idea: the player can always HIRE a rep or FIRE a rep. Each rep costs a salary while held, so nobody holds too many. A rep is good at ONE thing or bad at ONE thing. The effect is bigger than today's 3 days, or lasts a whole phase without the card being used up. Hiring draws 3 rep cards and the player keeps 1, 2 or all 3.
+
+**What exists today (inventory, so we unify instead of adding a layer).**
+- 75 expeditor (E) cards in `CARDS_EXPANDED.csv`, all "Immediate, Player Controlled", used up when played. 43 save days (-1 to -5), 15 add days (+2, +4: bad luck cards, left out of solo decks since v3.8.57), 18 also move money (for example Overtime -2 days for $1,000). By phase: 34 filing, 11 any, 10 each for design, building and funding. There is no "area" column; `phase_restriction` is the nearest thing.
+- They come from `draw_E` rows in `SPACE_EFFECTS.csv`: the owner's start (1, was 3), the architect's fee review (1), the city fee review (2), and the quick-play guide. "Let a team member go" is the existing `return_e` row on the lender, the bank, the architect's fee review and the cheat-bypass space, so FIRE already exists as a data row.
+- Days a played expeditor saved stay saved through a push-back (the cost ledger `daysSaved`, `CardService` ~line 620). A push-back can also SPEND expeditors instead of days (`expeditorsForPushBack`, v3.8.21): the held hand is already a place where help sits.
+- Bills: the money checks happen once, at End Turn (bankruptcy and the 20% design cap are checked there). The builder price and the lender's interest already follow that rule. Nothing today charges money for HOLDING a card.
+- Robot: I found no expeditor handling by name in `ghostPlayer.ts`; the robot only meets E cards through the normal card flow. Check this before building.
+
+**Smallest version that does what Tom said.**
+- Keep the E cards as the reps (no new card type, no new deck). Add 3 data columns to E cards: `area` (Code / Permits / Inspections), `sign` (good or bad), `salary` (money per turn). The existing day number becomes the size of the effect.
+- HIRE a rep: one desk action that draws 3 E cards; the player keeps 1, 2 or all 3 (the same "pick from several" screen the card replacement uses). FIRE a rep: the existing `return_e` action, available at those same desks plus the hire desk.
+- A held rep is not played. It works by itself: **on a space of its area, each visit is that many days shorter (good) or longer (bad), for as long as the rep is held.** This is "good through the phase without the card being used up". A fired rep goes to the discard pile.
+
+**Salary: what, when, and if you cannot pay.**
+- Charged once per turn, at End Turn, with the other bills (the natural place; the end-turn warning already lists bills). Proposal: $2,000 a turn per rep, tuned later from ghost games.
+- If cash cannot cover it, the LAST rep hired leaves (a free forced fire) until the bill fits. Salary alone can never cause bankruptcy, and a student who over-hires loses reps, not the game. "Too many" is prevented by the running cost; the forced fire is the safety net.
+- Count the salary as a regulatory/other cost, NOT a design fee, so the 20% design cap and the trophy money race (`spent`) are not skewed unless Tom wants salary to count against "On budget" (a question below).
+
+**What "good at one thing / bad at one thing" means on the real spaces.**
+- Code: the design stage (architect and engineer spaces, `ARCH-*`, `ENG-*`). Permits: the city and fire filing spaces (`REG-DOB-*`, `REG-FDNY-*`). Inspections: `SI-*`, Site Inspection and Final Approval. The 10 funding cards would fold into Permits or be dropped (the lender is not a permit area). Tom named code consulting, permits and inspections, so three areas.
+- A BAD rep: hiring it is only worth it if its salary is lower or it is paired with a good one. With draw-3, bad reps are decoys; the student must READ the card. That teaches "read the contract before you sign" and fits the builder bids. Keep at most one bad card in each draw of 3, so the draw is not a trap.
+
+**Lasting vs one-time bigger.** Lasting-per-visit (above) is simpler to explain ("this rep makes every city filing 2 days shorter while you pay them"), keeps the card in the hand, and needs no "used up" bookkeeping. Bigger one-time stays the existing mechanic. Lasting is safer for the robot only if the robot does not hold reps (it would never pay), and it moves the trophy race gently: -2 days on 4 filings is -8 days, a visible but not decisive swing for "Fastest". One-time bigger swings the race harder in one turn.
+
+**Game length and bankruptcy: how to measure.** Run `npm run test:ghost` with a robot that hires 1, 2 and 3 reps, and the same games with none; compare median days and the share of games ending in bankruptcy, plus the salary total against the job's profit. Pass if median days fall by 5-10% with one rep and bankruptcy does not rise. Use the counting-test pattern from the Banker (`bankerCounting.test.ts`) over the 75 cards.
+
+**Data vs code.** Data only: the 3 new columns on E cards, the rep values, the salary, the hire and fire rows and texts. Code: (1) a hire screen that draws 3 and keeps 1-3 (reuse the card-pick modal); (2) the lasting effect (a rule at space arrival: held rep + matching area = day change; this is the one real engine change); (3) the End Turn salary and the forced fire. Saved games: the new fields are optional on the card rows and a rep is just a held card, so old saves load (a held E card with no area acts exactly as today).
+
+**Phone.** The hire screen is the existing pick-from-cards pop-up (no growth of the player panel); held reps already show in the hand list. Add a salary note in one line there. Measure at 360x640 and 390x844 when built.
+
+**Three questions for Tom (one decision each).**
+1. How does a rep help? (a) Every visit in its area is a few days shorter, as long as you hold the rep [my pick, simplest]. (b) One play, bigger days (like today but 5-6 days). (c) Both kinds of card in the draw.
+2. What happens when you cannot pay the salary? (a) The newest rep leaves for free, no bankruptcy from salary [my pick]. (b) You are asked to choose who goes. (c) Bankruptcy like any other bill.
+3. Does the salary count against "On budget"? (a) No, it is a running cost like the lender's interest [my pick]. (b) Yes, it counts as spent, so reps trade days for the money trophy. (c) Only the part above a free first rep.
+
 ### 3. TCO vs final CO at the end
 - **The student's problem.** The last step is a dice space (first visit: 4 in 6 finish, 1 Site Inspection, 1 Fire Dept. fees). Nothing at the end asks the student to pick between Fastest and Best built, which is where the trophy race is hottest.
 - **Options.**
