@@ -156,6 +156,10 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'TEAM.hireOne': 'Hire',
   'TEAM.waiting': 'Waiting for your answer...',
   'BUILDER_BIDS.lenderShort': 'Short on money? The lender is one door away.',
+  'BUILDER_BIDS.goLender': 'Short on money? Go to the lender first',
+  'BUILDER_BIDS.goLenderShort': 'Get more money first',
+  'BUILDER_BIDS.goLenderPicked': '✅ Going to the lender: hold End Turn. Your prices are held for the days shown.',
+  'BUILDER_BIDS.goLenderPickedShort': '✅ Lender next: hold End Turn',
   'BUILDER_BIDS.bank.likely': 'Builders will likely quote about {price} for your job. This is only a rough guess until you visit them.',
   // The Owner's story, once chance has picked the player's kind of project (fb:612fbdc4).
   // {projectType} arrives with its article ("a school"). Appended to the story of a space
@@ -432,6 +436,10 @@ export const BUILDER_BIDS = {
   holdsShort: (day: number) => getUIString('BUILDER_BIDS.holdsShort', { day }),
   get HIRE_SHORT() { return getUIString('BUILDER_BIDS.hireShort'); },
   get LENDER_SHORT() { return getUIString('BUILDER_BIDS.lenderShort'); },
+  get GO_LENDER() { return getUIString('BUILDER_BIDS.goLender'); },
+  get GO_LENDER_SHORT() { return getUIString('BUILDER_BIDS.goLenderShort'); },
+  get GO_LENDER_PICKED() { return getUIString('BUILDER_BIDS.goLenderPicked'); },
+  get GO_LENDER_PICKED_SHORT() { return getUIString('BUILDER_BIDS.goLenderPickedShort'); },
   hireAria: (price: string, days: number) => getUIString('BUILDER_BIDS.hireAria', { price, days }),
   holdHint: (price: string, days: number) => getUIString('BUILDER_BIDS.holdHint', { price, days }),
   get HOLD_CAPTION() { return getUIString('BUILDER_BIDS.holdCaption'); },

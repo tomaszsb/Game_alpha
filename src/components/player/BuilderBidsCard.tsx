@@ -28,6 +28,11 @@ interface CardProps {
   palette: PanelPalette;
   /** Only the player whose turn it is can hire (a spectator or a waiting seat only looks). */
   canAct: boolean;
+  /**
+   * The way back to the lender, when the move list offers it: the SAME pick as tapping that row in the Move list
+   * (an intent until End Turn), so it changes no rule. The bids stay on the player and are held until their own day.
+   */
+  door?: { picked: boolean; enabled: boolean; onToggle: () => void };
 }
 
 /** True when this player stands at the builder's desk with nobody hired (the panel uses it to open its "This turn" section). */
@@ -37,7 +42,7 @@ export function isShoppingForBuilder(gameServices: IServiceContainer, playerId: 
   return !!player && !!space && player.currentSpace === space && !player.contractor;
 }
 
-export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, palette: p, canAct }) => {
+export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, palette: p, canAct, door }) => {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // A press that ends before the hold is full is a tap: it only says what a hold would do.
@@ -144,7 +149,23 @@ export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, p
         </div>
       ))}
       {error && <div data-testid="builder-bids-error" role="alert" style={{ fontSize: 12, color: p.bad, marginBottom: 6 }}>{error}</div>}
-      <p style={{ fontSize: 11, margin: '0 0 2px', color: p.muted }}>{isPhone ? BUILDER_BIDS.LENDER_SHORT : BUILDER_BIDS.LENDER}</p>
+      {door && canAct ? (
+        // Same height as the old one-line note on a phone (no border, tight padding): the panel must not grow.
+        <button
+          type="button"
+          data-testid="builder-go-lender"
+          aria-pressed={door.picked}
+          disabled={!door.enabled}
+          onClick={door.onToggle}
+          style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: 11, fontWeight: 600, lineHeight: '13px', margin: 0, padding: '1px 8px', border: 'none', borderRadius: 6, background: door.picked ? p.goodSurf : p.warnSurf, color: p.text, cursor: door.enabled ? 'pointer' : 'default', opacity: door.enabled ? 1 : 0.6 }}
+        >
+          {door.picked
+            ? (isPhone ? BUILDER_BIDS.GO_LENDER_PICKED_SHORT : BUILDER_BIDS.GO_LENDER_PICKED)
+            : (isPhone ? BUILDER_BIDS.GO_LENDER_SHORT : BUILDER_BIDS.GO_LENDER)}
+        </button>
+      ) : (
+        <p style={{ fontSize: 11, margin: '0 0 2px', color: p.muted }}>{isPhone ? BUILDER_BIDS.LENDER_SHORT : BUILDER_BIDS.LENDER}</p>
+      )}
     </div>
   );
 };

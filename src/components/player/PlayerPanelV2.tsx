@@ -1231,7 +1231,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             </div>
           )}
           {(shoppingForBuilder || builderJustHired) && (
-            <BuilderBidsCard gameServices={gameServices} playerId={playerId} palette={p} canAct={isMyTurn} />
+            <BuilderBidsCard
+              gameServices={gameServices}
+              playerId={playerId}
+              palette={p}
+              canAct={isMyTurn}
+              door={shoppingForBuilder && getBuilderRules().door && movementChoice?.options.some((o) => o.id === getBuilderRules().door)
+                ? { picked: selectedDestination === getBuilderRules().door, enabled: movementChoiceUnlocked, onToggle: () => handleMovementChoice(getBuilderRules().door) }
+                : undefined}
+            />
           )}
           {visiblePendingActions.map((a) => {
             // Teaching layer (Onboarding Phase C, v3.2.54). The explanation is a

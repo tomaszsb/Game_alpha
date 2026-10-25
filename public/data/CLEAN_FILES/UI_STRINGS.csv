@@ -139,6 +139,10 @@ BUILDER_BIDS.notSigned,Not signed yet. Keep holding the button until it fills.
 BUILDER_BIDS.hiredTitle,Builder hired
 BUILDER_BIDS.hiredNext,Next: hire a special inspector.
 BUILDER_BIDS.lenderShort,Short on money? The lender is one door away.
+BUILDER_BIDS.goLender,Short on money? Go to the lender first
+BUILDER_BIDS.goLenderShort,Get more money first
+BUILDER_BIDS.goLenderPicked,✅ Going to the lender: hold End Turn. Your prices are held for the days shown.
+BUILDER_BIDS.goLenderPickedShort,✅ Lender next: hold End Turn
 SCOPE_APPROVAL.warn,"Careful: if this adds work to your plan, your {approval} approval is lost and you will have to get it again."
 NUMBERS.money.paid,"What you've paid"
 NUMBERS.money.paidNone,Nothing paid yet.

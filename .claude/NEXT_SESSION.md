@@ -1,9 +1,9 @@
-# Next session starter — written 2026-10-25 by the Game session (v3.8.75), session being archived
+# Next session starter — written 2026-10-25 by the Game session (v3.8.78), session being archived
 
 Written by the Game session working for the Manager session. Folder: `D:\Unravel\Current_Game\Game_Alpha` (branch master).
 
 ## State at handoff
-- **Version:** v3.8.75, committed + pushed, **NOT deployed** (Tom deploys himself: hand him `ssh unraid ...` / `bash deploy.sh`; never deploy). Before saying what is live, compare `https://game.unravelcodes.com/health` (a commit hash) with `git rev-parse --short HEAD`. Do NOT trust this note for the live version.
+- **Version:** v3.8.78 (3.8.76-78 are Tom's phone findings, below), committed + pushed, **NOT deployed** (Tom deploys himself: hand him `ssh unraid ...` / `bash deploy.sh`; never deploy). Before saying what is live, compare `https://game.unravelcodes.com/health` (a commit hash) with `git rev-parse --short HEAD`. Do NOT trust this note for the live version.
 - **Checks at 3.8.74:** `npm test` 326 files / 4287 pass; build OK; `npm audit` 0. 3.8.75 touched only footer link styling (+1 test). The deploy gate (`deploy.sh`) runs `npm ci` + `npm test` only: **lint is not part of it**. Lint today: 2 errors + 24 warnings (older: `scripts/build-board-flowchart.mjs`, `server/mailer.js`, a `react-hooks/set-state-in-effect` warning). Typecheck shows only 5 old `tests/server/dataGate.test.ts` express-types errors.
 
 ## Built (this stretch)
@@ -11,6 +11,10 @@ Written by the Game session working for the Manager session. Folder: `D:\Unravel
 - **Reps with a salary (3.8.73):** hire/fire from "Your team" on the Expeditors page, good/bad at one area, 1-in-20 roll on arrival, stop work order for a bad rep. Data `REPS.csv` + built-in `DEFAULT_REP_ROWS` (a test pins file == built-ins).
 - **The auto-run (3.8.74):** after 2 send-backs in a row the pop-up "Go round again?" offers "Send your filing rep" (greyed "Needs a filing rep" with none held). `AutoRunService.ts`, `autoRunRules.ts`; counter `sendBackCount` is an optional player field outside the push-back snapshot. Ghost option `autoRun`; measure `tests/ghost/autorunMeasure.test.ts` (`AUTORUN_MEASURE=30`, writes `.claude/autorun-measure.md`).
 - **3.8.75:** setup-screen footer links now take the sentence colour and are underlined (was blue on blue). Not seen on a real TV.
+
+- **3.8.76 bank wording:** Tom's "funding did not show" was NOT a money failure. Live game G-EQYH-VZAJ: the banker refused (answer refuse, $0, bankRefusals 1), owner's $440,000 arrived; the result line wrongly said "Secured a Bank Loan". Now "The bank said no: no loan this time" / "Bank loan approved: $X" (`ManualActionProcessor`, test `BankResultWording`).
+- **3.8.77 rep picker:** hire list shows all 3 people at once inside the Expeditors pop-up (scrolling, max 190px), each with a "Good at / Weak at <area>: N days ..." line (`repStrengthLine`); screen uses `RepService.getOffers/hireOne`, robot/tests still `hire()`. Tom's point (d) "new cards, not the old ones" is only REPORTED, not changed: the Expeditors page lists expeditor cards (emoji + Activate) first, then a separate "Your team" block of reps (no emoji, no Activate, pay + Let go); reps never enter the hand.
+- **3.8.78 builder box:** the grey "lender is one door away" note is now a button (same pick as the lender row in the Move list; no rule change; bids stay on the player). Not measured in a real browser at 360x640 / 390x844 (sized to the old note's height by CSS numbers); needs a real-phone look.
 
 ## Known gaps (honest)
 - **The run is rarely triggered in robot games:** 30 seeded games, only 3 (good rep) and 4 (bad rep) ever sent the rep, because the robot is rarely sent back twice in a row and its rep often quits first. So the ghost table cannot prove the estimated 15-days-a-circle saving; only the unit test with fixed rolls proves the keep-the-better rule. Tom said: do NOT change how long reps stay.

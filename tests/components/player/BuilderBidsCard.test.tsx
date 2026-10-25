@@ -228,3 +228,33 @@ describe('BuilderMoneyLine (the line at the lender)', () => {
     expect(screen.queryByTestId('bank-bid-line')).toBeNull();
   });
 });
+
+describe('BuilderBidsCard: the way back to the lender', () => {
+  // Tom, 2026-10-25: "It is not clear what to do if you do not have enough money and want to go back and get more money."
+  it('offers a button that picks the lender as the next stop, leaving the bids on the table', () => {
+    const onToggle = vi.fn();
+    const { gs, hire } = services(atDesk());
+    render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct door={{ picked: false, enabled: true, onToggle }} />);
+    const go = screen.getByTestId('builder-go-lender');
+    expect(go.textContent).toMatch(/lender/i);
+    fireEvent.click(go);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(hire).not.toHaveBeenCalled();
+    expect(screen.getAllByTestId('builder-bid')).toHaveLength(3);
+  });
+
+  it('says plainly that the lender is next once picked, and is greyed while the move list is locked', () => {
+    const { gs } = services(atDesk());
+    const { rerender } = render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct door={{ picked: true, enabled: true, onToggle: () => {} }} />);
+    expect(screen.getByTestId('builder-go-lender').textContent).toMatch(/hold End Turn/);
+    rerender(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct door={{ picked: false, enabled: false, onToggle: () => {} }} />);
+    expect((screen.getByTestId('builder-go-lender') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('keeps the old one-line note when there is no door to offer', () => {
+    const { gs } = services(atDesk());
+    render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
+    expect(screen.queryByTestId('builder-go-lender')).toBeNull();
+    expect(screen.getByTestId('builder-bids').textContent).toMatch(/lender/i);
+  });
+});
