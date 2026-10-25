@@ -1,4 +1,4 @@
-# Next session starter — written 2026-10-25 by the Game session (v3.8.79), session being archived
+# Next session starter — written 2026-10-25 by the Game session (v3.8.81), session being archived
 
 Written by the Game session working for the Manager session. Folder: `D:\Unravel\Current_Game\Game_Alpha` (branch master).
 
@@ -14,6 +14,8 @@ Written by the Game session working for the Manager session. Folder: `D:\Unravel
 
 - **3.8.76 bank wording:** Tom's "funding did not show" was NOT a money failure. Live game G-EQYH-VZAJ: the banker refused (answer refuse, $0, bankRefusals 1), owner's $440,000 arrived; the result line wrongly said "Secured a Bank Loan". Now "The bank said no: no loan this time" / "Bank loan approved: $X" (`ManualActionProcessor`, test `BankResultWording`).
 - **3.8.77 rep picker:** hire list shows all 3 people at once inside the Expeditors pop-up (scrolling, max 190px), each with a "Good at / Weak at <area>: N days ..." line (`repStrengthLine`); screen uses `RepService.getOffers/hireOne`, robot/tests still `hire()`. Tom's point (d) "new cards, not the old ones" is only REPORTED, not changed: the Expeditors page lists expeditor cards (emoji + Activate) first, then a separate "Your team" block of reps (no emoji, no Activate, pay + Let go); reps never enter the hand.
+- **3.8.80 trophy boxes:** PC circle row now ABOVE the clipboard (phone dots stay in the header); Time/Scope/Money box label rows show the trophy picture + place (`TrophyPlace.tsx`; picture path in the `value` cell of the TROPHIES.csv trophy rows, emoji fallback; final art copied from `public/assets/trophies/v4_leaning/` to `public/images/trophies/`, assets untouched). Measured in a browser: box/label-row heights identical with and without the place at 360x640 and 390x844.
+- **3.8.81 markers + stamps:** `trophyBubbles()` (townLayout.ts) adds a plus/minus + new place bubble in the town balloon after the player's own numbers change (TownBoard compares `racePlaces` before/after); box arrows for 6 s; `useStamp` in ProjectMat.tsx ringed + "✓ DOB approved" label 6 s, which steps stamp = `stamp` rows in TROPHIES.csv. Animations do not run in the Browser pane: needs a real phone/TV look. NOT built: the ninth "Final inspection" circle (waits for the Inspector work).
 - **3.8.78 builder box:** the grey "lender is one door away" note is now a button (same pick as the lender row in the Move list; no rule change; bids stay on the player). Measured in a real browser (Chrome pane, 2026-10-25) at 360x640 and 390x844: the new button is 15px tall against 17px for the old note plus its margin, so the player panel got 2px SHORTER, not bigger. The hire list lives in the Expeditors pop-up, which sizes to its content and grows from 341px to 522px tall while the list is open (screen is 640; the list scrolls inside, max 190px) - the player panel behind it is unchanged. Still needs a real-phone look.
 
 ## Known gaps (honest)
@@ -40,6 +42,6 @@ Written by the Game session working for the Manager session. Folder: `D:\Unravel
 - Windows traps: CRLF files need byte-exact edits (Python); heredocs with apostrophes break (use Write); `grep -c $'\r'` lies.
 
 ## Top open items
-1. Tom's go on one of the designed items above (trophy boxes is the biggest visible one).
+1. Tom's go on one of the designed items above (the Inspector sign-off / ninth circle is next; the trophy boxes, markers and stamps are built).
 2. Tom's answers on the stop-work-order wording (2 questions above).
 3. A real phone / TV look at the new pop-ups and the setup footer.

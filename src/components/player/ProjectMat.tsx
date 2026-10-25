@@ -3,7 +3,7 @@
 // icon is the picture of the building its step belongs to (TOWN.csv `mat_icon` rows; Tom, 2026-10-13: "use the same
 // icons on the buildings"). Done = green with a check; part way = orange with its percent; not yet = faded and dashed.
 // Tap an icon to read its name and state (a floating label, so it adds no height).
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { PanelPalette } from './panelTheme';
 import type { MatTileState } from '../../utils/projectMat';
 import { getUIString } from '../../constants/uiStrings';
@@ -17,6 +17,33 @@ export function matTileText(t: MatTileState): string {
   return `${name}: ${state}`;
 }
 
+/** How long a fresh stamp and its one-line label stay up. */
+export const STAMP_MS = 6000;
+
+/**
+ * The step that was JUST stamped (a `stamps` step that turned done while this player's row was on screen), or null.
+ * The first look at a player, and a change of player, never stamp: only a step finishing in front of you does.
+ */
+export function useStamp(tiles: MatTileState[], playerId: string | undefined): string | null {
+  const [stamped, setStamped] = useState<string | null>(null);
+  const seen = useRef<{ pid: string | undefined; done: Record<string, boolean> } | null>(null);
+  useEffect(() => {
+    const now: Record<string, boolean> = {};
+    for (const t of tiles) now[t.id] = t.done;
+    const prev = seen.current;
+    seen.current = { pid: playerId, done: now };
+    if (!prev || prev.pid !== playerId) { setStamped(null); return; }
+    const fresh = tiles.find(t => t.stamps && t.done && prev.done[t.id] === false);
+    if (fresh) setStamped(fresh.id);
+  }, [tiles, playerId]);
+  useEffect(() => {
+    if (!stamped) return;
+    const timer = window.setTimeout(() => setStamped(null), STAMP_MS);
+    return () => window.clearTimeout(timer);
+  }, [stamped]);
+  return stamped;
+}
+
 export type RenderMatIcon = (tileId: string, size: number) => React.ReactNode;
 
 interface RowProps {
@@ -26,12 +53,14 @@ interface RowProps {
   renderIcon?: RenderMatIcon;
   testId?: string;
   selected: string | null;
+  /** The step that was just stamped: ringed, with a bigger check. */
+  stamped?: string | null;
   onSelect: (id: string | null) => void;
   /** Spread the icons across the whole row (the clipboard) instead of packing them (a phone header). */
   spread?: boolean;
 }
 
-function MatIconRow({ tiles, palette: p, size, renderIcon, selected, onSelect, spread }: RowProps): JSX.Element {
+function MatIconRow({ tiles, palette: p, size, renderIcon, selected, stamped, onSelect, spread }: RowProps): JSX.Element {
   return (
     <>
       {tiles.map(t => {
@@ -47,6 +76,7 @@ function MatIconRow({ tiles, palette: p, size, renderIcon, selected, onSelect, s
             data-done={String(t.done)}
             data-percent={t.percent}
             data-trouble={trouble}
+            data-stamped={stamped === t.id ? 'true' : undefined}
             aria-label={matTileText(t)}
             aria-pressed={selected === t.id}
             title={matTileText(t)}
@@ -58,6 +88,7 @@ function MatIconRow({ tiles, palette: p, size, renderIcon, selected, onSelect, s
               border: `2px ${t.done || partial || trouble ? 'solid' : 'dashed'} ${colour}`,
               color: p.muted, opacity: t.done || partial || trouble ? 1 : 0.5,
               marginRight: spread ? 0 : undefined,
+              boxShadow: stamped === t.id ? `0 0 0 3px ${p.good}` : undefined,
             }}
           >
             {icon ?? <span aria-hidden>{t.done ? '✓' : '○'}</span>}
@@ -77,7 +108,7 @@ function MatIconRow({ tiles, palette: p, size, renderIcon, selected, onSelect, s
   );
 }
 
-function Caption({ tile, palette: p }: { tile: MatTileState | undefined; palette: PanelPalette }): JSX.Element | null {
+function Caption({ tile, palette: p, stamped }: { tile: MatTileState | undefined; palette: PanelPalette; stamped?: boolean }): JSX.Element | null {
   if (!tile) return null;
   return (
     <div
@@ -88,13 +119,14 @@ function Caption({ tile, palette: p }: { tile: MatTileState | undefined; palette
         background: p.bg, color: p.text, border: `1px solid ${p.borderStrong}`, borderRadius: 7, padding: '3px 6px', pointerEvents: 'none',
       }}
     >
-      {matTileText(tile)}
+      {stamped ? `✓ ${tile.label}` : matTileText(tile)}
     </div>
   );
 }
 
-export function ProjectMat({ tiles, palette: p, renderIcon }: { tiles: MatTileState[]; palette: PanelPalette; renderIcon?: RenderMatIcon }): JSX.Element | null {
+export function ProjectMat({ tiles, palette: p, renderIcon, playerId }: { tiles: MatTileState[]; palette: PanelPalette; renderIcon?: RenderMatIcon; playerId?: string }): JSX.Element | null {
   const [selected, setSelected] = useState<string | null>(null);
+  const stamped = useStamp(tiles, playerId);
   if (tiles.length === 0) return null;
   const done = tiles.filter(t => t.done).length;
   return (
@@ -104,16 +136,17 @@ export function ProjectMat({ tiles, palette: p, renderIcon }: { tiles: MatTileSt
         <span>{done} of {tiles.length}</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
-        <MatIconRow tiles={tiles} palette={p} size={32} renderIcon={renderIcon} selected={selected} onSelect={setSelected} spread />
+        <MatIconRow tiles={tiles} palette={p} size={32} renderIcon={renderIcon} selected={selected} stamped={stamped} onSelect={setSelected} spread />
       </div>
-      <Caption tile={tiles.find(t => t.id === selected)} palette={p} />
+      <Caption tile={tiles.find(t => t.id === (selected ?? stamped))} palette={p} stamped={!selected && !!stamped} />
     </div>
   );
 }
 
 /** The mat squeezed to one row of small icons (no extra height) for the phone header. */
-export function MatDots({ tiles, palette: p, renderIcon }: { tiles: MatTileState[]; palette: PanelPalette; renderIcon?: RenderMatIcon }): JSX.Element | null {
+export function MatDots({ tiles, palette: p, renderIcon, playerId }: { tiles: MatTileState[]; palette: PanelPalette; renderIcon?: RenderMatIcon; playerId?: string }): JSX.Element | null {
   const [selected, setSelected] = useState<string | null>(null);
+  const stamped = useStamp(tiles, playerId);
   if (tiles.length === 0) return null;
   const done = tiles.filter(t => t.done).length;
   return (
@@ -126,9 +159,9 @@ export function MatDots({ tiles, palette: p, renderIcon }: { tiles: MatTileState
         aria-label={`${getUIString('MAT.title')}: ${done} of ${tiles.length} steps done`}
         style={{ display: 'flex', alignItems: 'center', gap: 3 }}
       >
-        <MatIconRow tiles={tiles} palette={p} size={22} renderIcon={renderIcon} selected={selected} onSelect={setSelected} />
+        <MatIconRow tiles={tiles} palette={p} size={22} renderIcon={renderIcon} selected={selected} stamped={stamped} onSelect={setSelected} />
       </div>
-      <Caption tile={tiles.find(t => t.id === selected)} palette={p} />
+      <Caption tile={tiles.find(t => t.id === (selected ?? stamped))} palette={p} stamped={!selected && !!stamped} />
     </div>
   );
 }

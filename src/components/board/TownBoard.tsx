@@ -40,6 +40,8 @@ import { scaleMs, getGameSpeed } from '../../utils/gameSpeed';
 import { setTownWalking } from '../../utils/boardStyle';
 import { projectKindOf } from '../../utils/projectKind';
 import { getSoundOn } from '../../utils/soundSetting';
+import { racePlaces } from '../../utils/liveTrophies';
+import { getTrophyRules, type TrophyId } from '../../utils/trophyRules';
 import { playResultChime, isAudioReady, primeAudio } from '../../utils/haptics';
 import {
   buildTownLayout,
@@ -51,6 +53,7 @@ import {
   walkTimes,
   resultBubbles,
   mergedResultBubbles,
+  trophyBubbles,
   revealedBuildings,
   fadedBuildings,
   buildingOfRoom,
@@ -355,6 +358,9 @@ interface PendingResult {
   at: number;
   before: PlayerNumbers;
   after: PlayerNumbers;
+  /** Their place in each race before and after (null = no race), for the trophy markers. */
+  placesBefore: Record<TrophyId, number | null>;
+  placesAfter: Record<TrophyId, number | null>;
   /** The building the player is in after this change. */
   space: string;
   /** How long after this change the player's walk ends (0 = no walk). */
@@ -362,6 +368,9 @@ interface PendingResult {
 }
 
 const BUBBLE_SETTLE_MS = 350;
+
+const NO_PLACES: Record<TrophyId, number | null> = { time: null, money: null, quality: null };
+const TROPHY_EMOJI: Record<TrophyId, string> = { time: '📅', quality: '📋', money: '💰' };
 
 const BUBBLE_COLOURS = {
   good: { bg: '#dcfce7', fg: '#166534', border: '#16a34a' },
@@ -407,9 +416,19 @@ function FloatingBubble({ bubble, onDone }: { bubble: Bubble; onDone: (key: numb
       }}
     >
       {bubble.tag && <span aria-hidden style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: bubble.tag, border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.35)', marginRight: 8, verticalAlign: 'middle' }} />}
+      {bubble.kind === 'trophy' && bubble.trophy && <TrophyMark race={bubble.trophy} />}
       {bubble.text}
     </div>
   );
+}
+
+/** The trophy's picture (TROPHIES.csv) in a marker bubble; the emoji when the data names none or it will not load. */
+function TrophyMark({ race }: { race: TrophyId }): JSX.Element {
+  const [broken, setBroken] = useState(false);
+  const icon = getTrophyRules().icons[race];
+  return icon && !broken
+    ? <img src={`/images/${icon}`} alt="" width={26} height={26} onError={() => setBroken(true)} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 6 }} />
+    : <span aria-hidden style={{ marginRight: 6 }}>{TROPHY_EMOJI[race]}</span>;
 }
 
 const prefersReducedMotion = (): boolean => {
@@ -500,11 +519,16 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   // Who a player is to the town: their project kind and which seat they hold (each player has their own office, owner house and site).
   const whoOf = useCallback((p: Player): Who => ({ kind: kindOf(p), seat: players.findIndex(x => x.id === p.id) }), [kindOf, players]);
   const numbersOf = (p: Player): PlayerNumbers => ({ money: p.money ?? 0, days: p.timeSpent ?? 0, scope: gameRulesService.calculateProjectScope(p.id) });
-  const [seen, setSeen] = useState<{ players: Player[]; spaces: Map<string, string> | null; numbers: Map<string, PlayerNumbers> | null; n: number }>({ players: [], spaces: null, numbers: null, n: 0 });
+  const placesNow = (): ((id: string) => Record<TrophyId, number | null>) => {
+    try { const board = gameRulesService.computeLiveBoard(); return (id) => racePlaces(board, id); } catch { return () => NO_PLACES; }
+  };
+  const [seen, setSeen] = useState<{ players: Player[]; spaces: Map<string, string> | null; numbers: Map<string, PlayerNumbers> | null; places: Map<string, Record<TrophyId, number | null>> | null; n: number }>({ players: [], spaces: null, numbers: null, places: null, n: 0 });
   if (seen.players !== players) {
     const before = seen.spaces;
     const beforeNumbers = seen.numbers;
-    setSeen({ players, spaces: new Map(players.map(p => [p.id, p.currentSpace])), numbers: new Map(players.map(p => [p.id, numbersOf(p)])), n: seen.n + 1 });
+    const beforePlaces = seen.places;
+    const placesOf = placesNow();
+    setSeen({ players, spaces: new Map(players.map(p => [p.id, p.currentSpace])), numbers: new Map(players.map(p => [p.id, numbersOf(p)])), places: new Map(players.map(p => [p.id, placesOf(p.id)])), n: seen.n + 1 });
     if (before && !prefersReducedMotion()) {
       const times = walkTimes(layout.settings);
       const fast = getGameSpeed() === 'fast';
@@ -540,11 +564,15 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         if (!was) continue;
         const nowNumbers = numbersOf(p);
         const moved = before?.get(p.id) !== undefined && before?.get(p.id) !== p.currentSpace && !still;
+        const placesWas = beforePlaces?.get(p.id) ?? NO_PLACES;
+        const placesIs = placesOf(p.id);
+        // The player's own numbers (or square) changed: that is their Commit or Negotiate. Someone else's move that
+        // only shifts this player's place says nothing here.
         if (resultBubbles(was, nowNumbers).length === 0 && !moved) continue;
         // A change that arrives together with a move is the work done at the space the player LEFT (the
         // architect's days are charged when they end their turn there, then they walk to the office), so the
         // result floats up from that building, not from the one they just reached (fb:f0de9095, 2026-10-19).
-        held.push({ playerId: p.id, at: now, before: was, after: nowNumbers, space: moved ? before!.get(p.id)! : p.currentSpace, walkMs: 0 });
+        held.push({ playerId: p.id, at: now, before: was, after: nowNumbers, placesBefore: placesWas, placesAfter: placesIs, space: moved ? before!.get(p.id)! : p.currentSpace, walkMs: 0 });
       }
       if (held.length) setPending(ps => [...ps, ...held]);
     }
@@ -569,8 +597,12 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         const bySpace = new Map<string, PendingResult[]>();
         for (const x of mineAll) bySpace.set(x.space, [...(bySpace.get(x.space) ?? []), x]);
         let order = 0;
+        // The place markers are worked out once for the whole change (first 'before' to last 'after') and ride
+        // with the building the player ended in.
+        const markers = trophyBubbles(mineAll[0].placesBefore, mineAll[mineAll.length - 1].placesAfter);
+        const lastSpace = mineAll[mineAll.length - 1].space;
         for (const [space, mine] of bySpace) {
-          const list = mergedResultBubbles(mine);
+          const list = [...mergedResultBubbles(mine), ...(space === lastSpace ? markers : [])];
           const bid = buildingOfRoom(layout, space, player ? whoOf(player) : undefined);
           const b = bid ? layout.buildings.find(x => x.id === bid) : undefined;
           if (!b || list.length === 0) continue;

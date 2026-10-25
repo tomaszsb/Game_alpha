@@ -87,6 +87,19 @@ export function buildLiveBoard(inputs: MeasureInput[]): LiveBoard {
   return { rows: out, anyProvisional: out.some(r => r.status !== 'out' && !r.solid) };
 }
 
+/**
+ * A player's place in each race right now, or null where there is no race for them (alone, everyone level, or out).
+ * Used to compare before and after a Commit or Negotiate (the trophy markers).
+ */
+export function racePlaces(board: LiveBoard, playerId: string): Record<TrophyId, number | null> {
+  const row = board.rows.find(r => r.playerId === playerId);
+  const place = (id: TrophyId): number | null => {
+    const r = row?.races[id];
+    return row && row.status !== 'out' && r && r.contested ? r.place : null;
+  };
+  return { time: place('time'), money: place('money'), quality: place('quality') };
+}
+
 /** 1 -> "1st", 2 -> "2nd", 11 -> "11th". */
 export function ordinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];

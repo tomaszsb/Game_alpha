@@ -15,6 +15,8 @@ export interface MatTileState {
   percent?: number;
   /** An approval step the examiner turned down ('denied') or raised an objection on: the tile says so instead of just "not yet". */
   trouble?: 'denied' | 'objection';
+  /** True for a step that is stamped (and named in a one-line label) the moment it turns done (TROPHIES.csv `stamp` rows). */
+  stamps?: boolean;
 }
 
 function isDone(check: MatCheck, player: Player, fin: Pick<ProjectFinances, 'scopeTotal' | 'fundingGap'>): boolean {
@@ -47,6 +49,6 @@ export function computeMat(player: Player, fin: Pick<ProjectFinances, 'scopeTota
     const percent = t.check === 'funded' && !done ? fundingPercent(fin) : undefined;
     const status = t.check === 'dob_approved' ? player.dobApprovalStatus : t.check === 'fdny_approved' ? player.fdnyApprovalStatus : undefined;
     const trouble = status === 'denied' ? 'denied' : status === 'minor-objection' ? 'objection' : undefined;
-    return { id: t.id, label: t.label, done, ...(percent === undefined ? {} : { percent }), ...(trouble ? { trouble } : {}) };
+    return { id: t.id, label: t.label, done, ...(percent === undefined ? {} : { percent }), ...(trouble ? { trouble } : {}), ...(getTrophyRules().stamps.includes(t.check) ? { stamps: true } : {}) };
   });
 }

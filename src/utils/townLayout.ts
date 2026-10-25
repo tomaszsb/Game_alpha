@@ -5,6 +5,8 @@
 
 import type { TownCsvRow } from '../types/DataTypes';
 import { FormatUtils } from './FormatUtils';
+import { ordinal } from './liveTrophies';
+import type { TrophyId } from './trophyRules';
 
 export interface TownBuilding {
   id: string;
@@ -437,7 +439,9 @@ export interface PlayerNumbers {
 }
 
 export interface ResultBubble {
-  kind: 'scope' | 'money' | 'days';
+  kind: 'scope' | 'money' | 'days' | 'trophy';
+  /** For a trophy bubble: which race moved (its picture comes from TROPHIES.csv). */
+  trophy?: TrophyId;
   text: string;
   /** good = green (money in, days back), bad = red (money out, days used), info = scope changed. */
   tone: 'good' | 'bad' | 'info';
@@ -458,6 +462,26 @@ export function resultBubbles(before: PlayerNumbers, after: PlayerNumbers): Resu
     out.push({ kind: 'days', text: `${dDays > 0 ? '+' : '−'}${n} day${n === 1 ? '' : 's'}`, tone: dDays > 0 ? 'bad' : 'good' });
   }
   return out;
+}
+
+/** The races in the order a student reads them (the clipboard's Time, Scope, Money). */
+const TROPHY_ORDER: readonly TrophyId[] = ['time', 'quality', 'money'];
+
+/**
+ * The trophy markers after a Commit or Negotiate: for each race the player was placed in both before and after and
+ * whose place changed, a green plus (moved up) or red minus (moved down) with the new place ("+ 2nd"). A race that is
+ * not on (alone, everyone level) or a place that did not change says nothing. At most two, so the bubble fits a phone.
+ */
+export function trophyBubbles(before: Record<TrophyId, number | null>, after: Record<TrophyId, number | null>): ResultBubble[] {
+  const out: ResultBubble[] = [];
+  for (const id of TROPHY_ORDER) {
+    const was = before[id];
+    const now = after[id];
+    if (was === null || now === null || was === undefined || now === undefined || was === now) continue;
+    const up = now < was;
+    out.push({ kind: 'trophy', trophy: id, text: `${up ? '+' : '−'} ${ordinal(now)}`, tone: up ? 'good' : 'bad' });
+  }
+  return out.slice(0, 2);
 }
 
 /**

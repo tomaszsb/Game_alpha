@@ -990,7 +990,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               <span style={{ width: 11, height: 11, borderRadius: '50%', background: player.color || p.accent, flexShrink: 0 }} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.name}</span>
             </div>
-            <MatDots tiles={matTiles} palette={p} renderIcon={renderMatIcon} />
+            <MatDots tiles={matTiles} palette={p} renderIcon={renderMatIcon} playerId={playerId} />
           </>
         ) : (
           /* PC / TV: the player's face, big enough to read across the table (Job 5), in their colour. */
@@ -1022,7 +1022,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             already has it in its header (Tom, 2026-10-25: "I like them above so we should do that for both"). */}
         {!isPhone && (
           <div data-testid="circle-row" style={{ marginBottom: 8 }}>
-            <ProjectMat tiles={matTiles} palette={p} renderIcon={renderMatIcon} />
+            <ProjectMat tiles={matTiles} palette={p} renderIcon={renderMatIcon} playerId={playerId} />
           </div>
         )}
         {/* The four number boxes and their "?" share one outline (Tom, 2026-10-02: "?

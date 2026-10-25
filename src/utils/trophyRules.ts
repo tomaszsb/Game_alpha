@@ -81,6 +81,8 @@ const DEFAULT_OWNER_SEED: OwnerSeedRules = { min: 0.8, max: 1.2, round: 10000 };
 export interface TrophyRules {
   /** The milestones on each player's mat, in order. */
   mat: MatTile[];
+  /** The mat checks that get a stamp and a one-line label the moment they turn done (`stamp` rows). */
+  stamps: MatCheck[];
   /** The name shown for each trophy. */
   names: Record<TrophyId, string>;
   /** The picture of each trophy, a path under /images/ (the `value` cell of its `trophy` row). Blank = use the emoji. */
@@ -143,6 +145,7 @@ const DEFAULT_MAT: MatTile[] = [
 
 const DEFAULT_RULES: TrophyRules = {
   mat: DEFAULT_MAT,
+  stamps: ['dob_approved', 'fdny_approved', 'builder_hired'],
   names: { time: 'Fastest', money: 'On budget', quality: 'Best built' },
   icons: { time: 'trophies/time.png', money: 'trophies/money.png', quality: 'trophies/quality.png' },
   trophiesToWin: 2,
@@ -170,6 +173,7 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
     reviewEvents: [],
     spaceEvents: {},
     mat: [],
+    stamps: [],
     timeCapPercent: DEFAULT_RULES.timeCapPercent,
     ownerSeed: { ...DEFAULT_OWNER_SEED },
     builder: { ...DEFAULT_BUILDER, space: '', door: '', noteSpaces: [], guaranteeDays: [], qualities: { ...DEFAULT_BUILDER.qualities }, terms: cloneTerms(DEFAULT_TERMS) },
@@ -254,11 +258,15 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
       case 'space_event':
         if (value) next.spaceEvents[key] = value;
         break;
+      case 'stamp':
+        if ((MAT_CHECKS as readonly string[]).includes(key)) next.stamps.push(key as MatCheck);
+        break;
       case 'mat':
         if ((MAT_CHECKS as readonly string[]).includes(value) && text) next.mat.push({ id: key, check: value as MatCheck, label: text });
         break;
     }
   }
+  if (next.stamps.length === 0) next.stamps = [...DEFAULT_RULES.stamps];
   if (next.mat.length === 0) next.mat = DEFAULT_MAT; // a file with no mat rows keeps the stock mat
   // A file with no builder rows keeps the stock bids; a file that names the space but no
   // guarantee options keeps the stock options (a bid with no guarantee would never hold).
