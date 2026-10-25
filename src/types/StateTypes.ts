@@ -139,8 +139,9 @@ export interface MutablePlayerState {
   peakPlanDays?: number;
   /** Times the bank has refused this player; kept across a push-back like peakScope. */
   bankRefusals?: number;
+  pushBackTotal?: number;
   /** The banker's last answer, shown in the bank pop-up. */
-  lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean };
+  lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean; safe?: number };
 }
 
 /**
@@ -527,7 +528,8 @@ export interface PlayerUpdateData {
   peakScope?: number;
   peakPlanDays?: number;
   bankRefusals?: number;
-  lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean };
+  pushBackTotal?: number;
+  lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean; safe?: number };
   finishedAtTurn?: number;
   outReason?: 'bankruptcy' | 'design_fee_cap' | 'time_cap';
   outAtTurn?: number;

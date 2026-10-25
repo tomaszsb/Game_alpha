@@ -583,8 +583,10 @@ export interface Player {
   peakScope?: number;
   /** Times the bank has refused this player. Survives a push-back (written through updateTempState, not in the snapshot). */
   bankRefusals?: number;
+  /** Push-backs this player has made over the whole game; the banker reads it. */
+  pushBackTotal?: number;
   /** The banker's last answer, shown in the bank pop-up in place of the usual text. */
-  lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean };
+  lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean; safe?: number };
   /** The most planned days this player's project has called for at the end of any turn; the 300% time cap is
    *  measured against it for the same reason as peakScope (dropping work must not make a project "late"). */
   peakPlanDays?: number;

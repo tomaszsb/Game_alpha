@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.69] - 2026-10-24
+
+**Robot Banker finished: push-backs now count (Manager job 1).** A push-back adds one to a whole-game count (`pushBackTotal`, optional, outside the snapshot lists so the rollback leaves it alone; old saves load) and the bank reads it, so the push-back penalty in `BANKER.csv` now bites. Before, the live bank always read 0. Found on the way: the earlier push-back test never really pressed the button; the new one does, and a refusal given the same turn survives a real push-back. Tests: a real push-back keeps the refusal and counts once; a student with 3 push-backs gets a lower safe score than one with none. The counting numbers do not move: that test already modelled 0/1/2/3 push-backs.
+
 ## [3.8.68] - 2026-10-25
 
 **A school's old logo could be lost when two backups were made in the same millisecond (found by the deploy test gate on the Tower).**

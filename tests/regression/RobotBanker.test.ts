@@ -67,11 +67,27 @@ describe('robot banker in the engine', () => {
     expect(moves).toEqual(['INVESTOR-FUND-REVIEW']);
   });
 
-  it('a push-back does not forget the refusals', async () => {
+  it('a real push-back keeps the refusal and is counted for the whole game', async () => {
     await atBank({ daysUsed: 5000 });
     await s.cardService.applyCardEffects(pid, bigCard());
-    await s.turnService.tryAgainOnSpace?.(pid).catch(() => undefined);
     expect(s.stateService.getPlayer(pid)!.bankRefusals).toBe(1);
+    const r = await s.turnService.tryAgainOnSpace(pid);
+    expect(r.success).toBe(true);
+    const p = s.stateService.getPlayer(pid)!;
+    expect(p.bankRefusals).toBe(1);
+    expect(p.pushBackTotal).toBe(1);
+  });
+
+  it('a student who pushed back gets a lower safe score than one who did not', async () => {
+    const answerFor = async (pushBackTotal: number) => {
+      await atBank({ cash: 250_000 });
+      s.stateService.updateTempState(pid, { pushBackTotal });
+      await s.cardService.applyCardEffects(pid, bCard('500000', '5'));
+      return s.stateService.getPlayer(pid)!.lastBankerDecision!;
+    };
+    const clean = await answerFor(0);
+    const pushed = await answerFor(3);
+    expect(pushed.safe!).toBeLessThan(clean.safe!);
   });
 
   async function finishWith(loans: unknown[]) {

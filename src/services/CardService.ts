@@ -1571,10 +1571,11 @@ export class CardService implements ICardService {
     const situation = bankerInputs(player, {
       getCardById: lookup as never,
       plannedDays: this.gameRulesService.calculateEstimatedProjectLength(playerId).estimatedDays,
+      pushBacks: player.pushBackTotal ?? 0,
     });
     const decision = decide(offer, situation);
     this.stateService.updateTempState(playerId, {
-      lastBankerDecision: { answer: decision.answer, amount: decision.amount, rate: decision.rate, reasons: decision.reasons, final: decision.final },
+      lastBankerDecision: { answer: decision.answer, amount: decision.amount, rate: decision.rate, reasons: decision.reasons, final: decision.final, safe: decision.safe },
       ...(decision.answer === 'refuse' ? { bankRefusals: (player.bankRefusals ?? 0) + 1 } : {}),
     });
     if (decision.answer === 'refuse') return { card: { ...card, loan_amount: '0' }, decision };

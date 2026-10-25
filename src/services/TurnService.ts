@@ -1140,6 +1140,8 @@ export class TurnService implements ITurnService {
       // is what keeps ghost actions out of the post-game log after a rollback
       // (the v3.0.63 fix, now part of the single transaction boundary).
       this.discardTurnTransaction(playerId);
+      // Counted for the whole game, outside the snapshot lists so the rollback leaves it alone (the banker reads it).
+      this.stateService.updatePlayer({ id: playerId, pushBackTotal: (currentPlayer.pushBackTotal ?? 0) + 1 } as never);
       if (sentExpeditors.length > 0) {
         // Into the discard pile like any played card (the hand change is already in REAL above).
         this.stateService.updateGameState({
