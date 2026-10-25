@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.68] - 2026-10-25
+
+**A school's old logo could be lost when two backups were made in the same millisecond (found by the deploy test gate on the Tower).**
+- Cause: the backup copy of a replaced or removed logo was named only by the time to the millisecond. Two backups in the same millisecond got the SAME name and the second silently replaced the first, so one old logo was not kept. The test `copies the old logo into the classroom backups` failed on the fast Tower and passed on the slower PC. Real bug, not a flaky test (but a rare one: a person cannot replace and remove a logo in one millisecond).
+- Fix (`server/instanceLogo.js`): the name now ends in a counter and the copy refuses to overwrite (`COPYFILE_EXCL`), trying the next number. New test freezes the clock and checks both backups survive; it fails on the old code.
+
 ## [3.8.67] - 2026-10-24
 
 **Lint: the last error fixed (Tom's ask via the Manager).** `npm run lint` on src went from 1 error + 24 warnings to 0 errors + 24 warnings. The one error was an unescaped apostrophe in the teacher editor's cost line (`SpaceEditor.tsx`, now `&apos;`). The `ClassLandingPage.tsx` apostrophe and the other errors seen at v3.8.64 were already gone. Warnings left alone. No behaviour change.

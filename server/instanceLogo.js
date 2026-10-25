@@ -148,7 +148,18 @@ function keepBackup(dataDir, instancesRoot, id) {
   try {
     const dir = logoBackupsDir(instancesRoot, id);
     fs.mkdirSync(dir, { recursive: true });
-    fs.copyFileSync(src, path.join(dir, `logo-${new Date().toISOString().replace(/[:.]/g, '-')}.png`));
+    // The name ends in a counter: two backups made in the same millisecond must not share a file
+    // name (the second would silently replace the first). The fixed width keeps names sorted by age.
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    for (let n = 0; n < 1000; n++) {
+      const target = path.join(dir, `logo-${stamp}-${String(n).padStart(3, '0')}.png`);
+      try {
+        fs.copyFileSync(src, target, fs.constants.COPYFILE_EXCL);
+        break;
+      } catch (err) {
+        if (!err || err.code !== 'EEXIST') throw err;
+      }
+    }
     const files = fs.readdirSync(dir).filter(n => /^logo-.*\.png$/.test(n)).sort();
     for (const old of files.slice(0, Math.max(0, files.length - LOGO_BACKUP_KEEP))) {
       fs.rmSync(path.join(dir, old), { force: true });

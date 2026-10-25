@@ -123,6 +123,20 @@ describe('saving, replacing and removing', () => {
     expect(removeLogo(dataDir, instancesRoot, 'room-a')).toBe(false);
   });
 
+  it('keeps both backups when two are made in the same millisecond', async () => {
+    const real = Date.prototype.toISOString;
+    const frozen = real.call(new Date());
+    Date.prototype.toISOString = () => frozen;
+    try {
+      await saveLogo(dataDir, instancesRoot, 'room-a', b64(await png(300, 300)));
+      await saveLogo(dataDir, instancesRoot, 'room-a', b64(await jpeg(400, 400)));
+      removeLogo(dataDir, instancesRoot, 'room-a');
+    } finally {
+      Date.prototype.toISOString = real;
+    }
+    expect(fs.readdirSync(logoBackupsDir(instancesRoot, 'room-a')).length).toBe(2);
+  });
+
   it('refuses a classroom id that could climb out of the folder', async () => {
     expect(() => logoPath(dataDir, '../evil')).toThrow(LogoError);
     expect(() => logoPath(dataDir, 'a/b')).toThrow(LogoError);
