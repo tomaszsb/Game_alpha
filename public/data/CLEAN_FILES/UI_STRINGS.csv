@@ -130,6 +130,7 @@ BUILDER_BIDS.err.hired,You have already hired a builder.
 BUILDER_BIDS.err.notHere,You can only hire a builder at the builder desk.
 BUILDER_BIDS.err.changed,Those prices changed while you were deciding. Look at the new bids.
 BUILDER_BIDS.err.failed,The contract could not be signed.
+BUILDER_BIDS.err.money,Not enough money: get more from the lender first.
 BUILDER_BIDS.log,Hired a builder for {price} and {days} days of work. The work turns out to be {quality} quality.
 BUILDER_BIDS.holdsShort,good through day {day}
 BUILDER_BIDS.hireShort,Hold to hire

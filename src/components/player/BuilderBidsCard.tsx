@@ -15,7 +15,7 @@ import { BUILDER_BIDS } from '../../constants/uiStrings';
 import { getBuilderRules } from '../../utils/trophyRules';
 import { cheapestLiveBid, isBidLive, typicalQuote } from '../../utils/builderBids';
 import { usePhoneWidth } from '../../hooks/usePhoneWidth';
-import { shortBy, builderShortMessage } from '../../utils/moneyWarning';
+import { shortBy } from '../../utils/moneyWarning';
 
 /** How long the Hire button must be held before it signs. Same length as the turn-end hold, so one gesture means "I mean it" everywhere. */
 const HOLD_MS = 650;
@@ -128,7 +128,7 @@ export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, p
             </div>
             {shortBy(player.money, b.price) > 0 && (
               <div data-testid="builder-bid-short" role="alert" className="uc-red-pulse" style={{ fontSize: 12, marginTop: 3, padding: '0 4px', borderRadius: 6, color: p.bad, fontWeight: 600 }}>
-                {builderShortMessage(player.money, b.price)}
+                {BUILDER_BIDS.ERR_MONEY}
               </div>
             )}
             {hintFor === b.id && (
@@ -140,7 +140,7 @@ export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, p
           <HoldToHire
             ariaLabel={BUILDER_BIDS.hireAria(money(b.price), b.days)}
             label={isPhone ? BUILDER_BIDS.HIRE_SHORT : BUILDER_BIDS.HIRE}
-            disabled={!canAct || busy}
+            disabled={!canAct || busy || shortBy(player.money, b.price) > 0}
             palette={p}
             isPhone={isPhone}
             onHold={() => { setHintFor(null); hire(b.id); }}

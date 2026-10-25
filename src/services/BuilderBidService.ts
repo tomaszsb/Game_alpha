@@ -13,7 +13,7 @@ import { BuilderBidSet, refreshBids, isBidLive, Rng } from '../utils/builderBids
 import { getBuilderRules } from '../utils/trophyRules';
 import { BUILDER_BIDS } from '../constants/uiStrings';
 
-export type HireFailure = 'not_here' | 'already_hired' | 'bids_changed' | 'no_engine' | 'failed';
+export type HireFailure = 'not_here' | 'already_hired' | 'bids_changed' | 'no_engine' | 'failed' | 'not_enough_money';
 
 export interface HireResult {
   success: boolean;
@@ -89,6 +89,12 @@ export class BuilderBidService {
         reason: 'bids_changed',
         message: BUILDER_BIDS.ERR_CHANGED,
       };
+    }
+
+    // The whole price is charged at signing (there are no stages), so the cash due is the price itself. A bid dearer than the
+    // player's cash is refused here, whatever the screen showed: it used to be signed and the player went out at End Turn.
+    if (bid.price > player.money) {
+      return { success: false, reason: 'not_enough_money', message: BUILDER_BIDS.ERR_MONEY };
     }
 
     const source = player.currentSpace;

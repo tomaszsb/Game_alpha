@@ -135,6 +135,7 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'BUILDER_BIDS.err.notHere': 'You can only hire a builder at the builder desk.',
   'BUILDER_BIDS.err.changed': 'Those prices changed while you were deciding. Look at the new bids.',
   'BUILDER_BIDS.err.failed': 'The contract could not be signed.',
+  'BUILDER_BIDS.err.money': 'Not enough money: get more from the lender first.',
   'BUILDER_BIDS.log': 'Hired a builder for {price} and {days} days of work. The work turns out to be {quality} quality.',
   'BUILDER_BIDS.holdsShort': 'good through day {day}',
   'BUILDER_BIDS.hireShort': 'Hold to hire',
@@ -456,6 +457,7 @@ export const BUILDER_BIDS = {
   get ERR_NOT_HERE() { return getUIString('BUILDER_BIDS.err.notHere'); },
   get ERR_CHANGED() { return getUIString('BUILDER_BIDS.err.changed'); },
   get ERR_FAILED() { return getUIString('BUILDER_BIDS.err.failed'); },
+  get ERR_MONEY() { return getUIString('BUILDER_BIDS.err.money'); },
   log: (price: string, days: number, quality: string) => getUIString('BUILDER_BIDS.log', { price, days, quality }),
 };
 

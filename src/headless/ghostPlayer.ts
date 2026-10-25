@@ -382,12 +382,17 @@ export async function playOneGame(
       if (shoppingBids && shoppingBids.bids.length > 0) {
         const cash = stateService.getPlayer(playerId)?.money ?? 0;
         const affordable = shoppingBids.bids.filter((b) => b.price <= cash);
-        const pool = affordable.length > 0 ? affordable : shoppingBids.bids;
-        const chosen = pool.reduce((a, b) => (b.price < a.price ? b : a));
-        const hired = await turnService.hireBuilderBid(playerId, chosen.id);
-        trail.push(hired.success
-          ? `  hired a builder: $${chosen.price} / ${chosen.days}d (${hired.qualityName})`
-          : `  hire failed: ${hired.message}`);
+        // Signing above cash is refused (v3.8.90), so with nothing affordable the bot does what a player does: it takes the
+        // road on to the lender (the only one open) and comes back for a builder when it has the money.
+        if (affordable.length > 0) {
+          const chosen = affordable.reduce((a, b) => (b.price < a.price ? b : a));
+          const hired = await turnService.hireBuilderBid(playerId, chosen.id);
+          trail.push(hired.success
+            ? `  hired a builder: $${chosen.price} / ${chosen.days}d (${hired.qualityName})`
+            : `  hire failed: ${hired.message}`);
+        } else {
+          trail.push(`  no builder affordable (cash $${cash}): off to the lender`);
+        }
       }
 
       // For movement: if it's a choice-type move, pick a random destination

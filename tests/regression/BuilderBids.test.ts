@@ -82,6 +82,32 @@ describe('hiring', () => {
     expect(result.qualityName).toBe(getBuilderRules().qualities[bid.quality as 'HIGH'].name);
   });
 
+  it('refuses a builder dearer than the cash on hand, signs nothing and takes nothing', async () => {
+    const s = await atBuilder();
+    const set = s.turnService.ensureBuilderBids(s.playerId);
+    const bid = set.bids[0];
+    s.stateService.updatePlayer({ id: s.playerId, money: bid.price - 1 } as any);
+    const daysBefore = s.me().timeSpent;
+    const result = await s.turnService.hireBuilderBid(s.playerId, bid.id);
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('not_enough_money');
+    expect(result.message).toBe('Not enough money: get more from the lender first.');
+    expect(s.me().money).toBe(bid.price - 1);
+    expect(s.me().timeSpent).toBe(daysBefore);
+    expect(s.me().contractor).toBeUndefined();
+    expect(s.me().outReason).toBeUndefined();
+  });
+
+  it('signs a builder whose price is exactly the cash on hand (leaving nothing, not below nothing)', async () => {
+    const s = await atBuilder();
+    const set = s.turnService.ensureBuilderBids(s.playerId);
+    const bid = set.bids[0];
+    s.stateService.updatePlayer({ id: s.playerId, money: bid.price } as any);
+    const result = await s.turnService.hireBuilderBid(s.playerId, bid.id);
+    expect(result.success).toBe(true);
+    expect(s.me().money).toBe(0);
+  });
+
   it('counts once in the quality ledger, at the size the data gives that quality', async () => {
     const s = await atBuilder();
     const set = s.turnService.ensureBuilderBids(s.playerId);

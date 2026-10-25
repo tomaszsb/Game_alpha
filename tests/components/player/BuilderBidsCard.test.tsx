@@ -88,9 +88,20 @@ describe('BuilderBidsCard', () => {
     render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
     const warnings = screen.getAllByTestId('builder-bid-short');
     expect(warnings).toHaveLength(1);
-    expect(warnings[0].textContent).toContain('$200,000 short');
-    expect(warnings[0].textContent).toContain('Visit the lender');
+    expect(warnings[0].textContent).toBe('Not enough money: get more from the lender first.');
     expect(warnings[0].className).toContain('uc-red-pulse'); // pulses so it is noticed
+  });
+
+  it('the Sign button of a builder dearer than the cash is greyed out and cannot be pressed; the others stay live', async () => {
+    const { gs, hire } = services(atDesk({ money: 1_000_000 }));
+    render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
+    const buttons = screen.getAllByTestId('builder-bid-hire') as HTMLButtonElement[];
+    const prices = screen.getAllByTestId('builder-bid').map((el) => Number(el.getAttribute('data-price')));
+    buttons.forEach((b, i) => expect(b.disabled, `bid ${i} at $${prices[i]}`).toBe(prices[i] > 1_000_000));
+    const dear = buttons[prices.findIndex((x) => x > 1_000_000)];
+    fireEvent.click(dear);
+    await holdFor(dear, 2500);
+    expect(hire).not.toHaveBeenCalled();
   });
 
   it('says nothing when the cash covers every bid', () => {
