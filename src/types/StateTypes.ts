@@ -336,6 +336,8 @@ export interface GameState {
   isProcessingArrival: boolean;
   isInitialized: boolean; // Flag to indicate game state is fully set up
   gameStartTime?: Date;
+  /** Day the game began as 'YYYY-MM-DD' (real date, stored once); the town clocks add each player's own days to it. */
+  gameStartDate?: string;
   gameEndTime?: Date;
   winner?: string;
   // Set when the game ends WITHOUT a winner (bankruptcy, design-fee cap).

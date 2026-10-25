@@ -39,6 +39,8 @@ import { setTownWalking } from '../../utils/boardStyle';
 import { projectKindOf } from '../../utils/projectKind';
 import { getSoundOn } from '../../utils/soundSetting';
 import { TownViewPad, type ViewPadScreen } from './TownViewPad';
+import { TownClocks } from './TownClocks';
+import { clockStartIso } from '../../utils/gameClock';
 import { racePlaces } from '../../utils/liveTrophies';
 import { getTrophyRules, type TrophyId } from '../../utils/trophyRules';
 import { playResultChime, isAudioReady, primeAudio } from '../../utils/haptics';
@@ -485,6 +487,12 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   const { appearances } = useNpcPortrait();
   const [validMoves, setValidMoves] = useState<string[]>([]);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [startIso, setStartIso] = useState(() => clockStartIso(stateService.getGameState()));
+  useEffect(() => {
+    const sync = () => setStartIso(clockStartIso(stateService.getGameState()));
+    sync();
+    return stateService.subscribe(sync);
+  }, [stateService]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -840,6 +848,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         style={{ backgroundColor: GROUND[mode].water }}
       >
         <TownViewPad screen={screen} dark={mode === 'dark'} />
+        <TownClocks players={players} currentPlayerId={currentPlayerId} layout={layout} tile={TOWN_TILE} startIso={startIso} screen={screen} />
         <ViewportPortal>
           {walks.map(w => <Walker key={w.key} walk={w} onDone={endWalk} />)}
         </ViewportPortal>

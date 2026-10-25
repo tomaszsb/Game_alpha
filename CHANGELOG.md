@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.83] - 2026-10-25
+
+## [3.8.83] - 2026-10-25
+
+**Flip clocks on the town board (time-on-board design, step 2).** (1) The game now stores its start date once, as today's real date, when it goes to play (`gameStartDate`, 'YYYY-MM-DD' text; a game saved before this reads the day it was started instead). (2) Each player's date is worked out from that start date plus THAT player's own days, so players who have used different days read different dates (`gameClock.ts`; nothing is typed into wording). (3) On the PC and TV a flip clock in each player's colour (year, month, day, with the player's name under it) sits at the top of that player's band of the town, drawn above the buildings and under an open name sign. It keeps one readable size at any zoom, sticks to the top of the part of the band you can see when you zoom or pan, stays fully on screen sideways, and hides when less than 60 px of its band shows. The current player's clock glows. The TV clock is 1.6 times bigger. The remote strip shows one slim clock (a colour dot and the date) for the current player only; the phone has no board and no clock. (4) When a player's days change only that player's clock shuffles for about 0.6 s and settles, run by timers so it ends on time on a TV that gives no animation frames; with reduced motion the new date appears at once with a short ring. The bands are not cut and the scenery does not change yet. Checked in a real browser (PC, 2 players): both clocks show in the right colours with the current player glowing; at 360 px the phone has no board, no clock and no sideways scroll. Not seen: the shuffle moving (the test browser runs no animation) and the remote-strip and TV screens (need the device picker); they are covered by tests only. Tests: `gameClock.test.ts`, `TownClocks.test.tsx`, `GameStartDate.test.ts`.
+
 ## [3.8.82] - 2026-10-25
 
 ## [3.8.82] - 2026-10-25

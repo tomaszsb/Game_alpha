@@ -1,4 +1,5 @@
 import { IStateService, IDataService, IGameRulesService } from '../types/ServiceContracts';
+import { todayIso } from '../utils/gameClock';
 import { debugWarn } from '../utils/debugLog';
 import { sequentialId } from '../utils/sequentialId';
 import {
@@ -398,6 +399,7 @@ export class StateService implements IStateService {
 
     if (phase === 'PLAY' && !this.currentState.gameStartTime) {
       newState.gameStartTime = new Date();
+      newState.gameStartDate = this.currentState.gameStartDate ?? todayIso();
     }
 
     if (phase === 'END' && !this.currentState.gameEndTime) {
@@ -541,6 +543,7 @@ export class StateService implements IStateService {
       ...this.currentState,
       gamePhase: 'PLAY',
       gameStartTime: new Date(),
+      gameStartDate: todayIso(),
       currentPlayerId: this.currentState.players.length > 0 ? this.currentState.players[0].id : null,
       gameMode: 'BATTLE_ROYALE',
       decks,
@@ -611,6 +614,7 @@ export class StateService implements IStateService {
       players: updatedPlayers,
       gamePhase: 'PLAY',
       gameStartTime: new Date(),
+      gameStartDate: todayIso(),
       currentPlayerId: this.currentState.players.length > 0 ? this.currentState.players[0].id : null,
       gameMode: 'SAME_START',
       startingMode,
