@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.91] - 2026-10-26
+
+**"One-time favors" heading on the Expeditors page (Tom's choice "A").** The old expeditors now sit under a small heading, "One-time favors", in the same style as "Your team" over the reps (wording in UI_STRINGS.csv, `TEAM.favors`; no game words). Shown only when the player holds some. Nothing else changes. It adds one 10-point line inside the Expeditors pop-up, which already scrolls inside its own size limit; the phone panel behind it is untouched.
+
 ## [3.8.90] - 2026-10-26
 
 **A builder you cannot pay for can no longer be signed (Tom's answer "A" to the instant-bankruptcy question).** At the Hire a Builder desk the Sign button of a builder whose price is more than the player's cash is greyed out and cannot be pressed, with "Not enough money: get more from the lender first." beside it (one short line in place of the old three-line red warning, so the phone panel is not bigger). The "Get more money first" button is unchanged. The rule is also enforced where the signing happens (`BuilderBidService.hireBid` refuses with reason `not_enough_money`, nothing charged, no days added, no builder), so a stale screen or a bot cannot get round the button. The cash due is the whole price at signing: the game has no stages, the price is charged in one piece when the contract is signed, so the player's current cash is what is compared (a price equal to the cash is allowed and leaves $0). The robot: when no bid is affordable it no longer signs the cheapest anyway; it takes the road on to the lender like a player. 10 solo robot games (seeds 920001, 920004 ... 920028): all 10 finish, none stuck, none out by builder (3 of 10 went out that way before). New wording is in UI_STRINGS.csv (`BUILDER_BIDS.err.money`).

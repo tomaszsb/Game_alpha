@@ -126,6 +126,15 @@ describe('PlayerNumbersV2 — recall reference', () => {
     expect(onActivate).toHaveBeenCalledWith('E1');
   });
 
+  it('the expeditors page puts "One-time favors" over the old expeditors, in plain words with no game words', () => {
+    services.dataService.getCardById.mockImplementation((id: string) => (id === 'E1' ? { card_id: 'E1', card_type: 'E', card_name: 'Rush Rep', phase_restriction: 'Any' } as any : null));
+    renderModal({ ...player, hand: ['E1'] }, 'expeditors', { playableCardIds: [], onActivate: vi.fn() });
+    const title = screen.getByTestId('numbers-favors-title');
+    expect(title).toHaveTextContent('One-time favors');
+    expect(title.textContent).not.toMatch(/card|hand/i);
+    expect(screen.getByTestId('numbers-expeditors')).toContainElement(title);
+  });
+
   it('collapses the work packages behind the Total scope drill-down', () => {
     renderModal(player, 'scope');
     const scope = screen.getByRole('button', { name: /Total scope/i });

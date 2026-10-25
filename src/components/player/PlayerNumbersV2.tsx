@@ -19,7 +19,7 @@ import { panelPalettes, PanelMode } from './panelTheme';
 import { FormatUtils } from '../../utils/FormatUtils';
 import { computeProjectFinances, WorkPackage } from '../../utils/projectFinances';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
-import { NUMBERS } from '../../constants/uiStrings';
+import { NUMBERS, TEAM } from '../../constants/uiStrings';
 import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
 import { colors } from '../../styles/theme';
 import { TeamSection } from './TeamSection';
@@ -539,6 +539,7 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
           return (
             <>
             <div data-testid="numbers-expeditors">
+              <p data-testid="numbers-favors-title" style={{ fontSize: 10, letterSpacing: '0.05em', color: p.muted, textTransform: 'uppercase', margin: '0 0 4px' }}>{TEAM.TEAM_FAVORS}</p>
               {held.map(({ id, card }) => {
                 const playable = playableCardIds.includes(id);
                 const summary = playable ? getCardEffectSummary(card, player.timeSpent) : null;

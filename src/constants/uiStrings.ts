@@ -145,6 +145,7 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'BUILDER_BIDS.hiredTitle': 'Builder hired',
   'BUILDER_BIDS.hiredNext': 'Next: hire a special inspector.',
   'TEAM.title': 'Your team',
+  'TEAM.favors': 'One-time favors',
   'TEAM.empty': 'No one on your team yet. A good rep makes every stop in one area shorter.',
   'TEAM.hire': 'Hire a team member',
   'TEAM.fire': 'Let go',
@@ -464,6 +465,7 @@ export const BUILDER_BIDS = {
 /** The reps you hold: the Team list on the Expeditors page. */
 export const TEAM = {
   get TEAM_TITLE() { return getUIString('TEAM.title'); },
+  get TEAM_FAVORS() { return getUIString('TEAM.favors'); },
   get TEAM_EMPTY() { return getUIString('TEAM.empty'); },
   get TEAM_HIRE() { return getUIString('TEAM.hire'); },
   get TEAM_FIRE() { return getUIString('TEAM.fire'); },

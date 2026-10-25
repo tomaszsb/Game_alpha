@@ -160,6 +160,7 @@ MAT.notyet,not yet
 MAT.denied,denied
 MAT.objection,objection raised
 TEAM.title,Your team
+TEAM.favors,One-time favors
 TEAM.empty,No one on your team yet. A good rep makes every stop in one area shorter.
 TEAM.hire,Hire a team member
 TEAM.fire,Let go
