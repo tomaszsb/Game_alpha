@@ -26,6 +26,10 @@ describe('pinClock', () => {
     expect(pinClock(span, { x: 0, y: -350, zoom: 1 }, { w: 800, h: 600 }, 120)).toBeNull();
     expect(pinClock(span, { x: 0, y: 580, zoom: 1 }, { w: 800, h: 600 }, 120)).toBeNull();
   });
+  it('keeps the clock of a small band that is fully on screen (4 players at fit zoom)', () => {
+    expect(pinClock({ x: 100, top: 0, bottom: 40 }, { x: 0, y: 10, zoom: 1 }, { w: 800, h: 600 }, 120)).not.toBeNull();
+    expect(pinClock({ x: 100, top: 0, bottom: 40 }, { x: 0, y: -30, zoom: 1 }, { w: 800, h: 600 }, 120)).toBeNull();
+  });
   it('keeps the whole clock on screen sideways', () => {
     expect(pinClock(span, { x: -300, y: 0, zoom: 1 }, { w: 800, h: 600 }, 120)!.sx).toBe(66);
     expect(pinClock(span, { x: 900, y: 0, zoom: 1 }, { w: 800, h: 600 }, 120)!.sx).toBe(734);

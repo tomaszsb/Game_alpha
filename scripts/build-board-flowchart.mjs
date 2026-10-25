@@ -33,7 +33,6 @@ const OUT = load(clean('DICE_OUTCOMES.csv'));
 const DEFF = load(clean('DICE_EFFECTS.csv'));
 const SEFF = load(clean('SPACE_EFFECTS.csv'));
 const CONT = load(clean('SPACE_CONTENT.csv'));
-const LOGIC = load(clean('LOGIC_QUESTIONS.csv'));
 const TROPHY = load(clean('TROPHIES.csv'));
 const SPACES = load(path.join(root, 'public/data/SOURCE_FILES/Spaces.csv'));
 

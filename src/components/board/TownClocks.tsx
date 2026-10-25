@@ -48,7 +48,8 @@ export function pinClock(span: BandSpan, view: { x: number; y: number; zoom: num
   const topPx = span.top * view.zoom + view.y;
   const bottomPx = span.bottom * view.zoom + view.y;
   const visible = Math.min(bottomPx, screen.h) - Math.max(topPx, 0);
-  if (visible < MIN_VISIBLE_PX) return null;
+  // A band that is small on the whole (four players at fit zoom) still keeps its clock while most of it shows.
+  if (visible < Math.min(MIN_VISIBLE_PX, 0.6 * (bottomPx - topPx))) return null;
   const half = clockW / 2 + PIN_GAP;
   const cx = span.x * view.zoom + view.x;
   return { sx: Math.min(Math.max(cx, half), Math.max(half, screen.w - half)), sy: Math.max(topPx + PIN_GAP, PIN_GAP) };

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.84] - 2026-10-25
+
+## [3.8.84] - 2026-10-25
+
+**Four-player TV clock fix and lint cleanup (no other behaviour change).** (1) Found by looking at the TV with four players in a real browser: at the whole-town view each band is small, so the "hide a clock when under 60 px of its band shows" rule hid the fourth player's clock. A band that is fully on screen now always keeps its clock (the limit is 60 px or 60% of the band, whichever is smaller). Checked: four clocks on the TV and on a PC, none overlapping on the PC. Also looked at in a real browser and fine: the TV shows no view plate and clocks 248 x 66 px (1.6 times the PC's 155 x 41); the remote strip shows the folded "View" button (43 x 20), its open plate (108 x 84, inside the 292 px strip) and one slim clock (94 x 18); the 3.8.81 approval label at 390 x 844 is 197 x 23, floats over the page and changes neither the page height (844) nor the header row (22 px). (2) Lint: the 2 old errors and one new one are gone (an unused `LOGIC` in the flowchart script, an intended control-character test in the mailer address check now marked as such, an unused `setViewport` in the town board). The 25 remaining warnings are all React's "set state inside an effect" advice; fixing them means restructuring effects, which can change behaviour, so they stay. Tests: one more in `TownClocks.test.tsx`.
+
 ## [3.8.83] - 2026-10-25
 
 ## [3.8.83] - 2026-10-25

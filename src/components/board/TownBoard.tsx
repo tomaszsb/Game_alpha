@@ -481,7 +481,7 @@ export function useTownLayout(seats = 1): TownLayout | null {
 
 function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mode: modeProp, focusRequest, layout, screen = 'pc' }: TownBoardProps) {
   const { stateService, movementService, gameRulesService } = useGameContext();
-  const { fitView, setCenter, getViewport, setViewport } = useReactFlow();
+  const { fitView, setCenter, getViewport } = useReactFlow();
   const mode: PanelMode = modeProp ?? getStoredPanelMode();
   const labels = useTownLabels();
   const { appearances } = useNpcPortrait();

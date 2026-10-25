@@ -90,6 +90,7 @@ function buildReminderHtml(whenLabelRaw, campaignSource) {
 // v3.8.64: the typed address reaches nodemailer's address parser, which (before its 10.2 fix) could be
 // talked into mailing a recipient the text does not show. So accept exactly ONE plain address: no spaces,
 // commas, semicolons, quotes, angle brackets, brackets, parentheses, backslashes, colons or control characters.
+// eslint-disable-next-line no-control-regex -- the control characters are the point
 const EMAIL_BAD_CHARS = /[\s,;:<>"'()[\]\\\x00-\x1f\x7f]/;
 const EMAIL_SHAPE = /^[^@]+@[^@]+\.[^@.]+$/;
 
