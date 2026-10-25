@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.70] - 2026-10-25
+
+**Builder signing is easier to see (Tom: "builder hired did not show up or I did not see it").** The sign button needs a 650 ms hold. (a) A press that ends early, or where the pointer leaves or is cancelled, now shows a yellow note "Not signed yet. Keep holding the button until it fills." (same style as the lapsed-price note). (b) On a phone the button now reads "Hold to hire" (it said "Hire" and the "Press and hold" caption was hidden there). (c) The green hired box is bolder (2 px border, "Builder hired." plus "Next: hire a special inspector." on its first line). Words are in `UI_STRINGS.csv`. The movement rule is unchanged (the lender is the only door until a builder is hired, by design). Tests added in `BuilderBidsCard.test.tsx`. NOT verified: a real-browser measure at 360x640 and 390x844; by design the hired box is two lines like before and replaces the three bids, so the panel should not grow.
+
 ## [3.8.69] - 2026-10-24
 
 **Robot Banker finished: push-backs now count (Manager job 1).** A push-back adds one to a whole-game count (`pushBackTotal`, optional, outside the snapshot lists so the rollback leaves it alone; old saves load) and the bank reads it, so the push-back penalty in `BANKER.csv` now bites. Before, the live bank always read 0. Found on the way: the earlier push-back test never really pressed the button; the new one does, and a refusal given the same turn survives a real push-back. Tests: a real push-back keeps the refusal and counts once; a student with 3 push-backs gets a lower safe score than one with none. The counting numbers do not move: that test already modelled 0/1/2/3 push-backs.

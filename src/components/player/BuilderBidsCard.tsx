@@ -66,8 +66,12 @@ export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, p
     if (!bid || player.visitType !== 'First' || player.currentSpace !== getBuilderRules().space) return null;
     const quality = getBuilderRules().qualities[bid.quality];
     return (
-      <div data-testid="builder-hired" style={{ padding: '9px 11px', marginBottom: 8, background: p.goodSurf, border: `1px solid ${p.goodBorder}`, borderRadius: 9, fontSize: 13, color: p.text }}>
-        {BUILDER_BIDS.hired(money(bid.price), bid.days, quality.name)}
+      <div data-testid="builder-hired" role="status" style={{ padding: '8px 11px', marginBottom: 8, background: p.goodSurf, border: `2px solid ${p.good}`, borderRadius: 9, fontSize: 13, color: p.text }}>
+        <div style={{ fontWeight: 700 }}>
+          <span style={{ color: p.good }}>✅ {BUILDER_BIDS.HIRED_TITLE}.</span>{' '}
+          <span data-testid="builder-hired-next">{BUILDER_BIDS.HIRED_NEXT}</span>
+        </div>
+        <div>{BUILDER_BIDS.hired(money(bid.price), bid.days, quality.name)}</div>
       </div>
     );
   }
@@ -123,8 +127,8 @@ export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, p
               </div>
             )}
             {hintFor === b.id && (
-              <div data-testid="builder-bid-hold-hint" role="status" style={{ fontSize: 12, marginTop: 3, color: p.text, fontWeight: 600 }}>
-                {BUILDER_BIDS.holdHint(money(b.price), b.days)}
+              <div data-testid="builder-bid-hold-hint" role="status" style={{ fontSize: 12, marginTop: 3, padding: '3px 6px', background: p.warnSurf, border: '1px solid #f59e0b', borderRadius: 6, color: p.text, fontWeight: 600 }}>
+                {BUILDER_BIDS.NOT_SIGNED}{isPhone ? '' : ` ${BUILDER_BIDS.holdHint(money(b.price), b.days)}`}
               </div>
             )}
           </div>

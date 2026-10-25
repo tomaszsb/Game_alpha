@@ -106,7 +106,30 @@ describe('BuilderBidsCard', () => {
     fireEvent.click(btn);
     await holdFor(btn, 200); // released long before the hold is full
     expect(hire).not.toHaveBeenCalled();
+    expect(screen.getByTestId('builder-bid-hold-hint').textContent).toContain('Not signed yet. Keep holding');
     expect(screen.getByTestId('builder-bid-hold-hint').textContent).toContain('Press and hold');
+  });
+
+  it('a press cut short by the pointer leaving or being cancelled says it is not signed yet', async () => {
+    const { gs, hire } = services(atDesk());
+    render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
+    const btns = screen.getAllByTestId('builder-bid-hire');
+    fireEvent.pointerDown(btns[0]);
+    fireEvent.pointerLeave(btns[0]);
+    expect(screen.getByTestId('builder-bid-hold-hint').textContent).toContain('Not signed yet. Keep holding');
+    fireEvent.pointerDown(btns[1]);
+    fireEvent.pointerCancel(btns[1]);
+    expect(hire).not.toHaveBeenCalled();
+    expect(screen.getAllByTestId('builder-bid-hold-hint').length).toBeGreaterThan(0);
+  });
+
+  it('on a phone the button itself says to hold', () => {
+    const real = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false })) as never;
+    const { gs } = services(atDesk());
+    render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
+    window.matchMedia = real;
+    expect(screen.getAllByTestId('builder-bid-hire')[0].textContent).toContain('Hold to hire');
   });
 
   it('holding Enter hires, like holding the button', async () => {
@@ -149,6 +172,8 @@ describe('BuilderBidsCard', () => {
     expect(t).toContain('$900,000');
     expect(t).toContain('65 days of work');
     expect(t).toContain('Low quality');
+    expect(t).toContain('Builder hired');
+    expect(screen.getByTestId('builder-hired-next').textContent).toBe('Next: hire a special inspector.');
     expect(screen.queryByTestId('builder-bids')).toBeNull();
   });
 
