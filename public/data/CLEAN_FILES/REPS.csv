@@ -11,6 +11,16 @@ raise,30,3,
 stop,a,15000,7
 stop,b,10000,10
 stop,c,5000,15
+rule,loops_before_offer,2,Send-backs in a row before the student may send a filing rep round the circle
+circle,ARCH-INITIATION,1,twice
+circle,ARCH-FEE-REVIEW,2,twice
+circle,ARCH-SCOPE-CHECK,3,twice
+circle,ENG-INITIATION,4,twice
+circle,ENG-FEE-REVIEW,5,twice
+circle,ENG-SCOPE-CHECK,6,twice
+circle,REG-DOB-FEE-REVIEW,7,
+circle,REG-DOB-TYPE-SELECT,8,
+circle,REG-DOB-PLAN-EXAM,9,
 area,ARCH-,,Code
 area,ENG-,,Code
 area,REG-,,Permits

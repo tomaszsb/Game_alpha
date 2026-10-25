@@ -408,8 +408,8 @@ export interface ITurnService {
   rollDice(): number;
   
   // Separate dice and movement methods
-  rollDiceAndProcessEffects(playerId: string): Promise<{ diceRoll: number }>;
-  endTurnWithMovement(force?: boolean, skipAutoMove?: boolean): Promise<{ nextPlayerId: string }>;
+  rollDiceAndProcessEffects(playerId: string, forcedRoll?: number): Promise<{ diceRoll: number }>;
+  endTurnWithMovement(force?: boolean, skipAutoMove?: boolean, stayWithPlayer?: boolean): Promise<{ nextPlayerId: string }>;
   
   // Turn validation methods
   canPlayerTakeTurn(playerId: string): boolean;
@@ -432,7 +432,7 @@ export interface ITurnService {
   startTurn(playerId: string): Promise<void>;
   
   // Feedback methods for UI components
-  rollDiceWithFeedback(playerId: string): Promise<import('./StateTypes').TurnEffectResult>;
+  rollDiceWithFeedback(playerId: string, forcedRoll?: number): Promise<import('./StateTypes').TurnEffectResult>;
   rerollDice(playerId: string): Promise<import('./StateTypes').TurnEffectResult>;
   triggerManualEffectWithFeedback(playerId: string, effectType: string): Promise<import('./StateTypes').TurnEffectResult>;
   /** The builders' bids on the table for a player at the builder's desk (drawn or refreshed as needed). */
@@ -740,6 +740,7 @@ export interface IServiceContainer {
   approvalService?: import('../services/ApprovalService').IApprovalService;
   /** The reps you hold. Optional so component tests that never touch the Team list can omit it. */
   repService?: import('../services/RepService').RepService;
+  autoRunService?: import('../services/AutoRunService').AutoRunService;
 }
 
 // Re-export approval service interface for convenience.

@@ -40,6 +40,16 @@ export const DEFAULT_REP_ROWS: RepRow[] = [
   { kind: 'stop', key: 'a', value: '15000', text: '7' },
   { kind: 'stop', key: 'b', value: '10000', text: '10' },
   { kind: 'stop', key: 'c', value: '5000', text: '15' },
+  { kind: 'rule', key: 'loops_before_offer', value: '2', text: 'Send-backs in a row before the student may send a filing rep round the circle' },
+  { kind: 'circle', key: 'ARCH-INITIATION', value: '1', text: 'twice' },
+  { kind: 'circle', key: 'ARCH-FEE-REVIEW', value: '2', text: 'twice' },
+  { kind: 'circle', key: 'ARCH-SCOPE-CHECK', value: '3', text: 'twice' },
+  { kind: 'circle', key: 'ENG-INITIATION', value: '4', text: 'twice' },
+  { kind: 'circle', key: 'ENG-FEE-REVIEW', value: '5', text: 'twice' },
+  { kind: 'circle', key: 'ENG-SCOPE-CHECK', value: '6', text: 'twice' },
+  { kind: 'circle', key: 'REG-DOB-FEE-REVIEW', value: '7', text: '' },
+  { kind: 'circle', key: 'REG-DOB-TYPE-SELECT', value: '8', text: '' },
+  { kind: 'circle', key: 'REG-DOB-PLAN-EXAM', value: '9', text: '' },
   { kind: 'area', key: 'ARCH-', value: '', text: 'Code' },
   { kind: 'area', key: 'ENG-', value: '', text: 'Code' },
   { kind: 'area', key: 'REG-', value: '', text: 'Permits' },
@@ -66,17 +76,20 @@ export interface RepRules {
   stops: Record<string, { cost: number; days: number }>;
   areas: Array<{ prefix: string; area: RepArea }>;
   reps: RepDef[];
+  /** The plan exam, architect, engineer circle in walking order (rank 1 = first stop, highest rank = the exam). */
+  circle: Array<{ space: string; rank: number; twice: boolean }>;
 }
 
 const AREAS: RepArea[] = ['Code', 'Permits', 'Inspections'];
 
 export function buildRepRules(rows: RepRow[]): RepRules {
-  const out: RepRules = { rules: {}, raises: [], stops: {}, areas: [], reps: [] };
+  const out: RepRules = { rules: {}, raises: [], stops: {}, areas: [], reps: [], circle: [] };
   for (const r of rows) {
     const v = parseFloat(r.value);
     if (r.kind === 'rule' && !isNaN(v)) out.rules[r.key] = v;
     else if (r.kind === 'raise' && !isNaN(v)) out.raises.push({ pct: parseFloat(r.key), accept: v });
     else if (r.kind === 'stop' && !isNaN(v)) out.stops[r.key] = { cost: v, days: parseFloat(r.text) || 0 };
+    else if (r.kind === 'circle' && !isNaN(v) && r.key) out.circle.push({ space: r.key, rank: v, twice: r.text === 'twice' });
     else if (r.kind === 'area' && (AREAS as string[]).includes(r.text)) out.areas.push({ prefix: r.key, area: r.text as RepArea });
     else if (r.kind === 'rep' && !isNaN(v)) {
       const [name, area, sign, ...rest] = r.text.split('|');
@@ -86,6 +99,7 @@ export function buildRepRules(rows: RepRow[]): RepRules {
     }
   }
   out.raises.sort((a, b) => a.pct - b.pct);
+  out.circle.sort((a, b) => a.rank - b.rank);
   // Longest prefix first, so 'CON-INSPECT' is matched before any shorter 'CON-' row a board might add.
   out.areas.sort((a, b) => b.prefix.length - a.prefix.length);
   return out;
@@ -98,7 +112,7 @@ export function configureRepRules(rows: RepRow[]): void {
   const merged = new Map<string, RepRow>();
   for (const r of DEFAULT_REP_ROWS) merged.set(`${r.kind}|${r.key}`, r);
   // A file that names a table (reps, areas, raises, stops) replaces the whole table.
-  const fileKinds = new Set(rows.filter(r => ['rep', 'area', 'raise', 'stop'].includes(r.kind)).map(r => r.kind));
+  const fileKinds = new Set(rows.filter(r => ['rep', 'area', 'raise', 'stop', 'circle'].includes(r.kind)).map(r => r.kind));
   for (const k of [...merged.keys()]) {
     const [kind] = k.split('|');
     if (fileKinds.has(kind)) merged.delete(k);

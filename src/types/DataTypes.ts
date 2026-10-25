@@ -599,6 +599,8 @@ export interface Player {
   peakScope?: number;
   /** Times the bank has refused this player. Survives a push-back (written through updateTempState, not in the snapshot). */
   bankRefusals?: number;
+  /** Times in a row the plan exam sent this player back round the architect/engineer circle. Optional (old saves hold none); kept out of the push-back snapshot, like bankRefusals. */
+  sendBackCount?: number;
   /** Push-backs this player has made over the whole game; the banker reads it. */
   pushBackTotal?: number;
   /** The banker's last answer, shown in the bank pop-up in place of the usual text. */

@@ -9,7 +9,8 @@ export interface Choice {
   playerId: string;
   type: 'MOVEMENT' | 'PLAYER_TARGET' | 'GENERAL' | 'TARGET_SELECTION' | 'CARD_REPLACEMENT' | 'CARD_GIVE' | 'CARD_SELECTION' | 'CARD_DISCARD' | 'LOGIC_QUESTION';
   prompt: string;
-  options: Array<{ id: string; label: string; }>;
+  /** `disabled` greys the button out and shows `hint` under it (the filing-rep offer: "Needs a filing rep"). */
+  options: Array<{ id: string; label: string; disabled?: boolean; hint?: string; }>;
   // v3.0.33 (fb:068a66f2) — cross-runtime resolution relay. A LOGIC_QUESTION
   // chain is created during the OUTGOING player's endTurn→startTurn handoff, so
   // the pending promise lives on that device — not on the answering player's.

@@ -139,6 +139,8 @@ export interface MutablePlayerState {
   peakPlanDays?: number;
   /** Times the bank has refused this player; kept across a push-back like peakScope. */
   bankRefusals?: number;
+  /** Send-backs in a row on the plan exam circle; kept across a push-back like bankRefusals. */
+  sendBackCount?: number;
   pushBackTotal?: number;
   /** The banker's last answer, shown in the bank pop-up. */
   lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean; safe?: number };
@@ -530,6 +532,7 @@ export interface PlayerUpdateData {
   peakScope?: number;
   peakPlanDays?: number;
   bankRefusals?: number;
+  sendBackCount?: number;
   pushBackTotal?: number;
   lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean; safe?: number };
   reps?: import('./DataTypes').HeldRep[];

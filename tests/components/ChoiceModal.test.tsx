@@ -336,3 +336,57 @@ describe('ChoiceModal', () => {
     });
   });
 });
+
+describe("ChoiceModal - the filing rep's pop-ups", () => {
+  function renderChoice(choice: any) {
+    cleanup();
+    const services: any = createAllMockServices();
+    const player = { id: "player1", name: "Test Player", currentSpace: "ARCH-INITIATION", visitType: "Subsequent", money: 1000, timeSpent: 5, projectScope: 0, score: 0, color: "#007bff", avatar: "P", hand: [], activeCards: [], turnModifiers: { skipTurns: 0 }, activeEffects: [], loans: [] };
+    const state: any = { players: [player], currentPlayerId: "player1", gamePhase: "PLAY", turn: 1, awaitingChoice: choice, hasPlayerMovedThisTurn: false, hasPlayerRolledDice: true, hasCompletedManualActions: false, requiredActions: 1, completedActions: 0 };
+    services.stateService.subscribe.mockImplementation((callback: any) => { callback(state); return vi.fn(); });
+    services.stateService.getGameState.mockReturnValue(state);
+    render(
+      <GameContext.Provider value={services}>
+        <ChoiceModal />
+      </GameContext.Provider>
+    );
+    return services;
+  }
+
+  it("shows a greyed option with its hint, and a click on it does nothing", () => {
+    const services = renderChoice({
+      id: "offer-1", type: "GENERAL", playerId: "player1", prompt: "Go round again?",
+      metadata: { kind: "autorun_offer", title: "Go round again?" },
+      options: [
+        { id: "hand", label: "Play it yourself" },
+        { id: "rep", label: "Send your filing rep", disabled: true, hint: "Needs a filing rep" },
+      ],
+    });
+    expect(screen.getByText("Needs a filing rep")).toBeInTheDocument();
+    const grey = screen.getByText("Send your filing rep").closest("button") as HTMLButtonElement;
+    expect(grey.disabled).toBe(true);
+    fireEvent.click(grey);
+    expect(services.choiceService.resolveChoice).not.toHaveBeenCalled();
+    const live = screen.getByText("Play it yourself").closest("button") as HTMLButtonElement;
+    expect(live.disabled).toBe(false);
+    fireEvent.click(live);
+    expect(services.choiceService.resolveChoice).toHaveBeenCalledWith("offer-1", "hand");
+  });
+
+  it("the run's report is one scrolling box of lines with an OK button, and no other buttons", () => {
+    renderChoice({
+      id: "report-1", type: "GENERAL", playerId: "player1", prompt: "Your rep went round.",
+      metadata: { kind: "autorun_report", title: "The round, done", lines: [
+        { label: "Find an Architect", text: "rolled 2 and 5, kept the 2, +2 days" },
+        { label: "Total so far", text: "+215 days, -$60,900" },
+      ] },
+      options: [{ id: "ok", label: "OK" }],
+    });
+    const box = screen.getByTestId("autorun-report");
+    expect(box).toHaveTextContent("Find an Architect");
+    expect(box).toHaveTextContent("+215 days, -$60,900");
+    expect(getComputedStyle(box).overflowY).toBe("auto");
+    expect(screen.getByText("The round, done")).toBeInTheDocument();
+    expect(screen.getAllByRole("button").filter(b => b.textContent === "OK").length).toBe(1);
+  });
+});

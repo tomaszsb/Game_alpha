@@ -195,6 +195,11 @@ export interface GhostGameOptions {
    * on its own, so a normal run has no reps and plays exactly as before reps existed.
    */
   startReps?: string[];
+  /**
+   * Let the bot send its filing rep round the circle after two send-backs (the run is then automatic, no pop-up).
+   * Default off: the bot plays every loop by hand. Without a rep held the run never starts either way.
+   */
+  autoRun?: boolean;
 }
 
 /**
@@ -304,6 +309,7 @@ export async function playOneGame(
         stateService.updatePlayer({ id: pl.id, reps } as never);
       }
     }
+    services.autoRunService.mode = options.autoRun ? 'auto' : 'never';
     await turnService.startTurn(firstId);
     if (signal?.aborted) return abortedResult(0);
 

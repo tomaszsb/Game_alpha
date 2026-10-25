@@ -249,11 +249,19 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
     justifyContent: 'center',
   };
 
+  // The filing rep's run: the offer (two buttons, one maybe greyed) and the report (a scrolling list + OK).
+  // The title and lines are carried in the choice's own metadata, so a phone shows them as written.
+  const runKind = awaitingChoice?.metadata?.kind as string | undefined;
+  const runTitle = awaitingChoice?.metadata?.title as string | undefined;
+  const runLines = runKind === 'autorun_report'
+    ? ((awaitingChoice?.metadata?.lines as Array<{ label: string; text: string }> | undefined) ?? [])
+    : [];
+
   return (
     <ModalBase
       isOpen={isRegularChoice}
       onClose={() => {}}
-      title={customTitle || logicTitle || 'Make Your Choice'}
+      title={runTitle || customTitle || logicTitle || 'Make Your Choice'}
       emoji={theme.emoji.target}
       maxWidth="500px"
       testId="choice-modal" anchor="panel"
@@ -284,6 +292,24 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
         </p>
       )}
 
+      {/* The rep's report: a box that scrolls inside the pop-up, so a long run never grows the pop-up past the screen */}
+      {runLines.length > 0 && (
+        <div
+          data-testid="autorun-report"
+          style={{
+            maxHeight: 'min(40vh, 280px)', overflowY: 'auto', margin: '0 0 16px 0', padding: '10px 12px',
+            border: `1px solid ${p.border}`, borderRadius: theme.borderRadius.md, backgroundColor: p.surf,
+            textAlign: 'left', fontSize: '14px', color: p.text,
+          }}
+        >
+          {runLines.map((line, i) => (
+            <div key={i} style={{ padding: '4px 0', borderBottom: i < runLines.length - 1 ? `1px solid ${p.border}` : 'none' }}>
+              <strong>{line.label}:</strong> {line.text}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Choice Buttons */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {awaitingChoice?.options.map((option, index) => {
@@ -299,18 +325,27 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
               <button
                 data-testid="choice-option"
                 data-option-id={option.id}
-                onClick={() => handleChoiceClick(option.id)}
-                style={choiceButtonStyle}
+                disabled={!!option.disabled}
+                aria-disabled={!!option.disabled}
+                onClick={() => { if (!option.disabled) handleChoiceClick(option.id); }}
+                style={option.disabled
+                  ? { ...choiceButtonStyle, opacity: 0.45, cursor: 'not-allowed', flexDirection: 'column' }
+                  : choiceButtonStyle}
                 onMouseEnter={(e) => {
+                  if (option.disabled) return;
                   e.currentTarget.style.opacity = '0.9';
                   e.currentTarget.style.transform = 'translateY(-1px)';
                 }}
                 onMouseLeave={(e) => {
+                  if (option.disabled) return;
                   e.currentTarget.style.opacity = '1';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 {buttonLabel}
+                {option.disabled && option.hint && (
+                  <span data-testid="choice-option-hint" style={{ fontSize: '12px', fontWeight: 400 }}>{option.hint}</span>
+                )}
               </button>
             </Tooltip>
           );

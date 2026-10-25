@@ -19,6 +19,7 @@ import { calculatePushBackDays, calculatePushBackMoneyKept, getLoanOnTheTable, e
 import { computeFilingFee } from '../utils/violationRules';
 import { settlementAmount } from '../utils/bankerRules';
 import type { RepService } from './RepService';
+import type { AutoRunService } from './AutoRunService';
 import { combineLifeEventChanges, applyLifeEventHand } from '../utils/lifeEventChange';
 
 export class TurnService implements ITurnService {
@@ -150,6 +151,11 @@ export class TurnService implements ITurnService {
    */
   /** The reps you hold (shorter or longer visits, the 1-in-20 roll, salary at End Turn). Optional: a game built without it has no reps. */
   private repService?: RepService;
+  private autoRunService?: AutoRunService;
+  public setAutoRunService(autoRunService: AutoRunService): void {
+    this.autoRunService = autoRunService;
+    autoRunService.setTurnDriver(this);
+  }
   public setRepService(repService: RepService): void {
     this.repService = repService;
   }
@@ -246,7 +252,7 @@ export class TurnService implements ITurnService {
    * Roll dice and process effects only (no movement)
    * This is for the "Roll Dice" button
    */
-  async rollDiceAndProcessEffects(playerId: string): Promise<{ diceRoll: number }> {
+  async rollDiceAndProcessEffects(playerId: string, forcedRoll?: number): Promise<{ diceRoll: number }> {
     // Ensure all setter-injected dependencies are ready
     this.assertDependenciesReady();
 
@@ -270,8 +276,8 @@ export class TurnService implements ITurnService {
 
       // Player position for dice roll
 
-      // Roll dice
-      const diceRoll = this.rollDice();
+      // Roll dice (a filing rep's run hands in the better of its two rolls)
+      const diceRoll = forcedRoll ?? this.rollDice();
 
       // Store dice roll in player state for dice_outcome movement
       this.stateService.updatePlayer({
@@ -317,7 +323,7 @@ export class TurnService implements ITurnService {
    * Handle movement and advance to next player
    * This is for the "End Turn" button
    */
-  async endTurnWithMovement(force: boolean = false, skipAutoMove: boolean = false): Promise<{ nextPlayerId: string }> {
+  async endTurnWithMovement(force: boolean = false, skipAutoMove: boolean = false, stayWithPlayer: boolean = false): Promise<{ nextPlayerId: string }> {
     // Ensure all setter-injected dependencies are ready
     this.assertDependenciesReady();
 
@@ -389,6 +395,10 @@ export class TurnService implements ITurnService {
       step = 'execute_movement';
       // Execute movement (delegates to MovementExecutor)
       await this.movementExecutor.executeMovement(currentPlayer, gameState, skipAutoMove);
+      // The send-back counter for the filing rep's offer (a push-back stays put, so it is no move).
+      if (!skipAutoMove) {
+        this.autoRunService?.noteMove(currentPlayer.id, currentSpaceForLog, this.stateService.getPlayer(currentPlayer.id)?.currentSpace);
+      }
 
       step = 'check_win';
       // Check for win condition before ending turn
@@ -532,6 +542,19 @@ export class TurnService implements ITurnService {
       // `.then(...)` callback could otherwise fire post-turn against the
       // wrong player's state.
       this.choiceService.cancelAllPendingChoices('turn ended');
+
+      if (stayWithPlayer) {
+        // The filing rep's run: one hop of the circle inside this same turn. Leave, move and commit as above, then
+        // arrive again for the same player, without handing the turn on (no end-of-turn upkeep, no turn counter).
+        step = 'hop_arrive';
+        const playerId = gameState.currentPlayerId;
+        this.stateService.clearPlayerHasMoved();
+        this.stateService.clearPlayerHasRolledDice();
+        this.stateService.clearTurnActions();
+        this.stateService.clearPlayerMoveIntent(playerId);
+        await this.startTurn(playerId);
+        return { nextPlayerId: playerId };
+      }
 
       step = 'next_player';
       // Advance to next player
@@ -830,6 +853,7 @@ export class TurnService implements ITurnService {
       // Handle movement choices after effects are processed
       await this.handleMovementChoices(player.id);
 
+      // (the auto-roll below comes first, so the plan exam has already looked at the filing before any offer)
       // Auto-roll dice at review spaces where the authority decides (clerk/examiner).
       // CHEAT spaces require manual roll (player actively cheating).
       // Workstream 6 #8 lifted this from `currentSpace.startsWith('REG-')` to a
@@ -860,6 +884,9 @@ export class TurnService implements ITurnService {
           turnEffectResult: autoRollResult
         });
       }
+
+      // Sent back twice in a row on the plan exam circle: offer the filing rep's run (and run it if chosen).
+      await this.autoRunService?.maybeOffer(player.id);
 
     } catch (error) {
       // Ensure UI is unlocked if there's an error
@@ -1221,8 +1248,8 @@ export class TurnService implements ITurnService {
    * Roll dice and process effects with detailed feedback for UI
    * Delegates to DiceRollProcessor
    */
-  async rollDiceWithFeedback(playerId: string): Promise<TurnEffectResult> {
-    return this.diceRollProcessor.rollDiceWithFeedback(playerId);
+  async rollDiceWithFeedback(playerId: string, forcedRoll?: number): Promise<TurnEffectResult> {
+    return this.diceRollProcessor.rollDiceWithFeedback(playerId, forcedRoll);
   }
 
   /**

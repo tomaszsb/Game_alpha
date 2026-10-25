@@ -19,6 +19,7 @@ import { StateService } from '../services/StateService';
 import { LoggingService } from '../services/LoggingService';
 import { ResourceService } from '../services/ResourceService';
 import { RepService } from '../services/RepService';
+import { AutoRunService } from '../services/AutoRunService';
 import { GameRulesService } from '../services/GameRulesService';
 import { ChoiceService } from '../services/ChoiceService';
 import { CardService } from '../services/CardService';
@@ -86,6 +87,7 @@ export interface HeadlessServices {
   resourceService: ResourceService;
   loggingService: LoggingService;
   repService: RepService;
+  autoRunService: AutoRunService;
 }
 
 export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise<HeadlessServices> {
@@ -161,6 +163,10 @@ export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise
   const repService = new RepService(stateService, dataService, choiceService, resourceService, loggingService);
   repService.autoDecide = true;
   turnService.setRepService(repService);
+  // Counts send-backs like the real game; a robot is never asked (a test or the ghost turns it on).
+  const autoRunService = new AutoRunService(stateService, dataService, choiceService, loggingService, repService, movementService);
+  autoRunService.mode = 'never';
+  turnService.setAutoRunService(autoRunService);
 
   return {
     dataService,
@@ -173,5 +179,6 @@ export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise
     resourceService,
     loggingService,
     repService,
+    autoRunService,
   };
 }

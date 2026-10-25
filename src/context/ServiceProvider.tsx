@@ -14,6 +14,7 @@ import { MovementService } from '../services/MovementService';
 import { GameRulesService } from '../services/GameRulesService';
 import { ResourceService } from '../services/ResourceService';
 import { RepService } from '../services/RepService';
+import { AutoRunService } from '../services/AutoRunService';
 import { ChoiceService } from '../services/ChoiceService';
 import { EffectEngineService } from '../services/EffectEngineService';
 import { NegotiationService } from '../services/NegotiationService';
@@ -99,6 +100,10 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   const repService = new RepService(stateService, dataService, choiceService, resourceService, loggingService);
   turnService.setRepService(repService);
 
+  // The filing rep's run round the plan-exam circle (offered after two send-backs in a row).
+  const autoRunService = new AutoRunService(stateService, dataService, choiceService, loggingService, repService, movementService);
+  turnService.setAutoRunService(autoRunService);
+
   const services: IServiceContainer = {
     dataService,
     stateService,
@@ -114,6 +119,7 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
     negotiationService,
     approvalService,
     repService,
+    autoRunService,
   };
 
   return (

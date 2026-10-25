@@ -112,7 +112,7 @@ export class DiceRollProcessor {
   /**
    * Roll dice and process effects with detailed feedback for UI
    */
-  public async rollDiceWithFeedback(playerId: string): Promise<TurnEffectResult> {
+  public async rollDiceWithFeedback(playerId: string, forcedRoll?: number): Promise<TurnEffectResult> {
     debugLog(`🎲 ROLL_DICE_FEEDBACK: ========== START ==========`);
     debugLog(`🎲 ROLL_DICE_FEEDBACK: playerId: ${playerId}`);
 
@@ -126,8 +126,8 @@ export class DiceRollProcessor {
     const beforeScope = this.gameRulesService.calculateProjectScope(playerId);
     const beforeSnapshot = buildResourceSnapshot(currentPlayer, beforeScope);
 
-    // Roll dice
-    const diceRoll = this.rollDice();
+    // Roll dice (the filing rep's run picks the better of two rolls first, then plays that one)
+    const diceRoll = forcedRoll ?? this.rollDice();
     this.lastRollGroups = undefined;
     this.lastApprovalOutcome = undefined;
     debugLog(`🎲 ROLL_DICE_FEEDBACK: Dice roll result: ${diceRoll}`);
