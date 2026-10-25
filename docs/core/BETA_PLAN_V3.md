@@ -494,10 +494,34 @@ Tom's idea: the player can always HIRE a rep or FIRE a rep. Each rep costs a sal
 
 **Phone.** The hire screen is the existing pick-from-cards pop-up (no growth of the player panel); held reps already show in the hand list. Add a salary note in one line there. Measure at 360x640 and 390x844 when built.
 
-**Three questions for Tom (one decision each).**
-1. How does a rep help? (a) Every visit in its area is a few days shorter, as long as you hold the rep [my pick, simplest]. (b) One play, bigger days (like today but 5-6 days). (c) Both kinds of card in the draw.
-2. What happens when you cannot pay the salary? (a) The newest rep leaves for free, no bankruptcy from salary [my pick]. (b) You are asked to choose who goes. (c) Bankruptcy like any other bill.
-3. Does the salary count against "On budget"? (a) No, it is a running cost like the lender's interest [my pick]. (b) Yes, it counts as spent, so reps trade days for the money trophy. (c) Only the part above a free first rep.
+**Tom's answers (2026-10-25) and what they change.** Items 1-3 are PROVISIONAL, the Manager is confirming them with Tom.
+1. How a rep helps: **A** (a held rep makes every visit in its area shorter or longer for as long as it is held). Provisional, confirming.
+2. Cannot pay the salary: **the student picks who goes** ("sometimes you give a rep to a friend"). This replaces my "newest leaves" pick. The student is given the list of reps and chooses; still no bankruptcy from salary. Provisional, confirming.
+3. Salary does not count against "On budget" (a running cost, like the lender's interest). Provisional, confirming.
+4. NEW, a good rep may QUIT (about 1 in 20; the student can keep them by paying a higher salary). A bad rep has about a 1 in 20 chance of a DISASTER: a stop work order, +7 days.
+5. NEW, Tom asks whether salary should be counted every 7 days of game time.
+
+**(a) The 1-in-20 chance: per what?** Three ways, with the numbers for a typical human game (about 35 turns, a 400-day plan, 4 to 8 visits to a rep's area; the robot's long games of 20 to 170 turns are distorted by loops, so I used the class games that ended at turns 27 to 31 plus a normal run):
+- Per turn: 1.75 chances per rep per game. Too many, and it hits when the rep did nothing.
+- Per 7 days: about 2.9 per rep per game. Even more.
+- **Per visit to the rep's own area [my pick]:** about 0.2 to 0.4 per rep per game, so one game in three has an event for one rep, about one event a game with three reps. It ties the risk to the work the rep is doing. The roll is made when the student arrives on a space of the rep's area.
+- **Stop work order: reuse, do not invent.** The game has no reusable stop-work event, only a dice outcome at `CON-STEER` (30 days, -$25,000) and `SI-SKIP`. What it does have is the time-change effect and the life-event cards (`+days`, via `activeEffects`). So the disaster is one effect "+7 days" with a log line and a toast "Stop work order: a week lost", no new space. Data: the 7 and the line; code: the roll hook on arrival.
+
+**(b) "Quit unless you raise the salary" on a phone.** A pop-up (the existing choice pop-up), not a new panel row, so the panel never grows: "Your Code rep wants $3,000 a turn (was $2,000) to stay. [Pay more] [Let them go]". If the student ignores it and ends the turn, the rep goes. A rep who stays at the higher salary keeps the higher pay for the rest of the game (stored on that held card), which is what makes the 1-in-20 worth paying attention to. Measure at 360x640 and 390x844 when built.
+
+**(c) Salary every 7 days vs once per turn.**
+- How: charge by the days that passed. Store one number on the player, `salaryBilledThroughDay`. At End Turn the weeks due are floor((days now - billed-through) / 7); charge that many weeks per rep, then move billed-through forward by 7 per week. A turn of 3 days may charge nothing, a turn of 15 days charges 2 weeks and keeps 1 day for next time. Hiring sets the billed day to today (no back pay).
+- Why it is better than per turn: turns cost very different numbers of days, so per turn punishes quick turns and under-charges long ones. Days is the project's own clock. A rep who SAVES days also saves salary (small and honest), and a bad rep who ADDS days costs more salary as well, which teaches that delay is expensive. A push-back that adds days adds salary; the billed-through day is stored outside the turn snapshot, so a push-back cannot undo a bill.
+- Solo: no difference, days are the player's own.
+- Plain words for the student: "Each rep is paid every 7 days on your project clock."
+- **My pick: every 7 days.**
+
+**(d) The weekly rate.** $2,000 a turn over about 35 turns is $70,000 per rep per game. A 400-day plan is about 57 weeks, so the same cost is about **$1,250 a week** ($71,000 per game). Round to $1,250. Both are estimates; the ghost run tunes it (see "Game length and bankruptcy" above).
+
+**Questions for Tom (one decision each; my pick first).**
+A. When does the 1-in-20 roll happen? (1) When you arrive on a space of the rep's area [my pick]. (2) Once each turn. (3) Once every 7 days.
+B. How is salary counted? (1) Every 7 days of your project clock, $1,250 a week [my pick]. (2) Once each turn, $2,000. (3) Every 7 days but a flat rate that does not grow when a rep asks for a raise.
+C. When a good rep asks for a raise, how big? (1) +50% of the salary, for the rest of the game [my pick]. (2) +$1,000 a week. (3) The student names a price and the rep may say no (more work, not recommended now).
 
 ### 3. TCO vs final CO at the end
 - **The student's problem.** The last step is a dice space (first visit: 4 in 6 finish, 1 Site Inspection, 1 Fire Dept. fees). Nothing at the end asks the student to pick between Fastest and Best built, which is where the trophy race is hottest.
