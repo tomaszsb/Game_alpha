@@ -110,9 +110,9 @@ describe('DataService', () => {
     // 13 CLEAN_FILES CSVs (incl. LOGIC_QUESTIONS.csv + PATH_CHOICE_RULES.csv
     // added in v2.57.0, CARD_TYPES.csv added 2026-07-16, CHARACTERS.csv added
     // 2026-08-09, VIOLATION_RULES.csv + UI_STRINGS.csv added 2026-08-14 for
-    // the CSV-portability lift, SCOPE_WORDING.csv added 2026-10-02, TROPHIES.csv added 2026-10-07, TOWN.csv added 2026-10-11, BANKER.csv added 2026-10-24, REPS.csv added 2026-10-25) + 1
-    // SOURCE_FILES/ModalConfig.csv = 19 fetches.
-    expect(global.fetch).toHaveBeenCalledTimes(19);
+    // the CSV-portability lift, SCOPE_WORDING.csv added 2026-10-02, TROPHIES.csv added 2026-10-07, TOWN.csv added 2026-10-11, BANKER.csv added 2026-10-24, REPS.csv added 2026-10-25, TOWN_SEASONS.csv added 2026-10-25) + 1
+    // SOURCE_FILES/ModalConfig.csv = 20 fetches.
+    expect(global.fetch).toHaveBeenCalledTimes(20);
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/TOWN\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CARDS_EXPANDED\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/SOURCE_FILES\/ModalConfig\.csv/));

@@ -161,6 +161,8 @@ export interface IDataService {
   getRepRows(): import('./DataTypes').TrophyRuleCsvRow[];
   /** TOWN.csv — the town board's layout (look only). Optional: empty = classic board only. */
   getTownRows?(): import('./DataTypes').TownCsvRow[];
+  /** TOWN_SEASONS.csv rows (the town's twelve monthly looks). Optional like getTownRows. */
+  getSeasonRows?(): Array<Record<string, string>>;
   /** SCOPE_WORDING.csv — project types a dice throw can pick (bare nouns); empty = feature off. */
   getScopeProjectTypes(): string[];
   /** SCOPE_WORDING.csv — a work package's wording with a `{project}` blank, by base card id. */

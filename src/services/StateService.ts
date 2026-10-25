@@ -315,6 +315,9 @@ export class StateService implements IStateService {
       visitedSpaces: playerData.visitedSpaces ? [...playerData.visitedSpaces] : currentPlayer.visitedSpaces,
       spaceVisitLog: playerData.spaceVisitLog ? [...playerData.spaceVisitLog] : currentPlayer.spaceVisitLog
     };
+    // The most days this player has ever had: only goes up (a push-back or a lucky event handing days back keeps it).
+    const peak = Math.max(currentPlayer.peakDays ?? 0, playerData.peakDays ?? 0, updatedPlayer.timeSpent ?? 0);
+    if (peak > 0 || updatedPlayer.peakDays !== undefined) updatedPlayer.peakDays = peak;
 
     let newPlayers = [...this.currentState.players];
     newPlayers[playerIndex] = updatedPlayer;

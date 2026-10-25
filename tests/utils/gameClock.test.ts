@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clockDate, clockStartIso, clockText, todayIso } from '../../src/utils/gameClock';
+import { clockDate, clockMonth, clockStartIso, clockText, todayIso } from '../../src/utils/gameClock';
 
 describe('gameClock', () => {
   it('todayIso writes the local date as YYYY-MM-DD', () => {
@@ -25,5 +25,14 @@ describe('gameClock', () => {
     expect(clockStartIso({ gameStartTime: new Date(2025, 0, 9, 12).toISOString() })).toBe('2025-01-09');
     expect(clockStartIso({}, new Date(2026, 5, 1))).toBe('2026-06-01');
     expect(clockStartIso({ gameStartDate: 'junk' }, new Date(2026, 5, 1))).toBe('2026-06-01');
+  });
+});
+
+describe('clockMonth', () => {
+  it("gives the calendar month 1 to 12 a player's own days have reached", () => {
+    expect(clockMonth('2026-10-25', 0)).toBe(10);
+    expect(clockMonth('2026-10-25', 7)).toBe(11);
+    expect(clockMonth('2026-10-25', 68)).toBe(1);
+    expect(clockMonth('2026-10-25', 365)).toBe(10);
   });
 });

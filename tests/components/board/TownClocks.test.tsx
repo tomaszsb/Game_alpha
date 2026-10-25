@@ -100,3 +100,22 @@ describe('TownClocks on the remote strip', () => {
     expect(screen.getByTestId('town-clock-b').getAttribute('aria-label')).toBe('Bo: 2026 DEC 04');
   });
 });
+
+describe('TownClocks when a player has left', () => {
+  it("takes a finished player's clock off the board but keeps the others", () => {
+    const layout = { seats: 3, buildings: [], bounds: { minCol: 0, maxCol: 10, minRow: 0, maxRow: 50 }, settings: {} } as never;
+    const players = [
+      { id: 'a', name: 'Ann', color: '#2563eb', timeSpent: 5 },
+      { id: 'b', name: 'Bo', color: '#dc2626', timeSpent: 40, gone: true },
+      { id: 'c', name: 'Cy', color: '#16a34a', timeSpent: 9 },
+    ];
+    render(
+      <ReactFlowProvider>
+        <div style={{ width: 400, height: 300 }}>
+          <ReactFlow nodes={[]} edges={[]}><TownClocks players={players} currentPlayerId="a" layout={layout} tile={50} startIso="2026-10-25" screen="pc" /></ReactFlow>
+        </div>
+      </ReactFlowProvider>,
+    );
+    expect(screen.queryByTestId('town-clock-b')).toBeNull();
+  });
+});

@@ -533,6 +533,8 @@ export interface PlayerUpdateData {
   builderBids?: import('../utils/builderBids').BuilderBidSet;
   peakScope?: number;
   peakPlanDays?: number;
+  /** Most days ever had (see Player.peakDays); not part of the turn snapshot, so a push-back never forgets it. */
+  peakDays?: number;
   bankRefusals?: number;
   sendBackCount?: number;
   pushBackTotal?: number;

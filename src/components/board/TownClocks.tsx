@@ -9,12 +9,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Panel, ViewportPortal, useStore, useViewport } from '@xyflow/react';
 import type { TownLayout } from '../../utils/townLayout';
 import { isoPoint } from '../../utils/townLayout';
+import { townBands } from '../../utils/townAreas';
 import { clockDate, clockText, type ClockDate } from '../../utils/gameClock';
 import { scaleMs } from '../../utils/gameSpeed';
 
 export type ClockScreen = 'pc' | 'tv' | 'remote';
 
-export interface ClockPlayer { id: string; name: string; color?: string; timeSpent: number }
+export interface ClockPlayer { id: string; name: string; color?: string; timeSpent: number; /** Finished or out: the clock leaves the board. */ gone?: boolean }
 
 const SHUFFLE_MS = 600;
 const TICK_MS = 70;
@@ -28,16 +29,13 @@ const prefersReducedMotion = (): boolean => {
 /** Where each band starts and ends, in flow coordinates (iso points on the band's centre column). */
 export interface BandSpan { x: number; top: number; bottom: number }
 export function bandSpans(layout: TownLayout, count: number, tile: number): BandSpan[] {
-  const { minCol, maxCol, minRow, maxRow } = layout.bounds;
-  const bandRows = parseFloat(layout.settings.seat_drow ?? '') || 16.4;
+  const { minCol, maxCol } = layout.bounds;
   const midCol = (minCol + maxCol) / 2;
-  const out: BandSpan[] = [];
-  for (let k = 0; k < count; k++) {
-    const top = minRow - 0.5 + k * bandRows;
-    const bottom = k === count - 1 ? maxRow + 1 : minRow - 0.5 + (k + 1) * bandRows;
-    out.push({ x: isoPoint(midCol, top, 0, tile).x, top: isoPoint(midCol, top, 0, tile).y, bottom: isoPoint(midCol, bottom, 0, tile).y });
-  }
-  return out;
+  const bands = townBands({ ...layout, seats: Math.max(1, count) });
+  return bands.map(band => {
+    const top = isoPoint(midCol, band.top, 0, tile);
+    return { x: top.x, top: top.y, bottom: isoPoint(midCol, band.bottom, 0, tile).y };
+  });
 }
 
 /**
@@ -168,10 +166,12 @@ export function TownClocks({ players, currentPlayerId, layout, tile, startIso, s
 
   const big = screen === 'tv';
   const spans = bandSpans(layout, players.length, tile);
+  const allGone = players.every(p => p.gone);
   const clockW = CLOCK_W * (big ? 1.6 : 1);
   return (
     <ViewportPortal>
       {players.map((p, i) => {
+        if (p.gone && !allGone) return null;
         const spot = spans[i] && pinClock(spans[i], view, { w, h }, clockW);
         if (!spot) return null;
         const fx = (spot.sx - view.x) / view.zoom;

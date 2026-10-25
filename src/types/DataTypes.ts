@@ -610,6 +610,9 @@ export interface Player {
   /** The most planned days this player's project has called for at the end of any turn; the 300% time cap is
    *  measured against it for the same reason as peakScope (dropping work must not make a project "late"). */
   peakPlanDays?: number;
+  /** The most days this player has ever had (never goes down, even when a lucky event hands days back). The town's trees
+   *  grow from it, so a tree never shrinks when the season goes back. Kept up to date by StateService.updatePlayer. */
+  peakDays?: number;
   /** Set when they reach the ending space and stop taking turns; value = the game turn they got there. */
   finishedAtTurn?: number;
   /** Set when the player is out (cash below zero, or design fees over the limit) — they hold no trophy. */

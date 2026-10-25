@@ -19,6 +19,7 @@ import { configureApprovalSpaces } from './services/ApprovalService';
 import { configureTrophyRules } from './utils/trophyRules';
 import { configureBankerRules } from './utils/bankerRules';
 import { configureRepRules } from './utils/repRules';
+import { configureSeasons } from './utils/townSeasons';
 import { configureNpcSpeakers, configureCharacterMap } from './constants/characters';
 import { configureCardTypeLabels } from './utils/cardTypeNames';
 import { configureViolationRules } from './utils/violationRules';
@@ -231,6 +232,8 @@ function AppContent(): JSX.Element {
         configureBankerRules(dataService.getBankerRows());
         // The reps you hold: names, areas, salaries, the roll and the stop-work prices (REPS.csv).
         configureRepRules(dataService.getRepRows());
+        // The town's twelve monthly looks (TOWN_SEASONS.csv).
+        configureSeasons(dataService.getSeasonRows?.() ?? []);
         // Same reskin hook for button/notification text vocabulary
         // ("Hire Expeditors" etc). No ordering dependency on the other
         // configure calls above.

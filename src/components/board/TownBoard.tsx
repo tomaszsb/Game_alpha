@@ -40,7 +40,9 @@ import { projectKindOf } from '../../utils/projectKind';
 import { getSoundOn } from '../../utils/soundSetting';
 import { TownViewPad, type ViewPadScreen } from './TownViewPad';
 import { TownClocks } from './TownClocks';
-import { clockStartIso } from '../../utils/gameClock';
+import { clockMonth, clockStartIso } from '../../utils/gameClock';
+import { areaSegments, hasLeftBoard, type AreaSegment } from '../../utils/townAreas';
+import { seasonLook, mixHex, type SeasonLook } from '../../utils/townSeasons';
 import { racePlaces } from '../../utils/liveTrophies';
 import { getTrophyRules, type TrophyId } from '../../utils/trophyRules';
 import { playResultChime, isAudioReady, primeAudio } from '../../utils/haptics';
@@ -98,6 +100,14 @@ function shade(hex: string, f: number): string {
 // Ground: the grass, the streets and their centre lines. One node under everything.
 // -------------------------------------------------------------------------------------------------
 
+/** Who owns which ground, and the look of each player's month (index = seat). Built once per change in TownBoardInner. */
+export interface GroundAreas {
+  segments: AreaSegment[];
+  looks: SeasonLook[];
+  /** Each player's colour, for the dotted line along their side of a cut. */
+  colors: string[];
+}
+
 interface GroundData extends Record<string, unknown> {
   w: number;
   h: number;
@@ -105,10 +115,18 @@ interface GroundData extends Record<string, unknown> {
   oy: number;
   layout: TownLayout;
   mode: PanelMode;
+  areas: GroundAreas;
 }
 
+/** How far the water reaches past the island, in tiles, so each band's blue runs out to the frame at any zoom. */
+const WATER_REACH = 400;
+/** The soft blend at a cut: this many tiles each side, in this many steps. */
+const BLEND_TILES = 2;
+const BLEND_STEPS = 8;
+const FADE_MS = 1500;
+
 function TownGround({ data }: NodeProps<Node<GroundData>>) {
-  const { w, h, ox, oy, layout, mode } = data;
+  const { w, h, ox, oy, layout, mode, areas } = data;
   const g = GROUND[mode];
   const { minCol, minRow, maxCol, maxRow } = layout.bounds;
   const c0 = minCol - 1, r0 = minRow - 1, c1 = maxCol + 1, r1 = maxRow + 1;
@@ -122,9 +140,43 @@ function TownGround({ data }: NodeProps<Node<GroundData>>) {
     const q = isoPoint(b[0], b[1], 0, TOWN_TILE);
     return { x1: p.x - ox, y1: p.y - oy, x2: q.x - ox, y2: q.y - oy };
   };
+  const { segments, looks, colors } = areas;
+  const look = (seat: number): SeasonLook => looks[seat] ?? looks[0];
+  // the colour change fades over about 1.5 s; the end colour is set at once, so a missing frame never leaves it stuck
+  const fade: React.CSSProperties = prefersReducedMotion() ? {} : { transition: `fill ${FADE_MS}ms, stroke ${FADE_MS}ms` };
+  const fill = (c: string): React.CSSProperties => ({ fill: c, ...fade });
+  const cuts = segments.slice(0, -1).map((s, i) => ({ row: s.to, above: s.seat, below: segments[i + 1].seat }));
+  const wc0 = c0 - WATER_REACH, wc1 = c1 + WATER_REACH;
+  const wr0 = r0 - WATER_REACH, wr1 = r1 + WATER_REACH;
+  const lo = (s: AreaSegment) => Math.max(s.from, r0);
+  const hi = (s: AreaSegment) => Math.min(s.to, r1);
   return (
-    <svg width={w} height={h} style={{ display: 'block', pointerEvents: 'none' }} aria-hidden="true">
-      <polygon points={quad(c0, r0, c1, r1)} fill={g.grass} stroke={g.edge} strokeWidth={3} />
+    <svg width={w} height={h} style={{ display: 'block', pointerEvents: 'none', overflow: 'visible' }} aria-hidden="true">
+      {segments.map(s => (
+        <polygon key={`w${s.from}`} points={quad(wc0, Math.max(s.from, wr0), wc1, Math.min(s.to, wr1))} style={fill(look(s.seat).water)} />
+      ))}
+      {cuts.map(c => Array.from({ length: BLEND_STEPS }, (_, i) => {
+        const a = c.row - BLEND_TILES + (i * 2 * BLEND_TILES) / BLEND_STEPS;
+        return <polygon key={`wb${c.row}-${i}`} points={quad(wc0, a, wc1, a + (2 * BLEND_TILES) / BLEND_STEPS)} style={fill(mixHex(look(c.above).water, look(c.below).water, (i + 0.5) / BLEND_STEPS))} />;
+      }))}
+      {segments.filter(s => hi(s) > lo(s)).map(s => (
+        <polygon key={`g${s.from}`} points={quad(c0, lo(s), c1, hi(s))} style={fill(look(s.seat).grass)} />
+      ))}
+      {cuts.map(c => Array.from({ length: BLEND_STEPS }, (_, i) => {
+        const a = c.row - BLEND_TILES + (i * 2 * BLEND_TILES) / BLEND_STEPS;
+        return <polygon key={`gb${c.row}-${i}`} points={quad(c0, a, c1, a + (2 * BLEND_TILES) / BLEND_STEPS)} style={fill(mixHex(look(c.above).grass, look(c.below).grass, (i + 0.5) / BLEND_STEPS))} />;
+      }))}
+      {segments.filter(s => hi(s) > lo(s)).map(s => {
+        const edge = { stroke: look(s.seat).edge, strokeWidth: 3, ...fade };
+        return (
+          <g key={`e${s.from}`}>
+            <line {...line([c0, lo(s)], [c0, hi(s)])} style={edge} />
+            <line {...line([c1, lo(s)], [c1, hi(s)])} style={edge} />
+            {s.from <= r0 && <line {...line([c0, r0], [c1, r0])} style={edge} />}
+            {s.to >= r1 && <line {...line([c0, r1], [c1, r1])} style={edge} />}
+          </g>
+        );
+      })}
       {layout.streets.map((s, i) => (
         <polygon
           key={`s${i}`}
@@ -136,6 +188,24 @@ function TownGround({ data }: NodeProps<Node<GroundData>>) {
         const l = s.axis === 'col' ? line([s.at + 0.5, r0], [s.at + 0.5, r1]) : line([c0, s.at + 0.5], [c1, s.at + 0.5]);
         return <line key={`l${i}`} {...l} stroke={g.line} strokeWidth={3} strokeDasharray="16 14" />;
       })}
+      {/* the month's light over the ground (buildings stand above it and are never tinted) */}
+      {segments.map(s => {
+        const k = look(s.seat);
+        const a = Math.max(s.from, wr0), z = Math.min(s.to, wr1);
+        return (
+          <g key={`t${s.from}`}>
+            <polygon points={quad(wc0, a, wc1, z)} style={{ ...fill(k.tint), fillOpacity: k.tintOpacity }} />
+            {k.daylight < 1 && <polygon points={quad(wc0, a, wc1, z)} style={{ fill: '#000', fillOpacity: 1 - k.daylight }} />}
+          </g>
+        );
+      })}
+      {/* a thin dotted line in each player's colour along their own side of every cut */}
+      {cuts.map(c => (
+        <g key={`d${c.row}`}>
+          <line {...line([c0 - 1, c.row - 0.12], [c1 + 1, c.row - 0.12])} stroke={colors[c.above] ?? '#475569'} strokeWidth={4} strokeDasharray="5 9" strokeLinecap="round" opacity={1} />
+          <line {...line([c0 - 1, c.row + 0.12], [c1 + 1, c.row + 0.12])} stroke={colors[c.below] ?? '#475569'} strokeWidth={4} strokeDasharray="5 9" strokeLinecap="round" opacity={1} />
+        </g>
+      ))}
     </svg>
   );
 }
@@ -668,6 +738,21 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   }), [layout, players, validMoves, whoOf, currentWho, scopeKinds]);
   const faded = useMemo(() => fadedBuildings(layout, scopeKinds), [layout, scopeKinds]);
 
+  // Each player's band shows the look of the month their own days have reached; ground of a player who has finished or
+  // gone out goes to the nearest player still playing (townAreas.ts). Keyed on the few things that change it.
+  const areaKey = JSON.stringify([players.map(p => [p.color, clockMonth(startIso, p.timeSpent ?? 0), hasLeftBoard(p)]), startIso, mode, layout.seats]);
+  const areas = useMemo<GroundAreas>(() => {
+    const seats = Math.max(1, layout.seats);
+    const at = (i: number) => players[i] ?? players[0];
+    return {
+      segments: areaSegments(layout, Array.from({ length: seats }, (_, i) => !!at(i) && hasLeftBoard(at(i)))),
+      looks: Array.from({ length: seats }, (_, i) => seasonLook(clockMonth(startIso, at(i)?.timeSpent ?? 0), mode)),
+      colors: Array.from({ length: seats }, (_, i) => at(i)?.color ?? '#475569'),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [areaKey, layout]);
+  const waterColor = (areas.looks[areas.segments[0]?.seat ?? 0] ?? seasonLook(1, mode)).water;
+
   const nodes = useMemo(() => {
     const out: Node[] = [];
     const { minCol, minRow, maxCol, maxRow } = layout.bounds;
@@ -680,7 +765,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     out.push({
       id: 'town-ground', type: 'townGround', position: { x: gx, y: gy }, zIndex: 0, style: { pointerEvents: 'none' },
       draggable: false, selectable: false, focusable: false,
-      data: { w: gw, h: gh, ox: gx, oy: gy, layout, mode } satisfies GroundData,
+      data: { w: gw, h: gh, ox: gx, oy: gy, layout, mode, areas } satisfies GroundData,
     });
     for (const b of layout.buildings) {
       const box = buildingBox(b, TOWN_TILE);
@@ -704,7 +789,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       });
     }
     return out;
-  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, named, faded, players, mode, bubbles, endBubble]);
+  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, named, faded, players, mode, bubbles, endBubble, areas]);
 
   // Follow the current player (TV, remote): first frame their building and its next moves, then
   // only glide at the zoom the viewer has, the same steady camera the classic board keeps.
@@ -825,7 +910,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   }, []);
 
   return (
-    <div ref={wrapperRef} data-testid="town-board" style={{ width: '100%', height: '100%', position: 'relative', background: GROUND[mode].water }}>
+    <div ref={wrapperRef} data-testid="town-board" style={{ width: '100%', height: '100%', position: 'relative', background: waterColor }}>
       {/* v3.8.59: the React Flow credit link was #999 (2.2:1); same link, darker. Its own panel is a pale veil in both modes. */}
       <style>{'.react-flow .react-flow__attribution a { color: #4b5563; }'}</style>
       <ReactFlow
@@ -845,10 +930,10 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         minZoom={0.2}
         maxZoom={2}
         colorMode={mode}
-        style={{ backgroundColor: GROUND[mode].water }}
+        style={{ backgroundColor: waterColor }}
       >
         <TownViewPad screen={screen} dark={mode === 'dark'} />
-        <TownClocks players={players} currentPlayerId={currentPlayerId} layout={layout} tile={TOWN_TILE} startIso={startIso} screen={screen} />
+        <TownClocks players={players.map(p => ({ id: p.id, name: p.name, color: p.color, timeSpent: p.timeSpent ?? 0, gone: hasLeftBoard(p) }))} currentPlayerId={currentPlayerId} layout={layout} tile={TOWN_TILE} startIso={startIso} screen={screen} />
         <ViewportPortal>
           {walks.map(w => <Walker key={w.key} walk={w} onDone={endWalk} />)}
         </ViewportPortal>

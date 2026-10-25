@@ -43,3 +43,8 @@ export function clockDate(startIso: string, days: number): ClockDate {
 
 /** One string for change detection and the slim clock, such as "2026 OCT 25". */
 export const clockText = (c: ClockDate): string => `${c.year} ${c.month} ${c.day}`;
+
+/** The calendar month (1 to 12) a player's own days have reached: it picks the town's look for that player's band. */
+export function clockMonth(startIso: string, days: number): number {
+  return MONTHS.indexOf(clockDate(startIso, days).month) + 1;
+}

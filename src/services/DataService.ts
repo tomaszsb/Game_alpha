@@ -23,6 +23,7 @@ import {
   NumbersSection
 } from '../types/DataTypes';
 import { setTownAvailable } from '../utils/boardStyle';
+import { parseSeasonsCsv } from '../utils/townSeasons';
 import { getDataBasePath } from '../utils/dataInstance';
 
 /**
@@ -124,6 +125,8 @@ export class DataService implements IDataService {
   private bankerRows: TrophyRuleCsvRow[] = [];
   // REPS.csv: the reps you hold (names, areas, salaries, the roll and the stop-work prices). Optional.
   private repRows: TrophyRuleCsvRow[] = [];
+  // TOWN_SEASONS.csv: the town's twelve monthly looks (a look only). Optional: empty keeps the built-in table.
+  private seasonRows: Array<Record<string, string>> = [];
   // TOWN.csv: the town board's layout (a look only). Optional — empty means classic board only.
   private townRows: TownCsvRow[] = [];
   // SCOPE_WORDING.csv: the project types a dice throw can pick, and each work
@@ -164,6 +167,7 @@ export class DataService implements IDataService {
           this.loadTrophyRules(),
           this.loadBanker(),
           this.loadReps(),
+          this.loadSeasons(),
           this.loadTown(),
           this.loadScopeWording(),
           this.loadUIStrings()
@@ -223,6 +227,7 @@ export class DataService implements IDataService {
       this.loadTrophyRules(),
       this.loadBanker(),
       this.loadReps(),
+      this.loadSeasons(),
       this.loadTown(),
       this.loadScopeWording(),
       this.loadUIStrings()
@@ -1083,6 +1088,20 @@ export class DataService implements IDataService {
 
   getRepRows(): TrophyRuleCsvRow[] {
     return [...this.repRows];
+  }
+
+  /** Load TOWN_SEASONS.csv (header row, one row per month). Optional: a missing file keeps the built-in table in townSeasons.ts. */
+  private async loadSeasons(): Promise<void> {
+    try {
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/TOWN_SEASONS.csv?_=' + Date.now());
+      this.seasonRows = response.ok ? parseSeasonsCsv(await response.text()) : [];
+    } catch {
+      this.seasonRows = [];
+    }
+  }
+
+  getSeasonRows(): Array<Record<string, string>> {
+    return [...this.seasonRows];
   }
 
   /**
