@@ -92,6 +92,7 @@ A new table **`TOWN_SEASONS.csv`**, 12 rows, loaded like `TOWN.csv`. A different
 | `flowers` | flower count (0 in winter) |
 | `grass_fresh_pct` | fresh vs dying grass patches |
 | `snow_cover_pct` | how many snow drifts |
+| `leaves_pct` | how much of the fallen-leaf budget shows (0 in summer and deep winter) |
 | `sun_pct`, `cloud_pct`, `rain_pct`, `snow_pct` | weather odds (add to 100) |
 
 Moods for the New York year: Jan/Feb icy grey-blue and snow; March slate and a little snow; April/May bright blue and blossom; June to August deep warm blue and sun; Sept/Oct steel blue and autumn leaves; November grey with early snow chance; December cold blue and snow. A colour change fades over about 1.5 seconds (the end colour is set at once, so it never gets stuck if frames are missing).
@@ -110,10 +111,18 @@ Moods for the New York year: Jan/Feb icy grey-blue and snow; March slate and a l
 |---|---|---|
 | Flowers | near trees and the island edge | bud then bloom through the months; **none Dec to Feb** |
 | Fresh / dying grass | open grass | by `grass_fresh_pct` |
+| Fallen leaves and leaf piles | scatter near trees; piles under or beside trees, on free grass only (never on streets, buildings or signs) | **October to early December**; a few left in March after the snow melts (see below) |
 | Snow drifts | against building walls and tree bases, shady side | only months with snow cover above 0 |
 | Falling snow / rain | over the area | by the weather odds; snow only in snow months |
 | Sun | warm glow in the area's top-left plus lighter tint | sunny blocks |
 | Clouds | 2 to 4 soft shapes drifting, **below the name signs** | cloudy blocks |
+
+**Fallen leaves and leaf piles (Tom's addition).**
+- **Which months:** the table gets one more column, `leaves_pct`, with the share of the leaf budget that shows that month. Roughly: Sept 10%, Oct 70%, Nov 100%, Dec 40% (early winter), Jan and Feb 0%, March 15% (a few leftovers once the snow is gone), April on 0%. The leaf amount follows the **owner's own month**, so one band can be knee-deep in leaves while another is in spring.
+- **How they relate to the trees:** leaves fall **from the trees**. A tree's look changes with the month (summer, then autumn, then bare), and the leaf props are placed **around the base of those same trees**: a loose scatter within about 2 tiles, and a pile 1 tile from the trunk. The more the tree has lost (autumn then bare), the more leaves lie under it; a tree in blossom or summer look has none under it. Leaves with no tree near (a spot far from any tree) are never made.
+- **Same day-number rule:** the spots come from the same pure function as other movable props, `hash(scene_seed, slot, epoch)` of the owner's day number, using only the free-tile finder. Every screen draws the same leaves on the same day.
+- **How they go away:** (1) a **pile expires** like any movable prop (lifetime about 15 to 30 days) and is re-spotted or not by the same hash rule; (2) **wind**: in a windy block (a share of the 3-day weather blocks in Oct to Dec) scatters thin out to about half and the piles shrink one size, shown as a short fade, no motion needed; (3) **snow covers them**: in any block with snow cover above 0, leaf props in that band are replaced by the snow drifts (the leaf draw is skipped), and when the snow is gone in March a few scatter reappear at a low share. Reduce motion: the same changes, instantly.
+- **Limits:** leaves count inside the existing "other props" budget, they do not add to it: at most 8 leaf props per band on PC, 3 per band on a TV (Light level), and none at the Calm/off level beyond a still sprinkle.
 
 Weather is picked per **3-day block** of that player's days: `hash(scene_seed, seat, floor(day/3))` against the month's odds.
 
@@ -171,10 +180,10 @@ Days are working sessions of AI build time. Pictures: PixelLab, 64x64, one locke
 | **C. Areas and monthly looks** | Cut lines in the band gaps, per-area water/grass/tint from the month table, soft blends and coloured dotted edge, takeover with crossfade, `peakDays` field. | 3 | 0 | B |
 | **D. Trees** | Tree places as data, copied per player, 5 looks, 10% a year from peak days, never shrink, home-area rule and takeover look. | 3 | 10 (2 tree kinds x 5 looks) | C |
 | **E. Weather and light** | Sun glow, clouds, rain, falling snow in the current player's area only, still hints elsewhere, reduce motion, Scene switch, TV Light level. | 2.5 | 3 (cloud shapes; rain, snow, sun drawn in code) | C |
-| **F. Flowers, grass, drifts** | Moving props with lifetimes per area, the free-tile finder with cut margins, re-spotting after a takeover. | 2.5 | 11 (3 flowers x bud/bloom = 6; grass fresh/dying/dead = 3; drifts = 2) | D |
+| **F. Flowers, grass, drifts, leaves** | Moving props with lifetimes per area, the free-tile finder with cut margins, re-spotting after a takeover, fallen leaves and leaf piles under the trees. | 3 | 15 (3 flowers x bud/bloom = 6; grass fresh/dying/dead = 3; drifts = 2; leaves: 2 scatter looks + 2 pile sizes = 4) | D |
 | **G. Polish and real-TV pass** | Old-TV tuning, 4-player tests, phone-panel measure, dark mode, fixes from Tom's TV look. | 2 | 0 | all |
 
-**Total about 17.7 days (was 13), 24 pictures.** Pictures cost about **$0.46** at most (24 pictures, up to 3 tries each, $0.0064 apiece), about $0.15 with no retries. The extra days over the first design are the areas, the takeover rule, the pinned clocks and the peak-days rule. If Tom wants the **true pie instead of stripes**, add about **+4 days** (town redrawn for 2, 3, 4 players) inside step C, making about 21.7 days.
+**Total about 18.2 days (was 13), 28 pictures.** Pictures cost about **$0.54** at most (28 pictures, up to 3 tries each, $0.0064 apiece), about $0.18 with no retries. Tom's fallen leaves and piles add 4 pictures (about $0.08 with 3 tries each) and half a day. The extra days over the first design are the areas, the takeover rule, the pinned clocks and the peak-days rule. If Tom wants the **true pie instead of stripes**, add about **+4 days** (town redrawn for 2, 3, 4 players) inside step C, making about 22.2 days.
 
 **Order:** A, B (Tom sees real working clocks and the new controls quickly), C, then D, E, F, G. After B and C the idea is already visible; D to F are scenery.
 
@@ -226,7 +235,7 @@ Each step ships on its own and Tom can deploy and look at it. Days are AI workin
 | **3. Bands and monthly looks** | Cut lines in the grass strips, each band's water, grass and light from its player's month (12-month table), soft blends and dotted colour edges, takeover when a player finishes or goes out, trees' `peakDays` memory. | 3 | 0 |
 | **4. Trees** | Fixed trees in every band, 5 looks, 10% bigger a year, never shrink. | 3 | 10 |
 | **5. Weather and light** | Sun glow, clouds, rain, snow in the current player's band only; still hints elsewhere; reduce motion and the Scene switch. | 2.5 | 3 |
-| **6. Flowers, grass, drifts** | Moving props with lifetimes, none in winter. | 2.5 | 11 |
+| **6. Flowers, grass, drifts, leaves** | Moving props with lifetimes, none in winter; fallen leaves and leaf piles under the trees from autumn into early winter, a few left in March. | 3 | 15 |
 | **7. Polish and the real-TV pass** | Old-TV tuning, 4-player tests, phone-panel measure, dark mode, fixes from Tom's TV look. | 2 | 0 |
 
-**Total about 17.7 days and 24 pictures** (about $0.46 at most, about $0.15 with no retries). Steps 1 and 2 are the first 4.7 days and need no pictures and no scenery decisions; if Tom likes them he can stop there.
+**Total about 18.2 days and 28 pictures** (about $0.54 at most, about $0.18 with no retries). Steps 1 and 2 are the first 4.7 days and need no pictures and no scenery decisions; if Tom likes them he can stop there.
