@@ -5,7 +5,7 @@
  * below zero, so it only "short-changes" in the first few days of a game (the button already reads
  * "-2 of 3 days" then, see getCardEffectSummary). Later in the game it saves its full face value.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { bootstrapHeadlessServices } from './bootstrapServices';
 import { getCardEffectSummary } from '../../src/utils/cardTypeNames';
 
@@ -16,7 +16,7 @@ async function play(cardId: string, timeSpent: number) {
   s.stateService.setCurrentPlayer(id);
   s.stateService.startGame();
   s.stateService.updatePlayer({ id, hand: [cardId], currentSpace: 'REG-DOB-PLAN-EXAM', visitType: 'First', money: 1_000_000 });
-  await s.turnService.startTurn(id);
+  { const rng = vi.spyOn(Math, 'random').mockReturnValue(0.99); try { await s.turnService.startTurn(id); } finally { rng.mockRestore(); } }
   // Set the day count after the turn has started: arrival can add days of its own at random.
   s.stateService.updateTempState(id, { timeSpent });
   const before = s.stateService.getPlayer(id).timeSpent;

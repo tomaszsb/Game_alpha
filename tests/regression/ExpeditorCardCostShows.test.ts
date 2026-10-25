@@ -1,7 +1,7 @@
 // "I just spent 8000 by using an expeditor ... did not see it on the detail page" (Farmingdale class,
 // fb:f3b3cbb7 / 0ed31c3c, 2026-10-19). An expeditor card's money cost dropped the cash but was not
 // counted as spending, so the Money page ("Spent so far", "Regulatory & filings") never showed it.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { bootstrapHeadlessServices } from '../ghost/bootstrapServices';
 
 async function play(cardId: string) {
@@ -12,7 +12,7 @@ async function play(cardId: string) {
   stateService.setCurrentPlayer(id);
   stateService.startGame();
   stateService.updatePlayer({ id, currentSpace: 'REG-DOB-PLAN-EXAM', visitType: 'First', visitedSpaces: ['REG-DOB-PLAN-EXAM'], money: 1_000_000, hand: [cardId] } as any);
-  await turnService.startTurn(id);
+  { const rng = vi.spyOn(Math, 'random').mockReturnValue(0.99); try { await turnService.startTurn(id); } finally { rng.mockRestore(); } }
   await s.cardService.playCard(id, cardId);
   return stateService.getPlayer(id);
 }

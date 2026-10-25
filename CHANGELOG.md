@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.72] - 2026-10-25
+
+**A flaky test stopped Tom's deploy: fixed (tests only, no game change).** `ExpeditorCardCostShows.test.ts` failed in the deploy script's test gate but passed on the PC. Cause (shown): arriving on a space draws a life-event card at random, and in about 7 of every 400 runs (1.75%) that draw swapped the test's hand for an L card, so the expeditor card could not be played ("Cannot play E030"). The same unpinned draw sat in `expeditorDaysSaved.test.ts` and `expeditorDaysStick.test.ts` (the ghost suite flake seen on 10-24). Not a bug in how an expeditor's cost lands in fees spent and the paid list. Fix: those three tests pin `Math.random` (0.99) around `startTurn`. After the fix 0 of 400 runs failed.
+
 ## [3.8.71] - 2026-10-25
 
 **The office's "Move" list is grouped by stage (Tom: the list looked random and runs off a phone).** At the resume hub (`PM-DECISION-CHECK`), when it offers 5 or more places, the list is now grouped by the space's stage (`phase` in GAME_CONFIG.csv: Owner decisions, Money, Design, City approvals, Building, Finish; names in `UI_STRINGS.csv` `STAGE.*`), ONE group open at a time (tap a header to switch). Inside a group the places are in the order the student FIRST VISITED them (`player.visitedSpaces`, then unvisited ones in the engine's order). The group opened first holds the place already picked, else the newest first visit. New `src/utils/officeGroups.ts` (pure) and a small render change in `PlayerPanelV2.tsx`; the same row buttons are reused. Short lists and ordinary forks stay flat. The engine's list, `moveIntent` (stored by space id), Try Again, saved games and the robot are untouched: it is display only. Tests: `officeGroups.test.ts`. NOT verified: a real-browser measure at 360x640 / 390x844 or on the TV. By the numbers a late-game list goes from 9 rows to about 5 headers plus 1-3 rows, so it should not be taller.
