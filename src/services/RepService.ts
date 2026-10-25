@@ -17,7 +17,7 @@ import type { HeldRep, Player } from '../types/DataTypes';
 import type { ResourceService } from './ResourceService';
 import {
   getRepRules, getRepDef, repAreaOf, newHeldRep, salaryDue, salaryOnLeaving, visitShift, repsDueForRoll, rollHits,
-  raiseAccepted, raisedSalary, pickOffers, stopWorkOptions, robotStopWork, weeklyPay, RepAreaWords,
+  raiseAccepted, raisedSalary, mistakeWords, pickOffers, stopWorkOptions, robotStopWork, weeklyPay, RepAreaWords,
   type RepDef, type RepArea,
 } from '../utils/repRules';
 
@@ -284,11 +284,7 @@ export class RepService {
     });
     const cash = player.money ?? 0;
     const opts = stopWorkOptions(!!goodInArea, cash);
-    const why: Record<RepArea, string> = {
-      Code: 'a design code error: new drawings are needed',
-      Permits: 'a filing mistake',
-      Inspections: 'a missed inspection sign-off',
-    };
+    const words = mistakeWords(area);
     const goodDef = goodInArea ? getRepDef(goodInArea.id) : undefined;
     const labels: Record<string, string> = {
       a: `${goodDef ? firstName(goodDef.name) : 'Your best rep'} expedites it: ${money(opts.find(o => o.id === 'a')?.cost ?? 0)}, ${opts.find(o => o.id === 'a')?.days ?? 0} days`,
@@ -298,15 +294,15 @@ export class RepService {
     const pick = (await this.ask(
       playerId,
       'stop_work',
-      `Stop work order: ${why[area]}. ${firstName(def.name)} made the mistake. How do you get it lifted?`,
+      words.ask.replace('{rep}', firstName(def.name)),
       opts.map(o => ({ id: o.id, label: labels[o.id] })),
       () => robotStopWork(opts, cash),
     )) as 'a' | 'b' | 'c';
     const chosen = opts.find(o => o.id === pick) ?? opts[opts.length - 1];
-    this.pay(playerId, chosen.cost, `Stop work order lifted (${area.toLowerCase()})`);
+    this.pay(playerId, chosen.cost, `${words.done} (${area.toLowerCase()})`);
     const now = this.stateService.getPlayer(playerId);
     this.stateService.updateTempState(playerId, { timeSpent: (now?.timeSpent ?? 0) + chosen.days });
-    const msg = `Stop work order lifted: ${money(chosen.cost)} and ${chosen.days} days.`;
+    const msg = `${words.done}: ${money(chosen.cost)} and ${chosen.days} days.`;
     this.loggingService.info(msg, { playerId, playerName: player.name, action: 'rep_stop_work', area });
     return msg;
   }

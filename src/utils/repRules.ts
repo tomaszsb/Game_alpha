@@ -68,6 +68,9 @@ export const DEFAULT_REP_ROWS: RepRow[] = [
   { kind: 'rep', key: 'INSPECT-2', value: '500', text: 'Walt Pruitt|Inspections|good|Retired site inspector. Walks a site and sees everything.' },
   { kind: 'rep', key: 'INSPECT-3', value: '500', text: 'Naomi Cho|Inspections|good|Runs the testing lab. Reports arrive when she says they will.' },
   { kind: 'rep', key: 'INSPECT-4', value: '250', text: 'Bobby Tran|Inspections|bad|Signs off quickly and charges little.' },
+  { kind: 'mistake', key: 'Code', value: '', text: '{rep} brought the wrong records, a design error occurred, and it delayed your project. How do you get it fixed?|Design error fixed|wrong records that cause design errors' },
+  { kind: 'mistake', key: 'Permits', value: '', text: '{rep} upset a city official, and an audit occurred. How do you get it settled?|Audit settled|upsetting city officials, which brings audits' },
+  { kind: 'mistake', key: 'Inspections', value: '', text: 'Stop work order: a missed inspection sign-off. {rep} made the mistake. How do you get it lifted?|Stop work order lifted|missed sign-offs that bring stop work orders' },
 ];
 
 export interface RepRules {
@@ -78,12 +81,14 @@ export interface RepRules {
   reps: RepDef[];
   /** The plan exam, architect, engineer circle in walking order (rank 1 = first stop, highest rank = the exam). */
   circle: Array<{ space: string; rank: number; twice: boolean }>;
+  /** What a bad rep's mistake is called in each area: the pop-up sentence ({rep} = first name), the result phrase, the "weak at" ending. */
+  mistakes: Partial<Record<RepArea, { ask: string; done: string; weak: string }>>;
 }
 
 const AREAS: RepArea[] = ['Code', 'Permits', 'Inspections'];
 
 export function buildRepRules(rows: RepRow[]): RepRules {
-  const out: RepRules = { rules: {}, raises: [], stops: {}, areas: [], reps: [], circle: [] };
+  const out: RepRules = { rules: {}, raises: [], stops: {}, areas: [], reps: [], circle: [], mistakes: {} };
   for (const r of rows) {
     const v = parseFloat(r.value);
     if (r.kind === 'rule' && !isNaN(v)) out.rules[r.key] = v;
@@ -91,6 +96,10 @@ export function buildRepRules(rows: RepRow[]): RepRules {
     else if (r.kind === 'stop' && !isNaN(v)) out.stops[r.key] = { cost: v, days: parseFloat(r.text) || 0 };
     else if (r.kind === 'circle' && !isNaN(v) && r.key) out.circle.push({ space: r.key, rank: v, twice: r.text === 'twice' });
     else if (r.kind === 'area' && (AREAS as string[]).includes(r.text)) out.areas.push({ prefix: r.key, area: r.text as RepArea });
+    else if (r.kind === 'mistake' && (AREAS as string[]).includes(r.key)) {
+      const [ask, done, weak] = r.text.split('|');
+      if (ask && done && weak) out.mistakes[r.key as RepArea] = { ask, done, weak };
+    }
     else if (r.kind === 'rep' && !isNaN(v)) {
       const [name, area, sign, ...rest] = r.text.split('|');
       if (name && (AREAS as string[]).includes(area) && (sign === 'good' || sign === 'bad')) {
@@ -112,7 +121,7 @@ export function configureRepRules(rows: RepRow[]): void {
   const merged = new Map<string, RepRow>();
   for (const r of DEFAULT_REP_ROWS) merged.set(`${r.kind}|${r.key}`, r);
   // A file that names a table (reps, areas, raises, stops) replaces the whole table.
-  const fileKinds = new Set(rows.filter(r => ['rep', 'area', 'raise', 'stop', 'circle'].includes(r.kind)).map(r => r.kind));
+  const fileKinds = new Set(rows.filter(r => ['rep', 'area', 'raise', 'stop', 'circle', 'mistake'].includes(r.kind)).map(r => r.kind));
   for (const k of [...merged.keys()]) {
     const [kind] = k.split('|');
     if (fileKinds.has(kind)) merged.delete(k);
@@ -275,10 +284,15 @@ const RepStopWords: Record<RepArea, string> = {
  * One plain line saying what a rep is good (or bad) at: "Good at design code: 3 days off each architect and
  * engineer stop." Shown on the hire list and the Team list so no one has to guess the strong suit.
  */
+/** The words for a bad rep's mistake in `area` (data, REPS.csv); {rep} in `ask` is the rep's first name. */
+export function mistakeWords(area: RepArea, rules: RepRules = current): { ask: string; done: string; weak: string } {
+  return rules.mistakes[area] ?? rules.mistakes.Inspections ?? { ask: 'Stop work order. {rep} made the mistake. How do you get it lifted?', done: 'Stop work order lifted', weak: 'mistakes' };
+}
+
 export function repStrengthLine(def: RepDef, rules: RepRules = current): string {
   const days = rules.rules.days_shift ?? 3;
   const area = RepAreaWords[def.area];
   return def.sign === 'good'
     ? `Good at ${area}: ${days} days off each of your ${RepStopWords[def.area]}.`
-    : `Weak at ${area}: ${days} extra days at each of your ${RepStopWords[def.area]}, and mistakes.`;
+    : `Weak at ${area}: ${days} extra days at each of your ${RepStopWords[def.area]}, and ${mistakeWords(def.area, rules).weak}.`;
 }

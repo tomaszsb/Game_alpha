@@ -414,7 +414,7 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
             {areaRow('📋', 'Regulatory & filings', fin.regulatory.spent, fin.regulatory.budget)}
             {areaRow('🏗️', 'Construction', fin.construction.spent, fin.construction.budget)}
             {areaRow('🛡️', 'Contingency (your buffer)', fin.contingency.used, fin.contingency.budget)}
-            {fin.team.spent > 0 && moneyRow('👥', 'Team (rep pay and stop work payments)', fin.team.spent)}
+            {fin.team.spent > 0 && moneyRow('👥', 'Team (rep pay and fixing their mistakes)', fin.team.spent)}
           </div>
         )}
 

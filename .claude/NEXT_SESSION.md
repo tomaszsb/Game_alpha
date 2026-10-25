@@ -1,4 +1,4 @@
-# Next session starter — written 2026-10-25 by the Game session (v3.8.78), session being archived
+# Next session starter — written 2026-10-25 by the Game session (v3.8.79), session being archived
 
 Written by the Game session working for the Manager session. Folder: `D:\Unravel\Current_Game\Game_Alpha` (branch master).
 
@@ -25,7 +25,7 @@ Written by the Game session working for the Manager session. Folder: `D:\Unravel
 - **Trophy race on the board:** `docs/core/BETA_PLAN_V3.md` section "### 5. Show the trophy race all game; approvals stamp the mat" (circle row above on PC, race places in clipboard boxes, 9th circle "Final inspection", stamps) and "### 5b. Trophy markers" (plus/minus and new place after Commit or Negotiate). About 4.5 days; the 9th circle waits on the Inspector work below.
 - **Inspector sign-off and TCO vs final CO:** BETA_PLAN_V3.md N3 items "### 1. Inspector sign-off" and "### 3. TCO vs final CO at the end". Needs Tom's numbers and a source for TCO rules.
 - **Time on the town board:** `docs/core/TIME_ON_BOARD_DESIGN.md`, section 6 "Final build order": 1 d-pad box, 2 clocks, 3 bands and monthly looks, 4 trees, 5 weather and light, 6 flowers/grass/leaves, 7 polish + real-TV pass (about 18 days, 28 pictures; steps 1-2 need no pictures).
-- **Bad rep's mistake worded by phase:** BETA_PLAN_V3.md note "#### 2b" (written 3.8.75). Tom's design wording can appear today for Code (design), Permits (regulatory) and Inspections (construction); funding has no rep area (needs a new area, not data-only). Two questions waiting for Tom: wordings as written with the same three pay-offs (my pick yes), and a funding area (my pick no, park).
+- **Bad rep's mistake worded by phase:** BETA_PLAN_V3.md note "#### 2b" (BUILT 3.8.79, Tom approved 2026-10-25): `mistake` rows in REPS.csv + `mistakeWords()`; Code = wrong records / design error, Permits = upset a city official / audit, Inspections keeps stop work order; same prices. Funding wording PARKED (no rep area covers funding). The pop-up sentence is a line longer for Code: not measured in a browser.
 - Parked: Save time / Save money buttons for the run (no die needs them yet).
 
 ## Files drawn by other sessions, NOT committed, NOT wired

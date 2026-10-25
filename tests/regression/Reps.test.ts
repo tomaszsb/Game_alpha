@@ -231,12 +231,33 @@ describe('the 1-in-20 roll', () => {
     const { turn, restore } = await arriveWithRoll([0]);
     const prompts = await answerAll(['c']);
     await turn; restore();
-    expect(prompts[0]).toContain('Stop work order');
+    expect(prompts[0]).toContain('design error');
     const p = s.stateService.getPlayer(pid)!;
     expect(p.timeSpent).toBe(plainDays + 15);
     expect(cash - p.money).toBe(5000);
     expect(p.expenditures?.team).toBe(5000);
     expect(p.reps!.map(r => r.id)).toEqual(['CODE-4']); // a bad rep stays bad and can be let go free
+  });
+
+  // Tom, 2026-10-25: the bad rep's mistake is worded by phase; same three ways out and prices in every phase.
+  describe.each([
+    { phase: 'design', space: 'ARCH-FEE-REVIEW', rep: 'CODE-4', ask: ['wrong records', 'design error', 'delayed your project'], done: 'Design error fixed', not: 'Stop work' },
+    { phase: 'city filing', space: 'REG-DOB-FEE-REVIEW', rep: 'PERMITS-4', ask: ['upset a city official', 'audit'], done: 'Audit settled', not: 'Stop work' },
+    { phase: 'inspection', space: 'SI-HIRE', rep: 'INSPECT-4', ask: ['Stop work order'], done: 'Stop work order lifted', not: 'audit' },
+  ])('the mistake in $phase', ({ space, rep, ask, done, not }) => {
+    it('is worded for the phase in the pop-up, the result line and the cost, with the same prices', async () => {
+      await newGame({ space, reps: [rep], day: 100, cash: 200_000 });
+      const lines: string[] = [];
+      const log = vi.spyOn(s.loggingService, 'info').mockImplementation((m: string) => { lines.push(m); });
+      const before = s.stateService.getPlayer(pid)!.money;
+      const { turn, restore } = await arriveWithRoll([0]);
+      const prompts = await answerAll(['c']);
+      await turn; restore(); log.mockRestore();
+      for (const w of ask) expect(prompts[0]).toContain(w);
+      expect(prompts[0]).not.toContain(not);
+      expect(lines.some(l => l.startsWith(`${done}: $5,000 and 15 days`))).toBe(true);
+      expect(before - s.stateService.getPlayer(pid)!.money).toBeGreaterThanOrEqual(5000);
+    });
   });
 
   it('the good-rep way out is offered only when a good rep in that area is held', async () => {

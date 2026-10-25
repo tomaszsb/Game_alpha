@@ -39,3 +39,6 @@ rep,INSPECT-1,500,Rosa Delgado|Inspections|good|Special inspector with a clean r
 rep,INSPECT-2,500,Walt Pruitt|Inspections|good|Retired site inspector. Walks a site and sees everything.
 rep,INSPECT-3,500,Naomi Cho|Inspections|good|Runs the testing lab. Reports arrive when she says they will.
 rep,INSPECT-4,250,Bobby Tran|Inspections|bad|Signs off quickly and charges little.
+mistake,Code,,"{rep} brought the wrong records, a design error occurred, and it delayed your project. How do you get it fixed?|Design error fixed|wrong records that cause design errors"
+mistake,Permits,,"{rep} upset a city official, and an audit occurred. How do you get it settled?|Audit settled|upsetting city officials, which brings audits"
+mistake,Inspections,,Stop work order: a missed inspection sign-off. {rep} made the mistake. How do you get it lifted?|Stop work order lifted|missed sign-offs that bring stop work orders

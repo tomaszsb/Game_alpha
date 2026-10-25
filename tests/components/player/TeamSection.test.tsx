@@ -51,3 +51,13 @@ describe('repStrengthLine', () => {
     expect(repStrengthLine(getRepDef('PERMITS-4')!)).toMatch(/^Weak at city and fire filing: 3 extra days/);
   });
 });
+
+describe('repStrengthLine: the weak-at line names the mistake of its own phase', () => {
+  it.each([
+    ['CODE-4', /wrong records that cause design errors/],
+    ['PERMITS-4', /upsetting city officials, which brings audits/],
+    ['INSPECT-4', /stop work orders/],
+  ])('%s', (id, words) => {
+    expect(repStrengthLine(getRepDef(id)!)).toMatch(words);
+  });
+});
