@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.77] - 2026-10-25
+
+**"Your team": all the people on offer at once, and each says what it is good at (Tom: "see all the choices at the same time", "I do not know which phase is their strong suit", "the modal reads something not on the screen").** Hire a team member used to open three pop-ups, one after another, whose text ("Works your code stops. (1 of 3)") pointed at things the student could not see. Now the three people appear together in a short scrolling list inside the Expeditors page, each with a plain line such as "Good at design code: 3 days off each of your architect and engineer stops." or "Weak at city and fire filing: 3 extra days at each of your city and fire filing stops, and mistakes.", their pay, and a Hire button; a "Hired" mark replaces the button, and Done closes the list. The people you already hold show the same line. The pop-up page has its own scroll and a fixed frame, so the phone panel is not bigger. The robot and the tests still use the old `hire()`; the screen uses `getOffers` and `hireOne`. Tests in `TeamSection.test.tsx`.
+
 ## [3.8.76] - 2026-10-25
 
 **The bank's result line now says what the bank did (Tom: "bank pop up shows fine but funding did not show or get added").** Proved from the live game record of Tom's phone game (G-EQYH-VZAJ, 09:42 EDT): the money did NOT fail. The banker refused the loan (answer "refuse", $0, `bankRefusals` 1, no loan record, cash correctly unchanged) and the owner's $440,000 arrived fine. What failed was the words: the result line and the log still read "Secured a Bank Loan" over a refusal, and an approved loan never named its amount. Now a refusal reads "The bank said no: no loan this time" and an approval reads "Bank loan approved: $X". Money rules untouched. Test `BankResultWording.test.ts` (failed before, passes after).

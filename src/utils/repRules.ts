@@ -263,3 +263,22 @@ export function robotStopWork(options: StopWorkOption[], cash: number): StopWork
 }
 
 export const RepAreaWords: Record<RepArea, string> = { Code: 'design code', Permits: 'city and fire filing', Inspections: 'site inspections' };
+
+/** The stops each area covers, in the words a player sees on the board. */
+const RepStopWords: Record<RepArea, string> = {
+  Code: 'architect and engineer stops',
+  Permits: 'city and fire filing stops',
+  Inspections: 'site inspection stops',
+};
+
+/**
+ * One plain line saying what a rep is good (or bad) at: "Good at design code: 3 days off each architect and
+ * engineer stop." Shown on the hire list and the Team list so no one has to guess the strong suit.
+ */
+export function repStrengthLine(def: RepDef, rules: RepRules = current): string {
+  const days = rules.rules.days_shift ?? 3;
+  const area = RepAreaWords[def.area];
+  return def.sign === 'good'
+    ? `Good at ${area}: ${days} days off each of your ${RepStopWords[def.area]}.`
+    : `Weak at ${area}: ${days} extra days at each of your ${RepStopWords[def.area]}, and mistakes.`;
+}

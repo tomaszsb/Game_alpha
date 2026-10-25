@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import type { PanelPalette } from './panelTheme';
 import type { RepService } from '../../services/RepService';
 import { TEAM as NUMBERS } from '../../constants/uiStrings';
+import { repStrengthLine, type RepDef } from '../../utils/repRules';
 
 const money = (n: number) => '$' + Math.round(n).toLocaleString('en-US');
 
@@ -19,6 +20,8 @@ interface Props {
 
 export function TeamSection({ playerId, repService, palette: p, canAct }: Props): JSX.Element {
   const [busy, setBusy] = useState(false);
+  // The three people on offer, all shown together; null when the list is closed.
+  const [offers, setOffers] = useState<RepDef[] | null>(null);
   const team = repService.describe(playerId);
   const run = async (fn: () => Promise<unknown>) => {
     if (busy) return;
@@ -43,7 +46,8 @@ export function TeamSection({ playerId, repService, palette: p, canAct }: Props)
         >
           <span style={{ flex: 1, minWidth: 0 }}>
             <strong>{r.def.name}</strong>
-            <span style={{ color: p.muted }}> · {r.def.area} · {NUMBERS.teamPay(money(r.salary))}</span>
+            <span style={{ color: p.muted }}> · {NUMBERS.teamPay(money(r.salary))}</span>
+            <span style={{ display: 'block', fontSize: 11, color: p.muted }}>{repStrengthLine(r.def)}</span>
             <span style={{ display: 'block', fontSize: 11, color: p.muted }}>{r.def.blurb}</span>
           </span>
           {canAct && (
@@ -62,13 +66,48 @@ export function TeamSection({ playerId, repService, palette: p, canAct }: Props)
       {team.length > 0 && (
         <div style={{ fontSize: 12, color: p.muted, marginBottom: 6 }}>{NUMBERS.teamTotal(money(repService.weeklyPay(playerId)))}</div>
       )}
-      {canAct && (
+      {canAct && offers === null && (
         <>
-          <button type="button" data-testid="team-hire" disabled={busy} onClick={() => run(() => repService.hire(playerId))} style={button}>
-            {busy ? NUMBERS.TEAM_WAITING : NUMBERS.TEAM_HIRE}
+          <button type="button" data-testid="team-hire" onClick={() => setOffers(repService.getOffers(playerId))} style={button}>
+            {NUMBERS.TEAM_HIRE}
           </button>
           <div style={{ fontSize: 11, color: p.muted, marginTop: 4 }}>{NUMBERS.TEAM_HIRE_NOTE}</div>
         </>
+      )}
+      {canAct && offers !== null && (
+        <div data-testid="team-offers">
+          <div style={{ fontSize: 12, color: p.muted, marginBottom: 4 }}>{NUMBERS.TEAM_PICK}</div>
+          {/* All the choices together; a scrolling list so the panel never grows on a phone. */}
+          <div style={{ maxHeight: 190, overflowY: 'auto', marginBottom: 6 }}>
+            {offers.map(o => {
+              const held = team.some(r => r.id === o.id);
+              return (
+                <div
+                  key={o.id}
+                  data-testid={`team-offer-${o.id}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, background: p.surf, borderRadius: 8, padding: '6px 10px', marginBottom: 4 }}
+                >
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <strong>{o.name}</strong>
+                    <span style={{ color: p.muted }}> · {NUMBERS.teamPay(money(o.salary))}</span>
+                    <span style={{ display: 'block', fontSize: 11, color: p.text }}>{repStrengthLine(o)}</span>
+                    <span style={{ display: 'block', fontSize: 11, color: p.muted }}>{o.blurb}</span>
+                  </span>
+                  {held ? (
+                    <span style={{ fontSize: 12, color: p.muted }}>{NUMBERS.TEAM_HIRED}</span>
+                  ) : (
+                    <button type="button" data-testid={`team-offer-hire-${o.id}`} onClick={() => { repService.hireOne(playerId, o.id); setOffers([...offers]); }} style={button}>
+                      {NUMBERS.TEAM_HIRE_ONE}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <button type="button" data-testid="team-offers-done" onClick={() => setOffers(null)} style={{ ...button, background: 'transparent', color: p.text, border: `1px solid ${p.borderStrong}` }}>
+            {NUMBERS.TEAM_DONE}
+          </button>
+        </div>
       )}
     </div>
   );

@@ -111,6 +111,25 @@ export class RepService {
     return hired;
   }
 
+  /** The people shown when the player asks to hire: all of them at once, on the Team list (no pop-ups). */
+  getOffers(playerId: string): RepDef[] {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return [];
+    return pickOffers((player.reps ?? []).map(r => r.id), this.rng);
+  }
+
+  /** Hires one named person from an offer. Starts the clock today (no back pay). False when they are already held or unknown. */
+  hireOne(playerId: string, repId: string): boolean {
+    const now = this.stateService.getPlayer(playerId);
+    const def = getRepDef(repId);
+    if (!now || !def || (now.reps ?? []).some(r => r.id === repId)) return false;
+    this.stateService.updateTempState(playerId, { reps: [...(now.reps ?? []), newHeldRep(def, now.timeSpent ?? 0)] });
+    this.loggingService.info(`${now.name} hired ${def.name} (${def.area.toLowerCase()}), ${money(def.salary)} a week.`, {
+      playerId, playerName: now.name, action: 'rep_hired',
+    });
+    return true;
+  }
+
   /** The player lets a rep go (free; what they are owed up to today is paid first). Asks which when several. */
   async fire(playerId: string, repId?: string): Promise<boolean> {
     const player = this.stateService.getPlayer(playerId);

@@ -160,5 +160,9 @@ TEAM.hire,Hire a team member
 TEAM.fire,Let go
 TEAM.pay,{pay} a week
 TEAM.total,"Team pay: {pay} a week, taken at the end of your turn"
-TEAM.hireNote,"You will be shown three people, one at a time. Keep none, one, two or all three."
+TEAM.hireNote,"You will see three people together. Hire none, one, two or all three."
+TEAM.pick,Who do you want to hire?
+TEAM.hired,Hired
+TEAM.done,Done
+TEAM.hireOne,Hire
 TEAM.waiting,Waiting for your answer...
