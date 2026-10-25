@@ -12,6 +12,7 @@
 // detailed-card/modal restyle are later increments.
 
 import { ProjectMat, MatDots } from './ProjectMat';
+import { TrophyPlace, hasTrophyPlace } from './TrophyPlace';
 import { ClipboardTabs, type PanelPageId } from './ClipboardTabs';
 import { BuildingIcon } from '../common/BuildingIcon';
 import { matIcon, portraitSrc as iconPortraitSrc } from '../../utils/buildingIcon';
@@ -858,6 +859,16 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   };
   const glanceLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, width: '100%', fontSize: 11, color: p.muted };
   const glanceArrow: React.CSSProperties = { marginLeft: 'auto', fontSize: 13, color: p.muted };
+  // The three races, for the trophy picture and place in the label row of Time, Scope and Money (Tom, 2026-10-25).
+  let liveRow: import('../../utils/liveTrophies').LiveRow | undefined;
+  let soloGame = true;
+  try {
+    const board = gameServices.gameRulesService.computeLiveBoard();
+    liveRow = board.rows.find((r) => r.playerId === playerId);
+    soloGame = board.rows.length <= 1;
+  } catch { /* no live board (a test double): no places */ }
+  const arrowFor = (race: 'time' | 'money' | 'quality'): React.CSSProperties =>
+    hasTrophyPlace(race, liveRow, soloGame) ? { ...glanceArrow, marginLeft: 3 } : glanceArrow;
   const glanceValue: React.CSSProperties = { fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' };
   const glanceSub: React.CSSProperties = { fontSize: 10.5, color: p.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' };
   // A finished one-shot action: grayed, checked, not interactive. Shares
@@ -1007,6 +1018,13 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           explanation anywhere — checked live against the glossary API,
           0 of 274 terms. */}
       <div style={pad}>
+        {/* The row of circles: milestones fill in as the project moves (Job 5). Above the boxes on the PC, as the phone
+            already has it in its header (Tom, 2026-10-25: "I like them above so we should do that for both"). */}
+        {!isPhone && (
+          <div data-testid="circle-row" style={{ marginBottom: 8 }}>
+            <ProjectMat tiles={matTiles} palette={p} renderIcon={renderMatIcon} />
+          </div>
+        )}
         {/* The four number boxes and their "?" share one outline (Tom, 2026-10-02: "?
             should be within each area, not outside"). */}
         <div data-testid="glance-frame" style={{ borderRadius: 11, padding: '4px 30px 7px 7px', boxSizing: 'border-box', ...frameLook.frame }}>
@@ -1026,13 +1044,13 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 7, ...frameLook.sheet }}>
           <button type="button" data-testid="glance-money" onClick={() => setNumbersPage('money')} style={isPhone ? { ...glanceTile, ...phoneOrder(0) } : { ...glanceTile, gridColumn: '1 / -1', minHeight: 74 }}
             aria-label={`${NUMBERS.TILE_MONEY}: $${player.money.toLocaleString()}${moneyCue.word ? `, ${moneyCue.word}` : ''}`}>
-            <span style={glanceLabel}><span aria-hidden>💰</span> {NUMBERS.TILE_MONEY}<span aria-hidden style={glanceArrow}>›</span></span>
+            <span style={glanceLabel}><span aria-hidden>💰</span> {NUMBERS.TILE_MONEY}<TrophyPlace race="money" row={liveRow} solo={soloGame} palette={p} /><span aria-hidden style={arrowFor('money')}>›</span></span>
             <span style={{ ...glanceValue, ...(isPhone ? {} : { fontSize: 30, lineHeight: 1.15 }), color: moneyCue.color }}>${player.money.toLocaleString()}</span>
             {moneyCue.word && <span style={{ ...glanceSub, color: moneyCue.color, fontWeight: 700 }}>{moneyCue.word}</span>}
           </button>
           <button type="button" data-testid="glance-time" onClick={() => openPage('time')} style={{ ...glanceTile, ...phoneOrder(2) }}
             aria-label={`${NUMBERS.TILE_TIME}: ${NUMBERS.days(player.timeSpent)}`}>
-            <span style={glanceLabel}><span aria-hidden>🕐</span> {NUMBERS.TILE_TIME}<span aria-hidden style={glanceArrow}>›</span></span>
+            <span style={glanceLabel}><span aria-hidden>🕐</span> {NUMBERS.TILE_TIME}<TrophyPlace race="time" row={liveRow} solo={soloGame} palette={p} /><span aria-hidden style={arrowFor('time')}>›</span></span>
             <span style={glanceValue}>{NUMBERS.days(player.timeSpent)}</span>
           </button>
           <button type="button" data-testid="glance-expeditors" onClick={() => setNumbersPage('expeditors')}
@@ -1047,18 +1065,12 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           </button>
           <button type="button" data-testid="glance-scope" onClick={() => setNumbersPage('scope')} style={{ ...glanceTile, ...phoneOrder(1) }}
             aria-label={`${NUMBERS.TILE_SCOPE}: ${fin.workPackages.length}, ${FormatUtils.formatMoney(fin.scopeTotal)}`}>
-            <span style={glanceLabel}><span aria-hidden>🏢</span> {NUMBERS.TILE_SCOPE}<span aria-hidden style={glanceArrow}>›</span></span>
+            <span style={glanceLabel}><span aria-hidden>🏢</span> {NUMBERS.TILE_SCOPE}<TrophyPlace race="quality" row={liveRow} solo={soloGame} palette={p} /><span aria-hidden style={arrowFor('quality')}>›</span></span>
             <span style={glanceValue}>{fin.workPackages.length > 0 ? fin.workPackages.length : NUMBERS.NONE}</span>
             {fin.scopeTotal > 0 && <span style={glanceSub}>{FormatUtils.formatMoney(fin.scopeTotal)}</span>}
           </button>
         </div>
         </div>
-        {/* The mat: milestones fill in as the project moves (Job 5). */}
-        {!isPhone && (
-          <div style={{ marginTop: 8 }}>
-            <ProjectMat tiles={matTiles} palette={p} renderIcon={renderMatIcon} />
-          </div>
-        )}
         {openHelp === 'glance' && (
           <HelpCard
             id="help-card-glance"

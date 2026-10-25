@@ -1,7 +1,7 @@
 kind,key,value,text
-trophy,time,,Fastest
-trophy,money,,On budget
-trophy,quality,,Best built
+trophy,time,trophies/time.png,Fastest
+trophy,money,trophies/money.png,On budget
+trophy,quality,trophies/quality.png,Best built
 rule,trophies_to_win,2,
 points,review_passed,0,Passed on the first try
 points,review_sent_back,1,Sent back

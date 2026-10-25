@@ -83,6 +83,8 @@ export interface TrophyRules {
   mat: MatTile[];
   /** The name shown for each trophy. */
   names: Record<TrophyId, string>;
+  /** The picture of each trophy, a path under /images/ (the `value` cell of its `trophy` row). Blank = use the emoji. */
+  icons: Record<TrophyId, string>;
   /** How many of the three trophies a player must hold to win outright. */
   trophiesToWin: number;
   /** Problem points per quality event id. */
@@ -142,6 +144,7 @@ const DEFAULT_MAT: MatTile[] = [
 const DEFAULT_RULES: TrophyRules = {
   mat: DEFAULT_MAT,
   names: { time: 'Fastest', money: 'On budget', quality: 'Best built' },
+  icons: { time: 'trophies/time.png', money: 'trophies/money.png', quality: 'trophies/quality.png' },
   trophiesToWin: 2,
   points: { review_passed: 0, review_sent_back: 1, violation: 2, cut_corner: 2, builder_high: 0, builder_medium: 1, builder_low: 2 },
   reviewEvents: ['review_passed', 'review_sent_back', 'builder_high', 'builder_medium', 'builder_low'],
@@ -161,6 +164,7 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
   }
   const next: TrophyRules = {
     names: { ...DEFAULT_RULES.names },
+    icons: { ...DEFAULT_RULES.icons },
     trophiesToWin: DEFAULT_RULES.trophiesToWin,
     points: {},
     reviewEvents: [],
@@ -179,6 +183,7 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
     switch (row.kind) {
       case 'trophy':
         if ((TROPHY_IDS as readonly string[]).includes(key) && text) next.names[key as TrophyId] = text;
+        if ((TROPHY_IDS as readonly string[]).includes(key)) next.icons[key as TrophyId] = value;
         break;
       case 'rule':
         if (key === 'trophies_to_win') {

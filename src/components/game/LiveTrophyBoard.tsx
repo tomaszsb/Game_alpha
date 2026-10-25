@@ -28,7 +28,7 @@ export interface LiveTrophyBoardProps {
   compact?: boolean;
 }
 
-function detail(id: TrophyId, row: LiveRow): string {
+export function detail(id: TrophyId, row: LiveRow): string {
   const r = row.row;
   if (id === 'time') return `${r.daysUsed} of ${r.daysPlanned} planned days`;
   if (id === 'money') return r.moneyPlanned > 0
