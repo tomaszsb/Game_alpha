@@ -5,6 +5,7 @@ import { LiveTrophyBoard } from './LiveTrophyBoard';
 import { useGameSpeed } from '../../utils/gameSpeed';
 import { useBoardStyleMenu } from '../../utils/boardStyle';
 import { useSoundMenu } from '../../utils/soundSetting';
+import { useSceneMenu } from '../../utils/sceneSetting';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { IDataService, IGameRulesService } from '../../types/ServiceContracts';
@@ -91,6 +92,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   const [speed, setSpeed] = useGameSpeed();
   const boardStyleMenu = useBoardStyleMenu();
   const soundMenu = useSoundMenu();
+  const sceneMenu = useSceneMenu();
   const share = useShareGameLink();
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
@@ -153,6 +155,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
     speed: { fast: speed === 'fast', toggle: () => setSpeed(speed === 'fast' ? 'normal' : 'fast') },
     boardStyle: boardStyleMenu,
     sound: soundMenu,
+    scene: sceneMenu,
     invite: share.hasGame ? { code: getCurrentGameId() ?? '', copied: share.copied, onInvite: share.handleShare } : undefined,
     tvTheme: onToggleTVDarkMode ? { dark: !!tvDarkMode, toggle: onToggleTVDarkMode } : undefined,
   });

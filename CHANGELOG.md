@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.88] - 2026-10-25
+
+**Weather and light on the town (time-on-board design, step 5).** Each player's band of the town has its own sky for the month their own days have reached: sun (a warm glow in the band's corner), cloud (a grey hint and drifting clouds), rain and falling snow. The weather is picked for every 3 days of that player's own days, from the month's odds in four new columns of TOWN_SEASONS.csv (`sun_pct`, `cloud_pct`, `rain_pct`, `snow_pct`, adding to 100; snow only in the cold months), so every screen shows the same sky on the same day (no random numbers). Only the band of the player whose turn it is moves (rain, snow, cloud drift); every other band shows still hints (a grey or blue tint, a few still drops or flakes, still clouds), so four seasons never mean four storms. The layer sits just above the ground and under every building, so it can never cover a name sign, a clock, a bubble or a walker. New menu item **Scene: Full / Calm / Off** (one tap goes round; remembered on this device; PC, TV and remote use the same menu): Calm shows the same sky standing still, Off draws none. A computer set to reduce motion gets Calm automatically; a TV or the remote strip draws fewer falling bits (14 against 40). Three small cloud pictures drawn with PixelLab (`public/images/weather/`, about two cents); rain, snow and sun are drawn in code. Phone panel unchanged (no board there; measured 360x640 and 390x844).
+
 ## [3.8.87] - 2026-10-25
 
 **Trees redrawn (art still not approved by Tom).** The maple now matches the oak: same pixel size, same soft style, no black outline, about the same height, still taller and narrower. Both snowy looks now clearly show snow: white on the branches and a white patch on the ground. Same five looks, same file names; nothing else changed. About nine cents of PixelLab. Contact sheet: `public/assets/trees/contact_sheet_v2.png`.

@@ -23,6 +23,8 @@ export interface HeaderMenuOptions {
   boardStyle?: { town: boolean; toggle: () => void };
   /** The town's result chimes, on / off for this device; only when the board has a town (TOWN.csv). */
   sound?: { on: boolean; toggle: () => void };
+  /** The town weather: full, calm or off for this device; only when the board has a town. */
+  scene?: { level: 'full' | 'calm' | 'off'; toggle: () => void };
   /** The shared TV screen's light / dark (admin or teacher only). */
   tvTheme?: { dark: boolean; toggle: () => void };
 }
@@ -59,6 +61,14 @@ export function buildHeaderMenuItems(o: HeaderMenuOptions): HeaderMenuItem[] {
       id: 'sound', icon: o.sound.on ? '🔔' : '🔕', label: `Sound: ${o.sound.on ? 'On' : 'Off'}`,
       onSelect: o.sound.toggle, stayOpen: true, testId: 'sound-toggle',
       title: 'A short chime when a result floats up on the town, on this screen only',
+    });
+  }
+  if (o.scene) {
+    const word = o.scene.level === 'full' ? 'Full' : o.scene.level === 'calm' ? 'Calm' : 'Off';
+    items.push({
+      id: 'scene', icon: o.scene.level === 'off' ? '🌫️' : '⛅', label: `Scene: ${word}`,
+      onSelect: o.scene.toggle, stayOpen: true, testId: 'scene-toggle',
+      title: 'Weather on the town: Full moves rain, snow and clouds, Calm keeps them still, Off hides them. This screen only',
     });
   }
   if (o.tvTheme) items.push({ id: 'tv-theme', icon: '📺', label: o.tvTheme.dark ? 'TV theme: dark' : 'TV theme: light', onSelect: o.tvTheme.toggle, title: 'Switch the shared TV screen between light and dark' });

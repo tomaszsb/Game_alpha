@@ -14,6 +14,7 @@ import { buildHeaderMenuItems } from '../../utils/headerMenuItems';
 import { useGameSpeed } from '../../utils/gameSpeed';
 import { useBoardStyleMenu } from '../../utils/boardStyle';
 import { useSoundMenu } from '../../utils/soundSetting';
+import { useSceneMenu } from '../../utils/sceneSetting';
 import { useShareGameLink } from '../setup/ShareGameButton';
 import { panelPalettes } from '../player/panelTheme';
 import { RulesModal } from '../modals/RulesModal';
@@ -186,6 +187,7 @@ export function TVDisplay(): JSX.Element {
   const [gameSpeed, setGameSpeed] = useGameSpeed();
   const boardStyleMenu = useBoardStyleMenu();
   const soundMenu = useSoundMenu();
+  const sceneMenu = useSceneMenu();
   const share = useShareGameLink();
   const playing = gamePhase === 'PLAY';
   const tvMenuItems = buildHeaderMenuItems({
@@ -196,6 +198,7 @@ export function TVDisplay(): JSX.Element {
     speed: { fast: gameSpeed === 'fast', toggle: () => setGameSpeed(gameSpeed === 'fast' ? 'normal' : 'fast') },
     boardStyle: boardStyleMenu,
     sound: soundMenu,
+    scene: sceneMenu,
     invite: share.hasGame ? { code: gameId ?? '', copied: share.copied, onInvite: share.handleShare } : undefined,
   });
   const onOpenScreenSize = () => {

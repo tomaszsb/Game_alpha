@@ -43,6 +43,8 @@ import { TownClocks } from './TownClocks';
 import { clockMonth, clockStartIso } from '../../utils/gameClock';
 import { areaSegments, hasLeftBoard, ownerOfRow, type AreaSegment } from '../../utils/townAreas';
 import { treePicture, treeScale } from '../../utils/townTrees';
+import { TownWeatherNode, buildWeatherBands, type WeatherData } from './TownWeather';
+import { useScene } from '../../utils/sceneSetting';
 import { seasonLook, mixHex, type SeasonLook } from '../../utils/townSeasons';
 import { racePlaces } from '../../utils/liveTrophies';
 import { getTrophyRules, type TrophyId } from '../../utils/trophyRules';
@@ -376,7 +378,7 @@ function TownTreeNode({ data }: NodeProps) {
   );
 }
 
-const nodeTypes = { townGround: TownGround, townBuilding: TownBuildingNode, townTree: TownTreeNode };
+const nodeTypes = { townGround: TownGround, townBuilding: TownBuildingNode, townTree: TownTreeNode, townWeather: TownWeatherNode };
 
 // -------------------------------------------------------------------------------------------------
 // The walk (step A2): a player's face walks the streets from the old building to the new one.
@@ -769,6 +771,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaKey, layout]);
+  const scene = useScene();
   const waterColor = (areas.looks[areas.segments[0]?.seat ?? 0] ?? seasonLook(1, mode)).water;
 
   const nodes = useMemo(() => {
@@ -784,6 +787,21 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       id: 'town-ground', type: 'townGround', position: { x: gx, y: gy }, zIndex: 0, style: { pointerEvents: 'none' },
       draggable: false, selectable: false, focusable: false,
       data: { w: gw, h: gh, ox: gx, oy: gy, layout, mode, areas } satisfies GroundData,
+    });
+    // Weather: one layer just above the ground and under every building (so it never covers a sign, a clock or a marker).
+    // Only the band of the player whose turn it is moves; the others show still hints.
+    const activeIdx = currentPlayerId ? players.findIndex(p => p.id === currentPlayerId) : -1;
+    const activeSeat = activeIdx >= 0 && !hasLeftBoard(players[activeIdx]) ? Math.min(activeIdx, Math.max(1, layout.seats) - 1) : -1;
+    out.push({
+      id: 'town-weather', type: 'townWeather', position: { x: gx, y: gy }, zIndex: 5, style: { pointerEvents: 'none' },
+      draggable: false, selectable: false, focusable: false,
+      data: {
+        w: gw, h: gh, mode,
+        bands: buildWeatherBands({
+          layout, segments: areas.segments, looks: areas.looks, days: Array.from({ length: Math.max(1, layout.seats) }, (_, i) => (players[i] ?? players[0])?.timeSpent ?? 0),
+          seed: startIso, activeSeat, level: scene, light: screen !== 'pc', reducedMotion: prefersReducedMotion(), tile: TOWN_TILE, originX: gx, originY: gy,
+        }),
+      } satisfies WeatherData,
     });
     for (const b of layout.buildings) {
       const box = buildingBox(b, TOWN_TILE);
@@ -822,7 +840,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       });
     }
     return out;
-  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, named, faded, players, mode, bubbles, endBubble, areas]);
+  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, named, faded, players, mode, bubbles, endBubble, areas, scene, startIso, currentPlayerId, screen]);
 
   // Follow the current player (TV, remote): first frame their building and its next moves, then
   // only glide at the zoom the viewer has, the same steady camera the classic board keeps.
