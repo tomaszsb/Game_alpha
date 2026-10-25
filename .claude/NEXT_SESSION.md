@@ -1,5 +1,7 @@
 # Next session starter — written 2026-10-25 by /koniec (v3.8.64)
 
+*2026-10-25 logo session wrap: v3.8.68 fixed a real bug the Tower deploy gate caught (logo backups made in the same millisecond overwrote each other; fix = counter in the name + no-overwrite copy, proven by a frozen-clock test). Full `npm test` 321 files / 4210 green at that commit; ghost not re-run (no game logic touched). Phone width / real TV / `sharp` on the Tower still unverified.*
+
 *2026-10-24 addendum: a side session tried the eslint 10 upgrade and stopped (no game work; see TODO). Lint currently has 4 errors + 23 warnings.*
 
 *2026-10-25 addendum (Game session started by the Manager): v3.8.65 school logo + school name is BUILT and pushed (server 039669fd, screens d1a7c25e), NOT deployed (live `/health` was 228e187b = 3.8.64). Full `npm test` 318 files / 4187 green, build clean, `npm audit` 0. The one lint error in ClassLandingPage (apostrophe) is fixed. NOT verified: phone width (360x640, 390x844) of the teacher form and header chip, a real TV, and `sharp` on the Tower image (first deploy is its test; if it fails the upload says "not available" and nothing else breaks). The Banker safety check is written into BETA_PLAN_V3.md; the Banker BUILD has not started and waits for Tom's go.*
