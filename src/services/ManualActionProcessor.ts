@@ -281,6 +281,15 @@ export class ManualActionProcessor {
             : 'draw';
       let actionDescription = describeCardAction(cardAction, cardType, count);
 
+      // The bank's result line says what the banker actually did: "Secured a Bank Loan" over a refusal left
+      // the student looking for money that was never coming (Tom, 2026-10-25).
+      if (cardType === 'B' && cardAction === 'draw' && this.dataService.getFundingSource(currentPlayer.currentSpace) === 'bank') {
+        const answer = afterPlayer.lastBankerDecision?.answer;
+        const lent = (afterPlayer.moneySources?.bankLoans || 0) - (beforePlayer.moneySources?.bankLoans || 0);
+        if (answer === 'refuse') actionDescription = 'The bank said no: no loan this time';
+        else if (lent > 0) actionDescription = `Bank loan approved: $${lent.toLocaleString()}`;
+      }
+
       // Chronicle inline-delta (TODO P1 — Project Chronicle): this manual
       // "Get Work Packages"-style button draws W cards without going
       // through CardEffectHandler's CARD_DRAW path (see CardEffectService.

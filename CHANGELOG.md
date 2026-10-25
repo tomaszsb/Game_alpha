@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.76] - 2026-10-25
+
+**The bank's result line now says what the bank did (Tom: "bank pop up shows fine but funding did not show or get added").** Proved from the live game record of Tom's phone game (G-EQYH-VZAJ, 09:42 EDT): the money did NOT fail. The banker refused the loan (answer "refuse", $0, `bankRefusals` 1, no loan record, cash correctly unchanged) and the owner's $440,000 arrived fine. What failed was the words: the result line and the log still read "Secured a Bank Loan" over a refusal, and an approved loan never named its amount. Now a refusal reads "The bank said no: no loan this time" and an approval reads "Bank loan approved: $X". Money rules untouched. Test `BankResultWording.test.ts` (failed before, passes after).
+
 ## [3.8.75] - 2026-10-25
 
 **Setup-screen links are readable (Tom: blue on blue).** The small footer at the bottom of the setup page (and the phone join page) printed the email and "Visit our other sites" links in dark blue on the blue background. They now take the sentence's own colour (white-ish) and are underlined so they still read as links (`OtherSites` accepts `linkColor="inherit"`; the board and end screens keep their own colours). Checked in the browser at 360x640, dark scheme: all three links computed to the sentence colour with an underline; the footer is the same gradient in light and dark. Test added in `OtherSites.test.tsx`. NOT checked on a real TV. Also: design note 2b in BETA_PLAN_V3.md (a bad rep's mistake worded by phase; nothing built).
