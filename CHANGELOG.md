@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.82] - 2026-10-25
+
+## [3.8.82] - 2026-10-25
+
+**One small view plate on the town board (time-on-board design, step 1).** The column of seven stock buttons in the bottom-left corner (zoom +, zoom -, fit, lock, and four arrows) is now one small plate: four arrows round a fit button, with zoom + and - on the side (`TownViewPad.tsx`; the arrows move the view the same way and the same amount as before). The TV shows no plate at all (nobody touches it), and the remote strip folds it to one small "View" button that opens the plate and closes again. Nothing else changes: no data, no rules, and the phone panel is untouched (the phone has no board). Checked in a real browser on a PC-sized screen: one plate of 108 x 80 px, the old column gone. The pane does not run animation frames, so the arrows moving the view could not be watched there (the buttons use the same moves as before). Tests: `TownViewPad.test.tsx`.
+
 ## [3.8.81] - 2026-10-25
 
 **Trophy markers and approval stamps (Tom: "a green plus or a red minus and the new place after Commit or Negotiate"; "approvals stamp").** (1) After a player's own Commit or Negotiate changes their numbers, the balloon over their building adds one more bubble for each race whose place changed: the trophy's picture, a green plus (moved up) or red minus (moved down) and the new place, such as "+ 2nd" (at most two, in the order Time, Scope, Money). Nothing for a race that is not on, a place that did not change, or a place that only moved because someone else played. (2) In the Time, Scope and Money boxes a small green up or red down arrow stands beside the place for six seconds when it changes while you watch. (3) The row of circles stamps the moment a step turns done in front of the player: the DOB approved, FDNY approved and Builder hired circles get a green ring and a one-line label ("✓ DOB approved") for six seconds, in the same floating label as before (so no extra height). Which steps stamp is data: `stamp` rows in `TROPHIES.csv`. A first look at a player, switching players, or a plain step never stamps. Checked in a real browser: the marker bubble ("− 2nd" with the Fastest picture) and the stamp label appear and clear; the panel does not move (frame top identical with and without the label at 360x640 and PC). The movement animations do not run in the test browser, so how they look on a real phone/TV is not checked. Tests: `trophyMarkers.test.ts`, `ProjectMatStamp.test.tsx`.

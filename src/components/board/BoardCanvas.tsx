@@ -1005,6 +1005,8 @@ export interface BoardCanvasProps {
    *  where the player drives the camera themselves.
    *  <!-- fb:feedback-1779569130947-9c075c16 --> */
   centerOnCurrent?: boolean;
+  /** Which screen draws this board (the town board's view buttons differ: none on the TV, folded on the remote strip). Default PC. */
+  screen?: 'pc' | 'tv' | 'remote';
   /** Explicit dark/light override for board CHROME styling. When omitted,
    *  falls back to this device's own persisted PlayerPanelV2 preference
    *  (getStoredPanelMode) — the existing PC-mode behavior, unchanged.

@@ -15,8 +15,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ReactFlow,
   ReactFlowProvider,
-  Controls,
-  ControlButton,
   useReactFlow,
   getNodesBounds,
   ViewportPortal,
@@ -40,6 +38,7 @@ import { scaleMs, getGameSpeed } from '../../utils/gameSpeed';
 import { setTownWalking } from '../../utils/boardStyle';
 import { projectKindOf } from '../../utils/projectKind';
 import { getSoundOn } from '../../utils/soundSetting';
+import { TownViewPad, type ViewPadScreen } from './TownViewPad';
 import { racePlaces } from '../../utils/liveTrophies';
 import { getTrophyRules, type TrophyId } from '../../utils/trophyRules';
 import { playResultChime, isAudioReady, primeAudio } from '../../utils/haptics';
@@ -448,6 +447,8 @@ export interface TownBoardProps {
   focusRequest?: { spaceId: string; token: number } | null;
   /** The layout to draw (GameBoard builds it once from TOWN.csv). */
   layout: TownLayout;
+  /** Which screen this is: the TV draws no view buttons, the remote strip folds them away. Default PC. */
+  screen?: ViewPadScreen;
 }
 
 /** Room names as the classic board shows them (display label, else the short name). */
@@ -476,7 +477,7 @@ export function useTownLayout(seats = 1): TownLayout | null {
   }, [dataService, labels, seats]);
 }
 
-function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mode: modeProp, focusRequest, layout }: TownBoardProps) {
+function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mode: modeProp, focusRequest, layout, screen = 'pc' }: TownBoardProps) {
   const { stateService, movementService, gameRulesService } = useGameContext();
   const { fitView, setCenter, getViewport, setViewport } = useReactFlow();
   const mode: PanelMode = modeProp ?? getStoredPanelMode();
@@ -815,12 +816,6 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     setExpanded(prev => (prev === n.id ? null : n.id));
   }, []);
 
-  const PAN = 120;
-  const panBy = (dx: number, dy: number) => {
-    const v = getViewport();
-    setViewport({ x: v.x + dx, y: v.y + dy, zoom: v.zoom }, { duration: scaleMs(150) });
-  };
-
   return (
     <div ref={wrapperRef} data-testid="town-board" style={{ width: '100%', height: '100%', position: 'relative', background: GROUND[mode].water }}>
       {/* v3.8.59: the React Flow credit link was #999 (2.2:1); same link, darker. Its own panel is a pale veil in both modes. */}
@@ -844,12 +839,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         colorMode={mode}
         style={{ backgroundColor: GROUND[mode].water }}
       >
-        <Controls showInteractive={false}>
-          <ControlButton onClick={() => panBy(0, PAN)} title="Pan up"><span aria-hidden="true">↑</span></ControlButton>
-          <ControlButton onClick={() => panBy(PAN, 0)} title="Pan left"><span aria-hidden="true">←</span></ControlButton>
-          <ControlButton onClick={() => panBy(-PAN, 0)} title="Pan right"><span aria-hidden="true">→</span></ControlButton>
-          <ControlButton onClick={() => panBy(0, -PAN)} title="Pan down"><span aria-hidden="true">↓</span></ControlButton>
-        </Controls>
+        <TownViewPad screen={screen} dark={mode === 'dark'} />
         <ViewportPortal>
           {walks.map(w => <Walker key={w.key} walk={w} onDone={endWalk} />)}
         </ViewportPortal>

@@ -1295,6 +1295,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 isAdmin={false}
                 edgesVisible={true}
                 centerOnCurrent={true}
+                screen="remote"
                 allowPan={true}
                 focusRequest={boardFocusRequest}
               />

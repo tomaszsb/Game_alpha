@@ -380,6 +380,7 @@ export function TVDisplay(): JSX.Element {
               isAdmin={false}
               edgesVisible={true}
               centerOnCurrent={true}
+              screen="tv"
               mode={tvMode}
             />
           ) : gamePhase === 'SETUP' ? (

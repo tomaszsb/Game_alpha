@@ -18,6 +18,7 @@ function TownOrClassic(props: BoardCanvasProps) {
       centerOnCurrent={props.centerOnCurrent}
       mode={props.mode}
       focusRequest={props.focusRequest}
+      screen={props.screen}
       layout={layout}
     />
   );
