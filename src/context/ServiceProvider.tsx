@@ -13,6 +13,7 @@ import { CardService } from '../services/CardService';
 import { MovementService } from '../services/MovementService';
 import { GameRulesService } from '../services/GameRulesService';
 import { ResourceService } from '../services/ResourceService';
+import { RepService } from '../services/RepService';
 import { ChoiceService } from '../services/ChoiceService';
 import { EffectEngineService } from '../services/EffectEngineService';
 import { NegotiationService } from '../services/NegotiationService';
@@ -94,6 +95,10 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   turnService.setEffectEngineService(effectEngineService);
   cardService.setEffectEngineService(effectEngineService);
 
+  // The reps you hold: shorter or longer visits, the 1-in-20 roll, salary at End Turn, hire and fire.
+  const repService = new RepService(stateService, dataService, choiceService, resourceService, loggingService);
+  turnService.setRepService(repService);
+
   const services: IServiceContainer = {
     dataService,
     stateService,
@@ -108,6 +113,7 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
     effectEngineService,
     negotiationService,
     approvalService,
+    repService,
   };
 
   return (

@@ -90,7 +90,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     loggingService,
     negotiationService,
     gameRulesService,
-    resourceService
+    resourceService,
+    repService
   } = useGameContext();
 
   // Create service container for ActionCenterPanel
@@ -106,7 +107,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     loggingService,
     negotiationService,
     gameRulesService,
-    resourceService
+    resourceService,
+    repService
   };
   // Dictionary panel control
   const { isOpen: isDictionaryOpen, openPanel: openDictionary, closePanel: closeDictionary } = useDictionaryPanel();

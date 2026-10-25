@@ -18,6 +18,7 @@ import { DataService } from '../services/DataService';
 import { StateService } from '../services/StateService';
 import { LoggingService } from '../services/LoggingService';
 import { ResourceService } from '../services/ResourceService';
+import { RepService } from '../services/RepService';
 import { GameRulesService } from '../services/GameRulesService';
 import { ChoiceService } from '../services/ChoiceService';
 import { CardService } from '../services/CardService';
@@ -36,6 +37,7 @@ import { ToastWriter } from '../services/ToastWriter';
 import { TrophyScorekeeper } from '../services/TrophyScorekeeper';
 import { configureTrophyRules } from '../utils/trophyRules';
 import { configureBankerRules } from '../utils/bankerRules';
+import { configureRepRules } from '../utils/repRules';
 
 class NodeDataService extends DataService {
   private readonly cleanFilesDir: string;
@@ -67,6 +69,7 @@ class NodeDataService extends DataService {
     try { (this as any).parseScopeWordingCsv(read('SCOPE_WORDING.csv')); } catch { /* feature off */ }
     try { (this as any).trophyRuleRows = (this as any).parseTrophyRulesCsv(read('TROPHIES.csv')); } catch { /* built-in defaults */ }
     try { (this as any).bankerRows = (this as any).parseTrophyRulesCsv(read('BANKER.csv')); } catch { /* built-in table */ }
+    try { (this as any).repRows = (this as any).parseTrophyRulesCsv(read('REPS.csv')); } catch { /* built-in table */ }
     (this as any).buildSpaces();
     (this as any).loaded = true;
   }
@@ -82,6 +85,7 @@ export interface HeadlessServices {
   choiceService: ChoiceService;
   resourceService: ResourceService;
   loggingService: LoggingService;
+  repService: RepService;
 }
 
 export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise<HeadlessServices> {
@@ -97,6 +101,7 @@ export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise
   new TrophyScorekeeper(stateService);
   configureTrophyRules(dataService.getTrophyRuleRows());
   configureBankerRules(dataService.getBankerRows());
+  configureRepRules(dataService.getRepRows());
   const resourceService = new ResourceService(stateService);
   const gameRulesService = new GameRulesService(dataService, stateService);
   stateService.setGameRulesService(gameRulesService);
@@ -152,6 +157,10 @@ export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise
   turnService.setEffectEngineService(effectEngineService);
   effectEngineService.setTurnService(turnService);
   cardService.setEffectEngineService(effectEngineService);
+  // A robot has no screen, so the reps' pop-ups are answered by the rules in repRules.ts.
+  const repService = new RepService(stateService, dataService, choiceService, resourceService, loggingService);
+  repService.autoDecide = true;
+  turnService.setRepService(repService);
 
   return {
     dataService,
@@ -163,5 +172,6 @@ export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise
     choiceService,
     resourceService,
     loggingService,
+    repService,
   };
 }

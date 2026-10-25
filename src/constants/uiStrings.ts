@@ -143,6 +143,14 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'BUILDER_BIDS.notSigned': 'Not signed yet. Keep holding the button until it fills.',
   'BUILDER_BIDS.hiredTitle': 'Builder hired',
   'BUILDER_BIDS.hiredNext': 'Next: hire a special inspector.',
+  'TEAM.title': 'Your team',
+  'TEAM.empty': 'No one on your team yet. A good rep makes every stop in one area shorter.',
+  'TEAM.hire': 'Hire a team member',
+  'TEAM.fire': 'Let go',
+  'TEAM.pay': '{pay} a week',
+  'TEAM.total': 'Team pay: {pay} a week, taken at the end of your turn',
+  'TEAM.hireNote': 'You will be shown three people, one at a time. Keep none, one, two or all three.',
+  'TEAM.waiting': 'Waiting for your answer...',
   'BUILDER_BIDS.lenderShort': 'Short on money? The lender is one door away.',
   'BUILDER_BIDS.bank.likely': 'Builders will likely quote about {price} for your job. This is only a rough guess until you visit them.',
   // The Owner's story, once chance has picked the player's kind of project (fb:612fbdc4).
@@ -437,6 +445,18 @@ export const BUILDER_BIDS = {
   get ERR_CHANGED() { return getUIString('BUILDER_BIDS.err.changed'); },
   get ERR_FAILED() { return getUIString('BUILDER_BIDS.err.failed'); },
   log: (price: string, days: number, quality: string) => getUIString('BUILDER_BIDS.log', { price, days, quality }),
+};
+
+/** The reps you hold: the Team list on the Expeditors page. */
+export const TEAM = {
+  get TEAM_TITLE() { return getUIString('TEAM.title'); },
+  get TEAM_EMPTY() { return getUIString('TEAM.empty'); },
+  get TEAM_HIRE() { return getUIString('TEAM.hire'); },
+  get TEAM_FIRE() { return getUIString('TEAM.fire'); },
+  get TEAM_HIRE_NOTE() { return getUIString('TEAM.hireNote'); },
+  get TEAM_WAITING() { return getUIString('TEAM.waiting'); },
+  teamPay: (pay: string) => getUIString('TEAM.pay').replace('{pay}', pay),
+  teamTotal: (pay: string) => getUIString('TEAM.total').replace('{pay}', pay),
 };
 
 /** The one shared "?" above the four glance boxes — see PlayerPanelV2.tsx. */

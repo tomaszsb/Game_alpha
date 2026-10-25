@@ -77,6 +77,8 @@ export interface ProjectFinances {
   design: ProjectArea;
   regulatory: ProjectArea;
   construction: ProjectArea;
+  /** Rep pay and stop-work payments (the "Team" line). Counts toward `spent`, so toward On budget. */
+  team: { spent: number };
   /** Contingency buffer: how much overrun has eaten into it. */
   contingency: { budget: number; used: number };
   /** Outside money only — bank loans + investor deals + other. Excludes the
@@ -169,12 +171,13 @@ export function computeProjectFinances(
   const designSpent = num(ex.design);
   const regulatorySpent = num(ex.fees);
   const constructionSpent = num(ex.construction);
+  const teamSpent = num((ex as { team?: number }).team);
   const contingencyUsed =
     Math.max(0, designSpent - designBudget) + Math.max(0, regulatorySpent - regulatoryBudget);
 
   const fundingRaised = num(ms.bankLoans) + num(ms.investmentDeals) + num(ms.other);
   const totalCapital = num(ms.ownerFunding) + fundingRaised;
-  const spent = designSpent + regulatorySpent + constructionSpent;
+  const spent = designSpent + regulatorySpent + constructionSpent + teamSpent;
   const commitments = scopeTotal + designBudget + regulatoryBudget + contingencyBudget;
   const fundingGap = Math.max(0, commitments - totalCapital);
 
@@ -185,6 +188,7 @@ export function computeProjectFinances(
     design: { budget: designBudget, spent: designSpent },
     regulatory: { budget: regulatoryBudget, spent: regulatorySpent },
     construction: { budget: constructionBudget, spent: constructionSpent },
+    team: { spent: teamSpent },
     contingency: { budget: contingencyBudget, used: contingencyUsed },
     fundingRaised,
     sources: { owner: num(ms.ownerFunding), bank: num(ms.bankLoans), investors: num(ms.investmentDeals), other: num(ms.other) },

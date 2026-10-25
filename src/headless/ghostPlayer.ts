@@ -22,6 +22,7 @@ import { appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { HeadlessServices } from './bootstrapServices';
 import { bootstrapHeadlessServices } from './bootstrapServices';
+import { getRepDef, newHeldRep } from '../utils/repRules';
 
 /**
  * Per-game progress heartbeat (TODO 2026-06-14). A full ghost batch can run
@@ -189,6 +190,11 @@ export interface GhostGameOptions {
    * cap without leaking the timed-out game's CPU into subsequent games.
    */
   signal?: AbortSignal;
+  /**
+   * Rep ids (REPS.csv) every seat holds from day 0, for measuring what reps do. Default none: the bot never hires
+   * on its own, so a normal run has no reps and plays exactly as before reps existed.
+   */
+  startReps?: string[];
 }
 
 /**
@@ -292,6 +298,12 @@ export async function playOneGame(
     const firstId = stateService.getAllPlayers()[0].id;
     stateService.setCurrentPlayer(firstId);
     stateService.startGame();
+    if (options.startReps?.length) {
+      for (const pl of stateService.getAllPlayers()) {
+        const reps = options.startReps.flatMap(id => { const d = getRepDef(id); return d ? [newHeldRep(d, 0)] : []; });
+        stateService.updatePlayer({ id: pl.id, reps } as never);
+      }
+    }
     await turnService.startTurn(firstId);
     if (signal?.aborted) return abortedResult(0);
 

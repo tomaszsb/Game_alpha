@@ -157,6 +157,8 @@ export interface IDataService {
   getTrophyRuleRows(): import('./DataTypes').TrophyRuleCsvRow[];
   /** BANKER.csv: the robot banker's bands, cut-offs and reason lines. */
   getBankerRows(): import('./DataTypes').TrophyRuleCsvRow[];
+  /** REPS.csv: the reps you hold (names, areas, salaries, the roll, the stop-work prices). */
+  getRepRows(): import('./DataTypes').TrophyRuleCsvRow[];
   /** TOWN.csv — the town board's layout (look only). Optional: empty = classic board only. */
   getTownRows?(): import('./DataTypes').TownCsvRow[];
   /** SCOPE_WORDING.csv — project types a dice throw can pick (bare nouns); empty = feature off. */
@@ -736,6 +738,8 @@ export interface IServiceContainer {
   // read it. Component tests that don't exercise approval flow can omit it.
   // ServiceProvider always populates it in production.
   approvalService?: import('../services/ApprovalService').IApprovalService;
+  /** The reps you hold. Optional so component tests that never touch the Team list can omit it. */
+  repService?: import('../services/RepService').RepService;
 }
 
 // Re-export approval service interface for convenience.

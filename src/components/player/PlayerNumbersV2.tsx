@@ -22,6 +22,7 @@ import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { NUMBERS } from '../../constants/uiStrings';
 import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
 import { colors } from '../../styles/theme';
+import { TeamSection } from './TeamSection';
 import { getCardWordedFor, newestScopeBaseIds } from '../../utils/scopeWording';
 
 /** Which page of the numbers is open — one per tappable glance box
@@ -413,6 +414,7 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
             {areaRow('📋', 'Regulatory & filings', fin.regulatory.spent, fin.regulatory.budget)}
             {areaRow('🏗️', 'Construction', fin.construction.spent, fin.construction.budget)}
             {areaRow('🛡️', 'Contingency (your buffer)', fin.contingency.used, fin.contingency.budget)}
+            {fin.team.spent > 0 && moneyRow('👥', 'Team (rep pay and stop work payments)', fin.team.spent)}
           </div>
         )}
 
@@ -523,10 +525,19 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
             you"; fb:adad1561). */}
         {page === 'expeditors' && (() => {
           const held = cardsFor('expeditors');
+          const team = gameServices.repService
+            ? <TeamSection playerId={playerId} repService={gameServices.repService} palette={p} canAct={gameServices.stateService.getGameState().currentPlayerId === playerId} />
+            : null;
           if (held.length === 0) {
-            return <div style={{ fontSize: 13, color: p.muted, padding: '6px 2px' }}>{NUMBERS.EXPEDITORS_EMPTY}</div>;
+            return (
+              <>
+                <div style={{ fontSize: 13, color: p.muted, padding: '6px 2px' }}>{NUMBERS.EXPEDITORS_EMPTY}</div>
+                {team}
+              </>
+            );
           }
           return (
+            <>
             <div data-testid="numbers-expeditors">
               {held.map(({ id, card }) => {
                 const playable = playableCardIds.includes(id);
@@ -554,6 +565,8 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
                 return cardRow(id, id, card.card_name, colors.game.cardTypes[card.card_type]?.emoji ?? '📄', phase, activate);
               })}
             </div>
+            {team}
+            </>
           );
         })()}
       </div>

@@ -96,7 +96,7 @@ export class ResourceService implements IResourceService {
 
       const updatedExpenditures = {
         ...currentExpenditures,
-        [category]: currentExpenditures[category] + amount
+        [category]: (currentExpenditures[category] ?? 0) + amount
       };
 
       // Update via TEMP state (or main state if no TEMP exists)
@@ -109,7 +109,7 @@ export class ResourceService implements IResourceService {
       this.stateService.recordTurnOutflow(playerId, { moneySpent: amount, moneyDeliberate: deliberateSpend(source, amount) });
 
       debugLog(`💸 Expenditure tracked [${playerId}]: $${amount.toLocaleString()} in ${category} category`);
-      debugLog(`   Total ${category}: $${updatedExpenditures[category].toLocaleString()}`);
+      debugLog(`   Total ${category}: $${(updatedExpenditures[category] ?? 0).toLocaleString()}`);
 
       return true;
     }
@@ -237,6 +237,8 @@ export class ResourceService implements IResourceService {
       case 'regulatory':
       case 'investmentFee':  // Fee charged for receiving investment
         return 'fees';
+      case 'team':
+        return 'team';  // Rep pay and stop-work payments: their own "Team" line, counted toward On budget
       case 'miscellaneous':
         return null;  // Miscellaneous costs don't map to expenditures
       case 'loanFee':

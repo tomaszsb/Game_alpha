@@ -18,6 +18,7 @@ import { friendlySpaceName } from '../utils/logFormatting';
 import { calculatePushBackDays, calculatePushBackMoneyKept, getLoanOnTheTable, expeditorsForPushBack } from '../utils/costPreview';
 import { computeFilingFee } from '../utils/violationRules';
 import { settlementAmount } from '../utils/bankerRules';
+import type { RepService } from './RepService';
 import { combineLifeEventChanges, applyLifeEventHand } from '../utils/lifeEventChange';
 
 export class TurnService implements ITurnService {
@@ -147,6 +148,12 @@ export class TurnService implements ITurnService {
   /**
    * Set the EffectEngineService after construction to handle circular dependencies
    */
+  /** The reps you hold (shorter or longer visits, the 1-in-20 roll, salary at End Turn). Optional: a game built without it has no reps. */
+  private repService?: RepService;
+  public setRepService(repService: RepService): void {
+    this.repService = repService;
+  }
+
   public setEffectEngineService(effectEngineService: IEffectEngineService): void {
     this.effectEngineService = effectEngineService;
     this.spaceArrivalProcessor.setEffectEngineService(effectEngineService);
@@ -480,6 +487,11 @@ export class TurnService implements ITurnService {
         }
       }
 
+      step = 'team_pay';
+      // The team's salary for whole weeks passed. A player who cannot cover it picks who goes, so pay alone
+      // never reaches the bankruptcy check below.
+      await this.repService?.settleAtEndTurn(gameState.currentPlayerId);
+
       step = 'check_bankruptcy';
       // The one place bankruptcy is checked for real (2026-09-28, fb:ab383e78).
       // Every mandatory-fee charge this turn (dice-driven or not) uses
@@ -799,6 +811,9 @@ export class TurnService implements ITurnService {
 
       // 4. Process space effects (including space entry logging as first effect)
       await this.processSpaceEffectsAfterMovement(player.id, player.currentSpace, player.visitType, false);
+
+      // 4b. Held reps: this visit is shorter or longer, and the rep may roll a 1-in-20 (raise, quit, stop work order).
+      await this.repService?.onArrival(player.id);
 
       // Note: REAL/TEMP state model handles Try Again state preservation
       // TEMP state contains effects applied this turn; REAL state is preserved for reversion

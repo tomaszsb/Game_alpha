@@ -1,0 +1,31 @@
+kind,key,value,text
+rule,days_shift,3,Days a held rep takes off (good) or adds (bad) to each visit in its area
+rule,week_days,7,Days of game time one salary payment covers
+rule,quit_one_in,20,The roll on arrival in the rep's own area: 1 in this many
+rule,offer_size,3,Reps shown when you hire
+rule,max_bad_per_offer,1,Most bad reps in one hire offer
+rule,raise_out_of,4,A raise offer is accepted this many chances in...
+raise,10,1,
+raise,20,2,
+raise,30,3,
+stop,a,15000,7
+stop,b,10000,10
+stop,c,5000,15
+area,ARCH-,,Code
+area,ENG-,,Code
+area,REG-,,Permits
+area,SI-,,Inspections
+area,TR8-,,Inspections
+area,CON-INSPECT,,Inspections
+rep,CODE-1,500,Priya Nair|Code|good|Code consultant. Has read the building code cover to cover.
+rep,CODE-2,500,Sam Okafor|Code|good|Plan reviewer on retainer. Catches problems before the city does.
+rep,CODE-3,500,Alicia Brandt|Code|good|Used to work at the city. Knows what examiners look for.
+rep,CODE-4,250,"Kyle Doran|Code|bad|New to the business. Cheap, and says he knows the code."
+rep,PERMITS-1,500,"Marcus Webb|Permits|good|Permit filer. A hundred filings a year, and it shows."
+rep,PERMITS-2,500,Lena Kowalski|Permits|good|Used to be a clerk at the buildings department.
+rep,PERMITS-3,500,Omar Haddad|Permits|good|Registered filer. Knows every form and every line to call.
+rep,PERMITS-4,250,"Jared Finch|Permits|bad|Will file anything, fast. Cheap."
+rep,INSPECT-1,500,Rosa Delgado|Inspections|good|Special inspector with a clean record.
+rep,INSPECT-2,500,Walt Pruitt|Inspections|good|Retired site inspector. Walks a site and sees everything.
+rep,INSPECT-3,500,Naomi Cho|Inspections|good|Runs the testing lab. Reports arrive when she says they will.
+rep,INSPECT-4,250,Bobby Tran|Inspections|bad|Signs off quickly and charges little.

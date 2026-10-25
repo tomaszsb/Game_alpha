@@ -142,6 +142,8 @@ export interface MutablePlayerState {
   pushBackTotal?: number;
   /** The banker's last answer, shown in the bank pop-up. */
   lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean; safe?: number };
+  /** The reps this player holds. */
+  reps?: import('./DataTypes').HeldRep[];
 }
 
 /**
@@ -530,6 +532,7 @@ export interface PlayerUpdateData {
   bankRefusals?: number;
   pushBackTotal?: number;
   lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean; safe?: number };
+  reps?: import('./DataTypes').HeldRep[];
   finishedAtTurn?: number;
   outReason?: 'bankruptcy' | 'design_fee_cap' | 'time_cap';
   outAtTurn?: number;

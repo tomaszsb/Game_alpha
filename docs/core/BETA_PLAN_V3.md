@@ -462,8 +462,10 @@ Written by the Game_Alpha session for the Manager. Sources: the independent revi
 - **Pick: A, after the day-adding-cards decision.** It stays in the data and copies the `SI-HIRE` pattern.
 - **Needs Tom first:** yes, that decision, then the three prices.
 
-#### 2 REPLACED (design only, nothing built; revised 2026-10-25 with Tom's decisions): reps you hold, with a salary
+#### 2 REPLACED (STEP 1 BUILT v3.8.73, 2026-10-25, not deployed; step 2 = robot auto-run still to do): reps you hold, with a salary
 Tom's idea: the player can always HIRE a rep (draw 3 cards, keep 1, 2 or all 3) or FIRE a rep. A rep costs a salary while held, and is good OR bad at ONE area. This replaces the three-person fork.
+
+**BUILT as v3.8.73 (what the code does).** Hire/fire in a "Your team" block on the Expeditors page (`TeamSection.tsx`); rep state is `player.reps?: HeldRep[]` (`id`, `salary`, `hiredDay`, `salaryBilledThroughDay`, `lastRollDay`) so step 2's auto-run can read who is held and good/bad via `RepService.describe(playerId)`. Table in `REPS.csv` (12 reps; built-in `DEFAULT_REP_ROWS` if the live data folder lacks it). Defaults I chose, for Tom to flag: 3 days per visit, bad rep $250 a week (good $500), at most 1 bad per offer of 3, no cap on reps held, a rep who leaves is paid pro rata, the pop-up does not say outright that a rep is bad (the blurb hints and the pay is low), salary never causes bankruptcy. The robot never hires (ghost option `startReps` hands it reps for measurement only).
 
 **What exists today (inventory; we reuse, not add a layer).**
 - 75 expeditor (E) cards in `CARDS_EXPANDED.csv`, all one-time and used up when played: 43 save days (-1 to -5), 15 add days, 18 also move money (Time Crunch: -5 days for -$8,000, about $1,600 a day; Overtime: -2 days for -$1,000). 34 are filing cards, 11 any, 10 each design, building, funding. No "area" column yet.

@@ -431,14 +431,28 @@ export interface FundingEntry {
   timestamp: Date;
 }
 
+/** One rep on the team: who (REPS.csv id), their pay now, and the days the pay and the roll have been settled to. */
+export interface HeldRep {
+  id: string;
+  /** Pay per 7 days now; a raise changes it. */
+  salary: number;
+  hiredDay: number;
+  /** Pay has been taken up to this day of game time (hiring sets it to today: no back pay). */
+  salaryBilledThroughDay: number;
+  /** The day of the last 1-in-20 roll for this rep (at most one roll per rep per 7 days). */
+  lastRollDay?: number;
+}
+
 export interface Expenditures {
   design: number;       // Architect/Engineer fees (ARCH-FEE-REVIEW, ENG-FEE-REVIEW)
   fees: number;         // All regulatory, consultant, and expeditor costs (DOB, FDNY, Bank, Investor fees, E cards)
   construction: number; // Cost of work from 'W' cards (work_cost field)
+  /** Rep pay and stop-work payments (v3.8.73); counts toward spent. Optional: older saves have none. */
+  team?: number;
 }
 
 // Expense categories (costs/fees paid OUT)
-export type ExpenseCategory = 'expeditor' | 'architectural' | 'engineering' | 'regulatory' | 'investmentFee' | 'loanFee' | 'miscellaneous';
+export type ExpenseCategory = 'expeditor' | 'architectural' | 'engineering' | 'regulatory' | 'investmentFee' | 'loanFee' | 'miscellaneous' | 'team';
 
 // Income sources (funds received IN) - matches money source types
 export type IncomeCategory = 'bank' | 'investor' | 'owner' | 'other';
@@ -469,6 +483,8 @@ export interface CostBreakdown {
   investmentFee: number;
   /** The bank's up-front loan fee (v3.7.20). Optional: games saved before it have none. */
   loanFee?: number;
+  /** Pay and payouts for the reps you hold (v3.8.73). Optional: games saved before it have none. */
+  team?: number;
   miscellaneous: number;
   total: number;
 }
@@ -587,6 +603,8 @@ export interface Player {
   pushBackTotal?: number;
   /** The banker's last answer, shown in the bank pop-up in place of the usual text. */
   lastBankerDecision?: { answer: 'approve' | 'counter' | 'refuse'; amount: number; rate: number; reasons: string[]; final: boolean; safe?: number };
+  /** The reps this player holds (v3.8.73). Optional: older saves have none. See utils/repRules.ts. */
+  reps?: HeldRep[];
   /** The most planned days this player's project has called for at the end of any turn; the 300% time cap is
    *  measured against it for the same reason as peakScope (dropping work must not make a project "late"). */
   peakPlanDays?: number;
