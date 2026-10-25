@@ -499,6 +499,20 @@ Written by the Game_Alpha session for the Manager. Sources: the independent revi
 - **Pick: A first.** It is the missing half and adds no height if it appears in the existing mat area.
 - **Needs Tom first:** not to build A (no new rules), but he should see it on a phone.
 
+### 5b. Trophy markers: a plus or minus and the new place, after Commit or Negotiate (design only, 2026-10-25, nothing built)
+- **What Tom wants (his answers).** After he presses Commit or Negotiate, the balloon above the building he is at (town view) shows, next to each trophy that changed, a GREEN PLUS or a RED MINUS and the player's current place. Each trophy gets its own picture: Fastest = a calendar or a watch; Best built = a clipboard with checkmarks; On budget = coins and paper money. Today all three use one shared trophy emoji.
+- **What it touches.**
+  - The town balloon: `TownBoard.tsx` draws the result bubbles (`+$ / -$, +/- days, scope`) from `resultBubbles()` / `mergedResultBubbles()` in `src/utils/townLayout.ts` (kind money / days / scope, tone good / bad / info). A trophy bubble is a fourth kind in the same list, so the bubbles, their timing and their colours are reused.
+  - The numbers: `buildLiveBoard()` in `src/utils/liveTrophies.ts` already gives each player's `place`, `of`, `behind` and `value` (percent of own plan) for the three races. Compute it once before and once after the commit and compare.
+  - The live board: `LiveTrophyBoard.tsx` (Progress strip and TV) and the end-game table in `EndGameModal.tsx` use `theme.emoji.trophy` (`src/styles/theme.ts:365`, one 🏆). They would take the three pictures in place of the shared one.
+- **Plus or minus: places or points? Proposal: PLACES.** Plus = the player moved UP at least one place in that race, minus = moved DOWN, nothing shown if the place is the same. Why: a place is what the student is playing for and what the board already shows ("2nd of 3"); points of percent are small (a 0.4 move) and a sign on a tiny number reads as noise. Points stay in the hover text. A tie keeps the better place, as the board already does. Edge: a solo player has no race, so no marker.
+- **Provisional places.** `LiveRow.solid` says a place can still change while other players are behind in days. The marker uses the same wording as the board (italic or a small "for now"); a change in a provisional place is shown, but the board's note stays.
+- **Phone.** The balloon floats over the town, so it adds no height to the player panel. It must fit the balloon's width at 360 px: at most the two trophies that changed, picture + sign + place (like "calendar + 2nd"), no sentence. The panel itself is not touched. Measure the balloon at 360x640 and 390x844 on a late-game player when built.
+- **Art.** Three small pictures, one per trophy, in the same size as the 🏆. Tom picks the style: (1) emoji style (calendar, clipboard, money bag: zero art cost, but looks differ by device), (2) simple line icons drawn once as SVG (same look everywhere, a few hours, no brand marks), (3) hand-drawn in the game's own look (best fit, needs an artist). Names stay from `TROPHIES.csv`; the picture keys would be a new column there so a different board can swap the art by data.
+- **Cost.** With emoji or SVG icons: about 2 days (bubble kind + before/after compare + three icons + tests + the phone and TV check). With drawn art: add the art time. No new rules, no engine change.
+- **Questions for Tom.** (1) Emoji, simple line icons, or drawn pictures? (2) A marker only when the PLACE changes (my proposal), or also when the percent moves a little? (3) Should the same pictures replace the shared trophy in the Progress strip, the TV board and the end-game table, or only in the balloon?
+- **Fairness and brands.** No brand names or logos in any picture or word.
+
 ### Which of these need Tom before any building
 1. Inspector sign-off: yes (numbers and wording).
 2. Hire an Expeditor fork: yes (the day-adding-cards choice first, then prices).
