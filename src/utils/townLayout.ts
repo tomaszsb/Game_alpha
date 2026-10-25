@@ -48,11 +48,27 @@ export interface TownStreet {
   copy?: boolean;
 }
 
+/**
+ * A tree on open grass (TOWN.csv `tree` rows). A row with no `value` stands in the first player's band only. A row with
+ * `rest` is placed in the second player's band and copied down for every player after that: the first band and the later
+ * ones have different open grass (the bank row only stands in the first), so each gets trees where it really has room.
+ */
+export interface TownTree {
+  id: string;
+  col: number;
+  row: number;
+  /** Which kind of picture (a folder of looks); TOWN.csv `icon`. */
+  species: string;
+  /** Whose band it was placed in (its home player). */
+  seat: number;
+}
+
 export interface TownLayout {
   /** How many players the town was drawn for (1 = the plain town). */
   seats: number;
   buildings: TownBuilding[];
   streets: TownStreet[];
+  trees: TownTree[];
   /** Space id -> building id, for every placed space. */
   roomToBuilding: Map<string, string>;
   /** Space id -> (project kind -> building id): where a room is for a player of that kind (TOWN.csv `variant` rows). */
@@ -92,6 +108,7 @@ export function buildTownLayout(
   const streets: TownStreet[] = [];
   const settings: Record<string, string> = {};
   const perPlayer = new Set<string>();
+  const trees: TownTree[] = [];
 
   for (const r of rows) {
     if (r.kind === 'building' && !byId.has(r.id)) {
@@ -114,6 +131,8 @@ export function buildTownLayout(
     } else if (r.kind === 'street') {
       if (r.col !== '') streets.push({ axis: 'col', at: num(r.col) });
       else if (r.row !== '') streets.push({ axis: 'row', at: num(r.row) });
+    } else if (r.kind === 'tree') {
+      trees.push({ id: r.id, col: num(r.col), row: num(r.row), species: r.icon || 'oak', seat: r.value === 'rest' ? 1 : 0 });
     } else if (r.kind === 'setting') {
       settings[r.id] = r.value;
     } else if (r.kind === 'perplayer') {
@@ -121,6 +140,8 @@ export function buildTownLayout(
     }
   }
   if (buildings.length === 0) return null;
+  // second-band trees only exist when there is a second band
+  for (let i = trees.length - 1; i >= 0; i--) if (trees[i].seat >= Math.max(1, Math.floor(seats))) trees.splice(i, 1);
 
   const onBoard = new Set(spaceNames);
   const roomToBuilding = new Map<string, string>();
@@ -162,6 +183,11 @@ export function buildTownLayout(
       };
       buildings.push(copy);
       byId.set(copy.id, copy);
+    }
+    if (s >= 2) {
+      for (const t of trees.filter(x => x.seat === 1 && !x.id.includes('@'))) {
+        trees.push({ ...t, id: `${t.id}@${s}`, seat: s, col: t.col + (s - 1) * bandCols, row: t.row + (s - 1) * bandRows });
+      }
     }
     for (const st of [...streets]) {
       if (st.axis === 'row' && !st.copy) streets.push({ axis: 'row', at: st.at + s * bandRows, copy: true });
@@ -207,7 +233,7 @@ export function buildTownLayout(
     maxCol: Math.max(...buildings.map(b => b.col + b.width)),
     maxRow: Math.max(...buildings.map(b => b.row + b.depth)),
   };
-  return { seats: seatCount, buildings, streets, roomToBuilding, roomVariants, bounds, settings };
+  return { seats: seatCount, buildings, streets, trees, roomToBuilding, roomVariants, bounds, settings };
 }
 
 /** Who is asking where a room is: their project kind (new / existing) and which player's seat they hold. */

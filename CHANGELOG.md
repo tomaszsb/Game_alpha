@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [3.8.85] - 2026-10-25
+## [3.8.86] - 2026-10-25
+
+**Trees on the town board (time-on-board design, step 4; trees, art not yet approved by Tom).** Seventeen trees stand on open grass (11 in the first player's band, 6 in each later band; TOWN.csv `tree` rows, `rest` marks the later bands), two kinds (round oak, tall maple) in five looks (blossom, summer, autumn, bare, snowy), 10 small pictures drawn with PixelLab for about eight cents (`public/images/trees/`; contact sheet in `public/assets/trees/`). A tree shows the look of the month of whoever owns the ground under it now (new `tree_look` column in TOWN_SEASONS.csv and the built-in table: Jan-Feb snowy, Mar bare, Apr blossom, May-Sep summer, Oct autumn, Nov bare, Dec snowy), so when a finished player's ground passes to a neighbour the trees follow the neighbour's month. A tree grows 10% for every 365 days (capped at 1.5x) counted from the bigger of its home player's and its current owner's days, never shrinking (uses the remembered `peakDays`). Trees never stand on a street, a building or a cut line (pinned by a test for 1 to 4 players), are never in the way of the mouse, and the picture change is instant for now (no cross-fade yet). Phone panel unchanged.
 
 ## [3.8.85] - 2026-10-25
 

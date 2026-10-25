@@ -41,7 +41,8 @@ import { getSoundOn } from '../../utils/soundSetting';
 import { TownViewPad, type ViewPadScreen } from './TownViewPad';
 import { TownClocks } from './TownClocks';
 import { clockMonth, clockStartIso } from '../../utils/gameClock';
-import { areaSegments, hasLeftBoard, type AreaSegment } from '../../utils/townAreas';
+import { areaSegments, hasLeftBoard, ownerOfRow, type AreaSegment } from '../../utils/townAreas';
+import { treePicture, treeScale } from '../../utils/townTrees';
 import { seasonLook, mixHex, type SeasonLook } from '../../utils/townSeasons';
 import { racePlaces } from '../../utils/liveTrophies';
 import { getTrophyRules, type TrophyId } from '../../utils/trophyRules';
@@ -67,6 +68,7 @@ import {
   type BuildingView,
   type TownBuilding,
   type TownLayout,
+  type TownTree,
   type Who,
 } from '../../utils/townLayout';
 
@@ -358,7 +360,23 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
   );
 }
 
-const nodeTypes = { townGround: TownGround, townBuilding: TownBuildingNode };
+/** How wide a tree is drawn (px) at its starting size: the 64 px picture, enlarged. */
+const TREE_PX = 96;
+
+interface TreeData { tree: TownTree; src: string; size: number; [key: string]: unknown }
+
+/** A tree standing on the grass: only a picture, never in the way of the mouse. */
+function TownTreeNode({ data }: NodeProps) {
+  const d = data as unknown as TreeData;
+  return (
+    <img
+      src={d.src} alt="" draggable={false} data-testid={`town-tree-${d.tree.id}`}
+      style={{ width: d.size, height: d.size, display: 'block', imageRendering: 'pixelated', pointerEvents: 'none', userSelect: 'none' }}
+    />
+  );
+}
+
+const nodeTypes = { townGround: TownGround, townBuilding: TownBuildingNode, townTree: TownTreeNode };
 
 // -------------------------------------------------------------------------------------------------
 // The walk (step A2): a player's face walks the streets from the old building to the new one.
@@ -786,6 +804,21 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
           roofX: box.roofX, roofY: box.roofY, labels, portrait: portraitFor(b.icon), named: named.has(b.id), faded: faded.has(b.id), seatColor: layout.seats > 1 && b.seat !== undefined ? players[b.seat]?.color : undefined, mode,
           bubbles: bubbles.filter(x => x.buildingId === b.id), onBubbleDone: endBubble,
         } satisfies BuildingData,
+      });
+    }
+    // Trees: the picture follows the month of whoever owns the ground under it now; the size follows the most days its home
+    // player or its current owner has spent (they only ever count up, so a tree never shrinks).
+    const seats = Math.max(1, layout.seats);
+    const peakOf = (seat: number) => { const p = players[seat] ?? players[0]; return Math.max(p?.peakDays ?? 0, p?.timeSpent ?? 0); };
+    for (const t of layout.trees) {
+      const owner = ownerOfRow(areas.segments, t.row);
+      const size = Math.round(TREE_PX * treeScale(Math.max(peakOf(Math.min(t.seat, seats - 1)), peakOf(owner))));
+      const base = isoPoint(t.col, t.row, 0, TOWN_TILE);
+      out.push({
+        id: t.id, type: 'townTree', position: { x: base.x - size / 2, y: base.y - size * 0.94 },
+        zIndex: 10 + Math.round((t.col + t.row) * 10), draggable: false, selectable: false, focusable: false,
+        style: { pointerEvents: 'none' },
+        data: { tree: t, src: treePicture(t, areas.looks[owner]?.tree ?? 'summer'), size } satisfies TreeData,
       });
     }
     return out;
