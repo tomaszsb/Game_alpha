@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.71] - 2026-10-25
+
+**The office's "Move" list is grouped by stage (Tom: the list looked random and runs off a phone).** At the resume hub (`PM-DECISION-CHECK`), when it offers 5 or more places, the list is now grouped by the space's stage (`phase` in GAME_CONFIG.csv: Owner decisions, Money, Design, City approvals, Building, Finish; names in `UI_STRINGS.csv` `STAGE.*`), ONE group open at a time (tap a header to switch). Inside a group the places are in the order the student FIRST VISITED them (`player.visitedSpaces`, then unvisited ones in the engine's order). The group opened first holds the place already picked, else the newest first visit. New `src/utils/officeGroups.ts` (pure) and a small render change in `PlayerPanelV2.tsx`; the same row buttons are reused. Short lists and ordinary forks stay flat. The engine's list, `moveIntent` (stored by space id), Try Again, saved games and the robot are untouched: it is display only. Tests: `officeGroups.test.ts`. NOT verified: a real-browser measure at 360x640 / 390x844 or on the TV. By the numbers a late-game list goes from 9 rows to about 5 headers plus 1-3 rows, so it should not be taller.
+
 ## [3.8.70] - 2026-10-25
 
 **Builder signing is easier to see (Tom: "builder hired did not show up or I did not see it").** The sign button needs a 650 ms hold. (a) A press that ends early, or where the pointer leaves or is cancelled, now shows a yellow note "Not signed yet. Keep holding the button until it fills." (same style as the lapsed-price note). (b) On a phone the button now reads "Hold to hire" (it said "Hire" and the "Press and hold" caption was hidden there). (c) The green hired box is bolder (2 px border, "Builder hired." plus "Next: hire a special inspector." on its first line). Words are in `UI_STRINGS.csv`. The movement rule is unchanged (the lender is the only door until a builder is hired, by design). Tests added in `BuilderBidsCard.test.tsx`. NOT verified: a real-browser measure at 360x640 and 390x844; by design the hired box is two lines like before and replaces the three bids, so the panel should not grow.

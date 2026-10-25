@@ -108,6 +108,12 @@ NUMBERS.section.scope,Scope
 NUMBERS.section.expeditors,Expeditors
 NUMBERS.expeditors.empty,"You haven't hired anyone yet."
 NUMBERS.money.ongoing,Still costing you
+STAGE.OWNER,Owner decisions
+STAGE.FUNDING,Money
+STAGE.DESIGN,Design
+STAGE.REGULATORY,City approvals
+STAGE.CONSTRUCTION,Building
+STAGE.END,Finish
 BUILDER_BIDS.title,{n} builders have priced your job
 BUILDER_BIDS.intro,"Each one gives you a price, how many days the work will take, and how long that price stays good. You will not know how good a builder is until you hire one."
 BUILDER_BIDS.days,{days} days of work

@@ -114,6 +114,12 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   // exact except the lender's "about" figure, which says plainly that it is a guess.
   // Heads-up before a roll that can add work while the player holds an approval (fb:21473ad9).
   'SCOPE_APPROVAL.warn': 'Careful: if this adds work to your plan, your {approval} approval is lost and you will have to get it again.',
+  'STAGE.OWNER': 'Owner decisions',
+  'STAGE.FUNDING': 'Money',
+  'STAGE.DESIGN': 'Design',
+  'STAGE.REGULATORY': 'City approvals',
+  'STAGE.CONSTRUCTION': 'Building',
+  'STAGE.END': 'Finish',
   'BUILDER_BIDS.title': '{n} builders have priced your job',
   'BUILDER_BIDS.intro': 'Each one gives you a price, how many days the work will take, and how long that price stays good. You will not know how good a builder is until you hire one.',
   'BUILDER_BIDS.days': '{days} days of work',

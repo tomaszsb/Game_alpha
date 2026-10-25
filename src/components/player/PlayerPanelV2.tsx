@@ -43,6 +43,8 @@ import { TurnCommitControl } from './TurnCommitControl';
 import { knownArrivalFee, shortBy, arrivalShortMessage } from '../../utils/moneyWarning';
 import { getEndTurnWarning } from '../../utils/endTurnWarning';
 import { getEndTurnCostPreview, getTryAgainCostPreview, getLoanOnTheTable, isManualEffectCompleted, perAmountUnit, timeRowDays, getActionResultText } from '../../utils/costPreview';
+import { getUIString } from '../../constants/uiStrings';
+import { groupMoveOptions, defaultOpenStage, GROUP_MIN_OPTIONS } from '../../utils/officeGroups';
 import { ACTION_ROW, COMMIT, NUMBERS, GLANCE_HELP, SCOPE_APPROVAL } from '../../constants/uiStrings';
 import { setDestinationPreview } from '../../utils/destinationPreview';
 import { getBuilderRules } from '../../utils/trophyRules';
@@ -158,6 +160,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // first look is folded UNLESS choosing where to go is the only thing left, in
   // which case it opens itself (see `pickIsOnlyGate`).
   const [showMoveOptions, setShowMoveOptions] = useState(false);
+  // The office's long list is grouped by stage, one group open at a time (null = the default group).
+  const [openStage, setOpenStage] = useState<string | null>(null);
   // Whether, on the previous render, choosing a destination was the ONLY thing
   // left on this turn. Not shown anywhere — it exists so the picker opens on the
   // moment that becomes true (see `pickIsOnlyGate` below), once, and after that
@@ -454,6 +458,30 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // options but does not list what those specific options are". Both names fit at
   // two; past that the row would run long, so it says how many and they open
   // below. MOVEMENT.csv has 8 two-option spaces, 1 three- and 3 four-option.
+  // The office's list (9 places late in the game) would make the panel taller than a phone has room for.
+  // Grouped by stage, one group open at a time, each group in the order the student first visited its places.
+  const moveOptionsAll = movementChoice?.options ?? [];
+  const groupMoves =
+    moveOptionsAll.length >= GROUP_MIN_OPTIONS && gameServices.dataService.isResumeHub(player.currentSpace);
+  const stagePhaseOrder = groupMoves
+    ? Array.from(new Set(gameServices.dataService.getGameConfig().map((c) => c.phase)))
+    : [];
+  const stageGroups = groupMoves
+    ? groupMoveOptions(moveOptionsAll, player.visitedSpaces ?? [], (id) => gameServices.dataService.getGameConfigBySpace(id)?.phase ?? '', stagePhaseOrder)
+    : [];
+  const openStageNow =
+    groupMoves && stageGroups.some((g) => g.phase === openStage)
+      ? openStage
+      : groupMoves
+      ? defaultOpenStage(stageGroups, player.visitedSpaces ?? [], selectedDestination)
+      : null;
+  type MoveRow = { opt: { id: string; label: string }; header?: undefined } | { header: { phase: string; count: number; open: boolean }; opt?: undefined };
+  const moveRows: MoveRow[] = groupMoves
+    ? stageGroups.flatMap((g): MoveRow[] => [
+        { header: { phase: g.phase, count: g.items.length, open: g.phase === openStageNow } },
+        ...(g.phase === openStageNow ? g.items.map((opt): MoveRow => ({ opt })) : []),
+      ])
+    : moveOptionsAll.map((opt): MoveRow => ({ opt }));
   const movementOptionLabels = (movementChoice?.options ?? []).map(
     (o) =>
       gameServices.dataService.getGameConfigBySpace(o.id)?.display_label_override
@@ -1356,7 +1384,25 @@ ${spaceWhy}` } : baseWhy;
                 // Indented + connector line so the options read as sliding out
                 // from under the toggle, not as four more equal-weight actions.
                 <div style={{ marginLeft: 12, paddingLeft: 10, borderLeft: `2px solid ${p.border}`, marginTop: 2 }}>
-                  {movementChoice!.options.map((opt) => {
+                  {moveRows.map((row) => {
+                    if (row.header) {
+                      const h = row.header;
+                      const stageName = getUIString(`STAGE.${h.phase}`) || h.phase;
+                      return (
+                        <button
+                          key={`stage-${h.phase}`}
+                          type="button"
+                          data-testid="move-stage-header"
+                          data-stage={h.phase}
+                          aria-expanded={h.open}
+                          onClick={() => setOpenStage(h.phase)}
+                          style={{ ...subActionBtn, width: '100%', textAlign: 'left', fontWeight: 700, background: h.open ? p.goodSurf : subActionBtn.background }}
+                        >
+                          {h.open ? '▾' : '▸'} {stageName} ({h.count})
+                        </button>
+                      );
+                    }
+                    const opt = row.opt;
                     const oc = gameServices.dataService.getGameConfigBySpace(opt.id);
                     const label = oc?.display_label_override || opt.label || shortName(opt.id);
                     const isSelected = selectedDestination === opt.id;
