@@ -5,7 +5,7 @@ import React from 'react';
 import { OTHER_SITES } from '../../constants/otherSites';
 
 interface OtherSitesProps {
-  /** Link colour; each surface passes its own so the line reads in light and dark. */
+  /** Link colour; each surface passes its own so the line reads in light and dark. 'inherit' = the sentence's own colour, underlined so it still reads as a link. */
   linkColor?: string;
   style?: React.CSSProperties;
 }
@@ -17,7 +17,7 @@ export function OtherSites({ linkColor, style }: OtherSitesProps): JSX.Element {
       {OTHER_SITES.map((s, i) => (
         <React.Fragment key={s.url}>
           {i > 0 && ' · '}
-          <a href={s.url} target="_blank" rel="noopener noreferrer" style={linkColor ? { color: linkColor } : undefined}>{s.label}</a>
+          <a href={s.url} target="_blank" rel="noopener noreferrer" style={linkColor ? { color: linkColor, ...(linkColor === 'inherit' ? { textDecoration: 'underline' } : {}) } : undefined}>{s.label}</a>
         </React.Fragment>
       ))}
     </span>

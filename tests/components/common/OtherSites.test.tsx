@@ -25,6 +25,14 @@ describe('OtherSites', () => {
       expect(a).toHaveAttribute('rel', expect.stringContaining('noopener'));
     }
   });
+  it("'inherit' makes the links the sentence's own colour, underlined (blue on the blue setup screen was unreadable)", () => {
+    render(<OtherSites linkColor="inherit" />);
+    for (const s of OTHER_SITES) {
+      const a = screen.getByRole('link', { name: s.label });
+      expect(a.style.color).toBe('inherit');
+      expect(a.style.textDecoration).toBe('underline');
+    }
+  });
   it('the certificate carries the same links', () => {
     const html = buildCertificateHtml('A', new Date('2026-10-21T12:00:00Z'));
     for (const s of OTHER_SITES) expect(html).toContain(`<a href="${s.url}">${s.label}</a>`);

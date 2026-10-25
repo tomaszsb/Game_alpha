@@ -5,9 +5,9 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** October 23, 2026 (v3.8.46 LIVE)
+**Last Updated:** October 25, 2026 (v3.8.75 committed + pushed, NOT deployed)
 **Current Phase:** Beta — live in production
-**Current Version:** **v3.8.46 LIVE** (`/health` `22f1de48`, checked 10-23 13:00 UTC). v3.8.41-46: pulsing red warnings, per-space work-button help, plain History notes, shorter commit hint, loans named for your project, "to raise", push-back keeps expeditor days and the drawer's lasting life event, certificate asks for a name.
+**Current Version:** **v3.8.75** (pushed, not deployed; check `/health` against `git rev-parse --short HEAD` before saying what is live). Since 3.8.46: robot Banker (3.8.65-69), school logo + name (3.8.65), builder bids, office Move list grouped by stage (3.8.71), **reps with a salary (3.8.73)**, **the auto-run: send your filing rep round the plan-exam circle (3.8.74)**, setup-screen link colour (3.8.75). Full `npm test` 326 files / 4287 pass at 3.8.74, build OK, `npm audit` 0, lint 2 errors + 24 warnings (not part of the deploy gate). See CHANGELOG for each; the handoff is `.claude/NEXT_SESSION.md`.
 **v3.8.47-49 (committed + pushed, not deployed; 49 = picture card, TV button opens it on a phone; 48 = maker-list sources, "My TV isn't listed", TV-family count in Site Stats):** "Step 1: put the game on a big screen" card for phone-first students (setup screen, /challenge, /class); suite 308 files / 4102 green.
 
 ## Current sprint

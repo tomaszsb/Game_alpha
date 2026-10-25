@@ -1,49 +1,41 @@
-# Next session starter — written 2026-10-25 by /koniec (v3.8.64)
+# Next session starter — written 2026-10-25 by the Game session (v3.8.75), session being archived
 
-*2026-10-25 logo session wrap: v3.8.68 fixed a real bug the Tower deploy gate caught (logo backups made in the same millisecond overwrote each other; fix = counter in the name + no-overwrite copy, proven by a frozen-clock test). Full `npm test` 321 files / 4210 green at that commit; ghost not re-run (no game logic touched). Phone width / real TV / `sharp` on the Tower still unverified.*
-
-*2026-10-24 addendum: a side session tried the eslint 10 upgrade and stopped (no game work; see TODO). Lint currently has 4 errors + 23 warnings.*
-
-*2026-10-25 v3.8.74 (the auto-run, "send your filing rep") committed + pushed, NOT deployed. Full tests 326 files / 4287 pass, build OK, audit 0, deploy gate = tests only (lint not counted). Ghost 30 games: the run started in only 3-4 of 30 games, so no saving is proven (CHANGELOG 3.8.74). NOT verified: real phone/TV. Next from the Manager: reword the bad-rep stop work order per phase (design-only answer first), and the setup-screen link colour fix.
-*2026-10-25 addendum (Game session started by the Manager): v3.8.65 school logo + school name is BUILT and pushed (server 039669fd, screens d1a7c25e), NOT deployed (live `/health` was 228e187b = 3.8.64). Full `npm test` 318 files / 4187 green, build clean, `npm audit` 0. The one lint error in ClassLandingPage (apostrophe) is fixed. NOT verified: phone width (360x640, 390x844) of the teacher form and header chip, a real TV, and `sharp` on the Tower image (first deploy is its test; if it fails the upload says "not available" and nothing else breaks). The Banker safety check is written into BETA_PLAN_V3.md; the Banker BUILD has not started and waits for Tom's go.*
-*2026-10-25 v3.8.70 (builder signing: 'Not signed yet' note, 'Hold to hire' on phones, bolder hired box) and v3.8.71 (office Move list grouped by stage, one group open, first-visit order) are committed + pushed, NOT deployed (live was 3.8.69). Full tests 322 files / 4217 pass, build OK, audit 0. NOT verified: real-browser height at 360x640 / 390x844 / TV for either. Trophy-marker design is in BETA_PLAN_V3.md section 5b (design only).*
-*2026-10-24 v3.8.69 (committed + pushed, NOT deployed; live is 3.8.68 d98d2b4d at check time): Banker now counts real push-backs (`pushBackTotal`); full `npm test` 321 files / 4211 pass, build OK, audit 0. Report c61ec1f2 INVESTIGATED, not fixed: the record has no screenshot and no history text (v3.8.26, game G-VV4V-GKMW, game state is not stored on the server), so the cause cannot be proven; the push-back History line was changed in v3.8.38 (tests in LogWriter.test.ts / E2E-03). What would settle it: Tom or the student plays 3 push-backs on v3.8.69 and looks at History.*
-*2026-10-24 full checks at HEAD 1cfbd1ed (v3.8.67): `npm test` 321 files / 4209 tests all pass; ghost suite 15 files / 53 tests pass (1 skipped); build OK; `npm audit` 0; typecheck only the 5 old `tests/server/dataGate.test.ts` express-types errors. Safe to deploy 3.8.65 + 3.8.66 + 3.8.67 together (live is 3.8.65 7a4d0d31). Not verified: bank pop-up at phone width, a real TV.*
-*2026-10-24 Game session (Manager task): v3.8.66 robot Banker BUILT and pushed, NOT deployed. v3.8.65 IS live (`/health` 7a4d0d31 = HEAD at the time). Open: phone-width measure of the bank pop-up, pushBacks wiring, Tom's cut-off call (see BETA_PLAN_V3.md 'Robot Banker BUILT'). Ghost suite flaked once under load in expeditorDaysSaved/Stick (passes alone x3).*
+Written by the Game session working for the Manager session. Folder: `D:\Unravel\Current_Game\Game_Alpha` (branch master).
 
 ## State at handoff
-- **Version:** v3.8.64 (3.8.47-64; live is e15f13aa = 3.8.49) committed + pushed; **LIVE** (`/health` 228e187b checked 2026-10-24; Tom deployed) (older note: v3.8.46 was LIVE, `/health` `22f1de48` = HEAD, checked 10-23 13:00 UTC; Tom deployed 3.8.41-46 in one go).
-- **Branch:** master = origin/master after the wrap-up commit, clean.
-- **Last shipped 3.8.58-64 (all pending deploy; live is 3.8.49):** 58 old classroom write key refused; 59 the 17 contrast spots fixed (axe 17 → 0); 60 design notes (logo upload, robot banker); 61 npm 12.2.1 in Dockerfile + deploy gate (first deploy is its real test); 62 phone mode buttons say "Play alone on this phone" / "Put it on a TV"; 63 npm audit fix 9 → 0; 64 reminder email validated + BuilderBids random pinned. Earlier, **3.8.41-57:** v3.8.41 pulsing red "you would be short" warnings; v3.8.42 a push-back no longer erases the drawer's own lasting life event (also solo); v3.8.43 per-space "?" help on the work button, plain History notes, no doubled "outcome came back"; v3.8.44 hint "Tap: see the cost. Hold: do it.", bank loans named for your project, "$X to raise" instead of "deficit"; v3.8.45 days saved by a played expeditor stay saved through a push-back (Tom: spent means spent); v3.8.46 certificate asks for a real name when the game name is "Player N".
-- **Tests:** `npm test` 311 files / 4135 green (v3.8.64); ghost 15 passed, 1 skipped (v3.8.63; 3.8.64 touched no game logic); build clean; typecheck only the old `dataGate.test.ts` errors. One unexplained one-off `BuilderBids.test.ts` failure seen once (test now pins Math.random; cause unknown, hypothesis: load).
+- **Version:** v3.8.75, committed + pushed, **NOT deployed** (Tom deploys himself: hand him `ssh unraid ...` / `bash deploy.sh`; never deploy). Before saying what is live, compare `https://game.unravelcodes.com/health` (a commit hash) with `git rev-parse --short HEAD`. Do NOT trust this note for the live version.
+- **Checks at 3.8.74:** `npm test` 326 files / 4287 pass; build OK; `npm audit` 0. 3.8.75 touched only footer link styling (+1 test). The deploy gate (`deploy.sh`) runs `npm ci` + `npm test` only: **lint is not part of it**. Lint today: 2 errors + 24 warnings (older: `scripts/build-board-flowchart.mjs`, `server/mailer.js`, a `react-hooks/set-state-in-effect` warning). Typecheck shows only 5 old `tests/server/dataGate.test.ts` express-types errors.
 
-## Added after the wrap-up: v3.8.47-49 (committed + pushed, NOT deployed; Tom deploys)
-- "Step 1: put the game on a big screen" for phone-first students (see CHANGELOG 3.8.47). Open for Tom: a real-TV test (Samsung, Fire TV, Google TV), what TV type his TV Bro is on and how he installed it, and whether the host should get a nudge to add one player per phone before students type the code (a new TV game starts with only "Player 1").
+## Built (this stretch)
+- Robot Banker (3.8.65-69), school logo + name (3.8.65), builder-bid signing (3.8.70), office Move list grouped by stage (3.8.71), flaky-test fix (3.8.72).
+- **Reps with a salary (3.8.73):** hire/fire from "Your team" on the Expeditors page, good/bad at one area, 1-in-20 roll on arrival, stop work order for a bad rep. Data `REPS.csv` + built-in `DEFAULT_REP_ROWS` (a test pins file == built-ins).
+- **The auto-run (3.8.74):** after 2 send-backs in a row the pop-up "Go round again?" offers "Send your filing rep" (greyed "Needs a filing rep" with none held). `AutoRunService.ts`, `autoRunRules.ts`; counter `sendBackCount` is an optional player field outside the push-back snapshot. Ghost option `autoRun`; measure `tests/ghost/autorunMeasure.test.ts` (`AUTORUN_MEASURE=30`, writes `.claude/autorun-measure.md`).
+- **3.8.75:** setup-screen footer links now take the sentence colour and are underlined (was blue on blue). Not seen on a real TV.
 
-- Side topic this session (not game work): a separate session, nextcloud-setup, set up Nextcloud + a whiteboard on the Tower for Tom's work competition; it waits on Tom for DNS, Nginx Proxy Manager and Cloudflare Access for files./board.unravelcodes.com. Nothing in this repo.
+## Known gaps (honest)
+- **The run is rarely triggered in robot games:** 30 seeded games, only 3 (good rep) and 4 (bad rep) ever sent the rep, because the robot is rarely sent back twice in a row and its rep often quits first. So the ghost table cannot prove the estimated 15-days-a-circle saving; only the unit test with fixed rolls proves the keep-the-better rule. Tom said: do NOT change how long reps stay.
+- Not checked on a real phone or TV: the auto-run pop-ups (checked in the browser at 360x640 and 390x844 only), the setup links, the reps "Your team" block.
+- Reps measure: reps show no clear win or loss in 30 games (noise-sized).
 
-## Top 3 open items
-1. **Read the Jarvis robot report on v3.8.46** (hold on Hire, opened walls, the office's extra choices, game length). Not read yet.
-2. **Office reports left:** "turns 2-6 show no days" (c61ec1f2; History now says "Pushed back on the quote: N days added", unconfirmed by the student); the "?" for the work button at the owner spaces is fine as is.
-3. **Pop-up freeze cause** (ResizeObserver loop on a busy page; v3.8.34 only snaps it flat), plus the N3 design list (Inspector sign-off, Hire an Expeditor fork, TCO vs final CO; should a redesign cancel DOB approval?).
+## Designed, NOT built (Tom has not given the go; each is its own fresh session)
+- **Trophy race on the board:** `docs/core/BETA_PLAN_V3.md` section "### 5. Show the trophy race all game; approvals stamp the mat" (circle row above on PC, race places in clipboard boxes, 9th circle "Final inspection", stamps) and "### 5b. Trophy markers" (plus/minus and new place after Commit or Negotiate). About 4.5 days; the 9th circle waits on the Inspector work below.
+- **Inspector sign-off and TCO vs final CO:** BETA_PLAN_V3.md N3 items "### 1. Inspector sign-off" and "### 3. TCO vs final CO at the end". Needs Tom's numbers and a source for TCO rules.
+- **Time on the town board:** `docs/core/TIME_ON_BOARD_DESIGN.md`, section 6 "Final build order": 1 d-pad box, 2 clocks, 3 bands and monthly looks, 4 trees, 5 weather and light, 6 flowers/grass/leaves, 7 polish + real-TV pass (about 18 days, 28 pictures; steps 1-2 need no pictures).
+- **Bad rep's mistake worded by phase:** BETA_PLAN_V3.md note "#### 2b" (written 3.8.75). Tom's design wording can appear today for Code (design), Permits (regulatory) and Inspections (construction); funding has no rep area (needs a new area, not data-only). Two questions waiting for Tom: wordings as written with the same three pay-offs (my pick yes), and a funding area (my pick no, park).
+- Parked: Save time / Save money buttons for the run (no die needs them yet).
 
-## Decisions waiting on the user
-- Samsung/LG TVs from 2021 or older can't run the game (`es2020`); lowering the build target + legacy plugin is Tom's call (CHANGELOG 3.8.16).
-- Backups: nothing copies `.env` or `server/data` off the Tower. Teacher password resets.
-- "Finished games" number next to "created" in Site Stats (offered, not answered). Which logo on the certificate.
-- Solo trophy scoring (every solo finisher gets all 3 trophies even at 963 days vs a 440 plan): told to the Manager only, not decided.
+## Files drawn by other sessions, NOT committed, NOT wired
+`git status` shows only `public/assets/` untracked (26 files): `public/assets/trophies/` (money.png, quality.png, time.png, contact_sheet.png, `v1/`, `v1/rejected/`, `v2_tries/`) and `public/assets/inspector/` (final_inspection.png, contact_sheet.png, `rejected/`). They belong to the trophy-art session. Do not add or delete them from a code job. When Tom picks the pictures: the trophy art session (or a fresh one) copies the chosen finals into a wired path, leaves `rejected/` and contact sheets out of the commit, and wires them with the trophy-boxes build (5/5b). Nothing in the game reads them yet.
 
-## Flip after deploy
-- fb:0a4acf7a (architect "owner decides" help) fixed in v3.8.43, now live: PATCH resolved once Tom says yes. Do NOT flip fb:c61ec1f2 (unconfirmed). Still open on purpose: fb:1007f455, fb:83fcc4c4, fb:b5689dfa, fb:92e01028.
+## Standing rules (Tom)
+- **Tom deploys himself.** Never run `deploy.sh`; push first (`git status -sb` must not say "ahead"), hand over the command.
+- One writer per folder; several sessions across two repos, so every report starts with the agent name and absolute folder.
+- Plain 5th-grade English reports, at most 2 questions, my pick first. Say "RPG", never "D&D". No game language in player copy (no die numbers, no "card").
+- Own commit and version per code job; patch number caps at 99. Commit + push only when full `npm test`, build and `npm audit` pass; commits end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
+- The phone panel must never get bigger (measure 360x640 and 390x844). Weekly token allowance is tight: state the cost before big steps.
+- Windows traps: CRLF files need byte-exact edits (Python); heredocs with apostrophes break (use Write); `grep -c $'\r'` lies.
 
-## Suggested first move
-Ask whether to PATCH fb:0a4acf7a, then read the Jarvis report for v3.8.46 and see whether anything tripped.
-
-## Suggested model for next session
-Sonnet 5: small data/CSV rows and UI text; the pop-up diagnosis needs a real repro first.
-
-## Reminders
-- Bills count at End Turn; a push-back keeps cards spent, money paid, life events (and their lasting effects) and days an expeditor saved; quoted deals come back.
-- Tests that play real spaces must pin `Math.random` or set state AFTER `startTurn` (arrival adds random days).
-- Per-space tooltip lines: `dice_outcome_<W|I|...>_<SPACE>` rows in `ACTION_TOOLTIPS.csv`; card-kind wording: `type:B` row in `SCOPE_WORDING.csv`.
-- Reading live games: only the activity log and `games.json` (saved rarely); a live game's state is in server memory.
+## Top open items
+1. Tom's go on one of the designed items above (trophy boxes is the biggest visible one).
+2. Tom's answers on the stop-work-order wording (2 questions above).
+3. A real phone / TV look at the new pop-ups and the setup footer.

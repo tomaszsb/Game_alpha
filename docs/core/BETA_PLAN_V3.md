@@ -519,6 +519,16 @@ Tom's idea: the player can always HIRE a rep (draw 3 cards, keep 1, 2 or all 3) 
 1. After a bad rep fixes their own mistake, do they stay? (a) Yes, they stay and you can fire them free [my pick]. (b) They leave automatically. (c) The student chooses in the same pop-up.
 2. The roll: at most once per rep per 7 days when you arrive in their area? (a) Yes [my pick]. (b) Every arrival in their area rolls.
 
+#### 2b. A bad rep's mistake, worded by phase (Tom, 2026-10-25; design only, nothing built)
+- **Tom's ask.** "Stop work order" only fits construction and inspection. Design: the filing rep brought wrong records and a design error delayed the project. Regulatory: the filing rep upset a city official and an audit followed. Financial: the filing rep messed up data entry on the spreadsheet and the fixes took extra days.
+- **What exists today (checked in `REPS.csv` and `GAME_CONFIG.csv`).** A rep has one of three areas, set by space-name prefix: Code = `ARCH-`, `ENG-` (phase DESIGN); Permits = `REG-` (phase REGULATORY); Inspections = `SI-`, `TR8-`, `CON-INSPECT` (phase CONSTRUCTION). The 1-in-20 mistake roll happens only on arrival in the rep's own area, so a bad rep's mistake can happen only at those spaces. FUNDING (3 spaces), OWNER (6) and END (1) have NO rep area, so the funding wording can never appear, and neither a "construction" wording separate from Inspections (the construction spaces are all in the Inspections area).
+- **So of Tom's wordings:** design = Code, regulatory = Permits and inspection/construction = Inspections can appear today. The financial one cannot, unless a fourth area is added.
+- **Data-only change.** Today `RepService.stopWork` has one line per area (`why`: "a design code error: new drawings are needed", "a filing mistake", "a missed inspection sign-off") and always says "Stop work order". Make the pop-up title and sentence per area, from `UI_STRINGS.csv`/`REPS.csv` text rows: Code = "Your filing rep brought the wrong records and a design error delayed the project"; Permits = "Your filing rep upset a city official and an audit followed"; Inspections keeps "Stop work order". Same three pay-offs (expedite, rep fixes, do it yourself) and the same prices unless Tom wants different ones; an audit might fairly cost more days and less money than a design error (flag it, do not guess).
+- **A financial area would be NOT data-only:** it needs a new area on the FUNDING spaces, new reps in the hire offers, new salary rows and the test that pins the CSV to the built-in defaults. Parked; the plan already says the funding and building E cards fold into Permits or are dropped.
+- **Cost.** About half a day: one text row per area, the code reads the row instead of the fixed sentence, two small tests, no new random numbers.
+- **Questions for Tom.** (1) Do the Code and Permits wordings go ahead as written, with the same three pay-offs? My pick: yes, and keep the prices the same until a game shows they feel wrong. (2) Is a funding wording worth a new rep area? My pick: no, park it.
+
+
 ### 3. TCO vs final CO at the end
 - **The student's problem.** The last step is a dice space (first visit: 4 in 6 finish, 1 Site Inspection, 1 Fire Dept. fees). Nothing at the end asks the student to pick between Fastest and Best built, which is where the trophy race is hottest.
 - **Options.**
