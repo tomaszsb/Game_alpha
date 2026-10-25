@@ -44,6 +44,8 @@ import { clockMonth, clockStartIso } from '../../utils/gameClock';
 import { areaSegments, hasLeftBoard, ownerOfRow, type AreaSegment } from '../../utils/townAreas';
 import { treePicture, treeScale } from '../../utils/townTrees';
 import { TownWeatherNode, buildWeatherBands, type WeatherData } from './TownWeather';
+import { TownPropsNode, buildTownProps, propPoint, type PropsData } from './TownProps';
+import { freeSpots, makeFreeTest } from '../../utils/townProps';
 import { useScene } from '../../utils/sceneSetting';
 import { seasonLook, mixHex, type SeasonLook } from '../../utils/townSeasons';
 import { racePlaces } from '../../utils/liveTrophies';
@@ -378,7 +380,7 @@ function TownTreeNode({ data }: NodeProps) {
   );
 }
 
-const nodeTypes = { townGround: TownGround, townBuilding: TownBuildingNode, townTree: TownTreeNode, townWeather: TownWeatherNode };
+const nodeTypes = { townGround: TownGround, townBuilding: TownBuildingNode, townTree: TownTreeNode, townWeather: TownWeatherNode, townProps: TownPropsNode };
 
 // -------------------------------------------------------------------------------------------------
 // The walk (step A2): a player's face walks the streets from the old building to the new one.
@@ -772,6 +774,8 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaKey, layout]);
   const scene = useScene();
+  const freeTest = useMemo(() => makeFreeTest(layout), [layout]);
+  const spots = useMemo(() => freeSpots(layout), [layout]);
   const waterColor = (areas.looks[areas.segments[0]?.seat ?? 0] ?? seasonLook(1, mode)).water;
 
   const nodes = useMemo(() => {
@@ -802,6 +806,17 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
           seed: startIso, activeSeat, level: scene, light: screen !== 'pc', reducedMotion: prefersReducedMotion(), tile: TOWN_TILE, originX: gx, originY: gy,
         }),
       } satisfies WeatherData,
+    });
+    // Small scenery on the free grass (flowers, grass, leaves, drifts), under every building.
+    const scenery = buildTownProps({
+      layout, spots, free: freeTest, segments: areas.segments, looks: areas.looks,
+      days: Array.from({ length: Math.max(1, layout.seats) }, (_, i) => (players[i] ?? players[0])?.timeSpent ?? 0),
+      seed: startIso, level: scene, light: screen !== 'pc', tile: TOWN_TILE, originX: gx, originY: gy,
+    });
+    out.push({
+      id: 'town-props', type: 'townProps', position: { x: gx, y: gy }, zIndex: 6, style: { pointerEvents: 'none' },
+      draggable: false, selectable: false, focusable: false,
+      data: { w: gw, h: gh, fade: scene === 'full' && !prefersReducedMotion(), items: scenery.map(p => ({ prop: p, ...propPoint(p, TOWN_TILE, gx, gy) })) } satisfies PropsData,
     });
     for (const b of layout.buildings) {
       const box = buildingBox(b, TOWN_TILE);
@@ -840,7 +855,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       });
     }
     return out;
-  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, named, faded, players, mode, bubbles, endBubble, areas, scene, startIso, currentPlayerId, screen]);
+  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, named, faded, players, mode, bubbles, endBubble, areas, scene, startIso, currentPlayerId, screen, spots, freeTest]);
 
   // Follow the current player (TV, remote): first frame their building and its next moves, then
   // only glide at the zoom the viewer has, the same steady camera the classic board keeps.
