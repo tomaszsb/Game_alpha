@@ -1,6 +1,6 @@
 # Showing time on the town board: design
 
-**Status:** design only. First written 2026-10-25; **revised 2026-10-25 for Tom's answer: one clock and one season PER PLAYER, the board split into areas, a finished player's area taken over by the others.** Nothing drawn, nothing built, no version, no deploy.
+**Status:** design only, **all decisions made** (2026-10-25): stripes along the player bands, d-pad-only corner box, one clock per player at the top of their band, start at today's real date, calm town, controls and clocks first. Nothing drawn, nothing built, no version, no deploy. Final build order is section 6.
 **Asked by:** Tom. **Written for:** Tom (plain words first, file names in brackets for the builder).
 
 Tom's wish: the board should *feel* time pass. (1) A flip-board date. (2) The blue area changes look every month (12 looks). (3) Scattered props: trees that grow, flowers, grass, snow drifts, falling snow, rain, sun, clouds. Tom's answer on "whose date": every player's own days are true for that player, so **divide the board into 2, 3 or 4 areas, each with its own clock in that player's colour, and when a player finishes, the remaining players take over their area.**
@@ -52,10 +52,12 @@ Each area shows **its owner's own date and its owner's own season**: the water, 
 
 Each area has **one flip-board clock in the player's colour** (the frame and the little flap tops in that colour, a small name tag under it).
 
-- **Where:** pinned to the **left edge of the player's area, in the middle of the part you can see**, near the start of the player's stripe where their own house is. It is a **screen-size** object, not a map object: at fit view four stripes shrink to a quarter of the screen each, and a map-size clock would be too small to read. Pinned this way it stays the same readable size at any zoom and slides along as you pan. If less than about 60 pixels of the area is on screen, its clock hides.
+- **Where (Tom's answer: the top of the band):** the clock sits at the **top of that player's band**, horizontally centred, hugging the cut line (for the first band, the top of the island). It is a **screen-size** object, not a map object: at fit view four bands are each only a quarter of the screen high, and a map-size clock would be too small to read. So it keeps one readable size at any zoom.
+- **How it stays readable when zoomed out or panned:** it is **pinned to the top of the band's visible part**. Zoom out and every band's clock sits at its own cut line. Zoom in or pan so the top of a band scrolls off the screen, and the clock slides down to stay stuck to the top edge of the screen (like a sticky table heading) for as long as enough of the band is on screen. If less than about 60 pixels of the band is visible, its clock hides. Several bands in view means several clocks, each at the top of its own band, so they never overlap each other.
+- **Name signs always win:** the clock is drawn **under** an open name sign, so a clock can never hide a building name; a sign that opens simply covers it for a moment. Clocks are slightly see-through (about 90%) over the map.
 - **PC:** all clocks shown, about the size of a big wristwatch face. The clock of whoever's turn it is gets a soft glow ring.
-- **TV:** same, bigger (readable from the couch), because the camera follows the current player and the others are off to the side.
-- **Remote strip:** the strip follows the current player, so it shows **one clock, the current player's**, in the strip's top-right corner, one slim line with their colour dot. No other clocks.
+- **TV:** same, about 1.6 times bigger (readable from the couch). The TV camera follows the current player, so their band is on screen and their clock is stuck to the top of it, glowing; other bands' clocks show if their band is in view.
+- **Remote strip:** the strip follows the current player, so it shows **one clock, the current player's**, stuck to the top of the strip at the right end (the right end keeps it clear of most name signs), one slim line with their colour dot. No other clocks.
 - **Phone:** no board, nothing changes.
 - **One-player game:** one clock, pinned the same way.
 - **The shuffle:** when a player's days change, **only that player's clock** shuffles (year, month, day flaps cycle through random characters for about 0.6 seconds, staggered, then settle). Built from text swaps on a timer (`setInterval` ~70 ms, stopped by `setTimeout` ~600 ms), so it ends on time even without animation frames. The 3-D flap tilt is decoration only and is skipped on weak TVs. Reduce motion: no shuffle, the new date appears at once with a short highlight ring.
@@ -119,7 +121,9 @@ Weather is picked per **3-day block** of that player's days: `hash(scene_seed, s
 
 ### 2.8 When a player finishes: the takeover
 
-**Rule (one function, no history needed):** the board is told **which players have finished**. Every piece of ground belongs to the **nearest unfinished player's area** (nearest by distance from the ground to that player's stripe centre; ties go to the lower seat). That gives:
+**Which game field says a player has finished (checked 2026-10-25):** `finishedAtTurn` on the player ([StateTypes.ts](../../src/types/StateTypes.ts) line 539; set in [TurnService.ts](../../src/services/TurnService.ts) ~line 485 when the player reaches FINISH, together with a `player_finished` event). A player can also go **out** without finishing: `outReason` ('bankruptcy', 'design_fee_cap' or 'time_cap'). The game itself already treats both the same way ("every player has finished or gone out", TurnService ~line 586). So **"leaves the board" = `finishedAtTurn` is set OR `outReason` is set**, and both free their area for the others. Both fields already travel with the game state to every screen, so no new field is needed for this.
+
+**Rule (one function, no history needed):** the board is told **which players have finished or gone out**. Every piece of ground belongs to the **nearest unfinished player's area** (nearest by distance from the ground to that player's stripe centre; ties go to the lower seat). That gives:
 
 - A finished player in the **middle** (3 players): the upper half of their stripe goes to the player above, the lower half to the player below.
 - A finished player at the **top or bottom edge**: all of their stripe goes to the one neighbour next to it.
@@ -128,8 +132,7 @@ Weather is picked per **3-day block** of that player's days: `hash(scene_seed, s
 
 **Whose season shows where:** every tile shows the season of the player who owns that tile *now*. Their clock stays pinned to the left edge of the **visible part of their (now larger) area**; the finished player's clock is removed from the board.
 
-**All screens agree** because ownership is a pure function of three things every screen already has: the list of finished players, the seat order, and the layout. It uses no timers, no "who finished first" order and no messages between screens. (Detail to confirm in step B: I have not yet checked the exact field that marks a finished player; the race places already depend on it, so I expect it exists.)
-
+**All screens agree** because ownership is a pure function of three things every screen already has: the list of finished players, the seat order, and the layout. It uses no timers, no "who finished first" order and no messages between screens.
 **Fade, not snap:** the ground changes with a crossfade of about 1.5 seconds (two stacked colour layers swap opacity); if frames are missing the end state is set at once by timer. Trees: look crossfades (two images, opacity); props in a taken-over area expire and are re-spotted by the same hash rule, so they simply appear/disappear with a short fade. Walkers and signs are never faded. In reduce motion it is an instant swap.
 
 **Which player gets which part of a trees' ground:** a tree keeps its home position, but the ground (and therefore the tree's look) follows the ownership above. A tree sitting exactly on the halfway line between two receivers uses the tie rule (lower seat), so it never flickers between two looks.
@@ -157,7 +160,7 @@ Animation uses only `transform` and `opacity`. A **Menu to View to Scene: Full /
 
 ---
 
-## 3. Cost: steps that ship one at a time (revised)
+## 3. Cost: steps that ship one at a time (detail; letters A to G are steps 1 to 7 in section 6, which is the final order)
 
 Days are working sessions of AI build time. Pictures: PixelLab, 64x64, one locked template per set (corner-pixel transparency check).
 
@@ -182,8 +185,8 @@ Days are working sessions of AI build time. Pictures: PixelLab, 64x64, one locke
 1. **A player's days go backward (lucky event).** Their clock flips backward, their season goes back, their weather re-shuffles. Trees keep their biggest size (the `peakDays` rule), so nothing visibly shrinks. Rare.
 2. **Stripes are not a round pie.** Tom said "like a pie". Stripes match how the town is already built and keep each player's own buildings inside their own season; a pie costs about 4 more days and a town redraw. This is question 1.
 3. **Shared buildings sit in the top player's stripe.** Their ground shows player 1's season. Buildings look the same everywhere, so only the grass around them differs.
-4. **Clocks pinned to the screen** are a bit of new code (positions follow pan and zoom). They hide when almost off screen. Risk: clocks overlapping a name sign on a small screen; I will nudge them to stay clear of signs.
-5. **The finished-player flag.** I have not confirmed the exact field. If the "finished" moment is not a simple flag, step B adds one. Takeover waits for that.
+4. **Clocks pinned to the top of each band** are a bit of new code (positions follow pan and zoom). They hide when almost off screen. Risk: a clock covering a building sign near the band's top row; the rule that open signs are drawn on top handles reading a name, and the builder can nudge the clock sideways if a particular board needs it.
+5. **Finished or out.** The board reads `finishedAtTurn` and `outReason` (both exist). A player who leaves the board by going out (bankruptcy, fee cap, time cap) frees their area the same way as one who finished; if Tom wants only finishers to give up their area, it is a one-line change.
 6. **Growth may not be visible.** If a typical game covers under a year of days, "10% a year" barely shows (rate is data, can be raised).
 7. **A winter start** starts in snow; a July start never sees winter. True to "today's date" (question 3).
 8. **Old TVs.** Caps, Light level, Scene switch, one animated area at a time. I cannot test a 2021 TV here; Tom's TV look in step G is the real test.
@@ -196,19 +199,34 @@ Days are working sessions of AI build time. Pictures: PixelLab, 64x64, one locke
 
 ---
 
-## 5. Questions for Tom
+## 5. Decisions (all settled; nothing left open)
 
-**Two to answer now (my pick first):**
+**ANSWERED by Tom:**
 
-1. **What shape are the areas?**
-   - **Stripes along the bands the town already has (my pick).** Each player's own buildings stay inside their own season. About 17.7 days.
-   - A true pie with the shared buildings in the middle. About +4 days (the town is redrawn).
-2. **Does the corner box also show a date?**
-   - **No, only the d-pad (my pick).** Each player's clock lives in their own area; a corner date would be a copy.
-   - Yes, the current player's date, in their colour, next to the d-pad.
+1. **Shape of the areas: ANSWERED, stripes** along the bands the town already has (not a true pie). Each player's own buildings stay inside their own season.
+2. **Corner box: ANSWERED, only the d-pad, fit and zoom.** No date in the corner.
+3. **Clock position: ANSWERED, at the top of each player's band** (see 2.4).
 
-**Settled by my pick unless Tom says otherwise** (wording updated for the areas):
+**Working defaults (stand unless Tom changes them):**
 
-3. **Start date:** everyone's clock starts at **today's real date**, as Tom said (the other choice is an invented spring start so every class sees all four seasons).
-4. **How busy:** **calm**. Only the current player's area moves (rain, snow, clouds, shuffle); the other areas show still hints. About 14 trees per area, up to 12 other things on a TV (the other choices: lively on PC, or minimal).
-5. **Ship order:** **controls and clocks first, on their own (A then B), then the areas and scenery step by step** (the other choice: everything in one release after step G).
+4. **Start date:** everyone's clock starts at **today's real date**.
+5. **How busy:** **calm.** Only the current player's band animates (rain, snow, clouds, clock shuffle); other bands show still hints. About 14 trees per band, up to 12 other things on a TV.
+6. **Ship order:** **controls and clocks first, on their own (steps 1 and 2 below), then areas and scenery step by step.**
+
+---
+
+## 6. Final build order
+
+Each step ships on its own and Tom can deploy and look at it. Days are AI working sessions.
+
+| # | What Tom sees | Days | Pictures |
+|---|---|---|---|
+| **1. The d-pad box (the first small step)** | The 7-button column becomes one small plate: arrows round a middle fit button, zoom + and - on the side. Compact on the remote strip, hidden on the TV. Nothing else on the board changes, no data, no game rules touched. This is the one to deploy first. | 1.2 | 0 |
+| **2. The clocks** | A flip clock in each player's colour at the top of their band: start date stored once, each player's date from their own days, shuffle on change, pinned at the top of the visible part of the band, bigger on TV, one slim clock on the remote strip. The board is still one look; the bands are not yet cut. | 3.5 | 0 |
+| **3. Bands and monthly looks** | Cut lines in the grass strips, each band's water, grass and light from its player's month (12-month table), soft blends and dotted colour edges, takeover when a player finishes or goes out, trees' `peakDays` memory. | 3 | 0 |
+| **4. Trees** | Fixed trees in every band, 5 looks, 10% bigger a year, never shrink. | 3 | 10 |
+| **5. Weather and light** | Sun glow, clouds, rain, snow in the current player's band only; still hints elsewhere; reduce motion and the Scene switch. | 2.5 | 3 |
+| **6. Flowers, grass, drifts** | Moving props with lifetimes, none in winter. | 2.5 | 11 |
+| **7. Polish and the real-TV pass** | Old-TV tuning, 4-player tests, phone-panel measure, dark mode, fixes from Tom's TV look. | 2 | 0 |
+
+**Total about 17.7 days and 24 pictures** (about $0.46 at most, about $0.15 with no retries). Steps 1 and 2 are the first 4.7 days and need no pictures and no scenery decisions; if Tom likes them he can stop there.
