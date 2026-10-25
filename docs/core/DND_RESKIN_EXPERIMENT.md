@@ -66,3 +66,22 @@ Sources: `D:\Unravel\Independent_Review\RESEARCH-2.md` §5, the standing rule at
 - **What could go wrong.** Writing the board is the real cost, not the code. Mapping fantasy ideas onto "scope, money, days" can feel forced and the test would then measure the writing, not the theme. A reskin with a permit glossary and a certificate in the same build confuses teachers. Selling it needs a short paid check by a games or IP lawyer (not legal advice here); do not use "D&D" in a name or logo; the SRD is only needed if real D&D rules go inside.
 - **Pick: option 3 for now, option 1 as the first move once a real class gives engagement numbers.** Reason: the code is ready enough that no engine work blocks a test, but the test has nothing to decide until the engagement question can be answered. When it fires, do the paper reskin and one afternoon on the "base board" choice.
 - **Needs Tom first:** yes. (1) Does he still want the experiment, now as an RPG with no D&D name, and who writes the board (him, or an agent with his taste review)? (2) The price and the "owner pays" idea belong to a later decision.
+
+
+## Reskin check of v3.8.65-3.8.69 (2026-10-24, read-only search)
+
+Question: would the new school-logo and robot-Banker code stop a fantasy RPG board that changes data only? **Answer: no. Nothing blocks it.** The new code never names `BANK-FUND-REVIEW`, `INVESTOR-FUND-REVIEW`, `PM-DECISION-CHECK` or `LEND-SCOPE-CHECK`; it finds the bank and investor desks through the data's funding-source marking.
+
+**New this week (all small words):**
+1. `bankerRules.ts:53-98` - default reason lines say bank, investor, permits. `BANKER.csv` overrides them, so an RPG just ships its own `BANKER.csv`. No code change.
+2. `TurnService.ts:453,459-460` - three finish-settlement sentences typed in code ("the bank charges for the delay"...). Cheapest fix: move to `UI_STRINGS.csv` / `BANKER.csv` rows.
+3. `bankerRules.ts:200` - `$` and en-US number format typed in code. Fix: a currency symbol row in `UI_STRINGS.csv`.
+4. `certificate.ts:46` - the word "School" in a logo's alt text. Fix: a `UI_STRINGS.csv` row.
+
+**Known leaks the new code leans on (already on the Workstream 6 list, not new):**
+- The five card families are a closed list: `bankerInputs.ts:24` (an expeditor = a type E card) and `CardService.ts:1565` (the banker reads B cards only).
+- The builder idea (`player.contractor`) and bank-loan money (`moneySources.bankLoans`) are read by the banker.
+
+**Harmless:** the days-and-dollars math. Any board that has days and money works.
+
+**Not checked:** the class landing page, the header chip, and `UI_STRINGS.csv` end to end for typed words. In this doc "RPG" is the wording; the file name keeps its old name.
