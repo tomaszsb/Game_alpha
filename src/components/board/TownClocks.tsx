@@ -10,6 +10,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Panel, useStore } from '@xyflow/react';
 import { clockDate, clockText, type ClockDate } from '../../utils/gameClock';
 import { scaleMs } from '../../utils/gameSpeed';
+import { inkOn } from '../../utils/textOnColor';
 
 export type ClockScreen = 'pc' | 'tv' | 'remote';
 
@@ -110,6 +111,7 @@ export function FlipClock({ player, date, big, current, still, scale }: { player
   const text = clockText(date);
   const color = player.color ?? '#475569';
   const { shown, ring } = useShuffledText(text, still);
+  const name = inkOn(color);
   const [y, m, d] = shown.split(' ');
   return (
     <div role="img" aria-label={`${player.name}: ${text}`} data-testid={`town-clock-${player.id}`} style={{
@@ -120,7 +122,7 @@ export function FlipClock({ player, date, big, current, still, scale }: { player
       <span style={{ display: 'inline-flex', gap: GAP, alignItems: 'center' }}>
         <Flaps text={y} /><Flaps text={m} /><Flaps text={d} />
       </span>
-      <span style={{ font: '600 10px/12px system-ui, sans-serif', color: '#fff', textShadow: '0 1px 1px rgba(0,0,0,0.5)', maxWidth: CLOCK_W, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.name}</span>
+      <span style={{ font: '600 10px/12px system-ui, sans-serif', color: name.ink, textShadow: name.shadow, maxWidth: CLOCK_W, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{player.name}</span>
     </div>
   );
 }

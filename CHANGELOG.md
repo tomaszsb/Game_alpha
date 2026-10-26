@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.94] - 2026-10-26
+
+**Readable names on every clock colour.** The player name on a clock was always white, which is only 2.6:1 on the orange clock and 1.6:1 on yellow. Each clock now picks white or near-black for the name, whichever contrasts better with that player's colour (`inkOn` in `src/utils/textOnColor.ts`), and every one of the 8 player colours reaches at least 4.5:1 (blue 5.1, green 6.4, red 4.5, yellow 12.4, purple 6.5, pink 5.3, teal 9.5, orange 7.8). Yellow, orange, green, teal, blue and pink go dark; red and purple stay white. The shadow stays (light under dark text). The clock colours are the same in light and dark mode, so one pick serves both. No other new text sits on a player colour: the result bubbles use fixed light colours with dark text, the dotted cut lines carry no text, and the seat dot has none. A test checks all 8 colours.
+
 ## [3.8.93] - 2026-10-26
 
 **Polish pass (design step 7, the parts that need no real TV).** One fix, found by measuring the builder desk on a phone: when the cash cannot cover several builders, the phone showed the red "Not enough money" line under EACH greyed bid, wrapping to two lines and growing the card from 197 to 267 px, which pushed the Sign bar down. The phone now shows ONE shared red line above the bids (14 px; card 214 px at 390 x 844) and the desk-sized screens keep the per-bid line. Checked and left as they are: the Expeditors pop-up with a held one-time favor (the new heading is 14 px, fits at 390 x 844 and 360 x 640, page height unchanged); dark mode of the clock row, name signs, season bands, trees, props, weather (the only low-contrast pair is the white player name on the orange clock, which already has a shadow and is the same in light mode); board load at 4 players on Full (about 825 page elements, TV and remote already use the light cap of 14 falling bits per band instead of 40, so at most about 70 moving pieces, all drawn with transform and opacity only), so no limits were lowered.
