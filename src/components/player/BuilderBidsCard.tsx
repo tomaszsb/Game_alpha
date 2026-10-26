@@ -126,7 +126,7 @@ export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, p
                 ? `${BUILDER_BIDS.days(b.days)} · ${BUILDER_BIDS.holdsShort(b.expiresDay)}`
                 : `${BUILDER_BIDS.days(b.days)} · ${BUILDER_BIDS.holds(b.expiresDay, b.expiresDay - day)}`}
             </div>
-            {shortBy(player.money, b.price) > 0 && (
+            {!isPhone && shortBy(player.money, b.price) > 0 && (
               <div data-testid="builder-bid-short" role="alert" className="uc-red-pulse" style={{ fontSize: 12, marginTop: 3, padding: '0 4px', borderRadius: 6, color: p.bad, fontWeight: 600 }}>
                 {BUILDER_BIDS.ERR_MONEY}
               </div>
@@ -148,6 +148,12 @@ export const BuilderBidsCard: React.FC<CardProps> = ({ gameServices, playerId, p
           />
         </div>
       ))}
+      {isPhone && live.some((b) => shortBy(player.money, b.price) > 0) && (
+        // One line for the whole list on a phone: a note under every greyed price wrapped to two lines each and pushed the Sign bar off the screen.
+        <div data-testid="builder-bid-short" role="alert" className="uc-red-pulse" style={{ fontSize: 11, lineHeight: '14px', margin: '0 0 3px', fontWeight: 600, color: p.bad }}>
+          {BUILDER_BIDS.ERR_MONEY}
+        </div>
+      )}
       {error && <div data-testid="builder-bids-error" role="alert" style={{ fontSize: 12, color: p.bad, marginBottom: 6 }}>{error}</div>}
       {door && canAct ? (
         // Same height as the old one-line note on a phone (no border, tight padding): the panel must not grow.

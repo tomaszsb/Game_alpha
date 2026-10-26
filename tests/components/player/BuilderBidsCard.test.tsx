@@ -143,6 +143,18 @@ describe('BuilderBidsCard', () => {
     expect(screen.getAllByTestId('builder-bid-hire')[0].textContent).toContain('Hold to hire');
   });
 
+  it('on a phone one shared note covers all the bids the cash cannot reach (not one per bid)', () => {
+    const real = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false })) as never;
+    const { gs } = services(atDesk({ money: 500_000 })); // covers none of $900K, $1.0M, $1.2M
+    render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
+    window.matchMedia = real;
+    const notes = screen.getAllByTestId('builder-bid-short');
+    expect(notes).toHaveLength(1);
+    expect(notes[0].textContent).toBe('Not enough money: get more from the lender first.');
+    (screen.getAllByTestId('builder-bid-hire') as HTMLButtonElement[]).forEach((b) => expect(b.disabled).toBe(true));
+  });
+
   it('holding Enter hires, like holding the button', async () => {
     const { gs, hire } = services(atDesk());
     render(<BuilderBidsCard gameServices={gs} playerId="p1" palette={p} canAct />);
