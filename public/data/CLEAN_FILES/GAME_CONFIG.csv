@@ -34,7 +34,7 @@ SI-AGENCY-BUDGET,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Budget In
 SI-SKIP,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Name One Later,,1220,460,,No,,,No,
 REG-DOB-FINAL-REVIEW,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Final Approval,,820,240,,Yes,,,Yes,
 FINISH,END,Main,No,Yes,1,4,No,No,No,0,flat,,No,,,No,Finish,,1220,20,,No,,,No,
-SI-SIGNOFF,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Sign the TR1,,1420,130,,No,,,No,
+SI-SIGNOFF,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Inspector Sign-Off,,1420,130,,No,,,No,
 SI-FULL-REPORT,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Full Report,,1420,240,,No,,,No,
 SI-RUSH,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Sign Today,,1420,350,,No,,,No,
 CO-CHOOSE,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Certificate of Occupancy,,1420,570,,No,,,No,

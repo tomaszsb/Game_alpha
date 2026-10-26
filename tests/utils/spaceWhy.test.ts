@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { buildSpaceWhy, describeOutcomeOdds, buildViolationWhy } from '../../src/utils/spaceWhy';
 
 const titles: Record<string, string> = {
-  'REG-DOB-FINAL-REVIEW': 'Final Approval', 'SI-SIGNOFF': 'Sign the TR1', 'CON-ISSUES': 'Trouble On Site', 'CON-INSPECT': 'Site Inspection',
+  'REG-DOB-FINAL-REVIEW': 'Final Approval', 'SI-SIGNOFF': 'Inspector Sign-Off', 'CON-ISSUES': 'Trouble On Site', 'CON-INSPECT': 'Site Inspection',
   'REG-FDNY-FEE-REVIEW': 'Fire Dept. Intake', 'REG-DOB-FEE-REVIEW': 'City Filing Fee',
   'ENG-INITIATION': 'Find an Engineer', 'ARCH-INITIATION': 'Find an Architect', 'REG-DOB-PLAN-EXAM': 'City Checks Plans',
 };
@@ -30,7 +30,7 @@ const outcome = (space: string, visit: string) => {
 describe('space "why" help', () => {
   it('Site Inspection (return visit): odds counted from the data', () => {
     expect(describeOutcomeOdds(outcome('CON-INSPECT', 'Subsequent'), title)).toBe(
-      'How it usually goes here: 5 in 6 times you go to Sign the TR1; 1 in 6 times you go to Trouble On Site.');
+      'How it usually goes here: 5 in 6 times you go to Inspector Sign-Off; 1 in 6 times you go to Trouble On Site.');
   });
 
   it('each of the seven spaces has a cause row, and cause + odds stay one short paragraph with no game words', () => {
