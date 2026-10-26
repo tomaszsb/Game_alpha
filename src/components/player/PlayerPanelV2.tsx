@@ -43,6 +43,7 @@ import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { TurnCommitControl } from './TurnCommitControl';
 import { knownArrivalFee, shortBy, arrivalShortMessage } from '../../utils/moneyWarning';
 import { getEndTurnWarning } from '../../utils/endTurnWarning';
+import { DESIGN_FEE_CAP_PCT, DESIGN_FEE_ORANGE_PCT } from '../../utils/progressIndicators';
 import { getEndTurnCostPreview, getTryAgainCostPreview, getLoanOnTheTable, isManualEffectCompleted, perAmountUnit, timeRowDays, getActionResultText } from '../../utils/costPreview';
 import { getUIString } from '../../constants/uiStrings';
 import { groupMoveOptions, defaultOpenStage, GROUP_MIN_OPTIONS } from '../../utils/officeGroups';
@@ -579,11 +580,17 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // and when bankruptcy / the 20% design-fee cap are checked, so say so BEFORE the
   // player presses (Tom, 2026-10-02). See utils/endTurnWarning.ts.
   const turnLedger = gameServices.stateService.getTurnOutflow(playerId);
+  const ruleScopeNow = gameServices.gameRulesService.calculateProjectScope(playerId);
+  // Design fees as a share of the project, shown in the Scope box all game long (fb:f9e897b0,
+  // Tom 2026-10-26: "it should be at a glance"). Same sum and same scope as the 20% rule.
+  const designFeeShare = (player.expenditures?.design || 0) > 0 && Math.max(ruleScopeNow, player.peakScope ?? 0) > 0
+    ? ((player.expenditures?.design || 0) / Math.max(ruleScopeNow, player.peakScope ?? 0)) * 100
+    : null;
   const endTurnWarning = isMyTurn && !gameState.isGameOver
     ? getEndTurnWarning({
         money: player.money,
         designFees: player.expenditures?.design || 0,
-        scope: gameServices.gameRulesService.calculateProjectScope(playerId),
+        scope: ruleScopeNow,
         peakScope: player.peakScope,
         billedThisTurn: turnLedger.moneySpent - (turnLedger.moneyDeliberate ?? 0) > 0,
       })
@@ -1066,10 +1073,21 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             )}
           </button>
           <button type="button" data-testid="glance-scope" onClick={() => setNumbersPage('scope')} style={{ ...glanceTile, ...phoneOrder(1) }}
-            aria-label={`${NUMBERS.TILE_SCOPE}: ${fin.workPackages.length}, ${FormatUtils.formatMoney(fin.scopeTotal)}`}>
+            aria-label={`${NUMBERS.TILE_SCOPE}: ${fin.workPackages.length}, ${FormatUtils.formatMoney(fin.scopeTotal)}${designFeeShare !== null ? `, design fees ${Math.round(designFeeShare)}% (the limit is ${DESIGN_FEE_CAP_PCT}%)` : ''}`}>
             <span style={glanceLabel}><span aria-hidden>🏢</span> {NUMBERS.TILE_SCOPE}<TrophyPlace race="quality" row={liveRow} solo={soloGame} palette={p} /><span aria-hidden style={arrowFor('quality')}>›</span></span>
             <span style={glanceValue}>{fin.workPackages.length > 0 ? fin.workPackages.length : NUMBERS.NONE}</span>
-            {fin.scopeTotal > 0 && <span style={glanceSub}>{FormatUtils.formatMoney(fin.scopeTotal)}</span>}
+            {fin.scopeTotal > 0 && (
+              <span style={glanceSub}>
+                {FormatUtils.formatMoney(fin.scopeTotal)}
+                {/* On the same line as the price, so the box is no taller on a phone. */}
+                {designFeeShare !== null && (
+                  <span data-testid="glance-design-fees"
+                    style={designFeeShare >= DESIGN_FEE_ORANGE_PCT ? { color: designFeeShare >= DESIGN_FEE_CAP_PCT ? '#dc2626' : '#d97706', fontWeight: 700 } : undefined}>
+                    {` · design fees ${Math.round(designFeeShare)}%`}
+                  </span>
+                )}
+              </span>
+            )}
           </button>
         </div>
         </div>

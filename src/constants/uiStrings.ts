@@ -186,7 +186,7 @@ const DEFAULT_UI_STRINGS: Record<string, string> = {
   'GLANCE_HELP.time':
     "Days used so far. Every action, trip, and delay adds to this — think of it as your project's running clock, not a turn count.",
   'GLANCE_HELP.expeditors': "The helpers you're holding right now. A highlighted number means one is ready to use this turn.",
-  'GLANCE_HELP.scope': 'The Work Packages that make up your project, and what they will cost to build.',
+  'GLANCE_HELP.scope': 'The Work Packages that make up your project, and what they will cost to build. "Design fees" is what the architect and engineer have charged so far, as a share of that cost: at 20% the project is over.',
   // v3.2.72, Onboarding Phase C Slice 3 (2026-09-22 playtest report, #1
   // confusion at 24 trips — the single biggest in the report): the press-
   // and-hold control had a visible hint (see TurnCommitControl.tsx) but no

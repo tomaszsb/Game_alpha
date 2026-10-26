@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.99] - 2026-10-26
+
+**Design fees at a glance in the Scope box (fb:f9e897b0, "I do not see it at a glance. it should be at a glance"; Tom 2026-10-26 said yes to the Scope box).** Once the architect or engineer has charged anything, the Scope box's price line reads e.g. "$5.5M · design fees 16%": the design fees as a share of the project, the same sum and the same scope (the larger of today's and the peak) as the 20% rule that ends the game. Orange from 15%, red from 20%, the same colours the Money box uses. Before, the share only showed in the warning above the end-of-turn button, on your own turn, from 15%. On the same line as the price, so the box is no taller: measured in a browser at 360 x 640, 390 x 844 and 1400 x 900, Scope box 69 px before and after, frame unchanged; fits on one line at 360 px. The Scope "?" help now explains it. Tests: 342 files / 4,389 passing. Needs a deploy.
+
 ## [3.8.98] - 2026-10-26
 
 **Three player bug reports fixed (Tom: "Let's continue knocking items off the list"; done by the Manager session, no Game session open).**
