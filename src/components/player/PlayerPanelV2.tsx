@@ -26,7 +26,8 @@ import { PlayerAvatar } from '../common/PlayerAvatar';
 import React, { useEffect, useRef, useState } from 'react';
 import { PlayerPanelProps } from './panelTypes';
 import type { SpaceEffect } from '../../types/DataTypes';
-import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
+import { TextWithTerms, useDictionaryPanel, useDictionaryContext } from '../../dictionary';
+import { pickWaitingWord } from '../../utils/waitingWord';
 import { PanelMode, panelPalettes } from './panelTheme';
 import { darkenHex } from '../../styles/theme';
 import { HelpButton } from '../help/HelpButton';
@@ -125,6 +126,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
 }) => {
   const p = panelPalettes[mode];
   const { openWithTerm } = useDictionaryPanel();
+  const { terms: glossaryTerms } = useDictionaryContext();
   // On a phone the panel must not be bigger than it was: the large face / money / mentor / mat are PC-and-TV only.
   const isPhone = usePhoneWidth();
   const [, force] = useState(0);
@@ -685,6 +687,12 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     (player.currentSpace === 'ARCH-INITIATION' || player.currentSpace === 'ENG-INITIATION') &&
     player.visitType === 'Subsequent';
   let commit: { label: string; ready: boolean; subLabel?: string; onClick?: () => void };
+  // A glossary word to read while someone else plays (Tom, 2026-10-26: "While other players are waiting
+  // for their move maybe we can have a random word from glossary pop up on their phone?"). Checked words
+  // only; a new one each turn. It sits inside the waiting button, so the panel is no taller.
+  const waitWord = !isMyTurn && !readOnly && !gameState.isGameOver
+    ? pickWaitingWord(glossaryTerms, `${playerId}|${gameState.globalTurnCount}|${gameState.currentPlayerId}`)
+    : null;
   if (!isMyTurn) {
     commit = { label: COMMIT.waitingFor(currentPlayerName || 'the other player'), ready: false };
   } else if (showMovementDiceButton) {
@@ -1657,8 +1665,9 @@ ${spaceWhy}` } : baseWhy;
           />
         ) : (
           <button
-            onClick={commit.onClick}
-            disabled={!commit.ready}
+            // While waiting, a tap opens the word of the moment in the glossary; data-ready stays false.
+            onClick={commit.ready ? commit.onClick : waitWord ? () => openWithTerm(waitWord.id) : undefined}
+            disabled={!commit.ready && !waitWord}
             // Structural handle for the playtest robot, which otherwise looks
             // for this button by matching /^(move forward|end turn|confirm move|
             // commit)/ against its caption. That caption is `end_turn_label`
@@ -1689,7 +1698,7 @@ ${spaceWhy}` } : baseWhy;
               fontWeight: 500,
               color: commit.ready ? '#fff' : p.muted,
               background: commit.ready ? p.accent : p.surf2,
-              cursor: commit.ready ? 'pointer' : 'default',
+              cursor: commit.ready || waitWord ? 'pointer' : 'default',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -1721,6 +1730,23 @@ ${spaceWhy}` } : baseWhy;
                 }}
               >
                 {turnCostLine}
+              </small>
+            )}
+            {waitWord && (
+              <small
+                data-testid="waiting-word"
+                style={{
+                  display: 'block',
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  fontSize: 11,
+                  fontWeight: 400,
+                  color: p.accent,
+                }}
+              >
+                <span aria-hidden>📖 </span><strong>{waitWord.term}</strong>: {waitWord.definition}
               </small>
             )}
           </button>

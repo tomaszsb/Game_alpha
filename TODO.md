@@ -36,7 +36,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 - [ ] **Dice set up a problem, the student picks how to handle it, at the 2-3 most-hit dice spaces.** RESEARCH-2.md §1d Copy #1, §6 #1.
 - [ ] **Cap bad luck: after 2 failed rolls at one space, the 3rd is a choice.** RESEARCH-2.md §1d #5, §6 #2 (robot games 20-170 turns, CHECK.md §6).
 - [ ] **Show the trophy race all game; approvals stamp the mat.** RESEARCH-2.md §1d #2-3, §6 #3.
-- [ ] **Give waiting players a job in group play.** RESEARCH-2.md §1d #4.
+- [ ] **Give waiting players a job in group play.** RESEARCH-2.md §1d #4. Step 1 BUILT v3.8.100: a checked glossary word on the waiting button (Tom 10-26). Seen then: the glossary entry page cuts long words on a phone ("FOUNDATI...").
 - [ ] **Pause new dice spaces, cards, board drawing and polish** until the teaching items exist. RESEARCH.md §6 #4, RESEARCH-2.md §1d "Drop".
 - [ ] **Measure fun: the 3 certificate questions + "how many minutes did your game take?"** RESEARCH-2.md §6 #4 (see [N2] below).
 
