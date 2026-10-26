@@ -162,7 +162,9 @@ describe('Logic E2E: Full Game Playthrough', () => {
         await playStep('REG-DOB-TYPE-SELECT', 'REG-DOB-PROF-CERT');
         await playStep('REG-DOB-PROF-CERT', undefined, 1);   // roll 1 → REG-DOB-AUDIT
         await playStep('REG-DOB-AUDIT', undefined, 1);       // roll 1 → REG-DOB-FINAL-REVIEW
-        await playStep('REG-DOB-FINAL-REVIEW', undefined, 1); // roll 1 → FINISH
+        await playStep('REG-DOB-FINAL-REVIEW', undefined, 1); // roll 1 → CO-CHOOSE (v3.8.95)
+        await playStep('CO-CHOOSE', 'CO-FINAL');             // the final certificate
+        await playStep('CO-FINAL');                          // → FINISH
 
         expect(stateService.getPlayer(playerId)!.currentSpace).toBe('FINISH');
         expect(stateService.getGameState().isGameOver).toBe(true);

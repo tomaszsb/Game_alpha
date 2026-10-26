@@ -48,7 +48,7 @@ import { getUIString } from '../../constants/uiStrings';
 import { groupMoveOptions, defaultOpenStage, GROUP_MIN_OPTIONS } from '../../utils/officeGroups';
 import { ACTION_ROW, COMMIT, NUMBERS, GLANCE_HELP, SCOPE_APPROVAL } from '../../constants/uiStrings';
 import { setDestinationPreview } from '../../utils/destinationPreview';
-import { getBuilderRules } from '../../utils/trophyRules';
+import { getBuilderRules, getTrophyRules } from '../../utils/trophyRules';
 import { computeProjectFinances } from '../../utils/projectFinances';
 import { isSkippableEffectAction } from '../../utils/skippableActions';
 import { FormatUtils } from '../../utils/FormatUtils';
@@ -836,6 +836,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // Each project step wears the picture of its building (TOWN.csv `mat_icon` rows + the building's icon).
   const townRows = gameServices.dataService.getTownRows?.();
   const renderMatIcon = (tileId: string, size: number): React.ReactNode => {
+    const image = getTrophyRules().matImages[tileId];
+    if (image) return <img src={`/images/${image}`} alt="" style={{ width: Math.round(size * 1.15), height: Math.round(size * 1.15), borderRadius: '50%', objectFit: 'cover', flex: 'none' }} />;
     const icon = matIcon(townRows, tileId);
     return icon ? <BuildingIcon icon={icon} portrait={iconPortraitSrc(icon, gameState.npcAppearances)} size={size} /> : null;
   };

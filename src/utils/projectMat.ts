@@ -28,6 +28,7 @@ function isDone(check: MatCheck, player: Player, fin: Pick<ProjectFinances, 'sco
     case 'dob_approved': return player.dobApprovalStatus === 'approved';
     case 'fdny_approved': return player.fdnyApprovalStatus === 'approved';
     case 'builder_hired': return !!player.contractor;
+    case 'inspection_signed': return player.visitedSpaces?.includes('REG-DOB-FINAL-REVIEW') ?? false;
     case 'finished': return player.finishedAtTurn !== undefined;
   }
 }

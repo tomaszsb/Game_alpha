@@ -136,7 +136,7 @@ export function ProjectMat({ tiles, palette: p, renderIcon, playerId }: { tiles:
         <span>{done} of {tiles.length}</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
-        <MatIconRow tiles={tiles} palette={p} size={32} renderIcon={renderIcon} selected={selected} stamped={stamped} onSelect={setSelected} spread />
+        <MatIconRow tiles={tiles} palette={p} size={tiles.length > 8 ? 28 : 32} renderIcon={renderIcon} selected={selected} stamped={stamped} onSelect={setSelected} spread />
       </div>
       <Caption tile={tiles.find(t => t.id === (selected ?? stamped))} palette={p} stamped={!selected && !!stamped} />
     </div>
@@ -159,7 +159,7 @@ export function MatDots({ tiles, palette: p, renderIcon, playerId }: { tiles: Ma
         aria-label={`${getUIString('MAT.title')}: ${done} of ${tiles.length} steps done`}
         style={{ display: 'flex', alignItems: 'center', gap: 3 }}
       >
-        <MatIconRow tiles={tiles} palette={p} size={22} renderIcon={renderIcon} selected={selected} stamped={stamped} onSelect={setSelected} />
+        <MatIconRow tiles={tiles} palette={p} size={tiles.length > 8 ? 20 : 22} renderIcon={renderIcon} selected={selected} stamped={stamped} onSelect={setSelected} />
       </div>
       <Caption tile={tiles.find(t => t.id === (selected ?? stamped))} palette={p} stamped={!selected && !!stamped} />
     </div>

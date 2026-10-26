@@ -7,11 +7,13 @@ points,review_passed,0,Passed on the first try
 points,review_sent_back,1,Sent back
 points,violation,2,Violation
 points,cut_corner,2,Cut a corner
+points,temp_certificate,1,Temporary certificate of occupancy
 review,review_passed,,
 review,review_sent_back,,
 space_event,CHEAT-BYPASS,cut_corner,
 space_event,CON-STEER,cut_corner,
 space_event,SI-SKIP,cut_corner,
+space_event,CO-TEMP,temp_certificate,
 mat,scope,scope_set,Scope chosen
 mat,funded,funded,Funded
 mat,architect,architect_paid,Architect
@@ -19,6 +21,7 @@ mat,engineer,engineer_paid,Engineer
 mat,dob,dob_approved,DOB approved
 mat,fdny,fdny_approved,FDNY approved
 mat,builder,builder_hired,Builder hired
+mat,inspection,inspection_signed,Final inspection
 mat,finish,finished,Finished
 stamp,dob_approved,,
 stamp,fdny_approved,,
@@ -57,3 +60,4 @@ builder_speed,LOW,1.3,
 rule,owner_seed_min,0.8,
 rule,owner_seed_max,1.2,
 rule,owner_seed_round,10000,
+mat_image,inspection,inspector/final_inspection_circle_crop.png,

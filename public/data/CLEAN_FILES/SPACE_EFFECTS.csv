@@ -187,3 +187,13 @@ REG-DOB-FINAL-REVIEW,Subsequent,cards,draw_L,1,dice_roll_4,Draw 1 if you roll a 
 REG-DOB-FINAL-REVIEW,Subsequent,dice,dice_outcome,Time outcomes,,See how long final review takes,manual,,,,,,,See how long final review takes
 FINISH,First,dice,dice_outcome,Time outcomes,,See your final time,manual,,,,,,,See your final time
 FINISH,Subsequent,dice,dice_outcome,Time outcomes,,See your final time,manual,,,,,,,See your final time
+SI-FULL-REPORT,First,time,add,10,,Spend 10 days,auto,,,,,,,
+SI-FULL-REPORT,Subsequent,time,add,10,,Spend 10 days,auto,,,,,,,
+SI-RUSH,First,dice,dice_outcome,Time outcomes,,See if an item is missing,manual,,,,,,,See if an item is missing
+SI-RUSH,Subsequent,dice,dice_outcome,Time outcomes,,See if an item is missing,manual,,,,,,,See if an item is missing
+CO-TEMP,First,time,add,5,,Spend 5 days,auto,,,,,,,
+CO-TEMP,First,fee,deduct,$2500,,Pay $2500 fees,auto,FIXED,,,,,,
+CO-TEMP,Subsequent,time,add,5,,Spend 5 days,auto,,,,,,,
+CO-TEMP,Subsequent,fee,deduct,$2500,,Pay $2500 fees,auto,FIXED,,,,,,
+CO-FINAL,First,time,add,45,,Spend 45 days,auto,,,,,,,
+CO-FINAL,Subsequent,time,add,45,,Spend 45 days,auto,,,,,,,

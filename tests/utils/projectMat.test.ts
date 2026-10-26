@@ -10,8 +10,16 @@ describe('computeMat', () => {
 
   it('a fresh project has an empty mat in the stock order', () => {
     const tiles = computeMat(player(), { scopeTotal: 0, fundingGap: 0 });
-    expect(tiles.map(t => t.id)).toEqual(['scope', 'funded', 'architect', 'engineer', 'dob', 'fdny', 'builder', 'finish']);
+    expect(tiles.map(t => t.id)).toEqual(['scope', 'funded', 'architect', 'engineer', 'dob', 'fdny', 'builder', 'inspection', 'finish']);
     expect(ids(tiles)).toEqual([]);
+  });
+
+  it('the final inspection circle is done once the player has been through Final Approval (so after the sign-off), and wears its own picture', () => {
+    const fin = { scopeTotal: 0, fundingGap: 0 };
+    expect(ids(computeMat(player({ visitedSpaces: ['SI-SIGNOFF', 'SI-RUSH', 'CON-ISSUES'] }), fin))).not.toContain('inspection');
+    expect(ids(computeMat(player({ visitedSpaces: ['SI-SIGNOFF', 'SI-FULL-REPORT', 'REG-DOB-FINAL-REVIEW'] }), fin))).toContain('inspection');
+    configureTrophyRules([{ kind: 'mat_image', key: 'inspection', value: 'inspector/final_inspection_circle_crop.png', text: '' }]);
+    expect(getTrophyRules().matImages.inspection).toBe('inspector/final_inspection_circle_crop.png');
   });
 
   it('fills in as the project moves', () => {

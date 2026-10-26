@@ -22,7 +22,7 @@ export type TrophyId = 'time' | 'money' | 'quality';
 export const TROPHY_IDS: readonly TrophyId[] = ['time', 'money', 'quality'];
 
 /** What can fill a tile on the player's mat. The labels and order are data; the checks are these. */
-export const MAT_CHECKS = ['scope_set', 'funded', 'architect_paid', 'engineer_paid', 'dob_approved', 'fdny_approved', 'builder_hired', 'finished'] as const;
+export const MAT_CHECKS = ['scope_set', 'funded', 'architect_paid', 'engineer_paid', 'dob_approved', 'fdny_approved', 'builder_hired', 'inspection_signed', 'finished'] as const;
 export type MatCheck = typeof MAT_CHECKS[number];
 export interface MatTile { id: string; check: MatCheck; label: string }
 
@@ -83,6 +83,8 @@ export interface TrophyRules {
   mat: MatTile[];
   /** The mat checks that get a stamp and a one-line label the moment they turn done (`stamp` rows). */
   stamps: MatCheck[];
+  /** A picture for a mat step, a path under /images/ (`mat_image` rows); a step with none wears its building's icon. */
+  matImages: Record<string, string>;
   /** The name shown for each trophy. */
   names: Record<TrophyId, string>;
   /** The picture of each trophy, a path under /images/ (the `value` cell of its `trophy` row). Blank = use the emoji. */
@@ -140,12 +142,14 @@ const DEFAULT_MAT: MatTile[] = [
   { id: 'dob', check: 'dob_approved', label: 'DOB approved' },
   { id: 'fdny', check: 'fdny_approved', label: 'FDNY approved' },
   { id: 'builder', check: 'builder_hired', label: 'Builder hired' },
+  { id: 'inspection', check: 'inspection_signed', label: 'Final inspection' },
   { id: 'finish', check: 'finished', label: 'Finished' },
 ];
 
 const DEFAULT_RULES: TrophyRules = {
   mat: DEFAULT_MAT,
   stamps: ['dob_approved', 'fdny_approved', 'builder_hired'],
+  matImages: {},
   names: { time: 'Fastest', money: 'On budget', quality: 'Best built' },
   icons: { time: 'trophies/time.png', money: 'trophies/money.png', quality: 'trophies/quality.png' },
   trophiesToWin: 2,
@@ -174,6 +178,7 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
     spaceEvents: {},
     mat: [],
     stamps: [],
+    matImages: {},
     timeCapPercent: DEFAULT_RULES.timeCapPercent,
     ownerSeed: { ...DEFAULT_OWNER_SEED },
     builder: { ...DEFAULT_BUILDER, space: '', door: '', noteSpaces: [], guaranteeDays: [], qualities: { ...DEFAULT_BUILDER.qualities }, terms: cloneTerms(DEFAULT_TERMS) },
@@ -257,6 +262,9 @@ export function configureTrophyRules(rows: TrophyRuleCsvRow[]): void {
         break;
       case 'space_event':
         if (value) next.spaceEvents[key] = value;
+        break;
+      case 'mat_image':
+        if (value) next.matImages[key] = value;
         break;
       case 'stamp':
         if ((MAT_CHECKS as readonly string[]).includes(key)) next.stamps.push(key as MatCheck);

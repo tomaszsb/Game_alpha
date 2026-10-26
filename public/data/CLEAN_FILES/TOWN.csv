@@ -67,9 +67,15 @@ room,SI-HIRE,,site,,,,,,,,
 room,SI-AGENCY-TOP,,site,,,,,,,,
 room,SI-AGENCY-BUDGET,,site,,,,,,,,
 room,SI-SKIP,,site,,,,,,,,
+room,SI-SIGNOFF,,site,,,,,,,,
+room,SI-FULL-REPORT,,site,,,,,,,,
+room,SI-RUSH,,site,,,,,,,,
 variant,CON-INITIATION,,trailer_new,,,,,,,,new
 variant,CON-ISSUES,,trailer_new,,,,,,,,new
 variant,CON-INSPECT,,site_new,,,,,,,,new
+room,CO-CHOOSE,,finish,,,,,,,,
+room,CO-TEMP,,finish,,,,,,,,
+room,CO-FINAL,,finish,,,,,,,,
 room,FINISH,,finish,,,,,,,,
 setting,walk_ms,,,,,,,,,,1500
 setting,walk_fast_ms,,,,,,,,,,400
@@ -91,4 +97,5 @@ mat_icon,engineer,,engineer,,,,,,,,
 mat_icon,dob,,dob,,,,,,,,
 mat_icon,fdny,,firehouse,,,,,,,,
 mat_icon,builder,,trailer,,,,,,,,
+mat_icon,inspection,,site,,,,,,,,
 mat_icon,finish,,finish,,,,,,,,
