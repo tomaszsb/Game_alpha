@@ -31,8 +31,6 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 ### Fun (dice to choices)
 - [ ] **[N3] next (not started):** Design prep written 2026-10-23 in BETA_PLAN_V3.md "N3 design prep" (all five items, one pick each; every one needs Tom first). Inspector sign-off (full report vs sign today), Hire an Expeditor fork (veteran / junior / yourself), TCO vs final CO. Special Inspector LIVE v3.8.22, send-your-expeditor v3.8.21. Forced expeditors were CUT in v3.8.20 (Tom lifted his 09-27 park on 10-18: "Cut them"). PLAYTEST.md Part 2a new space 1, Part 2b #3.
 - [ ] **[N3] Hire an Expeditor fork (veteran / junior / yourself).** PLAYTEST.md Part 2b #1, 2c #6.
-- [x] **[N3] Inspector sign-off (full report vs sign today).** BUILT v3.8.95. PLAYTEST.md Part 2a new space 2, 2c #7.
-- [x] **TCO vs final CO at the end.** BUILT v3.8.95. PLAYTEST.md Part 2a new space 4, 2c #9. Old item: "Loan-repayment deadline + TCO mechanic" in the Parking lot.
 - [ ] **Bad expeditor cards fire on draw; specialty decks; bids for expeditors (unify builder bids).** PLAYTEST.md Part 2b #4, #6, 2c #10-11.
 - [ ] **Concrete test break (sources unchecked).** PLAYTEST.md Part 2a new space 5.
 - [ ] **Dice set up a problem, the student picks how to handle it, at the 2-3 most-hit dice spaces.** RESEARCH-2.md §1d Copy #1, §6 #1.
