@@ -55,7 +55,8 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
   const panelMode = getStoredPanelMode();
   const p = panelPalettes[panelMode];
 
-  const isCardChoiceType = awaitingChoice?.type === 'CARD_REPLACEMENT' || awaitingChoice?.type === 'CARD_SELECTION' || awaitingChoice?.type === 'CARD_GIVE';
+  const isCardChoiceType = awaitingChoice?.type === 'CARD_REPLACEMENT' || awaitingChoice?.type === 'CARD_SELECTION' || awaitingChoice?.type === 'CARD_GIVE'
+    || awaitingChoice?.type === 'CARD_DISCARD';
 
   // Data-driven TTS: use tts_field config from space content, fall back to prompt
   const choiceSpaceContent = currentSpace ? dataService.getSpaceContent(currentSpace, 'First') : undefined;
@@ -157,7 +158,10 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
     const cardType = awaitingChoice.options[0]?.id?.charAt(0) as CardType || 'E';
     const mode = awaitingChoice.type === 'CARD_REPLACEMENT' ? 'replace'
       : awaitingChoice.type === 'CARD_SELECTION' ? 'return'
+      : awaitingChoice.type === 'CARD_DISCARD' ? 'remove'
       : 'give';
+    // A forced removal may offer fewer cards than the hand holds; list only those.
+    const allowedCardIds = awaitingChoice.type === 'CARD_DISCARD' ? awaitingChoice.options.map(o => o.id) : undefined;
 
     const maxReplacements = (awaitingChoice.metadata?.replaceCount as number) || 1;
     const newCardType = awaitingChoice.type === 'CARD_REPLACEMENT'
@@ -174,6 +178,7 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
         newCardType={newCardType}
         mode={mode}
         targetPlayerName={targetPlayerName}
+        allowedCardIds={allowedCardIds}
         onReplace={(selectedCardIds, _replacementType) => {
           if (selectedCardIds.length > 0) {
             debugLog(`🔄 Card ${mode}: Attempting with cards: ${selectedCardIds.join(', ')}`);

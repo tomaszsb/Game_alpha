@@ -14,6 +14,7 @@ import { GameContext } from '../../src/context/GameContext';
 import { GamePhase, Player } from '../../src/types/StateTypes';
 import { Choice } from '../../src/types/CommonTypes';
 import { createAllMockServices } from '../mocks/mockServices';
+import { DictionaryProvider } from '../../src/dictionary';
 
 describe('ChoiceModal', () => {
   beforeEach(() => {
@@ -346,9 +347,11 @@ describe("ChoiceModal - the filing rep's pop-ups", () => {
     services.stateService.subscribe.mockImplementation((callback: any) => { callback(state); return vi.fn(); });
     services.stateService.getGameState.mockReturnValue(state);
     render(
-      <GameContext.Provider value={services}>
-        <ChoiceModal />
-      </GameContext.Provider>
+      <DictionaryProvider>
+        <GameContext.Provider value={services}>
+          <ChoiceModal />
+        </GameContext.Provider>
+      </DictionaryProvider>
     );
     return services;
   }
@@ -388,5 +391,46 @@ describe("ChoiceModal - the filing rep's pop-ups", () => {
     expect(getComputedStyle(box).overflowY).toBe("auto");
     expect(screen.getByText("The round, done")).toBeInTheDocument();
     expect(screen.getAllByRole("button").filter(b => b.textContent === "OK").length).toBe(1);
+  });
+
+  // fb:52afd411: the architect's "remove one" used the plain choice pop-up while the bank's swap used
+  // the card pop-up. A removal now opens the card pop-up too, listing only the cards the game offers.
+  it('opens the card pop-up for a forced removal, with only the offered cards', () => {
+    const services: any = createAllMockServices();
+    const removalState = {
+      currentPlayerId: 'player1',
+      gamePhase: 'PLAY' as GamePhase,
+      turn: 1,
+      players: [{ id: 'player1', name: 'Test Player', currentSpace: 'TEST-SPACE', visitType: 'First', money: 1000, timeSpent: 5,
+        hand: ['W001', 'W002', 'W003', 'E001'], activeCards: [], activeEffects: [], loans: [] }],
+      awaitingChoice: {
+        id: 'discard-1',
+        type: 'CARD_DISCARD',
+        playerId: 'player1',
+        prompt: 'Choose 1 Work Package to remove:',
+        options: [
+          { id: 'W001', label: 'Smart grid ($500K)' },
+          { id: 'W002', label: 'Green roof ($750K)' },
+        ],
+      },
+    };
+    services.stateService.subscribe.mockImplementation((callback: any) => {
+      callback(removalState);
+      return vi.fn();
+    });
+    services.stateService.getGameState.mockReturnValue(removalState);
+    services.dataService.getCardById.mockImplementation((id: string) => ({ card_id: id, card_name: `Card ${id}`, card_type: id.charAt(0), cost: 0 }));
+
+    render(
+      <DictionaryProvider>
+        <GameContext.Provider value={services}>
+          <ChoiceModal />
+        </GameContext.Provider>
+      </DictionaryProvider>
+    );
+
+    expect(screen.getByTestId('card-replacement-modal')).toBeInTheDocument();
+    expect(screen.queryByText('Make Your Choice')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('card-replacement-pick')).toHaveLength(2);
   });
 });

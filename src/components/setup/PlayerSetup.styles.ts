@@ -196,10 +196,12 @@ export const styles: { [key: string]: React.CSSProperties } = {
     // again so the flex:1 + minHeight:0 wrapper above still scrolls
     // internally instead of overflowing past the footer.
     maxHeight: '100%',
-    // Panel itself no longer needs overflow:auto since the inner wrapper now
-    // properly scrolls. Keep `hidden` so the rounded-corners + boxShadow stay
-    // clean if anything inside misbehaves.
-    overflow: 'hidden',
+    // The inner wrapper scrolls the player list. But on a short phone screen
+    // (fb:75dd41ec, iPhone 385x378) the mode buttons and the "Step 1" guide
+    // above the list are already taller than the panel, so nothing could be
+    // scrolled and the rest was cut off. The panel itself scrolls in that case.
+    overflowX: 'hidden',
+    overflowY: 'auto',
     minWidth: 0,
   },
   settingsColumn: {
@@ -245,7 +247,8 @@ export const styles: { [key: string]: React.CSSProperties } = {
   playerListWrapper: {
     marginBottom: 'clamp(0.5rem, 1vh, 1rem)',
     flex: 1,
-    minHeight: 0,
+    // Never squeezed to nothing: when the panel is short it scrolls instead (fb:75dd41ec).
+    minHeight: 'min(10rem, 40vh)',
     // fb:fc65c217 — TV browsers (and Comet, and many Chromium variants) hide
     // scrollbars when `overflow: auto`; they only appear on hover, which a
     // user with a TV remote can't trigger. `scroll` forces always-visible.

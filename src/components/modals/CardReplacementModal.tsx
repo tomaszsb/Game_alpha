@@ -14,7 +14,7 @@ import { CARD_REPLACE } from '../../constants/uiStrings';
 import { getStoredPanelMode, panelPalettes } from '../player/panelTheme';
 import '../common/CardDisplay.css';
 
-type CardSelectionMode = 'replace' | 'return' | 'give';
+type CardSelectionMode = 'replace' | 'return' | 'give' | 'remove';
 
 interface CardReplacementModalProps {
   isOpen: boolean;
@@ -24,6 +24,8 @@ interface CardReplacementModalProps {
   newCardType?: CardType; // The type of card the player will receive
   mode?: CardSelectionMode; // Defaults to 'replace' for backwards compatibility
   targetPlayerName?: string; // For 'give' mode — who receives the card
+  /** Only these cards may be picked (the choice's own options); omitted = every card of the type in hand. */
+  allowedCardIds?: string[];
   onReplace: (selectedCardIds: string[], newCardType: CardType) => void;
   onCancel: () => void;
 }
@@ -50,6 +52,7 @@ export function CardReplacementModal({
   newCardType,
   mode = 'replace',
   targetPlayerName,
+  allowedCardIds,
   onReplace,
   onCancel
 }: CardReplacementModalProps): JSX.Element | null {
@@ -76,7 +79,8 @@ export function CardReplacementModal({
     );
   }
 
-  const availableCards = player.hand.filter(cardId => cardId.startsWith(cardType));
+  const availableCards = player.hand.filter(cardId => cardId.startsWith(cardType)
+    && (!allowedCardIds || allowedCardIds.includes(cardId)));
   const canReplace = selectedCardIds.length > 0 && selectedCardIds.length <= maxReplacements;
 
   const handleCardToggle = (cardId: string) => {
@@ -143,6 +147,15 @@ export function CardReplacementModal({
       confirmText: `Give${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
       emptyText: CARD_REPLACE.empty(typeName, 'give'),
       floatingText: `Complete ${typeName} Transfer`,
+    },
+    // A card the player must give up (CARD_DISCARD, e.g. the architect's "remove one"). It used the
+    // plain choice pop-up while the bank's swap used this one, so the two looked different (fb:52afd411).
+    remove: {
+      title: CARD_REPLACE.title('Remove', typeName),
+      instruction: 'Select one to remove',
+      confirmText: CARD_REPLACE.confirm('Remove', selectedCardIds.length),
+      emptyText: CARD_REPLACE.empty(typeName, 'remove'),
+      floatingText: `Complete ${typeName} Removal`,
     },
   };
   const texts = modeConfig[mode];
@@ -298,7 +311,7 @@ export function CardReplacementModal({
                       minHeight: theme.mobile.minTapTarget,
                     }}
                   >
-                    {isSelected ? CARD_REPLACE.PICKED : CARD_REPLACE.pick(mode)}
+                    {isSelected ? CARD_REPLACE.PICKED : CARD_REPLACE.pick(mode === 'remove' ? 'return' : mode)}
                   </button>
                   <button
                     type="button"
