@@ -134,3 +134,7 @@ The PATCH to mark FIXED / DECIDED reports resolved was NOT run: the live-server 
 - 5c8e37c4
 - b6b93adf
 - 1df093dd
+
+## Update 2026-10-26 (later)
+
+The PATCH was run by the Manager with Tom's OK: the 22 FIXED and 7 DECIDED reports above were marked resolved, 29 of 29, each read back. The note near the top saying the PATCH was not run is out of date. To undo, PATCH `{"resolved": false}` for those 29 ids.
