@@ -39,7 +39,7 @@ import { setTownWalking } from '../../utils/boardStyle';
 import { projectKindOf } from '../../utils/projectKind';
 import { getSoundOn } from '../../utils/soundSetting';
 import { TownViewPad, type ViewPadScreen } from './TownViewPad';
-import { TownClocks } from './TownClocks';
+import { TownClocks, rowHeightPx } from './TownClocks';
 import { clockMonth, clockStartIso } from '../../utils/gameClock';
 import { areaSegments, hasLeftBoard, ownerOfRow, type AreaSegment } from '../../utils/townAreas';
 import { treePicture, treeScale } from '../../utils/townTrees';
@@ -83,6 +83,8 @@ const SIGN_SPACE = 90;
 /** How long the mouse rests on a building before its rooms open, so passing over one does not pop it
  *  open and shut (Tom, 2026-10-12: "a lot of flickering"). */
 const HOVER_OPEN_MS = 400;
+/** Fitting the whole town leaves room along the top for the row of clocks (about 50 px at normal size). */
+const FIT_PADDING = { top: '64px', right: '6%', bottom: '6%', left: '6%' } as const satisfies Record<string, `${number}px` | `${number}%`>;
 /** A screen that follows the current player never zooms out past this (names stay readable). */
 const FOLLOW_MIN_ZOOM = 0.75;
 
@@ -891,7 +893,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   }, []);
   useEffect(() => {
     if (centerOnCurrent || sizeTick === 0) return;
-    try { fitView({ padding: 0.06, duration: 0 }); } catch { /* not measured yet */ }
+    try { fitView({ padding: FIT_PADDING, duration: 0 }); } catch { /* not measured yet */ }
   }, [sizeTick, centerOnCurrent, fitView]);
   useEffect(() => {
     if (!centerOnCurrent || !currentBuilding) return;
@@ -911,7 +913,11 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       if (focus.length === 0) return;
       if (!framed.current) {
         try {
-          fitView({ nodes: ids.map(id => ({ id })), padding: 0.3, duration: scaleMs(350), maxZoom: 1.3, minZoom: FOLLOW_MIN_ZOOM });
+          // Leave room under the row of clocks along the top (a TV), as well as the usual margin all round.
+          const box = wrapperRef.current;
+          const clockRoom = box ? rowHeightPx(players.filter(p => !hasLeftBoard(p)).length || players.length, box.clientWidth, box.clientHeight, screen) : 0;
+          const top = `${Math.round(Math.max(clockRoom + 8, 0.3 * (box?.clientHeight ?? 0)))}px` as `${number}px`;
+          fitView({ nodes: ids.map(id => ({ id })), padding: { top, right: '30%', bottom: '30%', left: '30%' }, duration: scaleMs(350), maxZoom: 1.3, minZoom: FOLLOW_MIN_ZOOM });
           framed.current = true;
         } catch { /* nodes not measured yet; the next change retries */ }
         return;
@@ -920,6 +926,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       setCenter(bb.x + bb.width / 2, bb.y + bb.height / 2, { zoom: getViewport().zoom, duration: scaleMs(350) });
     }, 100);
     return () => window.clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [centerOnCurrent, currentBuilding, destBuildings, nodes, fitView, setCenter, getViewport, sizeTick, walks]);
 
   // Self-heal (fb:a6474bad): a following screen (TV, remote) whose camera has lost the town, or that
@@ -992,14 +999,14 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         elementsSelectable={true}
         panOnDrag={true}
         fitView
-        fitViewOptions={{ padding: 0.06 }}
+        fitViewOptions={{ padding: FIT_PADDING }}
         minZoom={0.2}
         maxZoom={2}
         colorMode={mode}
         style={{ backgroundColor: waterColor }}
       >
         <TownViewPad screen={screen} dark={mode === 'dark'} />
-        <TownClocks players={players.map(p => ({ id: p.id, name: p.name, color: p.color, timeSpent: p.timeSpent ?? 0, gone: hasLeftBoard(p) }))} currentPlayerId={currentPlayerId} layout={layout} tile={TOWN_TILE} startIso={startIso} screen={screen} />
+        <TownClocks players={players.map(p => ({ id: p.id, name: p.name, color: p.color, timeSpent: p.timeSpent ?? 0, gone: hasLeftBoard(p) }))} currentPlayerId={currentPlayerId} startIso={startIso} screen={screen} />
         <ViewportPortal>
           {walks.map(w => <Walker key={w.key} walk={w} onDone={endWalk} />)}
         </ViewportPortal>

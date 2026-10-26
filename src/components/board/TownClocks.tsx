@@ -1,15 +1,13 @@
 // TownClocks - one flip clock per player on the town board (TIME_ON_BOARD_DESIGN.md, step 2). Each clock shows
-// that player's own date (start date + THAT player's days, gameClock.ts), in the player's colour, and sits at
-// the top of their band of the town, pinned to the top of the part of the band you can see. It is a screen-size
-// object: the same readable size at any zoom. A clock never covers a name sign (it is drawn under an open sign, above the buildings).
-//   PC: all clocks. TV: all clocks, 1.6 times bigger. Remote strip: one slim clock for the current player. Phone: no board.
+// that player's own date (start date + THAT player's days, gameClock.ts), in the player's colour with their name.
+// All clocks sit in ONE ROW along the top of the board view, in player order (Tom, 2026-10-26: "they all should be
+// near the top"), fixed on the screen: the row does not move or scale when the board is moved or zoomed. A player who
+// has finished or gone out leaves the row. If the row is wider than the screen the clocks shrink evenly to fit.
+//   PC: all clocks. TV: all clocks, up to 1.6 times bigger. Remote strip: one slim clock for the current player. Phone: no board.
 // When a player's days change only that player's clock shuffles (about 0.6 s, by timers, so it ends on time even
 // on a TV that gives no animation frames); with reduced motion the new date just appears with a short ring.
 import React, { useEffect, useRef, useState } from 'react';
-import { Panel, ViewportPortal, useStore, useViewport } from '@xyflow/react';
-import type { TownLayout } from '../../utils/townLayout';
-import { isoPoint } from '../../utils/townLayout';
-import { townBands } from '../../utils/townAreas';
+import { Panel, useStore } from '@xyflow/react';
 import { clockDate, clockText, type ClockDate } from '../../utils/gameClock';
 import { scaleMs } from '../../utils/gameSpeed';
 
@@ -19,38 +17,39 @@ export interface ClockPlayer { id: string; name: string; color?: string; timeSpe
 
 const SHUFFLE_MS = 600;
 const TICK_MS = 70;
-const MIN_VISIBLE_PX = 60;
-const PIN_GAP = 6;
 
 const prefersReducedMotion = (): boolean => {
   try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
 };
 
-/** Where each band starts and ends, in flow coordinates (iso points on the band's centre column). */
-export interface BandSpan { x: number; top: number; bottom: number }
-export function bandSpans(layout: TownLayout, count: number, tile: number): BandSpan[] {
-  const { minCol, maxCol } = layout.bounds;
-  const midCol = (minCol + maxCol) / 2;
-  const bands = townBands({ ...layout, seats: Math.max(1, count) });
-  return bands.map(band => {
-    const top = isoPoint(midCol, band.top, 0, tile);
-    return { x: top.x, top: top.y, bottom: isoPoint(midCol, band.bottom, 0, tile).y };
-  });
-}
+/** Gap between two clocks in the row, and the margin round the row (px). */
+export const ROW_GAP = 8;
+export const ROW_MARGIN = 8;
+/** Height of one clock before scaling (px). */
+export const CLOCK_H = 42;
+/** The smallest the row's clocks are squeezed to before they would be unreadable. */
+export const MIN_ROW_SCALE = 0.45;
 
 /**
- * Where one clock goes on the screen, or null when too little of its band is showing. The clock sticks to the
- * top of the visible part of the band; sideways it stays fully on screen.
+ * The size of the clocks in the row: the wanted size (1, or 1.6 on a TV), squeezed evenly so that `count` clocks and
+ * the gaps between them fit across `width` px.
  */
-export function pinClock(span: BandSpan, view: { x: number; y: number; zoom: number }, screen: { w: number; h: number }, clockW: number): { sx: number; sy: number } | null {
-  const topPx = span.top * view.zoom + view.y;
-  const bottomPx = span.bottom * view.zoom + view.y;
-  const visible = Math.min(bottomPx, screen.h) - Math.max(topPx, 0);
-  // A band that is small on the whole (four players at fit zoom) still keeps its clock while most of it shows.
-  if (visible < Math.min(MIN_VISIBLE_PX, 0.6 * (bottomPx - topPx))) return null;
-  const half = clockW / 2 + PIN_GAP;
-  const cx = span.x * view.zoom + view.x;
-  return { sx: Math.min(Math.max(cx, half), Math.max(half, screen.w - half)), sy: Math.max(topPx + PIN_GAP, PIN_GAP) };
+export function rowScale(count: number, width: number, wanted: number, height?: number): number {
+  if (count <= 0) return wanted;
+  const room = width - 2 * ROW_MARGIN - (count - 1) * ROW_GAP;
+  const fit = room / (count * CLOCK_W);
+  // A short board (a TV under its header) must not lose a fifth of its height to the clocks.
+  const tall = height ? (MAX_ROW_SHARE * height) / CLOCK_H : Infinity;
+  return Math.max(MIN_ROW_SCALE, Math.min(wanted, fit, tall));
+}
+
+/** The most of the board's height the row may take. */
+export const MAX_ROW_SHARE = 0.15;
+
+/** How many px the row takes from the top of the board (margin included), so the framing can leave that room. */
+export function rowHeightPx(count: number, width: number, height: number, screen: ClockScreen): number {
+  if (screen === 'remote' || count <= 0) return 0;
+  return Math.ceil(CLOCK_H * rowScale(count, width, screen === 'tv' ? 1.6 : 1, height)) + 2 * ROW_MARGIN;
 }
 
 const POOL_DIGIT = '0123456789';
@@ -107,7 +106,7 @@ function Flaps({ text }: { text: string }) {
 /** Width of the full clock before scaling, so the pin can keep it on screen. */
 export const CLOCK_W = 4 * (FLAP_W + 2) + 3 * (FLAP_W + 2) + 2 * (FLAP_W + 2) + 2 * GAP + 10;
 
-export function FlipClock({ player, date, big, current, still }: { player: ClockPlayer; date: ClockDate; big: boolean; current: boolean; still: boolean }) {
+export function FlipClock({ player, date, big, current, still, scale }: { player: ClockPlayer; date: ClockDate; big: boolean; current: boolean; still: boolean; /** Overrides `big`: the exact size to draw at. */ scale?: number }) {
   const text = clockText(date);
   const color = player.color ?? '#475569';
   const { shown, ring } = useShuffledText(text, still);
@@ -115,7 +114,7 @@ export function FlipClock({ player, date, big, current, still }: { player: Clock
   return (
     <div role="img" aria-label={`${player.name}: ${text}`} data-testid={`town-clock-${player.id}`} style={{
       display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '4px 5px 3px', borderRadius: 8,
-      background: color, opacity: 0.9, transform: big ? 'scale(1.6)' : undefined, transformOrigin: 'top center',
+      background: color, opacity: 0.9, transform: scale !== undefined ? `scale(${scale})` : big ? 'scale(1.6)' : undefined, transformOrigin: 'top center',
       boxShadow: current || ring ? `0 0 0 3px ${color}66, 0 0 14px ${color}` : '0 1px 4px rgba(0,0,0,0.3)',
     }}>
       <span style={{ display: 'inline-flex', gap: GAP, alignItems: 'center' }}>
@@ -142,16 +141,13 @@ function SlimClock({ player, date, still }: { player: ClockPlayer; date: ClockDa
 export interface TownClocksProps {
   players: ClockPlayer[];
   currentPlayerId: string | null;
-  layout: TownLayout;
-  tile: number;
   startIso: string;
   screen: ClockScreen;
 }
 
-export function TownClocks({ players, currentPlayerId, layout, tile, startIso, screen }: TownClocksProps): JSX.Element | null {
-  const view = useViewport();
-  const w = useStore(s => s.width);
-  const h = useStore(s => s.height);
+export function TownClocks({ players, currentPlayerId, startIso, screen }: TownClocksProps): JSX.Element | null {
+  const w = useStore(st => st.width);
+  const h = useStore(st => st.height);
   const still = prefersReducedMotion();
   if (players.length === 0) return null;
 
@@ -164,26 +160,19 @@ export function TownClocks({ players, currentPlayerId, layout, tile, startIso, s
     );
   }
 
-  const big = screen === 'tv';
-  const spans = bandSpans(layout, players.length, tile);
+  // Everyone who has not left (if all have left, the end screen takes over and everyone shows).
   const allGone = players.every(p => p.gone);
-  const clockW = CLOCK_W * (big ? 1.6 : 1);
+  const shown = players.filter(p => allGone || !p.gone);
+  const scale = rowScale(shown.length, w || 800, screen === 'tv' ? 1.6 : 1, h || undefined);
   return (
-    <ViewportPortal>
-      {players.map((p, i) => {
-        if (p.gone && !allGone) return null;
-        const spot = spans[i] && pinClock(spans[i], view, { w, h }, clockW);
-        if (!spot) return null;
-        const fx = (spot.sx - view.x) / view.zoom;
-        const fy = (spot.sy - view.y) / view.zoom;
-        return (
-          <div key={p.id} style={{ position: 'absolute', left: 0, top: 0, zIndex: 1800, pointerEvents: 'none', transform: `translate(${fx}px, ${fy}px) scale(${1 / view.zoom})`, transformOrigin: '0 0' }}>
-            <div style={{ transform: 'translateX(-50%)' }}>
-              <FlipClock player={p} date={clockDate(startIso, p.timeSpent)} big={big} current={p.id === currentPlayerId} still={still} />
-            </div>
+    <Panel position="top-center" style={{ margin: ROW_MARGIN, pointerEvents: 'none' }}>
+      <div data-testid="town-clock-row" data-scale={scale.toFixed(3)} style={{ display: 'flex', gap: ROW_GAP, alignItems: 'flex-start', justifyContent: 'center' }}>
+        {shown.map(p => (
+          <div key={p.id} style={{ width: CLOCK_W * scale, height: CLOCK_H * scale, display: 'flex', justifyContent: 'center' }}>
+            <FlipClock player={p} date={clockDate(startIso, p.timeSpent)} big={false} scale={scale} current={p.id === currentPlayerId} still={still} />
           </div>
-        );
-      })}
-    </ViewportPortal>
+        ))}
+      </div>
+    </Panel>
   );
 }

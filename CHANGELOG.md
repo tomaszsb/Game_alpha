@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.92] - 2026-10-26
+
+**All the clocks in one row along the top of the board (Tom's choice "A": "they all should be near the top").** The player clocks no longer sit in the middle of the screen on their bands. They sit in one row at the top of the board view, in player order, each in its player's colour with their name; the current player's clock still glows. The row is fixed to the screen: it does not move or change size when the board is panned or zoomed. If the row is wider than the screen the clocks shrink evenly to fit (never below 45% of normal size); a TV draws them up to 1.6 times bigger but takes at most 15% of the board's height, so on a short TV picture they come out about 1.4 times at most. A player who has finished or gone out leaves the row (and when everyone has left, all show). The remote strip keeps its one slim clock. The shuffle, the dates and the takeover of ground are unchanged; this also ends the old oddity that a taker-over's clock stayed in its own band. Fitting the whole town on a computer, and the first framing on a TV, now leave room under the row so the top buildings and their name signs are not under it. The row has no pointer events, so it never blocks a click. In the Browser pane, measured at 1280 px wide: 4 clocks 668 x 42 px at normal size, 2 clocks 330 x 42; a TV picture 960 x 540 with 4 clocks fits at 0.84 times (562 x 35 px). Phone unchanged (no board there; page height 844 at 390x844 and 640 at 360x640).
+
 ## [3.8.91] - 2026-10-26
 
 **"One-time favors" heading on the Expeditors page (Tom's choice "A").** The old expeditors now sit under a small heading, "One-time favors", in the same style as "Your team" over the reps (wording in UI_STRINGS.csv, `TEAM.favors`; no game words). Shown only when the player holds some. Nothing else changes. It adds one 10-point line inside the Expeditors pop-up, which already scrolls inside its own size limit; the phone panel behind it is untouched.
