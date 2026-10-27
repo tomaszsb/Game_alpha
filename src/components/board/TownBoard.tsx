@@ -31,7 +31,7 @@ import { cameraSeesNothing } from '../../utils/townCamera';
 import { extractPrefix } from '../../constants/characters';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
-import { PlayerAvatar } from '../common/PlayerAvatar';
+import { PlayerPawn, pawnHeight } from './PlayerPawn';
 import { BuildingIcon } from '../common/BuildingIcon';
 import { portraitSrc } from '../../utils/buildingIcon';
 import { scaleMs, getGameSpeed } from '../../utils/gameSpeed';
@@ -313,17 +313,18 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
         }}
       >
         {bubbles.map(bb => <FloatingBubble key={bb.key} bubble={bb} onDone={onBubbleDone} />)}
+        {view.playersHere.length > 0 && (
+          // The players here stand on top of the sign as big pawns (fb:fefe42f8).
+          <div style={{ position: 'absolute', left: '50%', bottom: '100%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'flex-end', gap: 4, pointerEvents: 'none', filter: 'drop-shadow(0 4px 4px rgba(0,0,0,0.35))' }}>
+            {view.playersHere.map(p => (
+              <PlayerPawn key={p.id} avatar={p.avatar} color={p.color} width={PAWN_W} title={p.name} testId={`town-pawn-${p.id}`} />
+            ))}
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {icon}
           <span style={{ fontSize: 20, fontWeight: 800, whiteSpace: 'nowrap', opacity: named ? 1 : 0.5 }}>{named ? b.name : '?'}</span>
           {seatColor && <span aria-hidden data-testid="town-seat-dot" style={{ width: 14, height: 14, borderRadius: '50%', background: seatColor, border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.4)', flex: 'none' }} />}
-          {view.playersHere.length > 0 && (
-            <span style={{ display: 'flex', gap: 3, marginLeft: 4 }}>
-              {view.playersHere.map(p => (
-                <PlayerAvatar key={p.id} avatar={p.avatar} color={p.color} size={28} title={p.name} />
-              ))}
-            </span>
-          )}
         </div>
         {named && !open && isDest && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
@@ -365,6 +366,9 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
     </div>
   );
 }
+
+/** How wide a player's pawn is drawn (board px): its face is 2.4 times the old 28 px face, and it stands about 4 times as tall. */
+const PAWN_W = 84;
 
 /** How wide a tree is drawn (px) at its starting size: the 64 px picture, enlarged. */
 const TREE_PX = 96;
@@ -421,7 +425,7 @@ function Walker({ walk, onDone }: { walk: Walk; onDone: (key: number) => void })
   }, [walk, onDone]);
   return (
     <div ref={ref} data-testid={`town-walker-${walk.playerId}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 3000, pointerEvents: 'none', filter: 'drop-shadow(0 6px 6px rgba(0,0,0,0.35))' }}>
-      <PlayerAvatar avatar={walk.avatar} color={walk.color} size={44} title={walk.name} />
+      <PlayerPawn avatar={walk.avatar} color={walk.color} width={PAWN_W} title={walk.name} />
     </div>
   );
 }
@@ -824,7 +828,10 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       const box = buildingBox(b, TOWN_TILE);
       const view = views.get(b.id)!;
       const open = expanded === b.id || hovered === b.id || (centerOnCurrent && view.isCurrent);
-      const ox = box.x, oy = box.y - SIGN_SPACE;
+      // Pawns stand on the sign: their room counts as part of the building, so the camera keeps them
+      // in view (under the row of clocks, too).
+      const pawnRoom = view.playersHere.length > 0 ? pawnHeight(PAWN_W) : 0;
+      const ox = box.x, oy = box.y - SIGN_SPACE - pawnRoom;
       out.push({
         id: b.id, type: 'townBuilding', position: { x: ox, y: oy },
         // Back to front, so nearer blocks cover farther ones; an open sign sits above everything.
@@ -835,7 +842,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         // pop open and shut as the mouse moved (measured 2026-10-12: wrong building at 10 of 53 spots).
         style: { pointerEvents: 'none' },
         data: {
-          building: b, view, open, ox, oy, w: box.w, h: box.h + SIGN_SPACE,
+          building: b, view, open, ox, oy, w: box.w, h: box.h + SIGN_SPACE + pawnRoom,
           roofX: box.roofX, roofY: box.roofY, labels, portrait: portraitFor(b.icon), named: named.has(b.id), faded: faded.has(b.id), seatColor: layout.seats > 1 && b.seat !== undefined ? players[b.seat]?.color : undefined, mode,
           bubbles: bubbles.filter(x => x.buildingId === b.id), onBubbleDone: endBubble,
         } satisfies BuildingData,
