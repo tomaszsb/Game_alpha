@@ -5,19 +5,18 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** October 25, 2026 (v3.8.75 committed + pushed, NOT deployed)
+**Last Updated:** October 27, 2026 (v3.9.2 committed + pushed, NOT deployed)
 **Current Phase:** Beta — live in production
-**Current Version:** **v3.8.75** (pushed, not deployed; check `/health` against `git rev-parse --short HEAD` before saying what is live). Since 3.8.46: robot Banker (3.8.65-69), school logo + name (3.8.65), builder bids, office Move list grouped by stage (3.8.71), **reps with a salary (3.8.73)**, **the auto-run: send your filing rep round the plan-exam circle (3.8.74)**, setup-screen link colour (3.8.75). Full `npm test` 326 files / 4287 pass at 3.8.74, build OK, `npm audit` 0, lint 2 errors + 24 warnings (not part of the deploy gate). See CHANGELOG for each; the handoff is `.claude/NEXT_SESSION.md`.
-**v3.8.47-49 (committed + pushed, not deployed; 49 = picture card, TV button opens it on a phone; 48 = maker-list sources, "My TV isn't listed", TV-family count in Site Stats):** "Step 1: put the game on a big screen" card for phone-first students (setup screen, /challenge, /class); suite 308 files / 4102 green.
+**Current Version:** **v3.9.2** pushed; live is `bcb8026f` (v3.8.100 + deploy.sh cleanup). Check `/health` against `git rev-parse --short HEAD` before saying what is live. Version jumped 3.8.100 → 3.9.0 because the patch number caps at 99.
 
 ## Current sprint
-10-22/23, answering the Farmingdale class games: two bankruptcies right after hiring a builder (warnings now pulse; Hire stays allowed), a lasting life event the drawer escaped by pushing back (fixed), "Player 1" certificates (name box), wording fixes. Tom's rule this week: a played card is spent for good, and so is what it did.
+Bug-report pass (10-27): QR join codes labelled (3.9.0), bug reports now record hidden board pieces for the blank-board report fb:5618257f (3.9.1), the waiting player's glossary word opens in the panel's own help card instead of the glossary screen (3.9.2, Tom's ask). Six reports closed on Tom's yes (light mode confirmed on his iPhone). The glossary page cutting long words on a phone is the dictionary website's title, not the game.
 
 ## Health
-- **Tests (v3.8.46):** build clean; `npm test` 307 files / 4095 green; ghost 15 passed, 1 skipped. Typecheck: only the pre-existing `tests/server/dataGate.test.ts` express-types errors. One unreproduced failure of `E2E-LogicPlaythrough` in a full run (pinned afterwards; see CHANGELOG housekeeping 10-21).
-- **Deploy:** `deploy.sh` runs the tests first, and stops if a screen is connected (`FORCE=1` or `ssh -t` and type yes).
+- **Tests (v3.9.2):** `npm test` 359 files / 4,456 pass (4 skipped); build OK; `npm audit` 0 (qs 6.17.0). Typecheck: only old test-file errors (`dataGate`, `finalStretch`).
+- **Deploy:** `deploy.sh` runs `npm ci` + `npm test` first; Tom deploys himself.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Read the Jarvis report on v3.8.46** (hold on Hire, opened walls, the office's extra choices, game length).
-2. **Office reports left:** the "owner decides" help sentence names the owner at architect/engineer spaces; "turns show no days" (now worded in History, not confirmed what the student saw).
-3. **N3 design:** Inspector sign-off, Hire an Expeditor fork, TCO vs final CO; refile when a redesign should cancel DOB approval.
+1. **Deploy v3.9.2** and look at the waiting word on a phone.
+2. **Dictionary website:** shrink the word title on phones (other project).
+3. **Tom's TV:** Sony Bravia / Silk slow buttons (fb:5d7e02d9); design items (bigger pawns fb:fefe42f8, newspaper pop-up, expediter rework) wait for his go.

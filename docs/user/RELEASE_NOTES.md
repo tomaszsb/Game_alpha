@@ -2,6 +2,12 @@
 
 ---
 
+## v3.9.2 — The waiting word opens right where you are (October 27, 2026)
+
+- **While another player takes their turn, your phone shows one construction word under "Waiting for…".** Tap it and its meaning opens in a small card right under the button, the same card every "?" opens. Tap again to close it. You no longer jump to a separate glossary screen.
+- **The join codes have a spoken name** ("Scan to join as Maya"), so a screen reader can say what they are.
+- Earlier this month (3.8.97-3.9.0, no separate note): the setup screen scrolls on short phones, the bank's and the architect's work-package pop-ups now look the same, design fees show as a share of the project in the Scope box, and the waiting word itself was added.
+
 ## v3.8.65 — Your school's name and logo (October 25, 2026)
 
 - **A teacher can add the school's name and logo to a classroom.** On the classroom row, open "School name & logo", type the name, and choose a PNG or JPEG picture under 1 MB. Replace or remove it any time (the administrator can remove it too).
