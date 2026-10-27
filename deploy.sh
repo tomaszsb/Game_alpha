@@ -180,6 +180,12 @@ else
   echo "   No orphaned images to remove"
 fi
 
+# Build cache is separate from images and was never cleared: ~23 GB piled up and filled the
+# Tower's docker.img to 90% (2026-10-27). Keep a week of cache so rebuilds stay fast.
+echo "Cleaning up old build cache..."
+CACHE=$(docker builder prune -f --filter until=168h 2>&1)
+echo "   $CACHE" | tail -1
+
 echo ""
 echo "Deployment complete!"
 echo "Check status with: docker logs -f game_alpha"
