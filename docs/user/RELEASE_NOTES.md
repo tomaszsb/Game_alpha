@@ -2,6 +2,10 @@
 
 ---
 
+## v3.9.3 — Big pawns on the town board (October 27, 2026)
+
+- **Every player is now a big pawn in their own colour, with their face on top.** It stands on top of the sign of the building where the player is, so you can spot everyone from across the room. When you move, your pawn walks the streets to the next building.
+
 ## v3.9.2 — The waiting word opens right where you are (October 27, 2026)
 
 - **While another player takes their turn, your phone shows one construction word under "Waiting for…".** Tap it and its meaning opens in a small card right under the button, the same card every "?" opens. Tap again to close it. You no longer jump to a separate glossary screen.
