@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.9.0] - 2026-10-27
+
+**The join codes now have a spoken name (axe `svg-img-alt` on the setup screen, seen in the v3.8.59 contrast pass).** Each QR join code (setup screen, TV side bar, TV join list, display settings) now carries a label "Scan to join as Maya", so a screen reader says what it is. Uses the QR library's own `title` (it already marks the code as a picture). Nothing on screen changes. Test added in `PlayerList.test.tsx`. Version jumps to 3.9.0 because the patch number never goes past 99 (3.8.100 had already crossed it; not renumbered).
+
+Also found, NOT changed here (lives in the dictionary website, not the game): the glossary entry a phone opens is the dictionary site's page in a frame, and its word title is 60px uppercase, so "FOUNDATION" (413px) is cut in a 264px column at 360px wide. Fix belongs in that site.
+
 ## [3.8.100] - 2026-10-26
 
 **A glossary word while you wait (Tom 2026-10-26: "While other players are waiting for their move maybe we can have a random word from glossary pop up on their phone?", then "Yes").** When it is someone else's turn, the "Waiting for Maya" button carries one more small line: "📖 Foundation: Building foundations rest on…" (cut with "…" to one line). A tap opens that word's full glossary entry. Only checked words: not marked for review, not AI-written, starting with a letter or digit, with a meaning (69 of the 249 words in the game's copy; the short meaning when there is one, else the longer one, since most checked words carry only that). A new word each turn, the same word while you wait (seeded by player, turn count and whose turn it is; no saved state; `src/utils/waitingWord.ts`). The button stays `data-ready="false"`, so the nightly robot still sees "not your turn". Size: the waiting button grows from one line to two (about 46 to 60 px), the same height it already has when it shows a reason under the label. Seen in a real browser on a joined phone in Remote mode at 390 x 844 and 360 x 640; the tap opened the glossary. Also seen, NOT changed: the glossary entry page cuts long words on a phone ("FOUNDATI..."). Fits the open item "Give waiting players a job in group play". Tests: new `tests/utils/waitingWord.test.ts` (3); 343 files / 4,392 passing. Needs a deploy.

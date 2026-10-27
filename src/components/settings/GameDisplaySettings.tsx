@@ -193,6 +193,7 @@ export function GameDisplaySettings({
                               }}>
                                 <QRCodeSVG
                                   value={playerURL}
+                                  title={`Scan to join as ${player.name}`}
                                   size={140}
                                   level="M"
                                   includeMargin={true}

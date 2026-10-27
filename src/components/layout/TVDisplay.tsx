@@ -500,6 +500,7 @@ export function TVDisplay(): JSX.Element {
                     <div style={styles.qrWrapper}>
                       <QRCodeSVG
                         value={playerURL}
+                        title={`Scan to join as ${player.name}`}
                         size={80}
                         level="M"
                         includeMargin={false}
@@ -562,7 +563,7 @@ export function TVDisplay(): JSX.Element {
                         <IconCheck size="0.9em" /> Connected
                       </span>
                     ) : (
-                      <QRCodeSVG value={playerURL} size={100} level="M" includeMargin={false}
+                      <QRCodeSVG value={playerURL} title={`Scan to join as ${player.name}`} size={100} level="M" includeMargin={false}
                         fgColor={player.color || '#007bff'} />
                     )}
                   </div>

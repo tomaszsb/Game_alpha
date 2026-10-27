@@ -379,6 +379,8 @@ describe('PlayerList — Remote mode invite link (2026-09-25: a QR code is usele
       />
     );
     expect(screen.queryByRole('button', { name: 'Copy invite link' })).toBeNull();
+    // axe svg-img-alt (TODO.md, v3.8.59 contrast pass): the join code needs a name a screen reader can say.
+    expect(screen.getByRole('img', { name: 'Scan to join as Alice' })).toBeInTheDocument();
   });
 
   it('copies a URL carrying ?mode=remote and this player\'s shortId to the clipboard', async () => {

@@ -410,6 +410,7 @@ export function PlayerList({
                 }}>
                   <QRCodeSVG
                     value={playerURL}
+                    title={`Scan to join as ${player.name}`}
                     size={qrSize}
                     level="M"
                     includeMargin={false}
