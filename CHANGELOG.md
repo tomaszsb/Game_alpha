@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.9.2] - 2026-10-27
+
+**The waiting player's glossary word opens in the panel, not on a separate screen (Tom 10-27: "make it look more built in to the wait screen and not as a slap on").** Tapping the "📖 word" line on the "Waiting for …" button used to jump to the glossary side screen. Now it opens the same card every "?" in the panel opens (`HelpCard`, one open at a time), right under the button, with the word and its whole meaning. Tap again to close. While it is open the button shows just the word, so the meaning is not printed twice. A new word on the next wait starts closed. Glossary words inside the meaning still open the full glossary, like on every other card. Nothing new was added: same card, same glossary data. Measured in a real browser on a joined phone: the button stays 60px open and closed; the card is 93px and appears only when tapped; the page stays 360x640 and 390x844 (the panel scrolls inside itself). Tests: 3 new in `PlayerPanelV2Help.test.tsx`.
+
 ## [3.9.1] - 2026-10-27
 
 **Bug reports now say whether board pieces were drawn but kept hidden (for fb:5618257f, "drawing of game board disappeared").** Tom's 10-25 report shows the whole board as plain sky with all 14 town pieces placed inside the box at a sensible zoom. React Flow keeps each piece invisible until it has measured it, and the old "inside the box" count could not see that. The report's board section now carries `nodesHidden` and the first `hiddenNodeIds`, so the next blank board says whether this is the cause. Not a fix; fb:5618257f stays open. Test added in `feedbackDiagnostics.test.ts`. Also in TODO: the new design report fb:fefe42f8 (bigger pawns, board layout), the dictionary-site title fix, and the six reports closed today on Tom's yes.

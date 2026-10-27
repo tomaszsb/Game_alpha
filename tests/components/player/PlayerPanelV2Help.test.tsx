@@ -27,6 +27,15 @@ vi.mock('../../../src/utils/networkDetection', async (importOriginal) => ({
   getCurrentGameId: vi.fn(() => 'G-TEST-0001'),
 }));
 
+// The waiting player's glossary word (v3.8.100) — pinned so the test does not depend on the glossary data.
+vi.mock('../../../src/utils/waitingWord', () => ({
+  pickWaitingWord: vi.fn((_terms: unknown, seed: string) => ({
+    id: seed.includes('|7|') ? 'permit' : 'foundation',
+    term: seed.includes('|7|') ? 'Permit' : 'Foundation',
+    definition: 'Building foundations rest on solid ground and spread the weight.',
+  })),
+}));
+
 describe('PlayerPanelV2 — one "?" everywhere', () => {
   let services: ReturnType<typeof createAllMockServices>;
   let panelPlayer: any;
@@ -251,6 +260,44 @@ describe('PlayerPanelV2 — one "?" everywhere', () => {
       fireEvent.click(stepHelp());
       expect(openCards()).toHaveLength(1);          // it still works…
       expect(trackPlaytestEvent).not.toHaveBeenCalled(); // …it just is not counted
+    });
+  });
+  describe('the waiting word (Tom 10-27: "more built in to the wait screen and not as a slap on")', () => {
+    const waitFor = (turn: number) => pushState({ currentPlayerId: 'player2', globalTurnCount: turn });
+    const waitButton = () => screen.getByTestId('commit-end-turn');
+
+    it("opens the meaning in the panel's own help card, not the glossary screen", () => {
+      renderPanel();
+      waitFor(3);
+      expect(waitButton()).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.click(waitButton());
+      const card = screen.getByTestId('help-card');
+      expect(card).toHaveAttribute('data-help-kind', 'waiting-word');
+      expect(card).toHaveTextContent('Foundation: Building foundations rest on solid ground and spread the weight.');
+      expect(waitButton()).toHaveAttribute('aria-expanded', 'true');
+      expect(waitButton()).toHaveAttribute('data-ready', 'false');
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('closes when tapped again, and shares the one slot with every other "?"', () => {
+      renderPanel();
+      waitFor(3);
+      fireEvent.click(waitButton());
+      fireEvent.click(waitButton());
+      expect(openCards()).toHaveLength(0);
+      fireEvent.click(waitButton());
+      fireEvent.click(stepHelp());
+      expect(openCards()).toHaveLength(1);
+      expect(screen.getByTestId('help-card')).toHaveAttribute('data-help-kind', 'step');
+    });
+
+    it('a new word on the next wait starts closed', () => {
+      renderPanel();
+      waitFor(3);
+      fireEvent.click(waitButton());
+      waitFor(7);
+      expect(openCards()).toHaveLength(0);
+      expect(waitButton()).toHaveTextContent('Permit');
     });
   });
 });

@@ -1664,10 +1664,14 @@ ${spaceWhy}` } : baseWhy;
             onTermClick={(term) => openWithTerm(term.id)}
           />
         ) : (
+          <>
           <button
-            // While waiting, a tap opens the word of the moment in the glossary; data-ready stays false.
-            onClick={commit.ready ? commit.onClick : waitWord ? () => openWithTerm(waitWord.id) : undefined}
+            // While waiting, a tap opens the word of the moment in the panel's own help card, the same one
+            // every "?" opens (Tom 10-27: the jump to the glossary screen felt "slapped on"); data-ready stays false.
+            onClick={commit.ready ? commit.onClick : waitWord ? () => toggleHelp(`word:${waitWord.id}`, 'waiting-word') : undefined}
             disabled={!commit.ready && !waitWord}
+            aria-expanded={!commit.ready && waitWord ? openHelp === `word:${waitWord.id}` : undefined}
+            aria-controls={!commit.ready && waitWord ? 'help-card-word' : undefined}
             // Structural handle for the playtest robot, which otherwise looks
             // for this button by matching /^(move forward|end turn|confirm move|
             // commit)/ against its caption. That caption is `end_turn_label`
@@ -1746,10 +1750,23 @@ ${spaceWhy}` } : baseWhy;
                   color: p.accent,
                 }}
               >
-                <span aria-hidden>📖 </span><strong>{waitWord.term}</strong>: {waitWord.definition}
+                <span aria-hidden>📖 </span><strong>{waitWord.term}</strong>
+                {/* Open, the card below says it in full; the cut-off copy here would only repeat it. */}
+                {openHelp !== `word:${waitWord.id}` && <>: {waitWord.definition}</>}
               </small>
             )}
           </button>
+          {/* Keyed to the word, so the next wait's new word starts closed. */}
+          {waitWord && openHelp === `word:${waitWord.id}` && (
+            <HelpCard
+              id="help-card-word"
+              kind="waiting-word"
+              palette={p}
+              onTermClick={(term) => openWithTerm(term.id)}
+              sections={[{ label: `${waitWord.term}:`, text: waitWord.definition }]}
+            />
+          )}
+          </>
         )}
       </div>
 
