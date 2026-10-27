@@ -46,6 +46,14 @@ describe('feedbackDiagnostics (what a bug report carries beyond the screenshot)'
     document.body.innerHTML = '';
   });
 
+  it('counts nodes React Flow still hides because it never measured them (fb:5618257f blank town)', () => {
+    document.body.innerHTML = '<div class="react-flow"><div class="react-flow__viewport"><div class="react-flow__node" data-id="town-ground" style="visibility: hidden"></div><div class="react-flow__node" data-id="owner" style="visibility: visible"></div></div></div>';
+    const d: any = collectDiagnostics();
+    expect(d.board.nodesHidden).toBe(1);
+    expect(d.board.hiddenNodeIds).toEqual(['town-ground']);
+    document.body.innerHTML = '';
+  });
+
   it('traces ResizeObserver: remembers where observers were created and which ran before the loop error', () => {
     class Fake { cb: ResizeObserverCallback; constructor(cb: ResizeObserverCallback) { this.cb = cb; } observe() {} unobserve() {} disconnect() {} }
     (window as any).ResizeObserver = Fake;

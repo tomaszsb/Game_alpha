@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.9.1] - 2026-10-27
+
+**Bug reports now say whether board pieces were drawn but kept hidden (for fb:5618257f, "drawing of game board disappeared").** Tom's 10-25 report shows the whole board as plain sky with all 14 town pieces placed inside the box at a sensible zoom. React Flow keeps each piece invisible until it has measured it, and the old "inside the box" count could not see that. The report's board section now carries `nodesHidden` and the first `hiddenNodeIds`, so the next blank board says whether this is the cause. Not a fix; fb:5618257f stays open. Test added in `feedbackDiagnostics.test.ts`. Also in TODO: the new design report fb:fefe42f8 (bigger pawns, board layout), the dictionary-site title fix, and the six reports closed today on Tom's yes.
+
 ## [3.9.0] - 2026-10-27
 
 **The join codes now have a spoken name (axe `svg-img-alt` on the setup screen, seen in the v3.8.59 contrast pass).** Each QR join code (setup screen, TV side bar, TV join list, display settings) now carries a label "Scan to join as Maya", so a screen reader says what it is. Uses the QR library's own `title` (it already marks the code as a picture). Nothing on screen changes. Test added in `PlayerList.test.tsx`. Version jumps to 3.9.0 because the patch number never goes past 99 (3.8.100 had already crossed it; not renumbered).

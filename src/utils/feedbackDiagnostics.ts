@@ -65,11 +65,16 @@ function boardSnapshot(): Record<string, unknown> | null {
     return r.width > 0 && r.right > box.left && r.left < box.right && r.bottom > box.top && r.top < box.bottom;
   });
   const viewport = document.querySelector('.react-flow__viewport') as HTMLElement | null;
+  // React Flow keeps a node invisible until it has measured it (fb:5618257f: a blank town whose 14 nodes all sat
+  // inside the box). Counting the hidden ones tells "never measured" apart from "drawn somewhere off-camera".
+  const hidden = nodes.filter((n) => window.getComputedStyle(n).visibility === 'hidden');
   return {
     box: `${Math.round(box.width)}x${Math.round(box.height)}`,
     transform: viewport?.style.transform ?? null,
     nodes: nodes.length,
     nodesInsideBox: visible.length,
+    nodesHidden: hidden.length,
+    hiddenNodeIds: hidden.slice(0, 6).map((n) => n.getAttribute('data-id')),
     firstNodeIds: nodes.slice(0, 6).map((n) => n.getAttribute('data-id')),
     edges: document.querySelectorAll('.react-flow__edge').length,
   };
