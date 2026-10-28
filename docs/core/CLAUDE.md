@@ -2193,9 +2193,9 @@ The instrument that reports on the game is coupled to the exact thing the curren
 - **An unquoted `Spaces.csv` cell must not gain a comma.** The regen splits it into two columns silently; `tests/utils/buttonLabels.test.ts` was the only thing that caught it. Reword without the comma, or check the cell is already quoted.
 - **`deploy.sh` runs its OLD copy on the deploy that brings a new one** (`main()` is read before `git pull`). A change to the script (the v3.8.12 test gate) first takes effect on the NEXT deploy. The gate's tests must pass on a fresh copy with no `dist/` and no `server/data/game-data`: check a new server test by moving both aside locally.
 
-### The phone's glossary entry is the dictionary WEBSITE in a frame — a cut-off word there is not a game bug (2026-10-27, v3.9.2)
+### The game draws glossary entries itself; the dictionary only sends data (2026-10-27, v3.9.5)
 
-`DictionaryPanel` shows `dashboard.unravelcodes.com/dictionary?id=<id>&view=game&embedded=true` in an iframe (`DASHBOARD_BASE_URL`); its own local definition view is only the 6 s fallback. So "FOUNDATI..." on a phone was the dashboard's 60px uppercase h1, fixable only in the dictionary-scraper project. Check `effectiveEmbedded` before editing `DictionaryPanel.css`. For a short in-game explanation, reuse `HelpCard` (the one card every "?" opens, one at a time via `openHelp`) instead of sending the player to the glossary screen.
+Until v3.9.4 `DictionaryPanel` framed the dictionary site's page (`...dictionary?id=<id>&view=game&embedded=true`), whose 60px title cut "FOUNDATI..." on phones. Tom found framing "a little weird", so `ENABLE_EMBEDDED_DICTIONARY` (`App.tsx`) is now false and the panel's own card renders the live `/api/glossary/live` data, which has every field the framed page had. Gotcha: the dictionary's own `game` display settings (`/api/public/config/services`) hide the technical definition in favour of `definitionSimple`, yet 82 of 274 words have no simple one; the card shows the technical definition when there is no simple one. Keep that fallback if you touch the visibility checks. For a short in-game explanation, reuse `HelpCard` (the one card every "?" opens, one at a time via `openHelp`) instead of sending the player to the glossary screen.
 
 ---
 

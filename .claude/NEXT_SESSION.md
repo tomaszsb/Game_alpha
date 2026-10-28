@@ -4,7 +4,7 @@
 - **Version:** v3.9.5 (`aaeb28a2`; 3.9.4 `7982f1d6`, 3.9.3 `fb323b43`) **pending deploy**. Live = v3.9.2 (`8161b8b4`). Check `/health` vs `git rev-parse --short HEAD` first.
 - **Branch:** master, clean except the untracked `public/assets/inspector/` + `public/assets/trophies/` (other sessions'; do not add or delete).
 - **Last shipped:** 3.9.5 the game draws glossary entries itself (frame off; full definition when a word has no short summary, 82 of 274). 3.9.4 pawn body C (Tom's pick). 3.9.3 players are big pawns (PixelLab pawn body tinted to the player's colour, face as the head) standing on the sign of their building; walker is the same pawn; building box grows by the pawn height so the camera keeps it below the date clocks (fb:fefe42f8).
-- **Test suite:** `npm test` 344 files / 4,401 pass; build OK; `test:ghost` 16 files / 60 pass (4 skipped).
+- **Test suite:** `npm test` 344 files / 4,401 pass; build OK; `test:ghost` 16 files / 60 pass (4 skipped, rerun on v3.9.5).
 - **Version rule:** patch caps at 99.
 
 ## Top 3 open items
