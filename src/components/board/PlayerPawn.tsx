@@ -13,9 +13,9 @@ import React from 'react';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 
 export const PAWN_BODY_SRC = '/images/pawns/pawn_body.png';
-/** The body picture is 30 x 38 pixels. */
-const BODY_W = 30;
-const BODY_H = 38;
+/** The body picture is 20 x 22 pixels (body C, "short, chunky", Tom 10-27). */
+const BODY_W = 20;
+const BODY_H = 22;
 
 interface PlayerPawnProps {
   avatar?: string;
@@ -28,8 +28,9 @@ interface PlayerPawnProps {
 
 /** Height of a pawn of this width: the body plus the part of the face above it. */
 export function pawnHeight(width: number): number {
+  // Rounded part by part, the same way PlayerPawn sizes itself.
   const scale = width / BODY_W;
-  return Math.round(BODY_H * scale + width * 0.8 - 4 * scale);
+  return Math.round(BODY_H * scale) + Math.round(width * 0.8) - Math.round(4 * scale);
 }
 
 export const PlayerPawn: React.FC<PlayerPawnProps> = ({ avatar, color, width = 60, title, testId }) => {

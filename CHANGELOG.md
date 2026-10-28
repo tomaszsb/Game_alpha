@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.9.4] - 2026-10-27
+
+**Pawn body C, "short, chunky" (Tom 10-27: "i choose size C").** Tom picked C from the contact sheet. `public/images/pawns/pawn_body.png` is now the 20 x 22 body C (body A kept as `public/assets/pawns/pawn_body_A.png`); `PlayerPawn.tsx` sizes from it. Same width on the board (84), so the pawn is a little shorter: 142 board px tall instead of 162 (36 x 61 px on a PC with the whole town in view), still below the date clocks. `pawnHeight()` now rounds part by part like the pawn itself, so the room the board makes always matches the pawn (it was off by one px with body C).
+
 ## [3.9.3] - 2026-10-27
 
 **Players are big pawns on the town board (fb:fefe42f8, Tom 10-27: "hard to find the small player figurines ... make them much larger and maybe look like pawns").** A player used to be a 28 px face tucked inside a building's name sign (about 11 px on a 1600-wide PC with the whole town in view). Now each player is a pawn standing on top of the sign: a pixel-art pawn body in the player's colour with their face as the head (`PlayerPawn.tsx`, 84 board px wide; measured 33 x 64 px at the same PC view). One white pawn picture (PixelLab, about 4 cents for 6 drafts; `public/images/pawns/pawn_body.png`) is tinted per player in the browser (colour cut to the pawn shape, picture laid over it in multiply), so any player colour works. The walking piece is the same pawn. A building with players gets extra room above its sign, so the camera keeps the pawn in view and below the row of date clocks (it was hidden under them before that room was added). Phone panel unchanged (390x844: page height 844, the town is not on the phone). Contact sheet with two other body shapes for Tom to pick: `public/assets/pawns/contact_sheet.png`. Not done (Tom's call, same report's extra): shared buildings in the middle with each player's area on the outskirts; owner and office buildings in the player's colour. Not seen on a real TV, and the walk is not seen moving (the test browser runs no animations).
