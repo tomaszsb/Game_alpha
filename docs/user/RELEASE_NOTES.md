@@ -2,6 +2,11 @@
 
 ---
 
+## v3.9.5 — Glossary words fit on a phone (October 27, 2026)
+
+- **A glossary word now opens inside the game itself,** so long words like "Foundation" fit on a phone instead of being cut off. Every word shows its meaning, even the ones that have no short summary yet.
+- **Pawns are now the short, chunky shape** (3.9.4).
+
 ## v3.9.3 — Big pawns on the town board (October 27, 2026)
 
 - **Every player is now a big pawn in their own colour, with their face on top.** It stands on top of the sign of the building where the player is, so you can spot everyone from across the room. When you move, your pawn walks the streets to the next building.

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.9.5] - 2026-10-27
+
+**The game draws glossary entries itself instead of framing the dictionary website (Tom 10-27: "glossary site does not just provide data and we adjust it in the game? that is a little weird").** Opening a glossary word used to load the dictionary site's own page (`dashboard.unravelcodes.com/dictionary?...&embedded=true`) in a frame. That page's 60 px uppercase title cut long words on a phone ("FOUNDATI..."), and the game could not fix it. The game already had its own entry card (used as the fallback when the frame was slow) and it shows every field the live glossary data carries: picture, short summary, definition, why it matters, how-to, documents, video, source. `ENABLE_EMBEDDED_DICTIONARY` is now off (`App.tsx`); the card's title wraps a long word (`overflow-wrap: anywhere`). Found while checking: the dictionary's "game" display settings show only the short summary, but 82 of 274 live words have none, so their card had no meaning at all; the full definition now shows when there is no short summary (`DictionaryPanel.tsx`). Seen in a real browser: "Foundation" opens with no frame, fits at 360 x 640 with its picture and definition, no sideways scroll. Tests: 2 new in `DictionaryPanel.test.tsx`; 344 files / 4,401 pass (one Windows file-lock EPERM in `instanceResolver.test.ts`, passes 43/43 on rerun); build OK. The dictionary site's own page is unchanged (it is no longer used by the game).
+
 ## [3.9.4] - 2026-10-27
 
 **Pawn body C, "short, chunky" (Tom 10-27: "i choose size C").** Tom picked C from the contact sheet. `public/images/pawns/pawn_body.png` is now the 20 x 22 body C (body A kept as `public/assets/pawns/pawn_body_A.png`); `PlayerPawn.tsx` sizes from it. Same width on the board (84), so the pawn is a little shorter: 142 board px tall instead of 162 (36 x 61 px on a PC with the whole town in view), still below the date clocks. `pawnHeight()` now rounds part by part like the pawn itself, so the room the board makes always matches the pawn (it was off by one px with body C).

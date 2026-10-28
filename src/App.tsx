@@ -138,9 +138,12 @@ function ExpiredGameLinkScreen({ onStartNew }: { onStartNew: () => void }): JSX.
  * pointing to dashboard.unravelcodes.com with the term ID.
  * This requires the dashboard to support the `embedded=true` parameter.
  *
- * Set ENABLE_EMBEDDED_DICTIONARY to true once the dashboard is ready.
+ * Off since v3.9.5 (Tom 10-27: "glossary site does not just provide data and
+ * we adjust it in the game? that is a little weird"). The game draws the entry
+ * itself from the live glossary data, which carries every field the framed page
+ * showed; the framed page cut long titles on phones ("FOUNDATI...").
  */
-const ENABLE_EMBEDDED_DICTIONARY = true; // Enabled after dashboard updates supporting embedded=true
+const ENABLE_EMBEDDED_DICTIONARY = false;
 
 function DictionaryPanelWrapper(): JSX.Element {
   const { isOpen, closePanel, selectedTerm, pendingTermId } = useDictionaryPanel();

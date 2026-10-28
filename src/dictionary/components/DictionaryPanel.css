@@ -259,6 +259,8 @@ html[data-uc-dark='true'] {
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--dictionary-text);
+  /* A long word wraps instead of running off a phone screen. */
+  overflow-wrap: anywhere;
 }
 
 .dictionary-term-detail__draft-notice {

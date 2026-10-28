@@ -354,8 +354,10 @@ export function DictionaryPanel({
                 </div>
               )}
 
-              {/* Technical Definition */}
-              {remoteConfig?.show_technical_def !== false && (
+              {/* Technical Definition. The dictionary's "game" settings hide it in
+                  favour of the short summary, but 82 of 274 words have no short
+                  summary; without this their card had no meaning at all (v3.9.5). */}
+              {(remoteConfig?.show_technical_def !== false || !(remoteConfig?.show_simple_def !== false && selectedTerm.definitionSimple)) && (
                 <div className="dictionary-term-detail__definition">
                   <TextWithTerms
                     text={selectedTerm.definition.replace(/^\[AI-DRAFT\]\s*/i, '')}

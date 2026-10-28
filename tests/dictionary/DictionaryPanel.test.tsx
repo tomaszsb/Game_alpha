@@ -128,3 +128,46 @@ describe('DictionaryPanel — AI-generated provenance notice', () => {
     expect(screen.queryByText('AI-generated definition — not yet human-reviewed')).not.toBeInTheDocument();
   });
 });
+
+// v3.9.5 (Tom 10-27): the game draws glossary entries itself instead of
+// framing the dictionary website. The dictionary's "game" settings show only
+// the short summary, but 82 of 274 words have none; their card was empty.
+describe('DictionaryPanel — a word with no short summary still shows its meaning', () => {
+  beforeEach(() => {
+    clearCache();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  const renderTerm = async (row: string, id: string) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.reject(new Error('not json')),
+      text: () => Promise.resolve([
+        'id,term,definition_technical,definition_simple,instructions,category,source,needs_review,aliases,related_terms,image_url,video_url,source_url,instagram_link',
+        row,
+      ].join('\n')),
+    }));
+    const view = render(
+      <DictionaryProvider>
+        <DictionaryPanel isOpen onClose={vi.fn()} initialTermId={id} />
+      </DictionaryProvider>
+    );
+    await screen.findByRole('heading', { level: 3 });
+    return view;
+  };
+
+  it('shows the full definition when there is no short summary', async () => {
+    const { container } = await renderTerm('foundation,Foundation,Footings carry the weight of the building into the soil.,,,Construction,game,false,,,,,,', 'foundation');
+    expect(container.textContent).toContain('Footings carry the weight');
+  });
+
+  it('shows only the short summary when there is one', async () => {
+    const { container } = await renderTerm('bond,Bond,A surety instrument guaranteeing performance.,Money held to promise the work gets done.,,Finance,game,false,,,,,,', 'bond');
+    expect(container.textContent).toContain('Money held to promise');
+    expect(container.textContent).not.toContain('surety instrument');
+  });
+});
