@@ -1,6 +1,6 @@
 # Showing time on the town board: design
 
-**Status:** design only, **all decisions made** (2026-10-25): stripes along the player bands, d-pad-only corner box, one clock per player at the top of their band, start at today's real date, calm town, controls and clocks first. Nothing drawn, nothing built, no version, no deploy. Final build order is section 6.
+**Status:** **built** on the stripes in v3.8.82 to v3.8.89 (2026-10-25/26; the clocks later moved into one row along the top, Tom's "A"). **2026-10-29: Tom changed question 1 from stripes to a round town** (section 5): pictured with the real board, not built yet; one part of it is still open (the middle's season, section 5). The rest of this page describes what is built today.
 **Asked by:** Tom. **Written for:** Tom (plain words first, file names in brackets for the builder).
 
 Tom's wish: the board should *feel* time pass. (1) A flip-board date. (2) The blue area changes look every month (12 looks). (3) Scattered props: trees that grow, flowers, grass, snow drifts, falling snow, rain, sun, clouds. Tom's answer on "whose date": every player's own days are true for that player, so **divide the board into 2, 3 or 4 areas, each with its own clock in that player's colour, and when a player finishes, the remaining players take over their area.**
@@ -192,8 +192,8 @@ Days are working sessions of AI build time. Pictures: PixelLab, 64x64, one locke
 ## 4. What could go wrong
 
 1. **A player's days go backward (lucky event).** Their clock flips backward, their season goes back, their weather re-shuffles. Trees keep their biggest size (the `peakDays` rule), so nothing visibly shrinks. Rare.
-2. **Stripes are not a round pie.** Tom said "like a pie". Stripes match how the town is already built and keep each player's own buildings inside their own season; a pie costs about 4 more days and a town redraw. This is question 1.
-3. **Shared buildings sit in the top player's stripe.** Their ground shows player 1's season. Buildings look the same everywhere, so only the grass around them differs.
+2. **Stripes are not a round pie.** Tom said "like a pie". Answered 2026-10-29: the town is to be redrawn round (question 1), which also ends risk 3.
+3. **Shared buildings sit in the top player's stripe** (until the round town ships). Their ground shows player 1's season. Buildings look the same everywhere, so only the grass around them differs.
 4. **Clocks pinned to the top of each band** are a bit of new code (positions follow pan and zoom). They hide when almost off screen. Risk: a clock covering a building sign near the band's top row; the rule that open signs are drawn on top handles reading a name, and the builder can nudge the clock sideways if a particular board needs it.
 5. **Finished or out.** The board reads `finishedAtTurn` and `outReason` (both exist). A player who leaves the board by going out (bankruptcy, fee cap, time cap) frees their area the same way as one who finished; if Tom wants only finishers to give up their area, it is a one-line change.
 6. **Growth may not be visible.** If a typical game covers under a year of days, "10% a year" barely shows (rate is data, can be raised).
@@ -208,11 +208,19 @@ Days are working sessions of AI build time. Pictures: PixelLab, 64x64, one locke
 
 ---
 
-## 5. Decisions (all settled; nothing left open)
+## 5. Decisions (one part of question 1 open since 2026-10-29)
 
 **ANSWERED by Tom:**
 
-1. **Shape of the areas: ANSWERED, stripes** along the bands the town already has (not a true pie). Each player's own buildings stay inside their own season.
+1. **Shape of the areas: ANSWERED, ROUND (Tom, 2026-10-29, "b"; this reverses his 10-25 "stripes").** His words (fb:fefe42f8): common buildings in the middle, each player's area on the outskirts, equal ground, owner and office in the player's colour. Pictured with the real board in a local browser (1 to 4 players, TV and PC; `.tmp/round-town/`, untracked; the sketch code is `.tmp/round-town/sketch.patch`). Not built. What changes:
+   - **The town:** the shared buildings fill a 3 x 3 block in the middle with the Ribbon cutting at its centre. Each player gets one side of the ring round it, a row of four lots: a building site at each end, the Owner's house and Your office in the middle facing the shared block. The Owner's house and Your office are painted in the player's colour. 2 players hold opposite sides; 3 players hold three sides and the fourth is a park; 4 players hold all four; 1 player (the robot's nights) has the middle and one side.
+   - **Still data, not code:** `TOWN.csv` lists the first player's side once. Every other side is the same buildings turned a quarter turn round the middle (new settings `seat_turn_centre` and `seat_turns_<players>`, e.g. `0 2` for two players). A building standing on another (a trailer on its site, named in the `building` column) moves with it, so every side faces the same way. A building coloured `player` takes its player's colour. Trees marked `spare` stand in the sides nobody holds. A board without these settings keeps the stripes. Building ids stay `owner`, `owner@1` and so on, so the robot's hooks are unchanged.
+   - **Areas and cuts:** a player's area is their side, out to the water. The cuts run along the ring streets, so no building ever sits on one.
+   - **Takeover:** a finished player's side goes to the players next to it round the ring, half each; with one neighbour left, all of it. Same "worked out from who has left" rule as today, counted round the ring instead of top to bottom.
+   - **Clocks:** nothing changes (one row along the top).
+   - **Size on the TV** (whole town in view at 1920 x 1080): 4 players draw 1.5 times bigger than the stripes (zoom 0.40 against 0.27), 3 players 1.2 times (0.40 against 0.33), 1 and 2 players the same (0.50 and 0.40).
+   - **What gets rebuilt:** the placement in `townLayout.ts`; `townAreas.ts` (rows become sides of the ring); the ground, weather, props and tree ownership that read it; their tests; the `TOWN.csv` rows.
+   - **OPEN (asked 2026-10-29): which season the shared middle shows.** A: the season of whoever's turn it is (one fade per turn; the TV camera follows that player, so what it shows is all one season). B: cut the middle like a pie, each quarter in the season of the side next to it (the cuts then run under the shared buildings). My pick: A.
 2. **Corner box: ANSWERED, only the d-pad, fit and zoom.** No date in the corner.
 3. **Clock position: ANSWERED, at the top of each player's band** (see 2.4).
 
