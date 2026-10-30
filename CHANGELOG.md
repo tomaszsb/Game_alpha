@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 - **The trailer's sign is full size** (it was three quarters): letters 38.5 board px (`round_sign_scale` 1.75, was 1.7), about 14.8 px on a 4-player TV like every other sign; tested at the most zoomed-out 4-player view.
 - **Weather and scenery on the round town,** as on the striped town: each player's wedge of ground shows its own weather (from that player's month: snow, rain, sun, cloud) and small scenery (flowers, leaves, drifts) on their own ground, clear of their buildings and trees; the shared middle keeps none (it turns on its own). Both layers turn with the table (transform only, no filters) and keep the same Scene rule (Calm: still, Off: none) and budgets as the striped town. `roundFreeTest`, `roundSpots`, `turnPoint` in `townRound.ts`.
 - **Still open:** a sign can be partly hidden behind a nearer building or a pawn on the left and right sides of the table; nobody has tried the round town on a real Fire Stick; the teacher Town settings strip has not been clicked in a browser.
-- Tests: 347 files / 4,434 passing; typecheck shows only the 9 old errors in tests/; ghost gate not rerun (no engine change).
+- Tests: 347 files / 4,433 passing; typecheck shows only the 9 old errors in tests/; ghost gate not rerun (no engine change).
 
 ## [3.9.8] - 2026-10-30
 

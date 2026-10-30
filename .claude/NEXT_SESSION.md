@@ -4,7 +4,7 @@
 - **Version:** v3.9.9 pushed, **NOT deployed**. Live is **v3.9.8** (`/health` = `5bb110bf`, deployed by Tom 10-30 05:38 UTC). 3.9.9 = round-town loose ends. Check `/health` vs `git rev-parse --short HEAD` first.
 - **Branch:** master, clean except the untracked `public/assets/inspector/` + `public/assets/trophies/` (other sessions'; do not add or delete).
 - **Last shipped:** the round town, opt-in (fb:fefe42f8). 3.9.6: ring of the 7 shared buildings round a park with a fountain, a side per player (owner's house + office in the player's colour), a table that turns to whoever's turn it is, clocks on the rim, pulsing move choices, teacher Town settings strip. 3.9.7: each building drawn by its job (`round_looks` in TOWN.csv, drawings in `src/components/board/townLooks.tsx`), names on signs on the front walls, room choices on the sign. 3.9.8: "Round town" as a third board choice.
-- **Test suite:** `npm test` 347 files / 4,434 passing; typecheck shows only the 9 old errors in tests/; ghost gate not rerun (no engine change) (v3.9.9); build OK; typecheck = the 9 old errors in `tests/` (`finalStretch.test.ts`, `dataGate.test.ts` missing `@types/express`). `test:ghost` not rerun (no engine change since 3.9.5).
+- **Test suite:** `npm test` 347 files / 4,433 passing; typecheck shows only the 9 old errors in tests/; ghost gate not rerun (no engine change) (v3.9.9); build OK; typecheck = the 9 old errors in `tests/` (`finalStretch.test.ts`, `dataGate.test.ts` missing `@types/express`). `test:ghost` not rerun (no engine change since 3.9.5).
 - **Version rule:** patch caps at 99.
 
 ## How Tom picks Round town
