@@ -9,6 +9,7 @@ import { listMyClassrooms, createMyClassroom, deleteClassroom, type ClassroomMet
 import { ClassroomSetup } from './ClassroomSetup';
 import { BoardCheckStrip } from './BoardCheckStrip';
 import { SchoolBrandingStrip } from './SchoolBrandingStrip';
+import { TownSettingsStrip } from './TownSettingsStrip';
 import { teacherLogout, getTeacherAccount } from '../../utils/teacherAuth';
 import { colors } from '../../styles/theme';
 
@@ -115,6 +116,7 @@ export function TeacherClassroomPanel({ onStartGame, onLoggedOut }: TeacherClass
           {/* "Check my board" lives on the classroom's own row so a teacher can find it (it used to be four screens deep). */}
           <BoardCheckStrip instanceId={c.id} changeToken={0} bare />
           <SchoolBrandingStrip instanceId={c.id} />
+          <TownSettingsStrip instanceId={c.id} />
         </div>
       ))}
 

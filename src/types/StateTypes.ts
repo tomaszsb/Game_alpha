@@ -446,6 +446,9 @@ export interface GameState {
   /** The board every screen starts on, chosen by the host at setup (Town = street view). A screen's own
    *  Menu switch still wins on that screen; a game without it (older games) starts on Classic. */
   boardStyle?: 'town' | 'classic';
+  /** The town's shape for this game, fixed when it starts (townRound.ts newGameTownShape): 'round' = the shared
+   *  buildings in a ring round a park and a side per player, on a turning table. Missing = the striped town. */
+  townShape?: 'round';
 }
 
 export interface PlayerAction {

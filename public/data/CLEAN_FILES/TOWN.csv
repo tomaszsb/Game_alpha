@@ -99,3 +99,22 @@ mat_icon,fdny,,firehouse,,,,,,,,
 mat_icon,builder,,trailer,,,,,,,,
 mat_icon,inspection,,site,,,,,,,,
 mat_icon,finish,,finish,,,,,,,,
+setting,round_town,,,,,,,,,,off
+setting,round_ring,,,,,,,,,,finish engineer architect dob firehouse investor bank
+setting,round_side,,,,,,,,,,site owner office site_new
+setting,round_with,,,,,,,,,,trailer:site trailer_new:site_new
+setting,round_player_color,,,,,,,,,,owner office
+setting,round_ring_radius,,,,,,,,,,7.6
+setting,round_side_radius,,,,,,,,,,17.5
+setting,round_park_radius,,,,,,,,,,4.4
+setting,round_fountain,,,,,,,,,,1.3
+setting,round_island_radius,,,,,,,,,,21
+setting,round_trees,,,,,,,,,,1.4 30 oak maple
+setting,round_park_trees,,,,,,,,,,3 6 maple oak
+setting,round_clock_scale,,,,,,,,,,2.6
+setting,round_sign_scale,,,,,,,,,,1.6
+setting,round_turn_ms,,,,,,,,,,1500
+setting,pulse_ms,,,,,,,,,,1800
+setting,pulse_rest_ms,,,,,,,,,,3600
+setting,pulse_glow,,,,,,,,,,0.9
+setting,pulse_rest_glow,,,,,,,,,,0.3

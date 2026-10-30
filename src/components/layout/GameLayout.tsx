@@ -23,6 +23,7 @@ import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
 import { GameBoard } from '../board/GameBoard';
 import { useTownWalking, isTownAvailable } from '../../utils/boardStyle';
+import { newGameTownShape } from '../../utils/townRound';
 import { isProgressBarRememberedOpen, rememberProgressBarOpen } from '../../utils/progressBarFold';
 import { BoardToggle } from '../board/BoardToggle';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
@@ -1557,6 +1558,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             stateService.startGame(gameModeSettings);
             // The host's board pick (Town = street view by default) goes on the game for every screen.
             stateService.updateGameState({ boardStyle: isTownAvailable() ? (settings.boardStyle ?? 'town') : 'classic' });
+            // The town's shape is fixed for the whole game when it starts: round only when the data or the host's link asks (townRound.ts).
+            if (newGameTownShape(dataService.getTownRows?.() ?? [], window.location.search) === 'round') stateService.updateGameState({ townShape: 'round' });
 
             // Place players on starting spaces (no effects processing)
             try {

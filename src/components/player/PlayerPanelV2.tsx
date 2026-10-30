@@ -24,6 +24,7 @@ import { computeMat } from '../../utils/projectMat';
 import { panelFrameName, panelFrameStyles } from '../../utils/panelFrame';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import React, { useEffect, useRef, useState } from 'react';
+import { pulseAnimation } from '../../utils/pulseLook';
 import { PlayerPanelProps } from './panelTypes';
 import type { SpaceEffect } from '../../types/DataTypes';
 import { TextWithTerms, useDictionaryPanel, useDictionaryContext } from '../../dictionary';
@@ -950,7 +951,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
           50% { box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.45); }
         }
-        .uc-hint-glow { animation: uc-hint-glow-kf 1.8s ease-in-out infinite; }
+        .uc-hint-glow { animation: ${pulseAnimation('uc-hint-glow-kf')}; }
         @keyframes uc-red-pulse-kf {
           0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
           50% { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.55); }

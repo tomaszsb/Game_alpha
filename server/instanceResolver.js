@@ -640,6 +640,51 @@ export function scrubSpaceReferences(csvText, off, detours) {
   return toCsv(out, headers);
 }
 
+// ---- Town settings (round town, stage 1a): a classroom's own values for the town's `round_*` and `pulse_*`
+// settings rows (TOWN.csv). Only those settings, so a teacher can switch the round town on and tune it without
+// touching the town's buildings. An empty value resets the setting to the stock one.
+export const TOWN_SETTING_KEY = /^(round|pulse)_[a-z0-9_]{1,40}$/;
+export const TOWN_SETTING_VALUE = /^[^,"\r\n]{0,200}$/;
+
+/**
+ * TOWN.csv with a classroom's settings in place: each named `setting` row gets the classroom's value (in its last
+ * column, `value`); a setting the stock file lacks is added at the end. Keys or values that break the rules above are
+ * skipped, so a bad saved value can never break the town file.
+ * @param {string} townCsv
+ * @param {Record<string, string>} [townSettings]
+ */
+export function applyTownSettingsToCsv(townCsv, townSettings = {}) {
+  const entries = Object.entries(townSettings || {}).filter(([k, v]) => TOWN_SETTING_KEY.test(k) && typeof v === 'string' && TOWN_SETTING_VALUE.test(v) && v.trim() !== '');
+  if (entries.length === 0) return townCsv;
+  const eol = townCsv.includes('\r\n') ? '\r\n' : '\n';
+  const lines = townCsv.split(/\r?\n/);
+  const header = (lines[0] || '').split(',');
+  const valueAt = header.indexOf('value');
+  const width = header.length;
+  if (valueAt < 0) return townCsv;
+  const done = new Set();
+  const out = lines.map((line) => {
+    const cells = line.split(',');
+    if (cells[0] !== 'setting') return line;
+    const hit = entries.find(([k]) => k === cells[1]);
+    if (!hit) return line;
+    done.add(hit[0]);
+    while (cells.length < width) cells.push('');
+    cells[valueAt] = hit[1].trim();
+    return cells.join(',');
+  });
+  while (out.length && out[out.length - 1] === '') out.pop();
+  for (const [k, v] of entries) {
+    if (done.has(k)) continue;
+    const cells = new Array(width).fill('');
+    cells[0] = 'setting';
+    cells[1] = k;
+    cells[valueAt] = v.trim();
+    out.push(cells.join(','));
+  }
+  return out.join(eol) + eol;
+}
+
 function copyDirFiles(srcDir, dstDir) {
   fs.mkdirSync(dstDir, { recursive: true });
   if (!fs.existsSync(srcDir)) return;
@@ -775,6 +820,11 @@ export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion
     //    ones — INVARIANT: a resolved board never references a switched-off
     //    space in ANY file.
     copyDirFiles(stockCleanDir, newCleanDir);
+    // The classroom's own town settings (round town switch and tuning), over the stock town file.
+    const townPath = path.join(newCleanDir, 'TOWN.csv');
+    if (config.townSettings && fs.existsSync(townPath)) {
+      fs.writeFileSync(townPath, applyTownSettingsToCsv(fs.readFileSync(townPath, 'utf-8'), config.townSettings), 'utf-8');
+    }
     const modalPath = path.join(stockSourceDir, MODAL_CSV);
     const stockModalCsv = fs.existsSync(modalPath) ? fs.readFileSync(modalPath, 'utf-8') : null;
     // Stage 1b part ii: a card that owns its slot's modal copy must replace

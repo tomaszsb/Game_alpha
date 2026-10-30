@@ -66,6 +66,8 @@ import {
   ensureFreshBake,
   readBakeStamp,
   resolvedDir,
+  TOWN_SETTING_KEY,
+  TOWN_SETTING_VALUE,
 } from './instanceResolver.js';
 import { computeMigrationPlan, applyMigrationPlan, formatMigrationPlan } from './migrateInstance.js';
 import {
@@ -1313,6 +1315,8 @@ app.get('/api/instances/:id', (req, res) => {
       slots: config.slots,
       detours: config.detours,
       teacherCopies: config.teacherCopies,
+      // The classroom's own town settings (round town): key -> value; a missing key = the stock value.
+      townSettings: config.townSettings || {},
       resolved: readBakeStamp(instancesRoot, req.params.id),
       validation,
       // A number when this classroom has a school logo (used to refresh a cached picture), else null.
@@ -2005,6 +2009,22 @@ app.post('/api/instances/:id/insertions', (req, res) => {
   handleInstanceMutation(req, res, (config) => {
     const id = addInsertion(config, { from, to, displayName, story, time, fee, feePercent, feeBasis, pos_x, pos_y, cardDraw, diceOutcomes });
     return { insertionId: id, from, to };
+  });
+});
+
+// A classroom's own value for one town setting (round town, stage 1a: `round_*` and `pulse_*` rows of TOWN.csv).
+// Body { key, value }; an empty value resets it to the stock value. Same checks and board test as every edit.
+app.put('/api/instances/:id/town-settings', (req, res) => {
+  const key = String((req.body && req.body.key) || '');
+  const value = String((req.body && req.body.value) ?? '').trim();
+  if (!TOWN_SETTING_KEY.test(key)) return res.status(400).json({ success: false, error: 'Only the round town and pulse settings can be changed here' });
+  if (!TOWN_SETTING_VALUE.test(value)) return res.status(400).json({ success: false, error: 'A setting cannot hold commas, quotes or line breaks' });
+  handleInstanceMutation(req, res, (config) => {
+    const next = { ...(config.townSettings || {}) };
+    if (value) next[key] = value;
+    else delete next[key];
+    config.townSettings = next;
+    return { key, value: value || null };
   });
 });
 

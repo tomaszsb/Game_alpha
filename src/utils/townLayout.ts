@@ -7,6 +7,7 @@ import type { TownCsvRow } from '../types/DataTypes';
 import { FormatUtils } from './FormatUtils';
 import { ordinal } from './liveTrophies';
 import type { TrophyId } from './trophyRules';
+import { makeRoundTown, poseRoundTown, type RoundTown } from './townRound';
 
 export interface TownBuilding {
   id: string;
@@ -76,6 +77,8 @@ export interface TownLayout {
   /** Grid bounds of everything placed (for the ground). */
   bounds: { minCol: number; minRow: number; maxCol: number; maxRow: number };
   settings: Record<string, string>;
+  /** Set when this game's town is round (townRound.ts): where everything stands before the table turns. */
+  round?: RoundTown;
 }
 
 const num = (s: string, fallback = 0): number => {
@@ -102,6 +105,8 @@ export function buildTownLayout(
   labelOf: (spaceName: string) => string,
   /** One copy of each `perplayer` building per player: how many players the town is drawn for. */
   seats = 1,
+  /** 'round': the shared buildings in a ring, a side per player (townRound.ts). Anything else: the striped town. */
+  shape?: 'round',
 ): TownLayout | null {
   const buildings: TownBuilding[] = [];
   const byId = new Map<string, TownBuilding>();
@@ -233,7 +238,12 @@ export function buildTownLayout(
     maxCol: Math.max(...buildings.map(b => b.col + b.width)),
     maxRow: Math.max(...buildings.map(b => b.row + b.depth)),
   };
-  return { seats: seatCount, buildings, streets, trees, roomToBuilding, roomVariants, bounds, settings };
+  const layout: TownLayout = { seats: seatCount, buildings, streets, trees, roomToBuilding, roomVariants, bounds, settings };
+  if (shape === 'round') {
+    const round = makeRoundTown(layout);
+    if (round) return poseRoundTown({ ...layout, round }, { table: 0, ring: 0 });
+  }
+  return layout;
 }
 
 /** Who is asking where a room is: their project kind (new / existing) and which player's seat they hold. */

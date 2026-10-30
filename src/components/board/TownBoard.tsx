@@ -11,7 +11,7 @@
 // The layout comes from TOWN.csv (townLayout.ts); the building signs never tilt, so names keep their
 // size. No walking yet (step A2): a piece jumps, as on the classic board.
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -39,8 +39,8 @@ import { setTownWalking } from '../../utils/boardStyle';
 import { projectKindOf } from '../../utils/projectKind';
 import { getSoundOn } from '../../utils/soundSetting';
 import { TownViewPad, type ViewPadScreen } from './TownViewPad';
-import { TownClocks, rowHeightPx } from './TownClocks';
-import { clockMonth, clockStartIso } from '../../utils/gameClock';
+import { TownClocks, rowHeightPx, FlipClock, CLOCK_W, CLOCK_H, type ClockPlayer } from './TownClocks';
+import { clockMonth, clockStartIso, clockDate } from '../../utils/gameClock';
 import { areaSegments, hasLeftBoard, ownerOfRow, type AreaSegment } from '../../utils/townAreas';
 import { treePicture, treeScale } from '../../utils/townTrees';
 import { TownWeatherNode, buildWeatherBands, type WeatherData } from './TownWeather';
@@ -51,6 +51,11 @@ import { seasonLook, mixHex, type SeasonLook } from '../../utils/townSeasons';
 import { racePlaces } from '../../utils/liveTrophies';
 import { getTrophyRules, type TrophyId } from '../../utils/trophyRules';
 import { playResultChime, isAudioReady, primeAudio } from '../../utils/haptics';
+import { pulseAnimation, pulseLookOf, type PulseLook } from '../../utils/pulseLook';
+import {
+  nextPose, poseRoundTown, roundPoint, roundWedges, ownerOfAngle, roundWalkPath, seatAngle,
+  type RoundPose, type RoundTown, type RoundWedge,
+} from '../../utils/townRound';
 import {
   buildTownLayout,
   buildingBox,
@@ -85,6 +90,8 @@ const SIGN_SPACE = 90;
 const HOVER_OPEN_MS = 400;
 /** Fitting the whole town leaves room along the top for the row of clocks (about 50 px at normal size). */
 const FIT_PADDING = { top: '64px', right: '6%', bottom: '6%', left: '6%' } as const satisfies Record<string, `${number}px` | `${number}%`>;
+/** A round town has no row of clocks along the top (each clock rides on the rim with its player's side). */
+const ROUND_FIT_PADDING = { top: '16px', right: '3%', bottom: '3%', left: '3%' } as const satisfies Record<string, `${number}px` | `${number}%`>;
 /** A screen that follows the current player never zooms out past this (names stay readable). */
 const FOLLOW_MIN_ZOOM = 0.75;
 
@@ -105,12 +112,56 @@ function shade(hex: string, f: number): string {
 }
 
 // -------------------------------------------------------------------------------------------------
+// The turning table (round town). Every node already stands at its NEW place (React Flow knows the true
+// positions, so the camera, the clicks and the blank-board diagnostics stay right); for one turn its own
+// drawing is then moved back to where it was and slid there round the middle of town. Only `transform`
+// moves (cheap on a TV stick), and when it ends the drawing sits on its node again with no transform at all.
+// -------------------------------------------------------------------------------------------------
+
+/** One turn of a node: by how many degrees, round the middle of town (`rx`, `ry` = middle minus the node's anchor, board px). */
+export interface TurnAnim {
+  key: number;
+  deg: number;
+  rx: number;
+  ry: number;
+  ms: number;
+  /** The ground turns as a whole; everything else keeps facing the viewer (and keeps its size) as it goes round. */
+  spin?: boolean;
+}
+
+/**
+ * The CSS transform for a node part way through a turn (`at` degrees still to go, as a negative number at the start).
+ * The town is drawn turned 45 degrees and squashed to half height, so a turn round the middle is "unsquash, rotate,
+ * squash" about the middle; a building also turns back the same amount about its own anchor, so it keeps facing the
+ * viewer. Both lists have the same steps, so the browser runs the angle smoothly along the oval.
+ */
+export function turnTransform(t: Pick<TurnAnim, 'rx' | 'ry' | 'spin'>, at: number): string {
+  const orbit = `translate(${t.rx}px, ${t.ry}px) scaleY(0.5) rotate(${at}deg) scaleY(2) translate(${-t.rx}px, ${-t.ry}px)`;
+  return t.spin ? orbit : `${orbit} scaleY(0.5) rotate(${-at}deg) scaleY(2)`;
+}
+
+function useTurn(ref: React.RefObject<Element | null>, turn: TurnAnim | undefined): void {
+  // Before paint, in the same frame the node gets its new place: no frame ever shows it there unturned.
+  useLayoutEffect(() => {
+    const el = ref.current as (Element & { animate?: Element['animate'] }) | null;
+    if (!el || !turn || !turn.deg || turn.ms <= 0 || typeof el.animate !== 'function') return undefined;
+    const anim = el.animate([{ transform: turnTransform(turn, -turn.deg) }, { transform: turnTransform(turn, 0) }], { duration: turn.ms, easing: 'cubic-bezier(.5,0,.25,1)' });
+    return () => anim.cancel();
+    // a turn plays once, when its key is new
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turn?.key]);
+}
+
+// -------------------------------------------------------------------------------------------------
 // Ground: the grass, the streets and their centre lines. One node under everything.
 // -------------------------------------------------------------------------------------------------
 
 /** Who owns which ground, and the look of each player's month (index = seat). Built once per change in TownBoardInner. */
 export interface GroundAreas {
   segments: AreaSegment[];
+  /** A round town: the angles each player owns (before the table turns), and whose season the shared middle shows. */
+  wedges?: RoundWedge[];
+  middleSeat?: number;
   looks: SeasonLook[];
   /** Each player's colour, for the dotted line along their side of a cut. */
   colors: string[];
@@ -124,6 +175,10 @@ interface GroundData extends Record<string, unknown> {
   layout: TownLayout;
   mode: PanelMode;
   areas: GroundAreas;
+  /** A round town: drawn as rings round the middle, turned to the table's pose. */
+  round?: RoundTown;
+  table?: number;
+  turn?: TurnAnim;
 }
 
 /** How far the water reaches past the island, in tiles, so each band's blue runs out to the frame at any zoom. */
@@ -134,6 +189,90 @@ const BLEND_STEPS = 8;
 const FADE_MS = 1500;
 
 function TownGround({ data }: NodeProps<Node<GroundData>>) {
+  const ref = useRef<SVGSVGElement>(null);
+  useTurn(ref, data.turn);
+  if (data.round) return <RoundGround data={data} round={data.round} svgRef={ref} />;
+  return <StripedGround data={data} />;
+}
+
+/** The round town's ground (townRound.ts): each player's season on their own wedge, the shared middle in the season of
+ *  the player whose turn it is, a ring road, and a park with a fountain. */
+function RoundGround({ data, round: rt, svgRef }: { data: GroundData; round: RoundTown; svgRef: React.RefObject<SVGSVGElement | null> }) {
+  const { w, h, ox, oy, mode, areas } = data;
+  const table = data.table ?? 0;
+  const g = GROUND[mode];
+  const pt = (angle: number, radius: number) => {
+    const q = roundPoint(rt, angle + table, radius);
+    const p = isoPoint(q.col, q.row, 0, TOWN_TILE);
+    return `${(p.x - ox).toFixed(1)},${(p.y - oy).toFixed(1)}`;
+  };
+  const steps = (a0: number, a1: number) => Math.max(2, Math.ceil(Math.abs(a1 - a0) / 4));
+  const arcLine = (a0: number, a1: number, r: number) => Array.from({ length: steps(a0, a1) + 1 }, (_, i) => pt(a0 + ((a1 - a0) * i) / steps(a0, a1), r)).join(' ');
+  /** The ground between two angles and two distances from the middle (r0 = 0: a slice to the middle). */
+  const band = (a0: number, a1: number, r0: number, r1: number) => {
+    const out = arcLine(a0, a1, r1);
+    if (r0 <= 0) return `${out} ${pt(0, 0)}`;
+    const back = Array.from({ length: steps(a0, a1) + 1 }, (_, i) => pt(a1 - ((a1 - a0) * i) / steps(a0, a1), r0)).join(' ');
+    return `${out} ${back}`;
+  };
+  const { looks, colors } = areas;
+  const wedges = areas.wedges ?? [{ seat: 0, from: -90, to: 270 }];
+  const look = (seat: number): SeasonLook => looks[seat] ?? looks[0];
+  const mid = look(areas.middleSeat ?? 0);
+  const fade: React.CSSProperties = prefersReducedMotion() ? {} : { transition: `fill ${FADE_MS}ms, stroke ${FADE_MS}ms` };
+  const fill = (c: string): React.CSSProperties => ({ fill: c, ...fade });
+  const far = rt.islandRadius + WATER_REACH;
+  const shared = rt.roadRadius + 0.9;
+  const stone = mode === 'dark' ? '#64748b' : '#d6d3d1';
+  return (
+    <svg ref={svgRef} width={w} height={h} style={{ display: 'block', pointerEvents: 'none', overflow: 'visible', transformOrigin: '0 0' }} aria-hidden="true" data-testid="town-ground-round">
+      {wedges.map(wd => <polygon key={`w${wd.seat}`} points={band(wd.from, wd.to, 0, far)} style={fill(look(wd.seat).water)} />)}
+      {wedges.map(wd => <polygon key={`g${wd.seat}`} points={band(wd.from, wd.to, 0, rt.islandRadius)} style={fill(look(wd.seat).grass)} />)}
+      {wedges.map(wd => <polyline key={`e${wd.seat}`} points={arcLine(wd.from, wd.to, rt.islandRadius)} fill="none" style={{ stroke: look(wd.seat).edge, strokeWidth: 3, ...fade }} />)}
+      {/* each player's own side, a soft band in their colour (colour on the board always means a player) */}
+      {rt.sides.map(sd => (
+        <polygon key={`side${sd.seat}`} points={band(sd.angle - sd.half, sd.angle + sd.half, rt.roadRadius + 1.6, rt.islandRadius - 0.4)} fill={colors[sd.seat] ?? '#475569'} fillOpacity={0.16} />
+      ))}
+      {/* the shared middle shows the season of the player whose turn it is */}
+      <polygon points={band(0, 360, 0, shared)} style={fill(mid.grass)} />
+      <polygon points={band(0, 360, rt.roadRadius - 0.75, rt.roadRadius + 0.75)} fill={g.street} />
+      <polyline points={arcLine(0, 360, rt.roadRadius)} fill="none" stroke={g.line} strokeWidth={3} strokeDasharray="16 14" />
+      <polygon points={band(0, 360, 0, rt.parkRadius)} style={fill(mixHex(mid.grass, '#ffffff', 0.1))} />
+      <polyline points={arcLine(0, 360, Math.max(0.5, rt.parkRadius - 0.35))} fill="none" stroke={g.line} strokeOpacity={0.7} strokeWidth={7} />
+      {rt.fountain > 0 && (
+        <g data-testid="town-fountain">
+          <polygon points={band(0, 360, 0, rt.fountain + 0.35)} fill={stone} stroke="rgba(0,0,0,0.25)" strokeWidth={2} />
+          <polygon points={band(0, 360, 0, rt.fountain)} style={fill(mid.water)} />
+          <polygon points={band(0, 360, 0, rt.fountain * 0.3)} fill="#ffffff" fillOpacity={0.7} />
+        </g>
+      )}
+      {/* the month's light over the ground (buildings stand above it and are never tinted) */}
+      {wedges.map(wd => {
+        const k = look(wd.seat);
+        return (
+          <g key={`t${wd.seat}`}>
+            <polygon points={band(wd.from, wd.to, shared, far)} style={{ ...fill(k.tint), fillOpacity: k.tintOpacity }} />
+            {k.daylight < 1 && <polygon points={band(wd.from, wd.to, shared, far)} style={{ fill: '#000', fillOpacity: 1 - k.daylight }} />}
+          </g>
+        );
+      })}
+      <polygon points={band(0, 360, 0, shared)} style={{ ...fill(mid.tint), fillOpacity: mid.tintOpacity }} />
+      {mid.daylight < 1 && <polygon points={band(0, 360, 0, shared)} style={{ fill: '#000', fillOpacity: 1 - mid.daylight }} />}
+      {/* a thin dotted line in each player's colour along their own side of every cut */}
+      {wedges.length > 1 && wedges.map((wd, i) => {
+        const next = wedges[(i + 1) % wedges.length];
+        return (
+          <g key={`d${wd.seat}`}>
+            <polyline points={`${pt(wd.to - 0.6, shared)} ${pt(wd.to - 0.6, rt.islandRadius + 1)}`} stroke={colors[wd.seat] ?? '#475569'} strokeWidth={4} strokeDasharray="5 9" strokeLinecap="round" fill="none" />
+            <polyline points={`${pt(wd.to + 0.6, shared)} ${pt(wd.to + 0.6, rt.islandRadius + 1)}`} stroke={colors[next.seat] ?? '#475569'} strokeWidth={4} strokeDasharray="5 9" strokeLinecap="round" fill="none" />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function StripedGround({ data }: { data: GroundData }) {
   const { w, h, ox, oy, layout, mode, areas } = data;
   const g = GROUND[mode];
   const { minCol, minRow, maxCol, maxRow } = layout.bounds;
@@ -244,6 +383,12 @@ interface BuildingData extends Record<string, unknown> {
   mode: PanelMode;
   bubbles: Bubble[];
   onBubbleDone: (key: number) => void;
+  turn?: TurnAnim;
+  /** A move choice in a round town: pulsing while still open, steady once picked, a slow dim pulse for the others. */
+  pulse?: 'choose' | 'chosen' | 'rest';
+  pulseLook?: PulseLook & { still: boolean };
+  /** How much bigger the sign is drawn (round town, `round_sign_scale`); 1 = as made. */
+  signScale?: number;
 }
 
 function Block({ b, ox, oy }: { b: TownBuilding; ox: number; oy: number }) {
@@ -275,21 +420,27 @@ function Block({ b, ox, oy }: { b: TownBuilding; ox: number; oy: number }) {
 }
 
 function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
-  const { building: b, view, open, ox, oy, w, h, roofX, roofY, labels, portrait, named, faded, seatColor, mode, bubbles, onBubbleDone } = data;
+  const { building: b, view, open, ox, oy, w, h, roofX, roofY, labels, portrait, named, faded, seatColor, mode, bubbles, onBubbleDone, pulse, pulseLook, signScale } = data;
   const pal = panelPalettes[mode];
   const isDest = view.destinationRooms.length > 0;
   const ring = view.isCurrent ? HERE : isDest ? DEST : pal.borderStrong;
   const icon = <BuildingIcon icon={b.icon} portrait={portrait} size={40} />;
+  const ref = useRef<HTMLDivElement>(null);
+  useTurn(ref, data.turn);
+  const peak = pulse && pulseLook ? (pulse === 'rest' ? pulseLook.restGlow : pulseLook.glow) : 0;
+  const steady = !pulseLook || pulseLook.still || pulse === 'chosen';
 
   return (
     <div
+      ref={ref}
       data-testid={`town-building-${b.id}`}
+      data-pulse={pulse}
       data-named={named ? 'true' : 'false'}
       data-faded={faded ? 'true' : 'false'}
       data-open={open ? 'true' : 'false'}
       data-current={view.isCurrent ? 'true' : 'false'}
       data-destination={isDest ? 'true' : 'false'}
-      style={{ position: 'relative', width: w, height: h, cursor: 'pointer', pointerEvents: 'none', opacity: faded ? 0.5 : 1 }}
+      style={{ position: 'relative', width: w, height: h, cursor: 'pointer', pointerEvents: 'none', opacity: faded ? 0.5 : 1, transformOrigin: '0 0' }}
     >
       <svg width={w} height={h} style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }} aria-hidden="true">
         <g style={{ pointerEvents: 'visiblePainted' }}><Block b={b} ox={ox} oy={oy} /></g>
@@ -299,19 +450,29 @@ function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
           position: 'absolute',
           left: roofX - ox,
           top: roofY - oy - 10,
-          transform: 'translate(-50%, -100%)',
+          // A round town shows the whole town at once, so its signs (and the pawns on them) are drawn bigger to stay readable on a TV.
+          transform: signScale && signScale !== 1 ? `translate(-50%, -100%) scale(${signScale})` : 'translate(-50%, -100%)',
+          transformOrigin: '50% 100%',
           pointerEvents: 'auto',
           background: pal.bg,
           color: pal.text,
           border: `3px solid ${ring}`,
           borderRadius: 12,
           padding: '6px 10px 8px',
-          boxShadow: view.isCurrent || isDest ? `0 0 14px ${ring}` : '0 4px 10px rgba(0,0,0,0.25)',
+          boxShadow: view.isCurrent || (isDest && !pulse) ? `0 0 14px ${ring}` : '0 4px 10px rgba(0,0,0,0.25)',
           fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
           maxWidth: 420,
           width: 'max-content',
         }}
       >
+        {pulse && pulseLook && (
+          // The glow round a move choice: only its brightness and size move (pulseLook.ts), never its colour.
+          <span aria-hidden data-testid="town-pulse" style={{
+            position: 'absolute', inset: -7, borderRadius: 16, pointerEvents: 'none', boxShadow: `0 0 18px 7px ${DEST}`,
+            ['--uc-pulse-peak' as string]: peak,
+            ...(steady ? { opacity: peak } : { animation: pulseAnimation('uc-town-pulse', pulse === 'rest' ? pulseLook.restMs : pulseLook.ms) }),
+          }} />
+        )}
         {bubbles.map(bb => <FloatingBubble key={bb.key} bubble={bb} onDone={onBubbleDone} />)}
         {view.playersHere.length > 0 && (
           // The players here stand on top of the sign as big pawns (fb:fefe42f8).
@@ -373,20 +534,39 @@ const PAWN_W = 84;
 /** How wide a tree is drawn (px) at its starting size: the 64 px picture, enlarged. */
 const TREE_PX = 96;
 
-interface TreeData { tree: TownTree; src: string; size: number; [key: string]: unknown }
+interface TreeData { tree: TownTree; src: string; size: number; turn?: TurnAnim; [key: string]: unknown }
 
 /** A tree standing on the grass: only a picture, never in the way of the mouse. */
 function TownTreeNode({ data }: NodeProps) {
   const d = data as unknown as TreeData;
+  const ref = useRef<HTMLImageElement>(null);
+  useTurn(ref, d.turn);
   return (
     <img
-      src={d.src} alt="" draggable={false} data-testid={`town-tree-${d.tree.id}`}
-      style={{ width: d.size, height: d.size, display: 'block', imageRendering: 'pixelated', pointerEvents: 'none', userSelect: 'none' }}
+      ref={ref} src={d.src} alt="" draggable={false} data-testid={`town-tree-${d.tree.id}`}
+      style={{ width: d.size, height: d.size, display: 'block', imageRendering: 'pixelated', pointerEvents: 'none', userSelect: 'none', transformOrigin: '0 0' }}
     />
   );
 }
 
-const nodeTypes = { townGround: TownGround, townBuilding: TownBuildingNode, townTree: TownTreeNode, townWeather: TownWeatherNode, townProps: TownPropsNode };
+interface RimClockData { player: ClockPlayer; startIso: string; scale: number; current: boolean; turn?: TurnAnim; [key: string]: unknown }
+
+/** A round town's clock: it rides on the rim with its player's side, and its words stay upright as the table turns. */
+function TownRimClockNode({ data }: NodeProps) {
+  const d = data as unknown as RimClockData;
+  const ref = useRef<HTMLDivElement>(null);
+  useTurn(ref, d.turn);
+  return (
+    <div ref={ref} data-testid="town-rim-clock" style={{ width: CLOCK_W * d.scale, height: CLOCK_H * d.scale, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', pointerEvents: 'none', transformOrigin: '0 0' }}>
+      <FlipClock player={d.player} date={clockDate(d.startIso, d.player.timeSpent)} big={false} scale={d.scale} current={d.current} still={prefersReducedMotion()} />
+    </div>
+  );
+}
+
+const nodeTypes = { townGround: TownGround, townBuilding: TownBuildingNode, townTree: TownTreeNode, townWeather: TownWeatherNode, townProps: TownPropsNode, townRimClock: TownRimClockNode };
+
+/** The pulse a move choice breathes with (pulseLook.ts): dim, bright, dim. Its peak comes from the element. */
+const PULSE_CSS = `@keyframes uc-town-pulse { 0%, 100% { opacity: calc(var(--uc-pulse-peak) * 0.2); transform: scale(1); } 50% { opacity: var(--uc-pulse-peak); transform: scale(1.05); } }`;
 
 // -------------------------------------------------------------------------------------------------
 // The walk (step A2): a player's face walks the streets from the old building to the new one.
@@ -563,21 +743,34 @@ export function useTownLabels(): Record<string, string> {
   }, [dataService]);
 }
 
+/** The town's shape for this game: fixed on the game when it started (townRound.ts newGameTownShape), the same on every screen. */
+export function useTownShape(): 'round' | undefined {
+  const { stateService } = useGameContext();
+  return useSyncExternalStore(
+    cb => stateService.subscribe(cb),
+    () => stateService.getGameState().townShape,
+    () => undefined,
+  );
+}
+
 /** The town for this board, or null when TOWN.csv has no buildings. */
 export function useTownLayout(seats = 1): TownLayout | null {
   const { dataService } = useGameContext();
   const labels = useTownLabels();
+  const shape = useTownShape();
   return useMemo(() => {
     const rows = dataService.getTownRows?.() ?? [];
     if (rows.length === 0) return null;
     const spaces = dataService.getGameConfig()
       .map(c => c.space_name)
       .filter(s => s !== 'START-QUICK-PLAY-GUIDE');
-    return buildTownLayout(rows, spaces, extractPrefix, s => labels[s] ?? s, seats);
-  }, [dataService, labels, seats]);
+    return buildTownLayout(rows, spaces, extractPrefix, s => labels[s] ?? s, seats, shape);
+  }, [dataService, labels, seats, shape]);
 }
 
-function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mode: modeProp, focusRequest, layout, screen = 'pc' }: TownBoardProps) {
+type RoundLayout = TownLayout & { round: RoundTown };
+
+function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mode: modeProp, focusRequest, layout: baseLayout, screen = 'pc' }: TownBoardProps) {
   const { stateService, movementService, gameRulesService } = useGameContext();
   const { fitView, setCenter, getViewport } = useReactFlow();
   const mode: PanelMode = modeProp ?? getStoredPanelMode();
@@ -625,6 +818,23 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   const kindOf = useCallback((p: Player) => projectKindOf(p, dataService), [dataService]);
   // Who a player is to the town: their project kind and which seat they hold (each player has their own office, owner house and site).
   const whoOf = useCallback((p: Player): Who => ({ kind: kindOf(p), seat: players.findIndex(x => x.id === p.id) }), [kindOf, players]);
+
+  // A round town (townRound.ts): the table turns the current player's side to the front, and the ring brings forward
+  // the shared building they stand in. A new pose waits while anyone walks, so no walk is drawn across a turning town.
+  const round = baseLayout.round;
+  const currentIdx = players.findIndex(p => p.id === currentPlayerId);
+  const currentSeat = Math.max(0, Math.min(currentIdx, Math.max(1, baseLayout.seats) - 1));
+  const currentHere = currentIdx >= 0 ? buildingOfRoom(baseLayout, players[currentIdx].currentSpace, whoOf(players[currentIdx])) : undefined;
+  const ringIndex = round && currentHere ? round.ring.indexOf(currentHere) : -1;
+  const scene = useScene();
+  // Motion off (this screen's Scene set to Calm or Off, or the device asks for less motion): the table turns at once.
+  const moving = scene === 'full' && !prefersReducedMotion();
+  const turnMs = round && moving ? scaleMs(round.turnMs) : 0;
+  const [pose, setPose] = useState<{ now: RoundPose; key: number; dTable: number; dRing: number; ms: number }>(() => ({
+    now: round ? nextPose(null, currentSeat, ringIndex, round, baseLayout.seats) : { table: 0, ring: 0 }, key: 0, dTable: 0, dRing: 0, ms: 0,
+  }));
+  const layout = useMemo(() => (round ? poseRoundTown(baseLayout as RoundLayout, pose.now) : baseLayout), [baseLayout, round, pose.now]);
+  let walkStarted = false;
   const numbersOf = (p: Player): PlayerNumbers => ({ money: p.money ?? 0, days: p.timeSpent ?? 0, scope: gameRulesService.calculateProjectScope(p.id) });
   const placesNow = (): ((id: string) => Record<TrophyId, number | null>) => {
     try { const board = gameRulesService.computeLiveBoard(); return (id) => racePlaces(board, id); } catch { return () => NO_PLACES; }
@@ -648,7 +858,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         if (!from || !to) continue;
         const hop = from === to;
         const target = layout.buildings.find(x => x.id === to)!;
-        const route = hop ? [{ col: target.col + target.width / 2, row: target.row + target.depth / 2 }] : walkPath(layout, from, to);
+        const route = hop ? [{ col: target.col + target.width / 2, row: target.row + target.depth / 2 }] : layout.round ? roundWalkPath(layout as RoundLayout, from, to) : walkPath(layout, from, to);
         const ms = hop ? times.hopMs : fast ? times.fastMs : times.walkMs;
         if (route.length === 0 || ms <= 0) continue;
         started.push({
@@ -656,7 +866,10 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
           points: route.map(g => isoPoint(g.col, g.row, 0, TOWN_TILE)),
         });
       }
-      if (started.length) setWalks(w => [...w.filter(x => !started.some(s => s.playerId === x.playerId)), ...started]);
+      if (started.length) {
+        walkStarted = true;
+        setWalks(w => [...w.filter(x => !started.some(s => s.playerId === x.playerId)), ...started]);
+      }
     }
     // Results float up from the building the player is in (after their walk, if they walked).
     if (beforeNumbers) {
@@ -682,6 +895,13 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         held.push({ playerId: p.id, at: now, before: was, after: nowNumbers, placesBefore: placesWas, placesAfter: placesIs, space: moved ? before!.get(p.id)! : p.currentSpace, walkMs: 0 });
       }
       if (held.length) setPending(ps => [...ps, ...held]);
+    }
+  }
+  // The table turns once nobody is walking (a walk that started in this very render counts as walking).
+  if (round && walks.length === 0 && !walkStarted) {
+    const next = nextPose(pose.now, currentSeat, ringIndex, round, baseLayout.seats);
+    if (Math.abs(next.table - pose.now.table) > 0.01 || Math.abs(next.ring - pose.now.ring) > 0.01) {
+      setPose({ now: next, key: pose.key + 1, dTable: next.table - pose.now.table, dRing: next.ring - pose.now.ring, ms: turnMs });
     }
   }
   // One tap can change a player's numbers several times in a row (the space they leave, the one they
@@ -768,7 +988,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
 
   // Each player's band shows the look of the month their own days have reached; ground of a player who has finished or
   // gone out goes to the nearest player still playing (townAreas.ts). Keyed on the few things that change it.
-  const areaKey = JSON.stringify([players.map(p => [p.color, clockMonth(startIso, p.timeSpent ?? 0), hasLeftBoard(p)]), startIso, mode, layout.seats]);
+  const areaKey = JSON.stringify([players.map(p => [p.color, clockMonth(startIso, p.timeSpent ?? 0), hasLeftBoard(p)]), startIso, mode, layout.seats, round ? currentSeat : -1]);
   const areas = useMemo<GroundAreas>(() => {
     const seats = Math.max(1, layout.seats);
     const at = (i: number) => players[i] ?? players[0];
@@ -776,30 +996,44 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       segments: areaSegments(layout, Array.from({ length: seats }, (_, i) => !!at(i) && hasLeftBoard(at(i)))),
       looks: Array.from({ length: seats }, (_, i) => seasonLook(clockMonth(startIso, at(i)?.timeSpent ?? 0), mode)),
       colors: Array.from({ length: seats }, (_, i) => at(i)?.color ?? '#475569'),
+      wedges: round ? roundWedges(round, Array.from({ length: seats }, (_, i) => !!at(i) && hasLeftBoard(at(i)))) : undefined,
+      middleSeat: round ? currentSeat : undefined,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaKey, layout]);
-  const scene = useScene();
-  const freeTest = useMemo(() => makeFreeTest(layout), [layout]);
-  const spots = useMemo(() => freeSpots(layout), [layout]);
-  const waterColor = (areas.looks[areas.segments[0]?.seat ?? 0] ?? seasonLook(1, mode)).water;
+  // Scenery spots are worked out once per town (a round town turns, and draws no small scenery yet).
+  const freeTest = useMemo(() => makeFreeTest(baseLayout), [baseLayout]);
+  const spots = useMemo(() => freeSpots(baseLayout), [baseLayout]);
+  const waterColor = (areas.looks[round ? currentSeat : areas.segments[0]?.seat ?? 0] ?? seasonLook(1, mode)).water;
+  const pulseLook = useMemo(() => (round ? { ...pulseLookOf(layout.settings), still: !moving } : undefined), [round, layout.settings, moving]);
 
   const nodes = useMemo(() => {
     const out: Node[] = [];
     const { minCol, minRow, maxCol, maxRow } = layout.bounds;
-    const corners = [
+    // A round island is an oval on screen: its box is the oval's, not the far bigger diamond round it (the camera fits the box).
+    const oval = round ? { c: isoPoint(round.cc, round.cr, 0, TOWN_TILE), rx: (round.islandRadius + 0.5) * Math.SQRT2 * TOWN_TILE, ry: ((round.islandRadius + 0.5) * TOWN_TILE) / Math.SQRT2 } : null;
+    const corners = oval ? [
+      { x: oval.c.x - oval.rx, y: oval.c.y - oval.ry }, { x: oval.c.x + oval.rx, y: oval.c.y + oval.ry },
+    ] : [
       isoPoint(minCol - 1, minRow - 1, 0, TOWN_TILE), isoPoint(maxCol + 1, minRow - 1, 0, TOWN_TILE),
       isoPoint(maxCol + 1, maxRow + 1, 0, TOWN_TILE), isoPoint(minCol - 1, maxRow + 1, 0, TOWN_TILE),
     ];
     const gx = Math.min(...corners.map(c => c.x)), gy = Math.min(...corners.map(c => c.y));
     const gw = Math.max(...corners.map(c => c.x)) - gx, gh = Math.max(...corners.map(c => c.y)) - gy;
+    // One turn of the table (round town): each node slides from its old place round the middle to its new one.
+    const mid = round ? isoPoint(round.cc, round.cr, 0, TOWN_TILE) : { x: 0, y: 0 };
+    const turnOf = (inRing: boolean, ax: number, ay: number, spin = false): TurnAnim | undefined => {
+      const d = inRing ? pose.dRing : pose.dTable;
+      return round && pose.key > 0 && pose.ms > 0 && Math.abs(d) > 0.01 ? { key: pose.key, deg: d, rx: mid.x - ax, ry: mid.y - ay, ms: pose.ms, spin } : undefined;
+    };
     out.push({
       id: 'town-ground', type: 'townGround', position: { x: gx, y: gy }, zIndex: 0, style: { pointerEvents: 'none' },
       draggable: false, selectable: false, focusable: false,
-      data: { w: gw, h: gh, ox: gx, oy: gy, layout, mode, areas } satisfies GroundData,
+      data: { w: gw, h: gh, ox: gx, oy: gy, layout, mode, areas, round, table: pose.now.table, turn: turnOf(false, gx, gy, true) } satisfies GroundData,
     });
     // Weather: one layer just above the ground and under every building (so it never covers a sign, a clock or a marker).
-    // Only the band of the player whose turn it is moves; the others show still hints.
+    // Only the band of the player whose turn it is moves; the others show still hints. (Not on a round town yet.)
+    if (!round) {
     const activeIdx = currentPlayerId ? players.findIndex(p => p.id === currentPlayerId) : -1;
     const activeSeat = activeIdx >= 0 && !hasLeftBoard(players[activeIdx]) ? Math.min(activeIdx, Math.max(1, layout.seats) - 1) : -1;
     out.push({
@@ -824,6 +1058,10 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       draggable: false, selectable: false, focusable: false,
       data: { w: gw, h: gh, fade: scene === 'full' && !prefersReducedMotion(), items: scenery.map(p => ({ prop: p, ...propPoint(p, TOWN_TILE, gx, gy) })) } satisfies PropsData,
     });
+    }
+    // A round town's move choices pulse; the one picked stays lit and the others dim (pulseLook.ts).
+    const intent = currentIdx >= 0 ? players[currentIdx].moveIntent : undefined;
+    const chosen = round && intent && validMoves.includes(intent) ? buildingOfRoom(layout, intent, currentWho) : undefined;
     for (const b of layout.buildings) {
       const box = buildingBox(b, TOWN_TILE);
       const view = views.get(b.id)!;
@@ -831,7 +1069,12 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       // Pawns stand on the sign: their room counts as part of the building, so the camera keeps them
       // in view (under the row of clocks, too).
       const pawnRoom = view.playersHere.length > 0 ? pawnHeight(PAWN_W) : 0;
-      const ox = box.x, oy = box.y - SIGN_SPACE - pawnRoom;
+      const signScale = round ? round.signScale : 1;
+      const ox = box.x, oy = box.y - (SIGN_SPACE + pawnRoom) * signScale;
+      const anchor = isoPoint(b.col + b.width / 2, b.row + b.depth / 2, 0, TOWN_TILE);
+      const inRing = !!(round && (round.places.get(b.id) ?? round.places.get(round.rides.get(b.id)?.on ?? ''))?.ring);
+      // The buildings the data paints in their player's colour (a round town's owner's house and office).
+      const painted = round && b.seat !== undefined && round.playerColor.has(b.id.split('@')[0]) ? { ...b, color: players[b.seat]?.color ?? b.color } : b;
       out.push({
         id: b.id, type: 'townBuilding', position: { x: ox, y: oy },
         // Back to front, so nearer blocks cover farther ones; an open sign sits above everything.
@@ -842,7 +1085,9 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         // pop open and shut as the mouse moved (measured 2026-10-12: wrong building at 10 of 53 spots).
         style: { pointerEvents: 'none' },
         data: {
-          building: b, view, open, ox, oy, w: box.w, h: box.h + SIGN_SPACE + pawnRoom,
+          building: painted, view, open, ox, oy, w: box.w, h: box.h + (SIGN_SPACE + pawnRoom) * signScale, signScale,
+          turn: turnOf(inRing, anchor.x, anchor.y), pulseLook,
+          pulse: round && view.destinationRooms.length > 0 ? (chosen ? (chosen === b.id ? 'chosen' : 'rest') : 'choose') : undefined,
           roofX: box.roofX, roofY: box.roofY, labels, portrait: portraitFor(b.icon), named: named.has(b.id), faded: faded.has(b.id), seatColor: layout.seats > 1 && b.seat !== undefined ? players[b.seat]?.color : undefined, mode,
           bubbles: bubbles.filter(x => x.buildingId === b.id), onBubbleDone: endBubble,
         } satisfies BuildingData,
@@ -853,18 +1098,35 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     const seats = Math.max(1, layout.seats);
     const peakOf = (seat: number) => { const p = players[seat] ?? players[0]; return Math.max(p?.peakDays ?? 0, p?.timeSpent ?? 0); };
     for (const t of layout.trees) {
-      const owner = ownerOfRow(areas.segments, t.row);
+      const placed = round?.trees.find(x => x.id === t.id);
+      const owner = placed ? (placed.park ? areas.middleSeat ?? 0 : ownerOfAngle(areas.wedges ?? [], placed.angle)) : ownerOfRow(areas.segments, t.row);
       const size = Math.round(TREE_PX * treeScale(Math.max(peakOf(Math.min(t.seat, seats - 1)), peakOf(owner))));
       const base = isoPoint(t.col, t.row, 0, TOWN_TILE);
       out.push({
         id: t.id, type: 'townTree', position: { x: base.x - size / 2, y: base.y - size * 0.94 },
         zIndex: 10 + Math.round((t.col + t.row) * 10), draggable: false, selectable: false, focusable: false,
         style: { pointerEvents: 'none' },
-        data: { tree: t, src: treePicture(t, areas.looks[owner]?.tree ?? 'summer'), size } satisfies TreeData,
+        data: { tree: t, src: treePicture(t, areas.looks[owner]?.tree ?? 'summer'), size, turn: turnOf(false, base.x, base.y) } satisfies TreeData,
       });
     }
+    // A round town's clocks ride on the rim, each with its player's side (in place of the row along the top).
+    if (round) {
+      const allGone = players.every(hasLeftBoard);
+      for (let seat = 0; seat < seats; seat++) {
+        const p = players[seat];
+        if (!p || (!allGone && hasLeftBoard(p))) continue;
+        const q = roundPoint(round, seatAngle(seat, seats) + pose.now.table, round.clockRadius);
+        const a = isoPoint(q.col, q.row, 0, TOWN_TILE);
+        const cw = CLOCK_W * round.clockScale, ch = CLOCK_H * round.clockScale;
+        out.push({
+          id: `town-rim-clock-${p.id}`, type: 'townRimClock', position: { x: a.x - cw / 2, y: a.y - ch / 2 }, zIndex: 1800,
+          draggable: false, selectable: false, focusable: false, style: { pointerEvents: 'none' },
+          data: { player: { id: p.id, name: p.name, color: p.color, timeSpent: p.timeSpent ?? 0 }, startIso, scale: round.clockScale, current: p.id === currentPlayerId, turn: turnOf(false, a.x, a.y) } satisfies RimClockData,
+        });
+      }
+    }
     return out;
-  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, named, faded, players, mode, bubbles, endBubble, areas, scene, startIso, currentPlayerId, screen, spots, freeTest]);
+  }, [layout, views, expanded, hovered, centerOnCurrent, labels, portraitFor, named, faded, players, mode, bubbles, endBubble, areas, scene, startIso, currentPlayerId, screen, spots, freeTest, round, pose, pulseLook, validMoves, currentWho, currentIdx]);
 
   // Follow the current player (TV, remote): first frame their building and its next moves, then
   // only glide at the zoom the viewer has, the same steady camera the classic board keeps.
@@ -898,12 +1160,14 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     ro.observe(el);
     return () => { ro.disconnect(); window.clearTimeout(timer); };
   }, []);
+  // A round town never follows anyone: the table turns instead, under a camera that shows the whole town.
+  const follow = centerOnCurrent && !round;
   useEffect(() => {
-    if (centerOnCurrent || sizeTick === 0) return;
-    try { fitView({ padding: FIT_PADDING, duration: 0 }); } catch { /* not measured yet */ }
-  }, [sizeTick, centerOnCurrent, fitView]);
+    if (follow || sizeTick === 0) return;
+    try { fitView({ padding: round ? ROUND_FIT_PADDING : FIT_PADDING, duration: 0 }); } catch { /* not measured yet */ }
+  }, [sizeTick, follow, fitView, round]);
   useEffect(() => {
-    if (!centerOnCurrent || !currentBuilding) return;
+    if (!follow || !currentBuilding) return;
     if (walks.length > 0) {
       // Watch the walk: glide to the middle of the newest walker's whole route, so the walk is on
       // screen from door to door (its face stands a little above the street, hence the lift).
@@ -934,7 +1198,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     }, 100);
     return () => window.clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [centerOnCurrent, currentBuilding, destBuildings, nodes, fitView, setCenter, getViewport, sizeTick, walks]);
+  }, [follow, currentBuilding, destBuildings, nodes, fitView, setCenter, getViewport, sizeTick, walks]);
 
   // Self-heal (fb:a6474bad): a following screen (TV, remote) whose camera has lost the town, or that
   // comes back from being hidden, frames the current player's building again. Checked every 3 s.
@@ -959,8 +1223,8 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
   // For bug reports (feedbackDiagnostics.ts): why the camera is where it is (fb:a6474bad, a blank TV board).
   useEffect(() => registerDiagnostic('town', () => ({
     centerOnCurrent, currentBuilding, destBuildings, walks: walks.length, sizeTick, framed: framed.current,
-    nodeCount: nodes.length, camera: getViewport(),
-  })), [centerOnCurrent, currentBuilding, destBuildings, walks, sizeTick, nodes, getViewport]);
+    nodeCount: nodes.length, camera: getViewport(), round: !!round, pose: round ? pose.now : undefined,
+  })), [centerOnCurrent, currentBuilding, destBuildings, walks, sizeTick, nodes, getViewport, round, pose]);
 
   // A jump asked for by the game log (PC): glide to that square's building at the current zoom.
   useEffect(() => {
@@ -993,6 +1257,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     <div ref={wrapperRef} data-testid="town-board" style={{ width: '100%', height: '100%', position: 'relative', background: waterColor }}>
       {/* v3.8.59: the React Flow credit link was #999 (2.2:1); same link, darker. Its own panel is a pale veil in both modes. */}
       <style>{'.react-flow .react-flow__attribution a { color: #4b5563; }'}</style>
+      {round && <style>{PULSE_CSS}</style>}
       <ReactFlow
         nodes={nodes}
         edges={[]}
@@ -1006,14 +1271,14 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         elementsSelectable={true}
         panOnDrag={true}
         fitView
-        fitViewOptions={{ padding: FIT_PADDING }}
+        fitViewOptions={{ padding: round ? ROUND_FIT_PADDING : FIT_PADDING }}
         minZoom={0.2}
         maxZoom={2}
         colorMode={mode}
         style={{ backgroundColor: waterColor }}
       >
         <TownViewPad screen={screen} dark={mode === 'dark'} />
-        <TownClocks players={players.map(p => ({ id: p.id, name: p.name, color: p.color, timeSpent: p.timeSpent ?? 0, gone: hasLeftBoard(p) }))} currentPlayerId={currentPlayerId} startIso={startIso} screen={screen} />
+        {!round && <TownClocks players={players.map(p => ({ id: p.id, name: p.name, color: p.color, timeSpent: p.timeSpent ?? 0, gone: hasLeftBoard(p) }))} currentPlayerId={currentPlayerId} startIso={startIso} screen={screen} />}
         <ViewportPortal>
           {walks.map(w => <Walker key={w.key} walk={w} onDone={endWalk} />)}
         </ViewportPortal>
