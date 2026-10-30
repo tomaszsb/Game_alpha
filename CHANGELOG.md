@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.9.11] - 2026-10-30
+
+**iPhones never buzz, so the game stops promising it (Tom: "the buzz does not work on i phones").** Apple gives web pages no way to vibrate an iPhone or iPad, so there is no fix for the buzz itself. Done by the Game session in `D:\Unravel\Current_Game\Game_Alpha`.
+- **The welcome screen is honest:** a phone that cannot vibrate is promised a chime, "if its sound is on" (an iPhone's silent switch mutes it). Phones that can vibrate read as before. `turnAlertLine` in `haptics.ts`.
+- **The turn chime is more reliable on every phone.** It was already there, but a page reload silently killed it (the one-time welcome tap does not come back) and a phone that locked could stop it. Now every tap unlocks sound again (`keepAudioUnlocked`), and the chime asks sound to restart if it has stopped.
+- **Checked** in a browser with vibration removed: the wording, and two chime notes after a reload and one tap (`.tmp/tv-pack/iphone.mjs`). **Not checked on a real iPhone**, and a locked iPhone may still stay silent.
+- Tests: 351 files / 4,451 passing.
+
 ## [3.9.10] - 2026-10-30
 
 **TV fix pack from Tom's first real TV test (Manager, Tom: "Yes, start it"; Hisense TV, TV Bro browser, Android 11, Chrome/155).** Round town and TV screen, plus the waiting phone and the shared menu. Done by the Game session in `D:\Unravel\Current_Game\Game_Alpha`.

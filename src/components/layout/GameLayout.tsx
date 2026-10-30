@@ -33,7 +33,7 @@ import { NotificationUtils } from '../../utils/NotificationUtils';
 import { TurnEffectResult } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
 import { GameEvent } from '../../types/GameEvents';
-import { haptics, primeAudio } from '../../utils/haptics';
+import { haptics, keepAudioUnlocked, primeAudio, turnAlertLine } from '../../utils/haptics';
 import { getWebSocketService, ConnectionState } from '../../services/WebSocketSyncService';
 import { pushNotifications } from '../../utils/pushNotifications';
 import { PullToRefresh } from '../common/PullToRefresh';
@@ -583,6 +583,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // changes during your turn. Gracefully no-ops on browsers without the
   // Vibration API (haptics.turnNotification handles the feature check).
   // <!-- fb:feedback-1779567746328-5ca98777 -->
+  useEffect(() => (effectiveViewPlayerId ? keepAudioUnlocked() : undefined), [effectiveViewPlayerId]);
   const prevTurnPlayerRef = useRef<string | null>(null);
   useEffect(() => {
     if (!effectiveViewPlayerId) {
@@ -1209,7 +1210,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           {greeting}
         </div>
         <div style={{ fontSize: '1rem', opacity: 0.9, marginBottom: '2rem', maxWidth: '320px' }}>
-          Your phone will buzz when it’s your turn — tap below to enable it.
+          {turnAlertLine()}
         </div>
         <button
           type="button"

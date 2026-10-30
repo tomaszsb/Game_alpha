@@ -33,11 +33,36 @@ export function primeAudio(): void {
 }
 
 /**
+ * Keeps sound unlocked on a player's phone: every tap unlocks it again. A reload loses it (the one-time welcome tap does
+ * not come back), and a phone that locks or changes app can stop it. Returns the way to stop listening.
+ */
+export function keepAudioUnlocked(): () => void {
+  const events = ['pointerdown', 'touchend', 'keydown'] as const;
+  events.forEach(e => window.addEventListener(e, primeAudio, { passive: true }));
+  return () => events.forEach(e => window.removeEventListener(e, primeAudio));
+}
+
+/**
+ * What the welcome screen promises for the player's turn. iPhones and iPads cannot vibrate from a web page at all (Apple
+ * offers no way, Tom 2026-10-30: "the buzz does not work on i phones"), and their silent switch mutes the chime.
+ */
+export function turnAlertLine(canVibrate: boolean = isHapticsSupported()): string {
+  return canVibrate
+    ? 'Your phone will buzz when it’s your turn — tap below to enable it.'
+    : 'Your phone will chime when it’s your turn, if its sound is on — tap below to enable it.';
+}
+
+/**
  * Play a short double-beep chime via Web Audio.
- * No-ops silently if AudioContext was never primed or is suspended.
+ * No-ops silently if AudioContext was never primed. If it has stopped (the phone locked, or another app took the
+ * sound), it asks to start again first.
  */
 function playTurnChime(): void {
-  if (!_audioCtx || _audioCtx.state !== 'running') return;
+  if (!_audioCtx) return;
+  if (_audioCtx.state !== 'running') {
+    _audioCtx.resume().then(() => { if (_audioCtx?.state === 'running') playTurnChime(); }).catch(() => { /* audio is best-effort */ });
+    return;
+  }
   try {
     const ctx = _audioCtx;
     const now = ctx.currentTime;

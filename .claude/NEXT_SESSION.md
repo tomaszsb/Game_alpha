@@ -1,17 +1,17 @@
 # Next session starter — written 2026-10-30 by /koniec (Game session, folder D:\Unravel\Current_Game\Game_Alpha; other sessions add below)
 
 ## State at handoff
-- **Version:** v3.9.10 pushed, **NOT deployed**. Live is **v3.9.9** (`/health` = `001ba36f`, 10-30). 3.9.10 = TV fix pack from Tom's Hisense test. Check `/health` vs `git rev-parse --short HEAD` first.
+- **Version:** v3.9.11 pushed, **NOT deployed**. Live is **v3.9.9** (`/health` = `001ba36f`, 10-30). 3.9.10 = TV fix pack from Tom's Hisense test; 3.9.11 = honest iPhone wording and a sturdier turn chime. Check `/health` vs `git rev-parse --short HEAD` first.
 - **Branch:** master, clean except the untracked `public/assets/inspector/` + `public/assets/trophies/` (other sessions'; do not add or delete).
 - **Last shipped:** the round town, opt-in (fb:fefe42f8). 3.9.6: ring of the 7 shared buildings round a park with a fountain, a side per player (owner's house + office in the player's colour), a table that turns to whoever's turn it is, clocks on the rim, pulsing move choices, teacher Town settings strip. 3.9.7: each building drawn by its job (`round_looks` in TOWN.csv, drawings in `src/components/board/townLooks.tsx`), names on signs on the front walls, room choices on the sign. 3.9.8: "Round town" as a third board choice.
-- **Test suite:** `npm test` 350 files / 4,449 passing (v3.9.10); typecheck shows only the 9 old errors in tests/; ghost gate not rerun (no engine change); build OK; typecheck = the 9 old errors in `tests/` (`finalStretch.test.ts`, `dataGate.test.ts` missing `@types/express`). `test:ghost` not rerun (no engine change since 3.9.5).
+- **Test suite:** `npm test` 351 files / 4,451 passing (v3.9.11); typecheck shows only the 9 old errors in tests/; ghost gate not rerun (no engine change); build OK; typecheck = the 9 old errors in `tests/` (`finalStretch.test.ts`, `dataGate.test.ts` missing `@types/express`). `test:ghost` not rerun (no engine change since 3.9.5).
 - **Version rule:** patch caps at 99.
 
 ## How Tom picks Round town
 - Setup screen > Game Settings > **Board: Round town** (every screen of that game). In a running game: **Menu > Board** goes Town, Round town, Classic (that screen only). Also still works: a `?town=round` link, or a class's Town settings strip `round_town` = on. Default stays Street view, so the class and the robot see no change.
 
 ## Top 3 open items
-1. **Tom deploys 3.9.10 and plays again on the Hisense; read `PLAYTEST_TV_TURN` and `PLAYTEST_TV_KEYS` from `GET /api/logs` for the real numbers. iPhones never buzz (web pages cannot vibrate there), yet the welcome screen promises it: waiting on Tom's call.** Stage 2 (talk bubbles, panel split, glossary viewer) waits for that test; the Manager sequences it.
+1. **Tom deploys 3.9.11 and plays again on the Hisense; read `PLAYTEST_TV_TURN` and `PLAYTEST_TV_KEYS` from `GET /api/logs` for the real numbers. The iPhone chime (3.9.11) has not been heard on a real iPhone.** Stage 2 (talk bubbles, panel split, glossary viewer) waits for that test; the Manager sequences it.
 2. **Round town NOT done:** the table turn is lighter but not proven smooth on a real TV (numbers in CHANGELOG 3.9.10); signs can cross for a moment WHILE the table turns (tested clean at every resting pose, 1-4 players, v3.9.9); a sign can be partly hidden behind a nearer building or a pawn on the left/right sides; **never tried on a real Fire Stick**; the teacher Town settings strip was never clicked in a browser (component + server tests only). Done in 3.9.9: the sign-overlap test, the trailer's sign at full size, weather and scenery on the round town.
 3. **fb:5618257f blank board:** v3.9.1 records `nodesHidden`; the next blank-board report answers the hypothesis (unverified).
 
