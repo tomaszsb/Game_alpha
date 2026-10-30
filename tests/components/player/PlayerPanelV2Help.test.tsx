@@ -262,42 +262,47 @@ describe('PlayerPanelV2 — one "?" everywhere', () => {
       expect(trackPlaytestEvent).not.toHaveBeenCalled(); // …it just is not counted
     });
   });
-  describe('the waiting word (Tom 10-27: "more built in to the wait screen and not as a slap on")', () => {
-    const waitFor = (turn: number) => pushState({ currentPlayerId: 'player2', globalTurnCount: turn });
-    const waitButton = () => screen.getByTestId('commit-end-turn');
+  describe('the waiting word takes over the page (Tom, TV test 10-30)', () => {
+    const waitFor = (turn: number, over: Record<string, unknown> = {}) => pushState({ currentPlayerId: 'player2', globalTurnCount: turn, ...over });
+    const page = () => screen.queryByTestId('waiting-word-page');
+    beforeEach(() => window.history.replaceState(null, '', '/?playerId=player1'));
+    afterEach(() => window.history.replaceState(null, '', '/'));
 
-    it("opens the meaning in the panel's own help card, not the glossary screen", () => {
+    it('shows the word and its meaning at once, with no tap', () => {
       renderPanel();
       waitFor(3);
-      expect(waitButton()).toHaveAttribute('aria-expanded', 'false');
-      fireEvent.click(waitButton());
-      const card = screen.getByTestId('help-card');
-      expect(card).toHaveAttribute('data-help-kind', 'waiting-word');
-      expect(card).toHaveTextContent('Foundation: Building foundations rest on solid ground and spread the weight.');
-      expect(waitButton()).toHaveAttribute('aria-expanded', 'true');
-      expect(waitButton()).toHaveAttribute('data-ready', 'false');
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(page()).toHaveTextContent('Foundation');
+      expect(page()).toHaveTextContent('Building foundations rest on solid ground and spread the weight.');
     });
 
-    it('closes when tapped again, and shares the one slot with every other "?"', () => {
+    it('goes back by itself when their turn comes, and a new wait has a new word', () => {
       renderPanel();
       waitFor(3);
-      fireEvent.click(waitButton());
-      fireEvent.click(waitButton());
-      expect(openCards()).toHaveLength(0);
-      fireEvent.click(waitButton());
-      fireEvent.click(stepHelp());
-      expect(openCards()).toHaveLength(1);
-      expect(screen.getByTestId('help-card')).toHaveAttribute('data-help-kind', 'step');
-    });
-
-    it('a new word on the next wait starts closed', () => {
-      renderPanel();
-      waitFor(3);
-      fireEvent.click(waitButton());
+      expect(page()).toBeInTheDocument();
+      pushState({ currentPlayerId: 'player1', globalTurnCount: 4 });
+      expect(page()).not.toBeInTheDocument();
       waitFor(7);
-      expect(openCards()).toHaveLength(0);
-      expect(waitButton()).toHaveTextContent('Permit');
+      expect(page()).toHaveTextContent('Permit');
+    });
+
+    it('one small button shows their numbers instead', () => {
+      renderPanel();
+      waitFor(3);
+      fireEvent.click(screen.getByTestId('waiting-my-numbers'));
+      expect(page()).not.toBeInTheDocument();
+    });
+
+    it('never covers something waiting on their answer', () => {
+      renderPanel();
+      waitFor(3, { awaitingChoice: { id: 'c', playerId: 'player1', type: 'GENERAL', prompt: 'Accept?', options: [] } });
+      expect(page()).not.toBeInTheDocument();
+    });
+
+    it('only on a player\'s own link', () => {
+      window.history.replaceState(null, '', '/');
+      renderPanel();
+      waitFor(3);
+      expect(page()).not.toBeInTheDocument();
     });
   });
 });

@@ -10,6 +10,7 @@ import { GameBoard } from '../board/GameBoard';
 import { ProjectProgress } from '../game/ProjectProgress';
 import { LiveTrophyBoard } from '../game/LiveTrophyBoard';
 import { HeaderMenu } from './HeaderMenu';
+import { logTvKeys } from '../../utils/tvMeter';
 import { buildHeaderMenuItems } from '../../utils/headerMenuItems';
 import { useGameSpeed } from '../../utils/gameSpeed';
 import { useBoardStyleMenu } from '../../utils/boardStyle';
@@ -109,6 +110,7 @@ export function TVDisplay(): JSX.Element {
   // TV has opened it once. Read once at mount; markTvScaleButtonUsed() below
   // flips it for good, so a re-render mid-session never brings the pulse back.
   const [scaleButtonUsed, setScaleButtonUsed] = useState(() => hasUsedTvScaleButton());
+  useEffect(() => logTvKeys(), []);
   // Re-applied on mount rather than once at boot: this screen is the only one
   // the override is scoped to, and a viewer arriving straight at a TV URL has
   // not passed through anything else that would have applied it.

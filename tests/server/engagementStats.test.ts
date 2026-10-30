@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { parseLogLine } from '../../server/visitorStats.js';
-import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields, tvSizeKeptLogFields, ABANDON_THRESHOLD_MS } from '../../server/engagementStats.js';
+import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields, tvSizeKeptLogFields, tvTurnLogFields, tvKeysLogFields, ABANDON_THRESHOLD_MS } from '../../server/engagementStats.js';
 
 const NOW = Date.parse('2026-08-02T12:00:00.000Z');
 
@@ -389,5 +389,17 @@ describe('tvSizeKeptLogFields (what the route adds to a tv_size_kept log line)',
     expect(tvSizeKeptLogFields({ layoutWidth: 0 }).layoutWidth).toBe(0);
     expect(tvSizeKeptLogFields({ layoutWidth: 'wide', screenWidth: NaN, pixelRatio: 'x' })).toEqual({ layoutWidth: null, screenWidth: null, pixelRatio: null });
     expect(tvSizeKeptLogFields(undefined).layoutWidth).toBeNull();
+  });
+});
+
+describe('the TV screen\'s own numbers (what the route adds to tv_turn and tv_keys log lines)', () => {
+  it('keeps a turn\'s numbers and the browser, and junk becomes null', () => {
+    expect(tvTurnLogFields({ frames: 58, turnMs: 1516, worstGapMs: 83, startDelayMs: 10, players: 4, browser: 'Chrome/155' })).toEqual({ frames: 58, turnMs: 1516, worstGapMs: 83, startDelayMs: 10, players: 4, browser: 'Chrome/155' });
+    expect(tvTurnLogFields({ frames: 'many' }).frames).toBeNull();
+    expect(tvTurnLogFields(undefined).browser).toBeNull();
+  });
+  it('keeps key names only: nothing but plain letters, digits and separators gets through', () => {
+    expect(tvKeysLogFields({ keys: 'ArrowUp Enter <script>', browser: 'x' }).keys).toBe('ArrowUp Enter script');
+    expect(tvKeysLogFields({ keys: 7 }).keys).toBeNull();
   });
 });

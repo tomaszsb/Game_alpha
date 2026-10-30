@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { HeaderMenu } from '../../../src/components/layout/HeaderMenu';
+import { HeaderMenu, menuFitHeight } from '../../../src/components/layout/HeaderMenu';
 import { buildHeaderMenuItems } from '../../../src/utils/headerMenuItems';
 import { setGameSpeed, getGameSpeed } from '../../../src/utils/gameSpeed';
 
@@ -111,5 +111,23 @@ describe('HeaderMenu (one menu for the PC, the TV and the remote screen)', () =>
     fireEvent.click(screen.getByTestId('screen-type-button'));
     expect(screen.getByTestId('screen-type-pc')).toBeInTheDocument();
     expect(screen.getByTestId('screen-type-tv')).toBeInTheDocument();
+  });
+});
+
+describe('the menu fits the screen (Tom, TV test 10-30)', () => {
+  afterEach(() => cleanup());
+
+  it('Full screen comes first, so it can always be reached', () => {
+    render(<HeaderMenu items={items()} buttonStyle={{}} />);
+    fireEvent.click(screen.getByTestId('header-menu-button'));
+    const list = screen.getByTestId('header-menu').querySelectorAll('[role^="menuitem"]');
+    expect(list[0]).toBe(screen.getByTestId('fullscreen-toggle'));
+  });
+
+  it('is never taller than what can be seen below where it opens', () => {
+    expect(menuFitHeight(136, 360)).toBe(216);
+    expect(menuFitHeight(100, 1080)).toBe(972);
+    expect(menuFitHeight(100, 508, 2)).toBe(200);
+    expect(menuFitHeight(136, 150)).toBe(60); // a sliver of window still leaves a usable list, which scrolls
   });
 });

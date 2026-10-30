@@ -36,7 +36,10 @@ export type PlaytestEvent =
   | 'tv_size_kept'
   // A press on End Turn / Try Again that was released before the hold filled (2026-10-17): do players miss the
   // press-and-hold? Read with space_reached: lots of commit_tap at one space and no move after = the gesture.
-  | 'commit_tap';
+  | 'commit_tap'
+  // The TV screen's own numbers (tvMeter.ts): frames in each turn of the table, and remote buttons by key name only.
+  | 'tv_turn'
+  | 'tv_keys';
 
 /** Optional fields the in-game engagement events attach. Always pseudonymous
  *  (gameId/playerId), never the player's display name. */
@@ -70,6 +73,16 @@ export interface EngagementTrackingDetails {
   layoutWidth?: number;
   screenWidth?: number;
   pixelRatio?: number;
+  // tv_turn only.
+  frames?: number;
+  turnMs?: number;
+  worstGapMs?: number;
+  startDelayMs?: number;
+  players?: number;
+  // tv_turn and tv_keys.
+  browser?: string;
+  // tv_keys only: key names, separated by spaces.
+  keys?: string;
 }
 
 function resolveCampaignSource(): string | null {

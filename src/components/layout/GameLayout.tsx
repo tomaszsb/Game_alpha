@@ -1330,7 +1330,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               and the container's overflow:hidden then clips the panel with no
               way to scroll (measured in real Chromium, standards mode:
               scroll area 1200px vs 500px, scrolls=false vs true). */}
-          <div style={isRemoteMode ? { flex: '1 1 0%', minHeight: 0, position: 'relative' } : { height: '100%' }}>
+          <div data-panel-area={isRemoteMode ? 'true' : undefined} style={isRemoteMode ? { flex: '1 1 0%', minHeight: 0, position: 'relative' } : { height: '100%' }}>
           <PullToRefresh onRefresh={handlePullToRefresh}>
             {players.find(p => p.id === effectiveViewPlayerId) ? (
               <PlayerPanelWrapper

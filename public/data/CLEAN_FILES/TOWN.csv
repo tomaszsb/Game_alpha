@@ -119,3 +119,6 @@ setting,pulse_ms,,,,,,,,,,1800
 setting,pulse_rest_ms,,,,,,,,,,3600
 setting,pulse_glow,,,,,,,,,,0.9
 setting,pulse_rest_glow,,,,,,,,,,0.3
+setting,pulse_size,,,,,,,,,,16
+setting,round_turn_banner,,,,,,,,,,{name}'s turn
+setting,round_turn_banner_ms,,,,,,,,,,3000

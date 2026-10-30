@@ -200,6 +200,29 @@ export function gameLostLogFields(body) {
   };
 }
 
+// tv_turn - one turn of the table on a TV screen (src/utils/tvMeter.ts): frames seen, how long, the longest gap, the browser.
+export function tvTurnLogFields(body) {
+  const b = body || {};
+  const whole = (v, max) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.trunc(v))) : null);
+  return {
+    frames: whole(b.frames, 100000),
+    turnMs: whole(b.turnMs, 600000),
+    worstGapMs: whole(b.worstGapMs, 600000),
+    startDelayMs: whole(b.startDelayMs, 600000),
+    players: whole(b.players, 20),
+    browser: typeof b.browser === 'string' ? b.browser.slice(0, 60) : null,
+  };
+}
+
+// tv_keys - remote buttons pressed on a TV screen, by key name only (src/utils/tvMeter.ts).
+export function tvKeysLogFields(body) {
+  const b = body || {};
+  return {
+    keys: typeof b.keys === 'string' ? b.keys.replace(/[^A-Za-z0-9_ -]/g, '').slice(0, 400) : null,
+    browser: typeof b.browser === 'string' ? b.browser.slice(0, 60) : null,
+  };
+}
+
 // tv_size_kept — a "Keep this size" tap in the TV's Adjust-screen-size panel (TODO 2026-10-14: log each one so the
 // recommended default can be averaged after ~20 TV sessions). layoutWidth 0 = "Biggest text" (the device's own width).
 export function tvSizeKeptLogFields(body) {

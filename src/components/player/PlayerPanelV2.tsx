@@ -29,6 +29,7 @@ import { PlayerPanelProps } from './panelTypes';
 import type { SpaceEffect } from '../../types/DataTypes';
 import { TextWithTerms, useDictionaryPanel, useDictionaryContext } from '../../dictionary';
 import { pickWaitingWord } from '../../utils/waitingWord';
+import { WaitingWordPage } from './WaitingWordPage';
 import { PanelMode, panelPalettes } from './panelTheme';
 import { darkenHex } from '../../styles/theme';
 import { HelpButton } from '../help/HelpButton';
@@ -62,6 +63,9 @@ import { getCurrentGameId } from '../../utils/networkDetection';
 import { trackPlaytestEvent } from '../../playtest/playtestAnalytics';
 import { getCardWordedFor, withIndefiniteArticle } from '../../utils/scopeWording';
 import { registerDiagnostic } from '../../utils/feedbackDiagnostics';
+
+/** The waiting page's one button (it opens the player's own numbers). */
+const WAITING_NUMBERS_LABEL = 'My numbers';
 
 /** Renders nothing; keeps this panel's bug-report snapshot registered (src/utils/feedbackDiagnostics.ts). */
 function PanelDiagnostics({ name, snapshot }: { name: string; snapshot: () => unknown }): null {
@@ -690,8 +694,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   let commit: { label: string; ready: boolean; subLabel?: string; onClick?: () => void };
   // A glossary word to read while someone else plays (Tom, 2026-10-26: "While other players are waiting
   // for their move maybe we can have a random word from glossary pop up on their phone?"). Checked words
-  // only; a new one each turn. It sits inside the waiting button, so the panel is no taller.
-  const waitWord = !isMyTurn && !readOnly && !gameState.isGameOver
+  // only; a new one each turn. On a player's own link it takes over their page (WaitingWordPage), never when
+  // something is waiting on their answer.
+  const ownLink = (() => { const q = new URLSearchParams(window.location.search); return !!(q.get('p') || q.get('playerId')); })();
+  const waitWord = ownLink && !isMyTurn && !readOnly && !gameState.isGameOver && gameState.awaitingChoice?.playerId !== playerId
     ? pickWaitingWord(glossaryTerms, `${playerId}|${gameState.globalTurnCount}|${gameState.currentPlayerId}`)
     : null;
   if (!isMyTurn) {
@@ -1667,12 +1673,8 @@ ${spaceWhy}` } : baseWhy;
         ) : (
           <>
           <button
-            // While waiting, a tap opens the word of the moment in the panel's own help card, the same one
-            // every "?" opens (Tom 10-27: the jump to the glossary screen felt "slapped on"); data-ready stays false.
-            onClick={commit.ready ? commit.onClick : waitWord ? () => toggleHelp(`word:${waitWord.id}`, 'waiting-word') : undefined}
-            disabled={!commit.ready && !waitWord}
-            aria-expanded={!commit.ready && waitWord ? openHelp === `word:${waitWord.id}` : undefined}
-            aria-controls={!commit.ready && waitWord ? 'help-card-word' : undefined}
+            onClick={commit.ready ? commit.onClick : undefined}
+            disabled={!commit.ready}
             // Structural handle for the playtest robot, which otherwise looks
             // for this button by matching /^(move forward|end turn|confirm move|
             // commit)/ against its caption. That caption is `end_turn_label`
@@ -1703,7 +1705,7 @@ ${spaceWhy}` } : baseWhy;
               fontWeight: 500,
               color: commit.ready ? '#fff' : p.muted,
               background: commit.ready ? p.accent : p.surf2,
-              cursor: commit.ready || waitWord ? 'pointer' : 'default',
+              cursor: commit.ready ? 'pointer' : 'default',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -1737,40 +1739,21 @@ ${spaceWhy}` } : baseWhy;
                 {turnCostLine}
               </small>
             )}
-            {waitWord && (
-              <small
-                data-testid="waiting-word"
-                style={{
-                  display: 'block',
-                  maxWidth: '100%',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  fontSize: 11,
-                  fontWeight: 400,
-                  color: p.accent,
-                }}
-              >
-                <span aria-hidden>📖 </span><strong>{waitWord.term}</strong>
-                {/* Open, the card below says it in full; the cut-off copy here would only repeat it. */}
-                {openHelp !== `word:${waitWord.id}` && <>: {waitWord.definition}</>}
-              </small>
-            )}
           </button>
-          {/* Keyed to the word, so the next wait's new word starts closed. */}
-          {waitWord && openHelp === `word:${waitWord.id}` && (
-            <HelpCard
-              id="help-card-word"
-              kind="waiting-word"
-              palette={p}
-              onTermClick={(term) => openWithTerm(term.id)}
-              sections={[{ label: `${waitWord.term}:`, text: waitWord.definition }]}
-            />
-          )}
           </>
         )}
       </div>
 
+      {waitWord && numbersPage === null && detailCardId === null && (
+        <WaitingWordPage
+          term={waitWord.term}
+          definition={waitWord.definition}
+          waitingLine={commit.label}
+          numbersLabel={WAITING_NUMBERS_LABEL}
+          onNumbers={() => setNumbersPage('money')}
+          palette={p}
+        />
+      )}
       {/* "Recall my numbers" reference — scope, work packages, money, time. */}
       {(['money', 'expeditors', 'scope'] as const).map((pg) => (
         <PlayerNumbersV2

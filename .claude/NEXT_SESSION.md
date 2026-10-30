@@ -1,18 +1,18 @@
 # Next session starter — written 2026-10-30 by /koniec (Game session, folder D:\Unravel\Current_Game\Game_Alpha; other sessions add below)
 
 ## State at handoff
-- **Version:** v3.9.9 pushed, **NOT deployed**. Live is **v3.9.8** (`/health` = `5bb110bf`, deployed by Tom 10-30 05:38 UTC). 3.9.9 = round-town loose ends. Check `/health` vs `git rev-parse --short HEAD` first.
+- **Version:** v3.9.10 pushed, **NOT deployed**. Live is **v3.9.9** (`/health` = `001ba36f`, 10-30). 3.9.10 = TV fix pack from Tom's Hisense test. Check `/health` vs `git rev-parse --short HEAD` first.
 - **Branch:** master, clean except the untracked `public/assets/inspector/` + `public/assets/trophies/` (other sessions'; do not add or delete).
 - **Last shipped:** the round town, opt-in (fb:fefe42f8). 3.9.6: ring of the 7 shared buildings round a park with a fountain, a side per player (owner's house + office in the player's colour), a table that turns to whoever's turn it is, clocks on the rim, pulsing move choices, teacher Town settings strip. 3.9.7: each building drawn by its job (`round_looks` in TOWN.csv, drawings in `src/components/board/townLooks.tsx`), names on signs on the front walls, room choices on the sign. 3.9.8: "Round town" as a third board choice.
-- **Test suite:** `npm test` 347 files / 4,433 passing; typecheck shows only the 9 old errors in tests/; ghost gate not rerun (no engine change) (v3.9.9); build OK; typecheck = the 9 old errors in `tests/` (`finalStretch.test.ts`, `dataGate.test.ts` missing `@types/express`). `test:ghost` not rerun (no engine change since 3.9.5).
+- **Test suite:** `npm test` 350 files / 4,449 passing (v3.9.10); typecheck shows only the 9 old errors in tests/; ghost gate not rerun (no engine change); build OK; typecheck = the 9 old errors in `tests/` (`finalStretch.test.ts`, `dataGate.test.ts` missing `@types/express`). `test:ghost` not rerun (no engine change since 3.9.5).
 - **Version rule:** patch caps at 99.
 
 ## How Tom picks Round town
 - Setup screen > Game Settings > **Board: Round town** (every screen of that game). In a running game: **Menu > Board** goes Town, Round town, Classic (that screen only). Also still works: a `?town=round` link, or a class's Town settings strip `round_town` = on. Default stays Street view, so the class and the robot see no change.
 
 ## Top 3 open items
-1. **Tom is playing a round-town game on his TV (v3.9.8 live); 3.9.9 waits for his next deploy.** Stage 2 (talk bubbles, panel split, glossary viewer) waits for that test; the Manager sequences it.
-2. **Round town NOT done:** signs can cross for a moment WHILE the table turns (tested clean at every resting pose, 1-4 players, v3.9.9); a sign can be partly hidden behind a nearer building or a pawn on the left/right sides; **never tried on a real Fire Stick**; the teacher Town settings strip was never clicked in a browser (component + server tests only). Done in 3.9.9: the sign-overlap test, the trailer's sign at full size, weather and scenery on the round town.
+1. **Tom deploys 3.9.10 and plays again on the Hisense; read `PLAYTEST_TV_TURN` and `PLAYTEST_TV_KEYS` from `GET /api/logs` for the real numbers. iPhones never buzz (web pages cannot vibrate there), yet the welcome screen promises it: waiting on Tom's call.** Stage 2 (talk bubbles, panel split, glossary viewer) waits for that test; the Manager sequences it.
+2. **Round town NOT done:** the table turn is lighter but not proven smooth on a real TV (numbers in CHANGELOG 3.9.10); signs can cross for a moment WHILE the table turns (tested clean at every resting pose, 1-4 players, v3.9.9); a sign can be partly hidden behind a nearer building or a pawn on the left/right sides; **never tried on a real Fire Stick**; the teacher Town settings strip was never clicked in a browser (component + server tests only). Done in 3.9.9: the sign-overlap test, the trailer's sign at full size, weather and scenery on the round town.
 3. **fb:5618257f blank board:** v3.9.1 records `nodesHidden`; the next blank-board report answers the hypothesis (unverified).
 
 ## Decisions waiting on the user
@@ -31,7 +31,7 @@ Sonnet 5 for loose ends (sign-overlap test, trailer sign); Opus if stage 2 start
 
 ## Reminders
 - Tom deploys from PowerShell: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Never run it yourself. Marking feedback resolved changes the live server: only on Tom's own yes.
-- Round-town pictures: `.tmp/round-town-build/` (1a) and `.tmp/round-town-build-1b/` (1b; `turn.mjs` passes a turn on the server, `closeup.mjs` shoots every building). TV with no phones: start as PC, then open the same link with `mode=tv&role=tv`.
+- TV pack pictures and measuring scripts: `.tmp/tv-pack/` (`check.mjs` every visible change, `turn.mjs` the turn numbers). Round-town pictures: `.tmp/round-town-build/` (1a) and `.tmp/round-town-build-1b/` (1b; `turn.mjs` passes a turn on the server, `closeup.mjs` shoots every building). TV with no phones: start as PC, then open the same link with `mode=tv&role=tv`.
 - The Vite watcher on D: missed edits several times: `curl localhost:3000/src/<file>` before trusting a browser check; restart the preview if stale.
 
 ## Other sessions (added by their /koniec)

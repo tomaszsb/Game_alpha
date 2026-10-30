@@ -28,6 +28,7 @@
 // hover/click overlays for space details. Phase D wires drag-save to
 // the editor's existing /api/sources POST endpoint.
 
+import { cameraLockFor } from '../../utils/tvCamera';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
@@ -1055,6 +1056,7 @@ function BoardCanvasInner({
   onPositionSaved,
   showBuffer = false,
   centerOnCurrent = false,
+  screen,
   focusRequest,
   mode: modeProp,
   allowPan = false,
@@ -1859,6 +1861,7 @@ function BoardCanvasInner({
         // Controls (bottom-left) zoom + fit buttons to navigate; the
         // board's fitView keeps it usable without manual panning.
         panOnDrag={isAdmin || allowPan}
+        {...cameraLockFor(screen)}
         edgesFocusable={isAdmin}
         snapToGrid={isAdmin}
         snapGrid={[10, 10]}

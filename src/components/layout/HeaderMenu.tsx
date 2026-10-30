@@ -10,7 +10,7 @@
 // what it lists looks and reads the same everywhere. The always-there items (adjust screen size, what kind
 // of screen this is, full screen) are built in so no screen can forget or reword them.
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ScreenSizeControl } from './ScreenSizeControl';
 import { DEVICE_ROLE } from '../../constants/uiStrings';
 import { roleUrl, setStoredDeviceRole, DeviceRole } from '../../utils/deviceRole';
@@ -50,6 +50,11 @@ function toggleFullscreen(): void {
   else void document.documentElement.requestFullscreen();
 }
 
+/** How tall the open menu may be so all of it fits on the screen that can be seen right now (`scale` = how much the page is shrunk or grown). */
+export function menuFitHeight(top: number, visibleHeight: number, scale = 1): number {
+  return Math.max(60, (visibleHeight - top - 8) / (scale > 0 ? scale : 1));
+}
+
 /** Switch this screen to another kind: remember it, then reload the link written for that kind. */
 function goToRole(role: DeviceRole, href: string): void {
   setStoredDeviceRole(role);
@@ -86,6 +91,29 @@ export function HeaderMenu({ items, buttonStyle, align = 'right', onOpenScreenSi
     return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
+  // The menu always fits what can be seen, measured when it opens and whenever that changes: going in and out of full
+  // screen brings a browser's own frames back (Tom's TV test, 2026-10-30: "the menu no longer fits").
+  const listRef = useRef<HTMLDivElement>(null);
+  const [fitHeight, setFitHeight] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    const fit = () => {
+      const el = listRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setFitHeight(menuFitHeight(r.top, window.visualViewport?.height ?? window.innerHeight, el.offsetHeight ? r.height / el.offsetHeight : 1));
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    window.visualViewport?.addEventListener('resize', fit);
+    document.addEventListener('fullscreenchange', fit);
+    return () => {
+      window.removeEventListener('resize', fit);
+      window.visualViewport?.removeEventListener('resize', fit);
+      document.removeEventListener('fullscreenchange', fit);
+    };
+  }, [open]);
+
   const href = window.location.href;
   const hasPlayer = !!(new URL(href).searchParams.get('p') || new URL(href).searchParams.get('playerId'));
   const roles: DeviceRole[] = hasPlayer ? ['pc', 'tv', 'phone'] : ['pc', 'tv'];
@@ -107,10 +135,11 @@ export function HeaderMenu({ items, buttonStyle, align = 'right', onOpenScreenSi
       </button>
       {open && (
         <div
+          ref={listRef}
           role="menu"
           data-testid="header-menu"
           style={{
-            position: 'absolute', top: 'calc(100% + 6px)', [align]: 0, zIndex: 1100, minWidth: 250, maxHeight: '80vh', overflowY: 'auto',
+            position: 'absolute', top: 'calc(100% + 6px)', [align]: 0, zIndex: 1100, minWidth: 250, maxHeight: fitHeight ?? '80vh', overflowY: 'auto', boxSizing: 'border-box',
             padding: 6, background: '#fff', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column',
           }}
         >
@@ -123,6 +152,10 @@ export function HeaderMenu({ items, buttonStyle, align = 'right', onOpenScreenSi
             style={{ alignSelf: 'flex-end', background: 'transparent', border: 'none', fontSize: '1.1rem', lineHeight: 1, padding: '4px 8px', cursor: 'pointer', color: '#475569' }}
           >
             ✕
+          </button>
+          {/* First, so it can always be reached once the browser's frames come back. */}
+          <button type="button" role="menuitem" data-testid="fullscreen-toggle" style={item} onClick={() => { toggleFullscreen(); close(); }}>
+            ⛶ {isFullscreen ? 'Exit full screen' : 'Full screen'}
           </button>
           {items.map(it => (
             <button
@@ -166,9 +199,6 @@ export function HeaderMenu({ items, buttonStyle, align = 'right', onOpenScreenSi
               <div style={{ fontWeight: 400, color: '#475569', marginTop: 1, whiteSpace: 'normal' }}>{DEVICE_ROLE.hint(role)}</div>
             </button>
           ))}
-          <button type="button" role="menuitem" data-testid="fullscreen-toggle" style={item} onClick={() => { toggleFullscreen(); close(); }}>
-            ⛶ {isFullscreen ? 'Exit full screen' : 'Full screen'}
-          </button>
         </div>
       )}
     </div>

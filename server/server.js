@@ -20,7 +20,7 @@ import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
 import { isHomeIP as isHomeIPPure, ipv6Prefix64 } from './homeIP.js';
 import { parseLogLine, aggregateVisitorStats, newYorkDay } from './visitorStats.js';
-import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields, tvSizeKeptLogFields } from './engagementStats.js';
+import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields, tvSizeKeptLogFields, tvTurnLogFields, tvKeysLogFields } from './engagementStats.js';
 import geoip from 'geoip-lite';
 import {
   DEFAULT_INSTANCE_ID,
@@ -3404,6 +3404,9 @@ const PLAYTEST_EVENTS = new Set([
   'tv_size_kept',
   // A tap on the commit control released before the hold filled (gameId, playerId, spaceId only).
   'commit_tap',
+  // The TV screen's own numbers: frames per turn of the table, and remote buttons by key name only.
+  'tv_turn',
+  'tv_keys',
 ]);
 
 function sanitizeTrackField(value) {
@@ -3426,6 +3429,8 @@ app.post('/api/playtest/track', (req, res) => {
     ...(event === 'push_back' ? pushBackLogFields(req.body) : {}),
     ...(event === 'game_lost' ? gameLostLogFields(req.body) : {}),
     ...(event === 'tv_size_kept' ? tvSizeKeptLogFields(req.body) : {}),
+    ...(event === 'tv_turn' ? tvTurnLogFields(req.body) : {}),
+    ...(event === 'tv_keys' ? tvKeysLogFields(req.body) : {}),
   });
   res.json({ success: true });
 });

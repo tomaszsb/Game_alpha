@@ -20,6 +20,8 @@ export interface PulseLook {
   /** Brightness at the top of a pulse, 0..1. */
   glow: number;
   restGlow: number;
+  /** How far the glow reaches past a sign (board px, at sign size 1): the town is seen zoomed out, so this must be big. */
+  size: number;
 }
 
 export function pulseLookOf(settings: Record<string, string>): PulseLook {
@@ -32,5 +34,15 @@ export function pulseLookOf(settings: Record<string, string>): PulseLook {
     restMs: n('pulse_rest_ms', PULSE_MS * 2, 200, 20000),
     glow: n('pulse_glow', 0.9, 0, 1),
     restGlow: n('pulse_rest_glow', 0.3, 0, 1),
+    size: n('pulse_size', 16, 0, 60),
   };
+}
+
+/** How far a sign's glow reaches past the sign, in board px, on a sign drawn `signScale` times its made size. */
+export const pulseReach = (look: Pick<PulseLook, 'size'>, signScale: number): number => look.size * signScale;
+
+/** The glow round a sign: a thin white line so it stands clear of any ground, then the wide soft glow. */
+export function pulseHalo(look: Pick<PulseLook, 'size'>, signScale: number, color: string): { inset: number; boxShadow: string } {
+  const reach = pulseReach(look, signScale);
+  return { inset: -reach / 4, boxShadow: `0 0 0 ${3 * signScale}px #ffffff, 0 0 ${reach * 1.2}px ${reach}px ${color}` };
 }
