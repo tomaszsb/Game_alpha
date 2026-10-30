@@ -33,3 +33,6 @@ Sonnet 5 for loose ends (sign-overlap test, trailer sign); Opus if stage 2 start
 - Tom deploys from PowerShell: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Never run it yourself. Marking feedback resolved changes the live server: only on Tom's own yes.
 - Round-town pictures: `.tmp/round-town-build/` (1a) and `.tmp/round-town-build-1b/` (1b; `turn.mjs` passes a turn on the server, `closeup.mjs` shoots every building). TV with no phones: start as PC, then open the same link with `mode=tv&role=tv`.
 - The Vite watcher on D: missed edits several times: `curl localhost:3000/src/<file>` before trusting a browser check; restart the preview if stale.
+
+## Other sessions (added by their /koniec)
+- **dialogue-draft:** `.tmp/dialogue/conversation-lines-draft.csv` (182 lines, Sonnet 5.5) is superseded by dialogue-merge's merged sheet; nothing goes into the game until Tom reviews. Zero game source touched (typecheck = the same 9 old errors in `tests/`, build OK, no test suite).
