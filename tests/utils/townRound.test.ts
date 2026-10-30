@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { buildTownLayout, buildingOfRoom } from '../../src/utils/townLayout';
 import {
-  newGameTownShape, poseRoundTown, nextPose, shortTurn, roundAngle, roundWedges, ownerOfAngle, roundWalkPath, seatAngle, posedAngle,
+  newGameTownShape, poseRoundTown, nextPose, shortTurn, roundAngle, roundWedges, ownerOfAngle, roundWalkPath, seatAngle, posedAngle, roundLooks,
   type RoundTown,
 } from '../../src/utils/townRound';
 import { extractPrefix } from '../../src/constants/characters';
@@ -154,5 +154,46 @@ describe('the turning table', () => {
     expect(path.length).toBeGreaterThan(3);
     for (const p of path.slice(1, -1)) expect(Math.hypot(p.col - t.round.cc, p.row - t.round.cr)).toBeCloseTo(t.round.roadRadius, 6);
     expect(roundWalkPath(t, 'dob', 'dob')).toEqual([]);
+  });
+});
+
+describe('the round town looks (stage 1b): which drawing each building gets is data', () => {
+  it('the stock data gives every building a look from the set of drawings, and the striped town has none', async () => {
+    const { LOOKS } = await import('../../src/components/board/townLooks');
+    const t = round(2);
+    const bases = [...new Set(t.buildings.map(b => b.id.split('@')[0]))];
+    for (const id of bases) {
+      const look = t.round.looks.get(id);
+      expect(look, id).toBeTruthy();
+      expect(LOOKS[look!], `${id}: ${look}`).toBeTruthy();
+    }
+    expect(t.round.looks.get('bank')).toBe('bank');
+    expect(t.round.looks.get('investor')).toBe('tower');
+    const plain = buildTownLayout(townRows(), stockSpaces(), extractPrefix, s => s, 2)!;
+    expect(plain.round).toBeUndefined();
+  });
+
+  it('the setting is read as id:look pairs; a building it does not name, or a look that does not exist, is a plain block', async () => {
+    const { lookFor, LOOKS } = await import('../../src/components/board/townLooks');
+    expect([...roundLooks('owner:house bank:bank broken :x y:').entries()]).toEqual([['owner', 'house'], ['bank', 'bank']]);
+    expect(lookFor('no-such-look')).toBe(LOOKS.box);
+    expect(lookFor(undefined)).toBe(LOOKS.box);
+    const rows = townRows().map(r => (r.id === 'round_looks' ? { ...r, value: 'bank:tower' } : r));
+    const t = buildTownLayout(rows, stockSpaces(), extractPrefix, s => s, 1, 'round') as Round;
+    expect(t.round.looks.get('bank')).toBe('tower');
+    expect(t.round.looks.get('owner')).toBeUndefined();
+  });
+
+  it('every look draws inside its own footprint height and puts its sign on a wall it has', async () => {
+    const { LOOKS } = await import('../../src/components/board/townLooks');
+    const foot = { c0: 0, r0: 0, c1: 4.2, r1: 4.2, h: 80, color: '#90caf9' };
+    for (const [name, look] of Object.entries(LOOKS)) {
+      expect(look.top(foot), name).toBeGreaterThan(0);
+      const s = look.sign(foot);
+      expect(s.c, name).toBeGreaterThanOrEqual(foot.c0);
+      expect(s.c, name).toBeLessThanOrEqual(foot.c1);
+      expect(s.z, name).toBeLessThanOrEqual(look.top(foot));
+      if (s.side) expect([foot.c0, foot.c1], name).toContain(s.c); else expect(s.r, name).toBeGreaterThan(foot.r0);
+    }
   });
 });

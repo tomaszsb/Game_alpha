@@ -20,7 +20,7 @@ export interface TownSettingsDeps {
 
 /** The same rules the server applies (server/instanceResolver.js). */
 export const TOWN_SETTING_KEY = /^(round|pulse)_[a-z0-9_]{1,40}$/;
-export const TOWN_SETTING_VALUE = /^[^,"\r\n]{0,200}$/;
+export const TOWN_SETTING_VALUE = /^[^,"\r\n]{0,400}$/;
 
 export interface TownSettingRow {
   key: string;

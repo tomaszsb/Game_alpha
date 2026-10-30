@@ -644,7 +644,7 @@ export function scrubSpaceReferences(csvText, off, detours) {
 // settings rows (TOWN.csv). Only those settings, so a teacher can switch the round town on and tune it without
 // touching the town's buildings. An empty value resets the setting to the stock one.
 export const TOWN_SETTING_KEY = /^(round|pulse)_[a-z0-9_]{1,40}$/;
-export const TOWN_SETTING_VALUE = /^[^,"\r\n]{0,200}$/;
+export const TOWN_SETTING_VALUE = /^[^,"\r\n]{0,400}$/;
 
 /**
  * TOWN.csv with a classroom's settings in place: each named `setting` row gets the classroom's value (in its last

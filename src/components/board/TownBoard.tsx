@@ -52,6 +52,7 @@ import { racePlaces } from '../../utils/liveTrophies';
 import { getTrophyRules, type TrophyId } from '../../utils/trophyRules';
 import { playResultChime, isAudioReady, primeAudio } from '../../utils/haptics';
 import { pulseAnimation, pulseLookOf, type PulseLook } from '../../utils/pulseLook';
+import { lookFor, tone, type Pt, type SignStyle } from './townLooks';
 import {
   nextPose, poseRoundTown, roundPoint, roundWedges, ownerOfAngle, roundWalkPath, seatAngle,
   type RoundPose, type RoundTown, type RoundWedge,
@@ -85,6 +86,8 @@ import {
 export const TOWN_TILE = 50;
 /** Room above each block for its name sign, so fitting the view keeps the signs on screen. */
 const SIGN_SPACE = 90;
+/** A round town's building: room above it for the list of rooms to move to (its name is on its front wall). */
+const FACADE_ROOM = 50;
 /** How long the mouse rests on a building before its rooms open, so passing over one does not pop it
  *  open and shut (Tom, 2026-10-12: "a lot of flickering"). */
 const HOVER_OPEN_MS = 400;
@@ -389,6 +392,8 @@ interface BuildingData extends Record<string, unknown> {
   pulseLook?: PulseLook & { still: boolean };
   /** How much bigger the sign is drawn (round town, `round_sign_scale`); 1 = as made. */
   signScale?: number;
+  /** A round town: the look it is drawn with (townLooks.tsx); the name is then a sign on its front wall. */
+  look?: string;
 }
 
 function Block({ b, ox, oy }: { b: TownBuilding; ox: number; oy: number }) {
@@ -419,7 +424,134 @@ function Block({ b, ox, oy }: { b: TownBuilding; ox: number; oy: number }) {
   );
 }
 
-function TownBuildingNode({ data }: NodeProps<Node<BuildingData>>) {
+function TownBuildingNode(props: NodeProps<Node<BuildingData>>) {
+  return props.data.look ? <FacadeBuilding {...props} /> : <PlainBuilding {...props} />;
+}
+
+/** Letters in the longest word of a name (a sign never breaks a word). */
+const longestWord = (name: string) => Math.max(1, ...name.split(/\s+/).map(w => w.length));
+
+/** The front walls of every block slope at this angle on screen (the town is drawn at 2:1). */
+const FACE_SLOPE = (Math.atan(0.5) * 180) / Math.PI;
+
+/** How each kind of facade sign looks: the building's own colour (shades of it), white and dark only. */
+function signLook(style: SignStyle, color: string, k: number): React.CSSProperties {
+  switch (style) {
+    case 'plaque': return { background: '#f8fafc', color: '#1f2937', border: `${2 * k}px solid #64748b` };
+    case 'awning': return { background: '#ffffff', color: '#1f2937', border: `${2 * k}px solid ${tone(color, 0.55)}`, borderTop: `${7 * k}px solid ${tone(color, 0.55)}` };
+    case 'banner': return { background: tone(color, 0.42), color: '#ffffff', border: `${2 * k}px solid ${tone(color, 0.3)}` };
+    default: return { background: '#1f2937', color: '#f9fafb', border: `${2 * k}px solid #111827` };
+  }
+}
+
+/**
+ * A round town's building (stage 1b, Tom 10-30): drawn in its look, with its name on a sign built into its front wall.
+ * The sign lies along the wall (its letters stay upright) and turns with the building. The players stand on top, and the
+ * rooms to move to (or, when open, all its rooms) show above it, as on the striped town.
+ */
+function FacadeBuilding({ data }: NodeProps<Node<BuildingData>>) {
+  const { building: b, view, open, ox, oy, w, h, labels, named, faded, seatColor, mode, bubbles, onBubbleDone, pulse, pulseLook, signScale = 1 } = data;
+  const pal = panelPalettes[mode];
+  const look = lookFor(data.look);
+  const foot = { c0: b.col, r0: b.row, c1: b.col + b.width, r1: b.row + b.depth, h: b.height, color: b.color };
+  const P: Pt = (c, r, z) => { const p = isoPoint(c, r, z, TOWN_TILE); return `${(p.x - ox).toFixed(1)},${(p.y - oy).toFixed(1)}`; };
+  const at = (q: { c: number; r: number; z: number }) => { const p = isoPoint(q.c, q.r, q.z, TOWN_TILE); return { x: p.x - ox, y: p.y - oy }; };
+  const signAt = look.sign(foot);
+  const sign = at(signAt);
+  const stand = at(look.stand(foot));
+  const isDest = view.destinationRooms.length > 0;
+  const ring = view.isCurrent ? HERE : isDest ? DEST : null;
+  const ref = useRef<HTMLDivElement>(null);
+  useTurn(ref, data.turn);
+  const peak = pulse && pulseLook ? (pulse === 'rest' ? pulseLook.restGlow : pulseLook.glow) : 0;
+  const steady = !pulseLook || pulseLook.still || pulse === 'chosen';
+  // the sign is a band across the wall it is built into (front, or right side), as wide as that wall
+  const wall = (signAt.span ?? b.width) * TOWN_TILE * Math.hypot(1, 0.5);
+  return (
+    <div
+      ref={ref}
+      data-testid={`town-building-${b.id}`}
+      data-pulse={pulse}
+      data-look={data.look}
+      data-named={named ? 'true' : 'false'}
+      data-faded={faded ? 'true' : 'false'}
+      data-open={open ? 'true' : 'false'}
+      data-current={view.isCurrent ? 'true' : 'false'}
+      data-destination={isDest ? 'true' : 'false'}
+      style={{ position: 'relative', width: w, height: h, cursor: 'pointer', pointerEvents: 'none', opacity: faded ? 0.5 : 1, transformOrigin: '0 0' }}
+    >
+      <svg width={w} height={h} style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }} aria-hidden="true">
+        <g style={{ pointerEvents: 'visiblePainted' }}>{look.draw(P, foot)}</g>
+      </svg>
+      <div
+        data-testid="town-facade-sign"
+        style={{
+          position: 'absolute', left: sign.x, top: sign.y, transform: `translate(-50%, -50%) skewY(${signAt.side ? -FACE_SLOPE : FACE_SLOPE}deg)`,
+          // as wide as its wall at least, stretching up to a third past it (and to the longest word) so a name takes two lines at most
+          pointerEvents: 'auto', width: 'max-content', minWidth: wall, maxWidth: Math.max(wall * 1.34, longestWord(b.name) * 22 * signScale * 0.62 + 20 * signScale), boxSizing: 'border-box', textAlign: 'center',
+          fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800, fontSize: 22 * signScale * (look.signSize ?? 1), lineHeight: 1.05,
+          padding: `${3 * signScale}px ${7 * signScale}px`, borderRadius: 5 * signScale, opacity: named ? 1 : 0.85,
+          ...signLook(look.signStyle, b.color, signScale),
+          ...(ring ? { outline: `${3 * signScale}px solid ${ring}`, outlineOffset: 2 } : {}),
+          boxShadow: view.isCurrent || (isDest && !pulse) ? `0 0 14px ${ring}` : '0 3px 6px rgba(0,0,0,0.3)',
+        }}
+      >
+        {pulse && pulseLook && (
+          <span aria-hidden data-testid="town-pulse" style={{
+            position: 'absolute', inset: -7, borderRadius: 10, pointerEvents: 'none', boxShadow: `0 0 18px 7px ${DEST}`,
+            ['--uc-pulse-peak' as string]: peak,
+            ...(steady ? { opacity: peak } : { animation: pulseAnimation('uc-town-pulse', pulse === 'rest' ? pulseLook.restMs : pulseLook.ms) }),
+          }} />
+        )}
+        {named ? b.name : '?'}
+        {named && !open && isDest && (
+          // the rooms to move to, on the building's own sign (no card floats over the town)
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 4 * signScale, marginTop: 3 * signScale }}>
+            {view.destinationRooms.map(r => (
+              <span key={r} data-testid={`town-room-${r}`} data-destination="true" style={{ fontSize: 13 * signScale, fontWeight: 800, whiteSpace: 'nowrap', padding: `${1 * signScale}px ${5 * signScale}px`, borderRadius: 6, background: '#ffffff', color: DEST, border: `2px solid ${DEST}` }}>
+                → {labels[r] ?? r}
+              </span>
+            ))}
+          </div>
+        )}
+        {seatColor && <span aria-hidden data-testid="town-seat-dot" style={{ display: 'inline-block', width: 12 * signScale, height: 12 * signScale, borderRadius: '50%', background: seatColor, border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.4)', marginLeft: 6 * signScale, verticalAlign: 'middle' }} />}
+      </div>
+      <div style={{ position: 'absolute', left: stand.x, top: stand.y, transform: `translate(-50%, -100%) scale(${signScale})`, transformOrigin: '50% 100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, pointerEvents: 'none' }}>
+        {bubbles.map(bb => <FloatingBubble key={bb.key} bubble={bb} onDone={onBubbleDone} />)}
+        {view.playersHere.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, filter: 'drop-shadow(0 4px 4px rgba(0,0,0,0.35))' }}>
+            {view.playersHere.map(p => <PlayerPawn key={p.id} avatar={p.avatar} color={p.color} width={PAWN_W} title={p.name} testId={`town-pawn-${p.id}`} />)}
+          </div>
+        )}
+        {named && open && b.rooms.length + b.altRooms.length > 0 && (
+          <div style={{ pointerEvents: 'auto', background: pal.bg, color: pal.text, border: `3px solid ${ring ?? pal.borderStrong}`, borderRadius: 12, padding: '5px 8px', display: 'flex', flexWrap: 'wrap', gap: 5, maxWidth: 420, width: 'max-content', fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif', boxShadow: '0 4px 10px rgba(0,0,0,0.25)' }}>
+            {[...b.rooms, ...b.altRooms].map(r => {
+              const here = view.currentRoom === r;
+              const dest = view.destinationRooms.includes(r);
+              return (
+                <span
+                  key={r}
+                  data-testid={`town-room-${r}`}
+                  data-current={here ? 'true' : 'false'}
+                  data-destination={dest ? 'true' : 'false'}
+                  style={{
+                    fontSize: 16, fontWeight: 700, whiteSpace: 'nowrap', padding: '4px 8px', borderRadius: 7,
+                    background: here ? (mode === 'dark' ? 'rgba(245,158,11,0.18)' : '#fff7e0') : dest ? pal.goodSurf : pal.surf,
+                    border: `2px solid ${here ? HERE : dest ? DEST : pal.border}`,
+                  }}
+                >
+                  {dest ? '→ ' : ''}{labels[r] ?? r}
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlainBuilding({ data }: NodeProps<Node<BuildingData>>) {
   const { building: b, view, open, ox, oy, w, h, roofX, roofY, labels, portrait, named, faded, seatColor, mode, bubbles, onBubbleDone, pulse, pulseLook, signScale } = data;
   const pal = panelPalettes[mode];
   const isDest = view.destinationRooms.length > 0;
@@ -1063,18 +1195,25 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     const intent = currentIdx >= 0 ? players[currentIdx].moveIntent : undefined;
     const chosen = round && intent && validMoves.includes(intent) ? buildingOfRoom(layout, intent, currentWho) : undefined;
     for (const b of layout.buildings) {
-      const box = buildingBox(b, TOWN_TILE);
+      // The buildings the data paints in their player's colour (a round town's owner's house and office).
+      const painted = round && b.seat !== undefined && round.playerColor.has(b.id.split('@')[0]) ? { ...b, color: players[b.seat]?.color ?? b.color } : b;
+      // A round town draws each building in its look (townLooks.tsx), which sets how tall it stands.
+      const lookName = round ? round.looks.get(b.id.split('@')[0]) ?? 'box' : undefined;
+      const look = lookName ? lookFor(lookName) : undefined;
+      const foot = { c0: b.col, r0: b.row, c1: b.col + b.width, r1: b.row + b.depth, h: b.height, color: painted.color };
+      const box = buildingBox(look ? { ...b, height: look.top(foot) } : b, TOWN_TILE);
       const view = views.get(b.id)!;
-      const open = expanded === b.id || hovered === b.id || (centerOnCurrent && view.isCurrent);
+      // A round town never opens a building by itself (its rooms to move to are on its own sign; a card would cover other signs).
+      const open = expanded === b.id || hovered === b.id || (centerOnCurrent && view.isCurrent && !round);
       // Pawns stand on the sign: their room counts as part of the building, so the camera keeps them
       // in view (under the row of clocks, too).
       const pawnRoom = view.playersHere.length > 0 ? pawnHeight(PAWN_W) : 0;
       const signScale = round ? round.signScale : 1;
-      const ox = box.x, oy = box.y - (SIGN_SPACE + pawnRoom) * signScale;
+      // The players and the room list stand above the spot the look gives them; the node reaches up to cover them.
+      const standY = look ? (() => { const s = look.stand(foot); return isoPoint(s.c, s.r, s.z, TOWN_TILE).y; })() : 0;
+      const ox = box.x, oy = look ? Math.min(box.y, standY - (FACADE_ROOM + pawnRoom) * signScale) : box.y - (SIGN_SPACE + pawnRoom) * signScale;
       const anchor = isoPoint(b.col + b.width / 2, b.row + b.depth / 2, 0, TOWN_TILE);
       const inRing = !!(round && (round.places.get(b.id) ?? round.places.get(round.rides.get(b.id)?.on ?? ''))?.ring);
-      // The buildings the data paints in their player's colour (a round town's owner's house and office).
-      const painted = round && b.seat !== undefined && round.playerColor.has(b.id.split('@')[0]) ? { ...b, color: players[b.seat]?.color ?? b.color } : b;
       out.push({
         id: b.id, type: 'townBuilding', position: { x: ox, y: oy },
         // Back to front, so nearer blocks cover farther ones; an open sign sits above everything.
@@ -1085,7 +1224,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         // pop open and shut as the mouse moved (measured 2026-10-12: wrong building at 10 of 53 spots).
         style: { pointerEvents: 'none' },
         data: {
-          building: painted, view, open, ox, oy, w: box.w, h: box.h + (SIGN_SPACE + pawnRoom) * signScale, signScale,
+          building: painted, view, open, ox, oy, w: box.w, h: box.y + box.h - oy, signScale, look: lookName,
           turn: turnOf(inRing, anchor.x, anchor.y), pulseLook,
           pulse: round && view.destinationRooms.length > 0 ? (chosen ? (chosen === b.id ? 'chosen' : 'rest') : 'choose') : undefined,
           roofX: box.roofX, roofY: box.roofY, labels, portrait: portraitFor(b.icon), named: named.has(b.id), faded: faded.has(b.id), seatColor: layout.seats > 1 && b.seat !== undefined ? players[b.seat]?.color : undefined, mode,

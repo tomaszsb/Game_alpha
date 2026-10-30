@@ -71,6 +71,8 @@ export interface RoundTown {
   trees: RoundTree[];
   /** Base ids painted in their player's colour (`round_player_color`). */
   playerColor: Set<string>;
+  /** Base id -> the look it is drawn with (`round_looks`, "id:look" pairs; the drawings are in townLooks.tsx). */
+  looks: Map<string, string>;
 }
 
 /** The table's turn and the ring's (the ring's angle is its own, not added to the table's). */
@@ -234,11 +236,22 @@ export function makeRoundTown(layout: TownLayout): RoundTown | null {
     cc, cr, ring, ringRadius, roadRadius, sideRadius, parkRadius, islandRadius, fountain,
     clockRadius: islandRadius + num(s.round_clock_out, 1.2),
     clockScale: Math.max(0.5, num(s.round_clock_scale, 2.6)),
-    signScale: Math.min(3, Math.max(0.5, num(s.round_sign_scale, 1.6))),
+    signScale: Math.min(3, Math.max(0.5, num(s.round_sign_scale, 1.7))),
     turnMs: Math.max(0, num(s.round_turn_ms, 1500)),
     places, rides, sides, trees,
     playerColor: new Set(words(s.round_player_color)),
+    looks: roundLooks(s.round_looks),
   };
+}
+
+/** The looks named in the data ("bank:bank investor:tower"): building id -> look name. A pair without both halves is skipped. */
+export function roundLooks(value: string | undefined): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const pair of words(value)) {
+    const [id, look] = pair.split(':');
+    if (id && look && !out.has(id)) out.set(id, look);
+  }
+  return out;
 }
 
 /** A building's screen angle once the table (or, for a ring building, the ring) has turned. */

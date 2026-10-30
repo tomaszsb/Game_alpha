@@ -55,7 +55,7 @@ export function TownSettingsStrip({ instanceId, deps }: Props): JSX.Element {
                   id={`town-${instanceId}-${r.key}`}
                   style={styles.input}
                   value={value}
-                  maxLength={200}
+                  maxLength={400}
                   disabled={busy}
                   onChange={(e) => setDraft(d => ({ ...d, [r.key]: e.target.value }))}
                 />
