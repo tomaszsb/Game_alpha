@@ -2,6 +2,16 @@
 
 ---
 
+## v3.9.11 — A clearer TV, and a straight answer about iPhones (October 30, 2026)
+
+- **The places you can move to are easy to see on a TV now.** The glow was there before, but too thin to see from across the room. It is wider, has a white line round the sign, and the whole lot lights up.
+- **"Maya's turn" shows on the TV for 3 seconds when the turn passes,** on the round town, in the player's colour. A teacher can change the words and the seconds in the classroom's Town settings.
+- **The table turns more lightly** on a slow TV, and a TV's view can no longer be pushed around by a stray pointer or remote: it moves only when the game moves it.
+- **While you wait, the word of the moment fills your phone.** You don't have to tap anything, one small "My numbers" button gets you to your numbers, and the page steps aside when a question is waiting for you or your turn comes.
+- **Full screen is now first in the menu,** and the menu always fits the screen.
+- **iPhones can't buzz from a web page, so the game no longer says they will.** An iPhone is promised a chime instead, as long as its sound is on. The chime also comes back after a reload with one tap on the screen.
+- Round town, earlier today (3.9.9): signs no longer cross when the table is at rest, the trailer's sign is full size, and the weather and scenery are back.
+
 ## v3.9.8 — The round town, to try (October 30, 2026)
 
 - **A new board to try: "Round town".** On the setup screen, open Game Settings and pick Board: Round town (or, in a game, Menu > Board, which changes only that screen). The shared buildings stand in a ring round a park with a fountain, and every player has their own side round the outside, with their Owner's house and office in their colour.

@@ -2196,6 +2196,12 @@ The instrument that reports on the game is coupled to the exact thing the curren
 - **An unquoted `Spaces.csv` cell must not gain a comma.** The regen splits it into two columns silently; `tests/utils/buttonLabels.test.ts` was the only thing that caught it. Reword without the comma, or check the cell is already quoted.
 - **`deploy.sh` runs its OLD copy on the deploy that brings a new one** (`main()` is read before `git pull`). A change to the script (the v3.8.12 test gate) first takes effect on the NEXT deploy. The gate's tests must pass on a fresh copy with no `dist/` and no `server/data/game-data`: check a new server test by moving both aside locally.
 
+### A size on the board is multiplied by the zoom, and a turn is measured on the built game (2026-10-30, v3.9.10)
+
+Tom's "the glow doesn't show on the TV" looked like a TV bug and was not one. The glow ran on the TV with the right data and timing. It was a fixed 7 board px, and a whole town on a TV is drawn at a zoom of about 0.38, so under 3 real px; the PC had the same problem. **Any board-px size needs board px x zoom worked out before it is called visible**, and a test can read the town's own data and fail on real pixels (`tests/utils/pulseLook.test.ts`).
+
+Measuring a table turn: use the built game on Express (3001), not Vite (dev mode inflates the JS and hides what matters), Playwright with `channel: 'msedge'`, and CDP `Emulation.setCPUThrottlingRate`. Harness: `.tmp/tv-pack/turn.mjs`. Hiding 30 moving parts during the turn gained nothing; what helped was stopping repaints (keep a building's element tree identical between poses, no colour fades on SVG children). A TV reports its own real numbers as `PLAYTEST_TV_TURN` and `PLAYTEST_TV_KEYS` in `GET /api/logs`.
+
 ### The game draws glossary entries itself; the dictionary only sends data (2026-10-27, v3.9.5)
 
 Until v3.9.4 `DictionaryPanel` framed the dictionary site's page (`...dictionary?id=<id>&view=game&embedded=true`), whose 60px title cut "FOUNDATI..." on phones. Tom found framing "a little weird", so `ENABLE_EMBEDDED_DICTIONARY` (`App.tsx`) is now false and the panel's own card renders the live `/api/glossary/live` data, which has every field the framed page had. Gotcha: the dictionary's own `game` display settings (`/api/public/config/services`) hide the technical definition in favour of `definitionSimple`, yet 82 of 274 words have no simple one; the card shows the technical definition when there is no simple one. Keep that fallback if you touch the visibility checks. For a short in-game explanation, reuse `HelpCard` (the one card every "?" opens, one at a time via `openHelp`) instead of sending the player to the glossary screen.
@@ -2268,7 +2274,7 @@ _Prior:_ **Last Updated:** July 5, 2026 (Session 2026-07-05 — **shipped v3.0.9
 
 _Prior:_ **Last Updated:** July 3, 2026 (Session 2026-07-02 — **shipped v3.0.93 + v3.0.94, pending deploy.** Chronicle turn-dividers (turn_end logs after movement → carries the destination space → space-grouping filed it under the next stop; blocks now cut at turn_start). Dark-mode V2 modal bodies via an opt-in ModalBase `mode` prop (default light = classic untouched) + good/bad tints centralized in `panelPalettes`. Glossary: `cursor: pointer` for iOS tapability + a 6s local-definition fallback when the dashboard iframe hangs (fb:baa01a70, tablet confirmation pending). EffectFactory double tick_modifier emission removed (classic CardModal applied timed cards twice). Full suite 2,293/2,294 green after repairing 2 stale E2E-05 tests.)
 
-**Charter Version:** 4.02 (2026-10-27: glossary entry is the dictionary site in a frame; reuse HelpCard). Prior 4.01 (2026-10-14, v3.7.34-46 session: added the bug-report `diagnostics` entry).
+**Charter Version:** 4.03 (2026-10-30, v3.9.10: board sizes x zoom, measuring a turn on the built game). Prior 4.02 (2026-10-27: glossary entry is the dictionary site in a frame; reuse HelpCard). Prior 4.01 (2026-10-14, v3.7.34-46 session: added the bug-report `diagnostics` entry).
 
 _Prior:_ **Charter Version:** 4.0 (2026-10-12, town board session v3.7.6–v3.7.15: added one TACTICAL entry — stored projectScope vs the panel's scope, React Flow node hit areas on slanted drawings, Playwright via Edge for animated checks).
 
