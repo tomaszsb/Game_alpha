@@ -1,0 +1,115 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Two cutaways</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1d3f72;--soft:#5b6f8f}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden}
+body{font-family:Poppins,sans-serif;color:var(--ink);background:#f7f5ef;background-image:linear-gradient(#e3e8ef 1px,transparent 1px),linear-gradient(90deg,#e3e8ef 1px,transparent 1px);background-size:40px 40px}
+.mono{font-family:'IBM Plex Mono',monospace}
+.sheet{position:absolute;inset:20px;border:4px solid var(--ink);outline:2px solid var(--ink);outline-offset:-12px;background:#fdfcf8;display:grid;grid-template-columns:560px 1fr 1fr;grid-template-rows:auto 1fr 84px;gap:0 22px;padding:26px 30px 0}
+.scope{display:flex;flex-direction:column;border-top:3px solid var(--ink)}
+.ln{display:grid;grid-template-columns:36px 1fr 100px;gap:10px;align-items:center;padding:8px 8px;border-bottom:2px solid #c9d3e2;cursor:pointer;outline:none;position:relative}
+.ln .no{font-family:'IBM Plex Mono';font-weight:600;font-size:18px;opacity:.6}
+.ln b{font-size:21px;font-weight:700;display:flex;align-items:center;gap:7px;line-height:1.2}
+.ln b i{width:15px;height:15px;border-radius:3px;display:inline-block}
+.ln span{font-size:15px;line-height:1.3;display:block;color:var(--soft)}
+.stamp{font-family:'IBM Plex Mono';font-weight:600;font-size:13px;text-align:center;border:2.5px solid;border-radius:6px;padding:3px 4px;transform:rotate(-4deg);line-height:1.2}
+.stamp em{display:block;font-style:normal;font-size:14px;color:var(--ink)}
+.ln.on{background:#eaf1fb}.ln.on::before{content:'';position:absolute;left:-12px;top:8px;bottom:8px;width:7px;border-radius:4px;background:var(--c)}
+.ln.remote,.ln:focus{box-shadow:inset 0 0 0 4px #f59e0b;background:#fff7e6}
+.pane{display:flex;flex-direction:column;min-height:0}
+.pane h3{font-size:25px;font-weight:800;line-height:1.1}.pane h3 small{display:block;font-family:'IBM Plex Mono';font-size:14px;font-weight:600;opacity:.75}
+.draw{flex:1;border:2px solid var(--ink);background:#fff;margin-top:10px;min-height:0}
+.tb{grid-column:1/4;border-top:3px solid var(--ink);display:flex;align-items:center;gap:26px;margin:0 -30px;padding:0 30px;font-size:21px;font-weight:600}
+.key{display:inline-grid;place-items:center;min-width:42px;height:38px;padding:0 9px;border:3px solid var(--ink);border-radius:8px;background:#fff;font-weight:700;margin-right:6px}
+</style></head>
+<body>
+<div class="sheet" id="root">
+ <div style="padding-bottom:14px"><div class="mono" style="font-size:17px;font-weight:600">MAYA'S BUILDING · RENOVATION · STAGE 4 OF 6</div><div style="font-size:38px;font-weight:800;line-height:1.1">Apartment building</div></div>
+ <div style="grid-column:2/4;display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:14px"><div style="font-size:24px;font-weight:600;max-width:760px;line-height:1.3">Same building, two ways to cut it open. Point at a line: that part lights up in <b>both</b> drawings.</div>
+  <div style="display:flex;gap:20px;font-size:18px;font-weight:600"><span><svg width="40" height="10"><path d="M2 5h36" stroke="#1d3f72" stroke-width="5"/></svg> built</span><span><svg width="40" height="10"><path d="M2 5h36" stroke="#1d3f72" stroke-width="5" stroke-dasharray="8 6"/></svg> on the drawings</span></div></div>
+ <div class="scope" id="scope"></div>
+ <div class="pane"><h3><small>SHEET A-301 · LIKE TODAY</small>Flat cut, straight through</h3><div class="draw"><svg class="cut" id="flat" width="100%" height="100%" viewBox="0 0 640 820"></svg></div></div>
+ <div class="pane"><h3><small>SHEET A-302 · NEW</small>Angled 3D cut, walls taken off</h3><div class="draw"><svg class="cut" id="axo" width="100%" height="100%" viewBox="0 0 640 820"></svg></div></div>
+ <div class="tb"><span><span class="key">▲</span><span class="key">▼</span>pick a line</span><span><span class="key">OK</span>keep it lit</span><span><span class="key">BACK</span>to town</span><span style="margin-left:auto;color:var(--soft)">On a computer: point at a line or at a part of the building</span></div>
+</div>
+<script src="kit.js"></script>
+<script>
+const INK='#1d3f72',sc={built:'#1f8a4c',now:'#b7791f',paper:'#5b6f8f'};
+document.getElementById('scope').innerHTML=`<div class="mono" style="font-size:15px;font-weight:600;padding:7px 8px;border-bottom:2px solid ${INK};display:flex;justify-content:space-between"><span>SCOPE OF WORK · WHAT THE OWNER WANTS</span><span>${K.money(K.total)}</span></div>`+
+ K.scope.map((x,i)=>`<div class="ln" data-sys="${x.id}" style="--c:${x.c}"><div class="no">0${i+1}</div><div><b><i style="background:${x.c}"></i>${x.icon} ${x.trade}</b><span>${x.text}</span></div><div class="stamp" style="color:${sc[x.status]};border-color:${sc[x.status]}">${K.statusWord[x.status].toUpperCase()}<em>${K.money(x.cost)}</em></div></div>`).join('');
+// ---- flat section (round 2, look B)
+const TF={s:23,ox:160,oy:715,ink:INK,lw:2,earth:'#ece4d2',cellar:'#f8f6f0',road:'#d9dde4',walk:'#ece8de',yard:'#e1ecd6',rooms:['#ffffff','#fbfcfe'],part:'#9fb0c8',glass:'#d6e8f7',cut:'#c3cedd',door:'#9fb0c8',fixture:'#ffffff',leaf:'#a8d08d',tagFs:17,tagR:6,dash:'8 6',paperFill:.1,tagLeft:-6.6,
+  furn:(X,Y,s,b,f)=>`<text x="${X(.8)}" y="${Y(b+2.25)}" font-family="IBM Plex Mono" font-size="11" font-weight="600" fill="${INK}" opacity=".6">FLOOR ${f}</text>`};
+document.getElementById('flat').innerHTML=`<defs>${K.hlFilter('#fff')}</defs><style>${K.cutCSS}</style>`+K.cutaway(TF);
+
+// ---- angled 3D cut (axonometric): the near side wall and the street wall are taken off; pipes and wires drawn on top
+function axo(){
+  const s=20,ox=372,oy=432,lw=2;
+  const P=(x,y,z)=>[+(ox+(x-y-6)*.866*s).toFixed(1),+(oy+(22-x-y)*.5*s-z*s).toFixed(1)];
+  const poly=(pts,a)=>`<polygon points="${pts.map(p=>P(...p).join(',')).join(' ')}" ${a}/>`;
+  const line=(pts,a)=>`<polyline points="${pts.map(p=>P(...p).join(',')).join(' ')}" fill="none" stroke-linecap="round" stroke-linejoin="round" ${a}/>`;
+  const box=(x0,x1,y0,y1,z0,z1,fill,a='')=>poly([[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]],`fill="${fill}" ${a}`)+poly([[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1]],`fill="${fill}" ${a}`)+poly([[x0,y0,z0],[x0,y1,z0],[x0,y1,z1],[x0,y0,z1]],`fill="${fill}" ${a}`);
+  const sys=Object.fromEntries(K.scope.map(x=>[x.id,x]));
+  const solid=(id,f)=>sys[id].status==='built'||(sys[id].status==='now'&&f<=3);
+  const G=(id,f,inner)=>`<g class="sys" data-sys="${id}"${solid(id,f)?'':' stroke-dasharray="7 6" fill-opacity=".2" opacity=".85"'}>${inner}</g>`;
+  const sk=(id,w)=>`stroke="${sys[id].c}" stroke-width="${w}"`;
+  const e=`stroke="${INK}" stroke-width="${lw*.6}" stroke-linejoin="round"`;
+  let b='';
+  // ground block, street and the dug-out cellar
+  b+=poly([[-5,0,0],[16,0,0],[16,8.6,0],[-5,8.6,0]],`fill="#ece4d2" ${e}`)+poly([[-5,0,-4],[16,0,-4],[16,0,0],[-5,0,0]],`fill="#e3d8c0" ${e}`)+poly([[-5,0,-4],[-5,8.6,-4],[-5,8.6,0],[-5,0,0]],`fill="#d9cdb2" ${e}`);
+  b+=poly([[-5,0,.02],[-4.1,0,.02],[-4.1,8.6,.02],[-5,8.6,.02]],`fill="#c9ced8"`)+poly([[-4.1,0,.05],[0,0,.05],[0,8.6,.05],[-4.1,8.6,.05]],`fill="#f1ede3" ${e}`);
+  b+=poly([[0,0,-3],[14,0,-3],[14,0,0],[0,0,0]],`fill="#f8f6f0" ${e}`);
+  // far walls (seen from inside), with windows
+  b+=poly([[14,0,-3],[14,8,-3],[14,8,19.2],[14,0,19.2]],`fill="#eef2f8" ${e}`)+poly([[0,8,-3],[14,8,-3],[14,8,19.2],[0,8,19.2]],`fill="#f4f6fa" ${e}`);
+  for(let f=1;f<=6;f++){const z=3*(f-1);[[2,4],[5.5,7.3],[11,12.8]].forEach(([a,c])=>b+=poly([[a,8,z+.9],[c,8,z+.9],[c,8,z+2.3],[a,8,z+2.3]],`fill="#d6e8f7" ${e}`));[[1,3],[5,7]].forEach(([a,c])=>b+=poly([[14,a,z+.9],[14,c,z+.9],[14,c,z+2.3],[14,a,z+2.3]],`fill="#d6e8f7" ${e}`));
+    b+=`<text x="${P(.6,8,z+2.1)[0]}" y="${P(.6,8,z+2.1)[1]}" font-family="IBM Plex Mono" font-size="11" font-weight="600" fill="${INK}" opacity=".55">FLOOR ${f}</text>`}
+  // floors as thin trays, partitions as light screens
+  for(let k=0;k<=6;k++){const z=3*k;b+=poly([[0,0,z],[14,0,z],[14,8,z],[0,8,z]],`fill="#ffffff" fill-opacity=".72" ${e}`)+poly([[0,0,z-.35],[14,0,z-.35],[14,0,z],[0,0,z]],`fill="#c3cedd" ${e}`)+poly([[0,0,z-.35],[0,8,z-.35],[0,8,z],[0,0,z]],`fill="#b3c0d2" ${e}`);
+    if(k<6)[5.2,10.7].forEach(px=>b+=poly([[px,0,z],[px,8,z],[px,8,z+2.65],[px,0,z+2.65]],`fill="#c9d3e2" fill-opacity=".22" stroke="${INK}" stroke-width=".8" stroke-opacity=".5"`))}
+  b+=poly([[0,0,-3.35],[14,0,-3.35],[14,8,-3.35],[0,8,-3.35]],`fill="#c3cedd" fill-opacity=".5"`);
+  // street wall drawn as a ghost so you can see through it
+  b+=poly([[0,0,-.1],[0,8,-.1],[0,8,19.2],[0,0,19.2]],`fill="#d6e8f7" fill-opacity=".1" stroke="${INK}" stroke-width="1.2" stroke-dasharray="6 5"`);
+  for(let f=1;f<=6;f++){const z=3*(f-1);[[1.2,3],[5,6.8]].forEach(([a,c])=>b+=poly([[0,a,z+.9],[0,c,z+.9],[0,c,z+2.3],[0,a,z+2.3]],`fill="none" stroke="${INK}" stroke-width=".9" stroke-opacity=".45"`))}
+  let o=`<g class="base">${b}</g>`;
+  // 1 sidewalk shed
+  o+=G('shed',1,[[-3.7,.4],[-3.7,7.6],[-.45,.4],[-.45,7.6]].map(([x,y])=>line([[x,y,0],[x,y,3.2]],sk('shed',3))).join('')+box(-4.15,0,0,8.4,3.2,3.7,sys.shed.c,e)+box(-4.15,-3.95,0,8.4,3.7,4.6,sys.shed.c,e));
+  // 2 structural: three new roof beams and posts
+  o+=G('struct',6,[1.2,4,6.8].map(y=>line([[.45,y,17.4],[13.55,y,17.4]],sk('struct',6))).join('')+[[4.7,1.2],[4.7,6.8],[10.95,1.2],[10.95,6.8]].map(([x,y])=>line([[x,y,15],[x,y,17.1]],sk('struct',5))).join(''));
+  // 3 plumbing stack, branches, house drain
+  for(let f=0;f<=6;f++){const bz=3*(f-1),z0=f===0?-2.45:bz,z1=f===6?19.9:3*f;let g=line([[10.35,6.8,z0],[10.35,6.8,z1]],sk('plumb',5));
+    if(f===0)g+=line([[10.35,6.8,-2.45],[-4.7,6.8,-2.75]],sk('plumb',5));else g+=line([[8.7,5.4,bz+.6],[8.7,5.4,bz+.3],[10.35,6.8,bz+.2]],sk('plumb',3))+line([[9.6,6.3,bz+.35],[10.35,6.8,bz+.3]],sk('plumb',3))+box(8.4,9,5.1,5.7,bz+.6,bz+.8,'#ffffff',e);
+    o+=G('plumb',Math.max(f,1),g)}
+  // 4 sprinklers: riser, main and branch lines with heads on every ceiling
+  for(let f=0;f<=6;f++){const top=f===0?-.4:3*f-.7,bz=f===0?-2.6:3*(f-1);let g=line([[.95,7.2,bz],[.95,7.2,Math.min(top,17.3)]],sk('spk',4));
+    if(f>=1){g+=line([[.95,7.2,top],[.95,4,top],[13.3,4,top]],sk('spk',2.6))+[3,11].map(x=>line([[x,1,top],[x,7,top]],sk('spk',2.2))).join('');
+      [[3,1.6],[3,4],[3,6.4],[11,1.6],[11,4],[11,6.4],[13,4]].forEach(([x,y])=>g+=line([[x,y,top],[x,y,top-.35]],sk('spk',2))+`<circle cx="${P(x,y,top-.4)[0]}" cy="${P(x,y,top-.4)[1]}" r="3" fill="${sys.spk.c}"/>`)}
+    o+=G('spk',Math.max(f,1),g)}
+  // 5 mechanical: roof unit, riser duct, ceiling ducts
+  for(let f=1;f<=6;f++){const c=3*f-.35;let g=line([[13.05,1.6,3*(f-1)+.6],[13.05,1.6,3*f]],sk('mech',8))+line([[8.15,1.6,c-.6],[13.05,1.6,c-.6]],sk('mech',6));
+    [9.1,11.9].forEach(x=>g+=line([[x,1.6,c-.6],[x,1.6,c-.95]],sk('mech',4)));
+    if(f===6)g+=box(10.7,13.4,1,5,18.05,19.7,sys.mech.c,e)+`<circle cx="${P(10.7,3,18.9)[0]}" cy="${P(10.7,3,18.9)[1]}" r="9" fill="none" stroke="#fff" stroke-width="2"/>`;
+    o+=G('mech',f,g)}
+  // 6 elevator: shaft frame, cab on floor 3, machine box on the roof
+  for(let f=0;f<=6;f++){const z0=f===0?-3:3*(f-1),z1=f===6?18:3*f;let g=[[5.4,4.6],[7.9,4.6],[5.4,7.8],[7.9,7.8]].map(([x,y])=>line([[x,y,z0],[x,y,z1]],sk('elev',2.4))).join('')+poly([[5.4,4.6,z1],[7.9,4.6,z1],[7.9,7.8,z1],[5.4,7.8,z1]],`fill="${sys.elev.c}" fill-opacity=".12" ${sk('elev',1.6)}`);
+    if(f===3)g+=box(5.75,7.55,4.9,7.5,6.1,8.45,sys.elev.c,e)+line([[6.65,6.2,8.45],[6.65,6.2,20.3]],sk('elev',1.5));
+    if(f===6)g+=box(5.3,8,4.5,7.9,18,20.6,sys.elev.c,`fill-opacity=".45" ${sk('elev',2)}`);
+    o+=G('elev',Math.max(f,1),g)}
+  // 7 general construction: roof deck, rail, pergola, planters
+  {let g=poly([[.6,.5,18.28],[5.25,.5,18.28],[5.25,7.5,18.28],[.6,7.5,18.28]],`fill="${sys.roof.c}" ${e}`)+line([[.75,.5,19.5],[.75,7.5,19.5]],sk('roof',3))+[.5,2.8,5.2,7.5].map(y=>line([[.75,y,18.28],[.75,y,19.5]],sk('roof',2))).join('');
+   [[1.4,1],[1.4,7],[4.6,1],[4.6,7]].forEach(([x,y])=>g+=line([[x,y,18.28],[x,y,20.8]],sk('roof',3.5)));g+=line([[1.4,1,20.8],[4.6,1,20.8]],sk('roof',3.5))+line([[1.4,7,20.8],[4.6,7,20.8]],sk('roof',3.5));
+   [1.9,2.5,3.1,3.7,4.3].forEach(x=>g+=line([[x,1,20.85],[x,7,20.85]],sk('roof',2)));
+   g+=box(8.1,10.6,.5,3,18,18.85,sys.roof.c,e);[[8.6,1.2],[9.4,2.2],[10.1,1.2]].forEach(([x,y])=>g+=`<circle cx="${P(x,y,19.3)[0]}" cy="${P(x,y,19.3)[1]}" r="9" fill="#a8d08d" ${e}/>`);
+   o+=G('roof',6,g)}
+  // tags
+  const an={shed:[-2,4,3.7],struct:[7,4,17.4],plumb:[10.35,6.8,9],spk:[3,4,11.3],mech:[12,3,19.7],elev:[6.65,6.2,7.3],roof:[3,4,20.8]};
+  K.scope.forEach(x=>{const [ax,ay]=P(...an[x.id]),fs=17,w=(x.trade.length*fs*.62+50)|0,right=ax+60+w<630,bx=right?ax+60:Math.max(8,ax-60-w),by=ay-50;
+    o+=`<g class="tag" data-sys="${x.id}"><line x1="${ax}" y1="${ay}" x2="${right?bx:bx+w}" y2="${by+fs}" stroke="${x.c}" stroke-width="2" stroke-dasharray="4 4"/><circle cx="${ax}" cy="${ay}" r="12" fill="none" stroke="${x.c}" stroke-width="2.5" class="pulse"/><rect x="${bx}" y="${by}" width="${w}" height="${fs*2}" rx="6" fill="${x.c}" ${e}/><text x="${bx+w/2}" y="${by+fs*1.36}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="#fff" font-family="Poppins">${x.icon} ${x.trade}</text></g>`});
+  return o;
+}
+document.getElementById('axo').innerHTML=`<defs>${K.hlFilter('#fff')}</defs>`+axo();
+K.wire(document.getElementById('root'));
+</script>
+</body></html>

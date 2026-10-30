@@ -1,0 +1,58 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phone panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:OpenDyslexic;src:url(fonts/OpenDyslexic-Regular.woff2) format('woff2')}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Poppins,sans-serif;color:#2b2d42;background:linear-gradient(180deg,#bfe9f7,#fff3dc);overflow:hidden}
+.ph{width:100vw;height:100vh;display:flex;flex-direction:column;gap:6px;padding:8px 9px 9px;position:relative}
+.card{background:#fff;border-radius:16px;box-shadow:0 4px 0 rgba(43,45,66,.12);padding:7px 9px}
+.cap{font-size:10px;font-weight:800;letter-spacing:.8px;color:#6b6f8a;text-transform:uppercase}
+.row{display:flex;align-items:center;gap:6px}
+.btn{border-radius:14px;text-align:center;font-weight:800;font-size:14px;padding:8px 6px;line-height:1.15}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:72%;background:#fff;border-radius:24px 24px 0 0;box-shadow:0 -10px 30px rgba(43,45,66,.28);padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px;transition:transform .45s cubic-bezier(.3,.9,.3,1)}
+.sheet.down{transform:translateY(105%)}
+.dim{position:absolute;inset:0;background:rgba(43,45,66,.35);transition:opacity .3s}.dim.off{opacity:0;pointer-events:none}
+
+</style></head>
+<body><div class="ph" id="ph"></div>
+<script src="kit.js"></script>
+<script>
+const v=K.q.get('v')||'a',P=K.players[0],N=K.npc;
+// approvals mat: the same 9 steps the game's project mat uses (TOWN.csv mat_icon)
+const mat=[['📋','Scope','done'],['🏦','Funded','done'],['📐','Architect','done'],['⚙️','Engineer','done'],['🏛️','Buildings','done'],['🚒','Fire Dept','done'],['🏗️','Builder','done'],['🔍','Inspection','now'],['🎀','Open','todo']];
+const dash=`
+ <div class="card row" style="padding:6px 9px"><div style="width:38px;height:38px;border-radius:12px;background:${P.c};box-shadow:inset 0 -4px 0 rgba(0,0,0,.2);display:grid;place-items:center;color:#fff;font-weight:900;font-size:19px">M</div>
+  <div style="line-height:1.1"><div style="font-weight:900;font-size:17px">Maya</div><div style="font-size:11.5px;font-weight:700;color:#6b6f8a">Your turn · Oct 27, 2026</div></div>
+  <div style="margin-left:auto;background:#ffcf33;border-radius:10px;padding:2px 8px;font-weight:800;font-size:12px">🏆 2nd</div><div style="background:#2b2d42;color:#fff;border-radius:10px;padding:2px 8px;font-weight:700;font-size:13px;font-family:OpenDyslexic">Aa</div></div>
+ <div style="display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:6px">
+  <div class="card" style="padding:5px 8px"><div class="cap">💰 Cash on hand</div><div style="font-weight:900;font-size:17px">$142,500</div><div style="height:6px;border-radius:3px;background:#e6e9f2;margin-top:2px"><div style="width:78%;height:100%;border-radius:3px;background:#2fae5e"></div></div><div style="font-size:9.5px;font-weight:700;color:#6b6f8a">raised $3.2M of ${K.money(K.total)}</div></div>
+  <div class="card" style="padding:5px 8px"><div class="cap">⏳ Time</div><div style="font-weight:900;font-size:17px">38 days</div><div style="font-size:9.5px;font-weight:700;color:#6b6f8a">used so far</div></div>
+  <div class="card" style="padding:5px 8px"><div class="cap">📐 Scope</div><div style="font-weight:900;font-size:17px">${K.money(K.total)}</div><div style="font-size:9.5px;font-weight:700;color:#6b6f8a">7 lines of work</div></div></div>
+ <div class="card" style="padding:6px 8px"><div class="cap" style="display:flex;justify-content:space-between"><span>Approvals</span><span>7 of 9</span></div>
+  <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-top:3px">${mat.map(([i,n,s])=>`<div style="text-align:center"><div style="height:26px;border-radius:8px;display:grid;place-items:center;font-size:14px;background:${s==='done'?'#d9f5e3':s==='now'?'#ffcf33':'#eef1f8'};${s==='now'?'box-shadow:0 0 0 2px #2b2d42':''}">${s==='done'?'✓':i}</div><div style="font-size:7.5px;font-weight:800;line-height:1.1;margin-top:2px">${n}</div></div>`).join('')}</div></div>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+  <div class="card" style="padding:5px 8px"><div class="cap">Your team</div><div style="font-size:11.5px;font-weight:700;line-height:1.35">📐 Architect ✓<br>⚙️ Engineer ✓<br>🏗️ Builder: Frank ✓</div></div>
+  <div class="card" style="padding:5px 8px"><div class="cap">Your building</div><div style="display:flex;gap:3px;margin:3px 0">${[...Array(6)].map((_,i)=>`<i style="flex:1;height:9px;border-radius:3px;background:${i<4?P.c:'#dfe3ee'}"></i>`).join('')}</div><div style="font-size:11px;font-weight:700">Stage 4 of 6 · <u>drawings</u></div></div></div>
+ <div class="card" style="padding:5px 8px"><div class="cap">Where your money came from</div><div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin:3px 0"><i style="flex:15;background:#2f7fe0"></i><i style="flex:12;background:#4fd1b5"></i><i style="flex:5;background:#ffcf33"></i><i style="flex:9.2;background:#eef1f8"></i></div><div style="font-size:10.5px;font-weight:700;line-height:1.35">🏦 Bank loan $1.5M · 💼 Investor $1.2M · 👔 Owner $500K<br>Spent so far $2.9M · <b style="color:#e5243b">Still to raise $920K</b></div></div>
+ <div class="card" style="padding:5px 8px"><div class="cap">This turn</div><div style="font-size:11.5px;font-weight:600;line-height:1.35">✓ Moved to your building &nbsp;·&nbsp; 🃏 2 expediter cards &nbsp;·&nbsp; 1 life event</div></div>`;
+const tabs=`<div class="row" style="justify-content:space-between;background:#fff;border-radius:14px;padding:5px 6px;font-size:11px;font-weight:800">${['💰 Money','⏳ Time','📐 Scope','🃏 Cards','📖 Story'].map((t,i)=>`<span style="padding:3px 6px;border-radius:9px;${i===0?'background:#2b2d42;color:#fff':''}">${t}</span>`).join('')}</div>`;
+const answers=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px"><div class="btn" style="background:#2f7fe0;color:#fff;box-shadow:0 4px 0 #1d5bb0">${N.a}</div><div class="btn" style="background:#fff;box-shadow:0 4px 0 #c3c8da">${N.b}</div></div>`;
+const face=s=>`<svg width="${s}" height="${s}" viewBox="0 0 64 64"><circle cx="32" cy="32" r="31" fill="#d9f5e3"/><path d="M14 64Q14 44 32 44Q50 44 50 64Z" fill="#2fae5e"/><circle cx="32" cy="30" r="14" fill="#e8b48c"/><path d="M15 27Q16 10 32 10Q48 10 49 27Z" fill="#ffd23f"/><rect x="13" y="24" width="38" height="6" rx="3" fill="#ffc21a"/><circle cx="27" cy="32" r="2.2" fill="#2b2d42"/><circle cx="37" cy="32" r="2.2" fill="#2b2d42"/><path d="M27 38q5 4 10 0" stroke="#2b2d42" stroke-width="2.2" fill="none"/></svg>`;
+const ph=document.getElementById('ph');
+if(v==='a'){ // A: the character talks on the TV; the phone keeps the full dashboard and just the answer
+  ph.innerHTML=dash+`<div style="flex:1"></div>
+   <div class="card row" style="background:#2b2d42;color:#fff;padding:7px 9px">${face(34)}<div style="line-height:1.2;flex:1"><div style="font-size:11px;font-weight:800;color:#9ef0b8">FRANK IS TALKING ON THE TV</div><div style="font-size:13px;font-weight:700">“${N.title}”</div></div><div style="font-size:10.5px;font-weight:800;background:#fff;color:#2b2d42;border-radius:9px;padding:3px 7px;text-align:center;line-height:1.15">No TV?<br>Read here</div></div>
+   ${answers}${tabs}`;
+} else { // B: the conversation is its own sheet that slides up over the dashboard and slides away when you answer
+  ph.innerHTML=dash+`<div style="flex:1"></div>${tabs}
+   <div class="dim" id="dim"></div>
+   <div class="sheet" id="sheet"><div style="width:44px;height:5px;border-radius:3px;background:#c3c8da;align-self:center"></div>
+    <div class="row" style="gap:10px">${face(54)}<div><div style="display:inline-block;background:#2fae5e;color:#fff;font-weight:900;font-size:12px;padding:2px 10px;border-radius:9px">${N.who.toUpperCase()} · CONTRACTOR</div><div style="font-weight:800;font-size:16px;line-height:1.2;margin-top:3px">${N.title}</div></div></div>
+    <div style="font-family:OpenDyslexic;font-size:13px;line-height:1.5">${N.say}</div>
+    <div style="font-size:11px;font-weight:700;color:#6b6f8a">Your numbers are underneath. This slides away when you answer.</div>
+    ${answers.replace(/class="btn"/g,'class="btn" onclick="ans()"')}</div>`;
+}
+function ans(){document.getElementById('sheet').classList.add('down');document.getElementById('dim').classList.add('off')}
+</script></body></html>

@@ -1,0 +1,312 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Two cutaways</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1d3f72;--soft:#5b6f8f}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden}
+body{font-family:Poppins,sans-serif;color:var(--ink);background:#f7f5ef;background-image:linear-gradient(#e3e8ef 1px,transparent 1px),linear-gradient(90deg,#e3e8ef 1px,transparent 1px);background-size:40px 40px}
+.mono{font-family:'IBM Plex Mono',monospace}
+.sheet{position:absolute;inset:20px;border:4px solid var(--ink);outline:2px solid var(--ink);outline-offset:-12px;background:#fdfcf8;display:grid;grid-template-columns:560px 1fr 1fr;grid-template-rows:auto 1fr 84px;gap:0 22px;padding:26px 30px 0}
+.scope{display:flex;flex-direction:column;border-top:3px solid var(--ink)}
+.ln{display:grid;grid-template-columns:36px 1fr 100px;gap:10px;align-items:center;padding:8px 8px;border-bottom:2px solid #c9d3e2;cursor:pointer;outline:none;position:relative}
+.ln .no{font-family:'IBM Plex Mono';font-weight:600;font-size:18px;opacity:.6}
+.ln b{font-size:21px;font-weight:700;display:flex;align-items:center;gap:7px;line-height:1.2}
+.ln b i{width:15px;height:15px;border-radius:3px;display:inline-block}
+.ln span{font-size:15px;line-height:1.3;display:block;color:var(--soft)}
+.stamp{font-family:'IBM Plex Mono';font-weight:600;font-size:13px;text-align:center;border:2.5px solid;border-radius:6px;padding:3px 4px;transform:rotate(-4deg);line-height:1.2}
+.stamp em{display:block;font-style:normal;font-size:14px;color:var(--ink)}
+.ln.on{background:#eaf1fb}.ln.on::before{content:'';position:absolute;left:-12px;top:8px;bottom:8px;width:7px;border-radius:4px;background:var(--c)}
+.ln.remote,.ln:focus{box-shadow:inset 0 0 0 4px #f59e0b;background:#fff7e6}
+.pane{display:flex;flex-direction:column;min-height:0}
+.pane h3{font-size:25px;font-weight:800;line-height:1.1}.pane h3 small{display:block;font-family:'IBM Plex Mono';font-size:14px;font-weight:600;opacity:.75}
+.draw{flex:1;border:2px solid var(--ink);background:#fff;margin-top:10px;min-height:0}
+.tb{grid-column:1/4;border-top:3px solid var(--ink);display:flex;align-items:center;gap:26px;margin:0 -30px;padding:0 30px;font-size:21px;font-weight:600}
+.key{display:inline-grid;place-items:center;min-width:42px;height:38px;padding:0 9px;border:3px solid var(--ink);border-radius:8px;background:#fff;font-weight:700;margin-right:6px}
+</style></head>
+<body>
+<div class="sheet" id="root">
+ <div style="padding-bottom:14px"><div class="mono" style="font-size:17px;font-weight:600">MAYA'S BUILDING · RENOVATION · STAGE 4 OF 6</div><div style="font-size:38px;font-weight:800;line-height:1.1">Apartment building</div></div>
+ <div style="grid-column:2/4;display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:14px"><div style="font-size:24px;font-weight:600;max-width:760px;line-height:1.3">Same building, two ways to cut it open. Point at a line: that part lights up in <b>both</b> drawings.</div>
+  <div style="display:flex;gap:20px;font-size:18px;font-weight:600"><span><svg width="40" height="10"><path d="M2 5h36" stroke="#1d3f72" stroke-width="5"/></svg> built</span><span><svg width="40" height="10"><path d="M2 5h36" stroke="#1d3f72" stroke-width="5" stroke-dasharray="8 6"/></svg> on the drawings</span></div></div>
+ <div class="scope" id="scope"></div>
+ <div class="pane"><h3><small>SHEET A-301 · LIKE TODAY</small>Flat cut, straight through</h3><div class="draw"><svg class="cut" id="flat" width="100%" height="100%" viewBox="0 0 640 820"></svg></div></div>
+ <div class="pane"><h3><small>SHEET A-302 · NEW</small>Angled 3D cut, walls taken off</h3><div class="draw"><svg class="cut" id="axo" width="100%" height="100%" viewBox="0 0 640 820"></svg></div></div>
+ <div class="tb"><span><span class="key">▲</span><span class="key">▼</span>pick a line</span><span><span class="key">OK</span>keep it lit</span><span><span class="key">BACK</span>to town</span><span style="margin-left:auto;color:var(--soft)">On a computer: point at a line or at a part of the building</span></div>
+</div>
+<script>// kit.js - shared data + drawing helpers for the round-2 style mock-ups (A/B/C). Mock-ups only.
+// Scope lines and NPC words come from the game's data (CARDS_EXPANDED + SCOPE_WORDING, SPACE_CONTENT).
+const K = {};
+K.q = new URLSearchParams(window.__Q || location.search);
+K.view = K.q.get('view') || 'tv';
+K.players = [
+  { id: 'maya', name: 'Maya', c: '#2f7fe0', day: 27, where: 'at her site' },
+  { id: 'dev',  name: 'Dev',  c: '#2e9e57', day: 24, where: 'Buildings Department' },
+  { id: 'rosa', name: 'Rosa', c: '#e0464f', day: 30, where: 'Bank' },
+  { id: 'theo', name: 'Theo', c: '#f08a24', day: 21, where: "Architect's studio" },
+];
+// status: built = done, now = being built (floors 1-3 done), paper = still only on the drawings
+K.scope = [
+  { id: 'shed',  code: 'W078', trade: 'Sidewalk Shed',        icon: '🚧', c: '#1f8a4c', cost: 95000,   status: 'built', text: 'Custom-designed sidewalk shed that keeps the apartment building visible during construction' },
+  { id: 'struct',code: 'W167', trade: 'Structural',           icon: '🔩', c: '#9a4f1e', cost: 750000,  status: 'built', text: 'Structural modifications to support a green roof on the apartment building' },
+  { id: 'plumb', code: 'W029', trade: 'Plumbing',             icon: '🚿', c: '#2563eb', cost: 200000,  status: 'now',   text: 'Replacement of the corroded plumbing stack in the apartment building' },
+  { id: 'spk',   code: 'W053', trade: 'Sprinklers',           icon: '🧯', c: '#e11d48', cost: 1200000, status: 'now',   text: 'Retrofit of the apartment building with a new NFPA 13R sprinkler system' },
+  { id: 'mech',  code: 'W042', trade: 'Mechanical Systems',   icon: '🌬️', c: '#0d9488', cost: 75000,   status: 'paper', text: 'Installation of a heat recovery ventilation system in the apartment building' },
+  { id: 'elev',  code: 'W124', trade: 'Elevator',             icon: '🛗', c: '#7c3aed', cost: 1200000, status: 'paper', text: 'Installation of a destination dispatch elevator system in the apartment building' },
+  { id: 'roof',  code: 'W011', trade: 'General Construction', icon: '🪴', c: '#d97706', cost: 600000,  status: 'paper', text: 'Construction of a rooftop amenity space for the apartment building' },
+];
+K.statusWord = { built: 'Built', now: 'Building now', paper: 'On the drawings' };
+K.statusMore = { built: 'Done and signed off', now: 'Floors 1 to 3 done, 4 to 6 to go', paper: 'Not started yet' };
+K.total = K.scope.reduce((a, s) => a + s.cost, 0);
+K.money = n => n >= 1e6 ? '$' + (n / 1e6).toFixed(2).replace(/\.?0+$/, '') + 'M' : '$' + Math.round(n / 1000) + 'K';
+// NPC talk: SPACE_CONTENT.csv, CON-INSPECT (first visit), spoken by the Contractor
+K.npc = {
+  who: 'Frank', role: 'Your contractor', title: 'Inspector just walked in',
+  say: 'Boss — inspector just walked onto the site. There’s a safety violation by the southwest corner. We fix it before they see it, or I steer them somewhere else. Your call.',
+  story: 'Fix the violation first, or let me steer the inspector away.',
+  a: 'Fix the violation first', b: 'Steer the inspector away',
+};
+// Growth stages, boiled down from the flipbook's 21 (The Lot ... Handover)
+K.stagesNew = ['The lot', 'Digging + foundations', 'Frame goes up', 'Walls + windows', 'Pipes, wires + air', 'Ready to open'];
+K.stagesReno = ['Fence + shed up', 'Opening up', 'Structure fixed', 'Pipes, wires + air', 'Finishes', 'Ready to open'];
+K.sites = { maya: { kind: 'reno', stage: 4 }, dev: { kind: 'new', stage: 3 }, rosa: { kind: 'new', stage: 2 }, theo: { kind: 'reno', stage: 1 } };
+
+// ---------- round town layout (shared by A, B, C) ----------
+// 7 shared buildings in a ring in the middle (Ribbon cutting nearest the viewer), each player owns a quarter
+// of the outer ring with 4 lots: renovation site, Owner's house, Your office, new building site.
+K.shared = [
+  ['finish', 'Ribbon cutting'], ['eng', "Engineer's office"], ['arch', "Architect's studio"], ['dob', 'Buildings Department'],
+  ['fire', 'Firehouse'], ['inv', 'Investor'], ['bank', 'Bank'],
+];
+K.quarters = { maya: 90, theo: 0, rosa: -90, dev: 180 };
+K.layout = function ({ cx, cy, R, sq, inner = 0.36, outer = 0.8, spread = [-38, -13, 13, 38] }) {
+  const pt = (a, r) => ({ x: cx + r * R * Math.cos(a * Math.PI / 180), y: cy + r * R * Math.sin(a * Math.PI / 180) * sq, a });
+  const shared = K.shared.map(([id, name], i) => ({ id, name, ...pt(90 + i * 360 / 7, inner) }));
+  const lots = [];
+  K.players.forEach(p => {
+    const f = K.quarters[p.id];
+    ['site', 'owner', 'office', 'site_new'].forEach((kind, i) => lots.push({ kind, p, ...pt(f + spread[i], outer) }));
+  });
+  return { shared, lots, pt };
+};
+
+// ---------- cutaway of Maya's building (section through a 6-storey walk-up + cellar) ----------
+// model units: x = depth from the street facade (0) to the rear wall (14); z = height (floor f sits on z = 3(f-1)).
+K.cutaway = function (T) {
+  const s = T.s, X = x => +(T.ox + x * s).toFixed(1), Y = z => +(T.oy - z * s).toFixed(1);
+  const R = (x0, z0, x1, z1, a = '') => `<rect x="${X(x0)}" y="${Y(z1)}" width="${+((x1 - x0) * s).toFixed(1)}" height="${+((z1 - z0) * s).toFixed(1)}" ${a}/>`;
+  const L = (p, a = '') => `<polyline points="${p.map(q => X(q[0]) + ',' + Y(q[1])).join(' ')}" fill="none" ${a}/>`;
+  const C = (x, z, r, a = '') => `<circle cx="${X(x)}" cy="${Y(z)}" r="${r}" ${a}/>`;
+  const P = (p, a = '') => `<path d="M${p.map(q => X(q[0]) + ' ' + Y(q[1])).join('L')}Z" ${a}/>`;
+  const ink = T.ink, lw = T.lw;
+  const sys = Object.fromEntries(K.scope.map(x => [x.id, x]));
+  const solid = (id, f) => sys[id].status === 'built' || (sys[id].status === 'now' && f <= 3);
+  const G = (id, f, inner) => `<g class="sys" data-sys="${id}"${solid(id, f) ? '' : ` stroke-dasharray="${T.dash || '7 6'}" fill-opacity="${T.paperFill ?? .18}" opacity="${T.paperOp ?? .85}"`}>${inner}</g>`;
+  const sk = (id, w) => `stroke="${sys[id].c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+  let base = '', o = '';
+  // ground, street, cellar
+  base += R(-6.5, -4.6, 17.2, 0, `fill="${T.earth}"`) + R(0, -3, 14, 0, `fill="${T.cellar}"`);
+  base += R(-6.5, -0.25, -4.1, 0, `fill="${T.road}"`) + R(-4.1, -0.25, 0, 0.12, `fill="${T.walk}" stroke="${ink}" stroke-width="${lw * .6}"`);
+  base += R(14, -0.2, 17.2, 0.1, `fill="${T.yard}"`);
+  base += `<path d="M${X(-6.5)} ${Y(0)}H${X(17.2)}" stroke="${ink}" stroke-width="${lw}"/>`;
+  base += R(-5.2, -2.95, -4.2, -2.2, `fill="${T.cellar}" stroke="${ink}" stroke-width="${lw * .6}"`); // sewer
+  // rooms
+  for (let f = 1; f <= 6; f++) {
+    const b = 3 * (f - 1);
+    base += R(0.45, b, 13.55, b + 2.65, `fill="${T.rooms[f % T.rooms.length]}"`);
+    if (T.persp) base += T.persp(X, Y, s, b);
+    // partitions with door gaps
+    [5.2, 8.0, 10.7].forEach(px => base += R(px - .08, b + 2.1, px + .08, b + 2.65, `fill="${T.part}"`));
+    [5.2, 10.7].forEach(px => base += R(px - .08, b, px + .08, b + .25, `fill="${T.part}"`));
+    // windows in the cut walls
+    [0, 13.55].forEach(wx => base += R(wx, b + .9, wx + .45, b + 2.3, `fill="${T.glass}" stroke="${ink}" stroke-width="${lw * .5}"`));
+    if (T.furn) base += T.furn(X, Y, s, b, f);
+    // bath fixtures (base, not part of the scope)
+    base += R(8.35, b + .55, 9.0, b + .75, `fill="${T.fixture}" stroke="${ink}" stroke-width="${lw * .5}"`) + R(8.6, b, 8.75, b + .55, `fill="${T.fixture}"`);
+    base += P([[9.3, b], [9.9, b], [9.95, b + .5], [9.25, b + .5]], `fill="${T.fixture}" stroke="${ink}" stroke-width="${lw * .5}"`) + R(9.75, b + .5, 10.0, b + 1.15, `fill="${T.fixture}" stroke="${ink}" stroke-width="${lw * .5}"`);
+  }
+  // slabs + walls (cut, drawn solid)
+  for (let k = 0; k <= 6; k++) base += R(0, 3 * k - .35, 14, 3 * k, `fill="${T.cut}" stroke="${ink}" stroke-width="${lw * .5}"`);
+  base += R(0, -3.35, 14, -3, `fill="${T.cut}"`);
+  base += R(0, -3, .45, 19.2, `fill="${T.cut}" stroke="${ink}" stroke-width="${lw * .6}"`) + R(13.55, -3, 14, 19.2, `fill="${T.cut}" stroke="${ink}" stroke-width="${lw * .6}"`);
+  base += R(-.15, 19.2, .6, 19.45, `fill="${T.cut}"`) + R(13.4, 19.2, 14.15, 19.45, `fill="${T.cut}"`);
+  for (let f = 1; f <= 6; f++) { const b = 3 * (f - 1); [0, 13.55].forEach(wx => base += R(wx, b + .9, wx + .45, b + 2.3, `fill="${T.glass}" stroke="${ink}" stroke-width="${lw * .5}"`)); }
+  base += R(-.05, 0, .5, 2.2, `fill="${T.door}" stroke="${ink}" stroke-width="${lw * .6}"`); // front door
+  if (T.levels) base += T.levels(X, Y, s);
+  o += `<g class="base">${base}</g>`;
+
+  // 1 sidewalk shed (outside, on the sidewalk)
+  o += G('shed', 1, L([[-3.7, 0], [-3.7, 3.2]], sk('shed', lw * 1.6)) + L([[-0.45, 0], [-0.45, 3.2]], sk('shed', lw * 1.6)) + R(-4.15, 3.2, 0, 3.7, `fill="${sys.shed.c}" stroke="${ink}" stroke-width="${lw * .6}"`) + R(-4.15, 3.7, -3.95, 4.7, `fill="${sys.shed.c}"`) + C(-2.9, 3.05, 3.5, `fill="#ffe58a"`) + C(-1.3, 3.05, 3.5, `fill="#ffe58a"`));
+  // 2 structural: new roof beam + posts on the top floor
+  o += G('struct', 6, R(.45, 17.1, 13.55, 17.65, `fill="${sys.struct.c}" stroke="${ink}" stroke-width="${lw * .5}"`) + [4.7, 10.95].map(px => R(px - .14, 15, px + .14, 17.1, `fill="${sys.struct.c}"`) + R(px - .35, 15, px + .35, 15.12, `fill="${sys.struct.c}"`)).join(''));
+  // 3 plumbing stack, branches and the house drain
+  for (let f = 0; f <= 6; f++) {
+    const b = 3 * (f - 1), z0 = f === 0 ? -2.45 : b, z1 = f === 6 ? 19.9 : 3 * f;
+    let g = L([[10.35, z0], [10.35, z1]], sk('plumb', lw * 1.7));
+    if (f === 0) g += L([[10.35, -2.45], [-4.7, -2.75]], sk('plumb', lw * 1.7));
+    else g += L([[8.7, b + .5], [8.7, b + .3], [10.35, b + .18]], sk('plumb', lw)) + L([[9.95, b + .3], [10.35, b + .3]], sk('plumb', lw));
+    if (f === 6) g += R(10.15, 19.9, 10.55, 20.15, `fill="${sys.plumb.c}"`);
+    o += G('plumb', Math.max(f, 1), g);
+  }
+  // 4 sprinklers: riser by the front wall, fire department connection, a branch line with heads on every ceiling
+  for (let f = 0; f <= 6; f++) {
+    const top = f === 0 ? -.4 : 3 * f - .7, b = f === 0 ? -2.6 : 3 * (f - 1);
+    let g = L([[.95, b], [.95, Math.min(top, 17.3)]], sk('spk', lw * 1.5));
+    if (f === 0) g += C(.95, -1.6, s * .18, `fill="${sys.spk.c}"`);
+    if (f === 1) g += L([[.95, .9], [-.55, .9]], sk('spk', lw * 1.3)) + C(-.75, 1.05, s * .14, `fill="${sys.spk.c}"`) + C(-.75, .75, s * .14, `fill="${sys.spk.c}"`);
+    if (f >= 1) {
+      g += L([[.95, top], [5.05, top]], sk('spk', lw)) + L([[8.15, top], [13.3, top]], sk('spk', lw));
+      [2.5, 4.3, 9.4, 11.4, 13.0].forEach(hx => g += L([[hx, top], [hx, top - .3]], sk('spk', lw * .8)) + P([[hx - .2, top - .38], [hx + .2, top - .38], [hx, top - .25]], `fill="${sys.spk.c}"`));
+    }
+    o += G('spk', Math.max(f, 1), g);
+  }
+  // 5 mechanical: heat recovery unit on the roof, riser duct at the back, ceiling ducts to bath + bedroom
+  for (let f = 1; f <= 6; f++) {
+    const c = 3 * f - .35;
+    let g = R(12.8, 3 * (f - 1) + .6, 13.35, 3 * f, `fill="${sys.mech.c}" stroke="${sys.mech.c}" stroke-width="${lw * .5}"`);
+    g += R(8.15, c - .75, 12.8, c - .4, `fill="${sys.mech.c}" stroke="${sys.mech.c}" stroke-width="${lw * .5}"`);
+    [9.1, 11.9].forEach(dx => g += P([[dx - .3, c - .75], [dx + .3, c - .75], [dx + .45, c - .95], [dx - .45, c - .95]], `fill="${sys.mech.c}"`));
+    if (f === 6) g += R(10.7, 18.05, 13.4, 19.7, `fill="${sys.mech.c}" stroke="${ink}" stroke-width="${lw * .6}"`) + C(11.6, 18.88, s * .45, `fill="none" stroke="#fff" stroke-width="${lw * .8}"`) + [12.3, 12.6, 12.9].map(lx => L([[lx, 18.4], [lx, 19.4]], `stroke="#fff" stroke-width="${lw * .6}"`)).join('');
+    o += G('mech', f, g);
+  }
+  // 6 elevator: shaft, machine bulkhead on the roof, cab waiting on floor 3
+  for (let f = 0; f <= 6; f++) {
+    const z0 = f === 0 ? -3 : 3 * (f - 1), z1 = f === 6 ? 18 : 3 * f;
+    let g = R(5.4, z0, 7.9, z1, `fill="${sys.elev.c}" fill-opacity=".12"`) + L([[5.45, z0], [5.45, z1]], sk('elev', lw * 1.2)) + L([[7.85, z0], [7.85, z1]], sk('elev', lw * 1.2));
+    if (f === 3) g += R(5.75, 6.1, 7.55, 8.45, `fill="${sys.elev.c}" stroke="${ink}" stroke-width="${lw * .6}"`) + L([[6.65, 6.1], [6.65, 8.45]], `stroke="#fff" stroke-width="${lw * .6}"`) + L([[6.4, 8.45], [6.4, 20.2]], sk('elev', lw * .5)) + L([[6.9, 8.45], [6.9, 20.2]], sk('elev', lw * .5));
+    if (f === 6) g += R(5.3, 18, 8.0, 20.6, `fill="${sys.elev.c}" fill-opacity=".35" stroke="${sys.elev.c}" stroke-width="${lw * 1.2}"`);
+    o += G('elev', Math.max(f, 1), g);
+  }
+  // 7 general construction: roof deck, rail, pergola, planters for the green roof
+  {
+    const c = sys.roof.c;
+    let g = R(.6, 18, 5.25, 18.28, `fill="${c}"`) + R(8.1, 18, 10.6, 18.28, `fill="${c}"`);
+    g += L([[.75, 18.28], [.75, 19.5], [5.1, 19.5]], sk('roof', lw)) + [1.4, 4.6].map(px => L([[px, 18.28], [px, 20.8]], sk('roof', lw * 1.2))).join('') + L([[1.0, 20.8], [5.1, 20.8]], sk('roof', lw * 1.4));
+    [1.6, 2.2, 2.8, 3.4, 4.0].forEach(px => g += L([[px, 20.65], [px, 20.95]], sk('roof', lw * .9)));
+    g += R(2.2, 18.28, 3.6, 18.7, `fill="${c}" fill-opacity=".6"`) + R(8.3, 18.28, 10.4, 18.85, `fill="${c}" stroke="${ink}" stroke-width="${lw * .5}"`);
+    [8.7, 9.3, 9.9].forEach(px => g += C(px, 19.15, s * .3, `fill="${T.leaf}" stroke="${ink}" stroke-width="${lw * .4}"`));
+    o += G('roof', 6, g);
+  }
+  // tags (shown when a system is picked)
+  const tags = { shed: [-2, 3.7, -6.3, 6.4], struct: [7, 17.4, 14.6, 16.6], plumb: [10.35, 9, 14.6, 10.4], spk: [3, 11.3, -6.3, 13.2], mech: [12, 19.6, 14.6, 21.4], elev: [6.65, 7.3, -6.3, 8.6], roof: [3, 20.8, -6.3, 22.4] };
+  let t = '';
+  K.scope.forEach(x => {
+    let [ax, az, tx, tz] = tags[x.id]; if (T.tagLeft !== undefined) tx = T.tagLeft; const w = (x.trade.length * T.tagFs * .62 + 60) | 0, left = tx < 0;
+    const bx = left ? X(tx) : X(tx), by = Y(tz) - T.tagFs;
+    t += `<g class="tag" data-sys="${x.id}"><line x1="${X(ax)}" y1="${Y(az)}" x2="${left ? bx + w : bx}" y2="${by + T.tagFs}" stroke="${x.c}" stroke-width="${lw}" stroke-dasharray="4 4"/>` +
+      `<circle cx="${X(ax)}" cy="${Y(az)}" r="${s * .55}" fill="none" stroke="${x.c}" stroke-width="${lw * 1.2}" class="pulse"/>` +
+      `<rect x="${bx}" y="${by}" width="${w}" height="${T.tagFs * 2}" rx="${T.tagR ?? T.tagFs}" fill="${x.c}" stroke="${ink}" stroke-width="${lw * .6}"/>` +
+      `<text x="${bx + w / 2}" y="${by + T.tagFs * 1.36}" text-anchor="middle" font-size="${T.tagFs}" font-weight="700" fill="#fff" font-family="Poppins">${x.icon} ${x.trade}</text></g>`;
+  });
+  o += t;
+  return o;
+};
+K.cutCSS = `.cut .sys,.cut .base{transition:opacity .25s,filter .25s}.cut[data-focus] .sys{opacity:.1!important}.cut[data-focus] .base{opacity:.62}.cut .tag{opacity:0;transition:opacity .2s;pointer-events:none}
+.pulse{animation:pulse 1.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}@keyframes pulse{50%{transform:scale(1.35);opacity:.4}}` +
+  K.scope.map(x => `.cut[data-focus="${x.id}"] .sys[data-sys="${x.id}"]{opacity:1!important;filter:url(#hl)}.cut[data-focus="${x.id}"] .tag[data-sys="${x.id}"]{opacity:1}`).join('');
+K.hlFilter = (halo = '#ffffff') => `<filter id="hl" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="2.5" result="d"/><feFlood flood-color="${halo}"/><feComposite in2="d" operator="in" result="h"/><feGaussianBlur in="h" stdDeviation="1.5" result="hb"/><feMerge><feMergeNode in="hb"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+
+// hover a scope line -> that system lights up in the cutaway; hover the system -> its line lights up.
+// Remote: up / down walks the list (the TV has no mouse), OK pins it, back clears.
+K.wire = function (root) {
+  const cuts = [...root.querySelectorAll('.cut')], cut = { set dataset_focus(v) {} }, items = [...root.querySelectorAll('.scope [data-sys]')];
+  let pinned = null;
+  const set = id => {
+    cuts.forEach(c => { if (id) c.dataset.focus = id; else delete c.dataset.focus; });
+    items.forEach(i => i.classList.toggle('on', i.dataset.sys === id));
+  };
+  items.forEach(it => {
+    it.tabIndex = 0;
+    it.addEventListener('mouseenter', () => set(it.dataset.sys));
+    it.addEventListener('focus', () => set(it.dataset.sys));
+    it.addEventListener('click', () => { pinned = pinned === it.dataset.sys ? null : it.dataset.sys; set(pinned || it.dataset.sys); });
+  });
+  root.querySelector('.scope').addEventListener('mouseleave', () => set(pinned));
+  root.querySelectorAll('.cut .sys').forEach(g => { g.style.cursor = 'pointer'; g.addEventListener('mouseenter', () => set(g.dataset.sys)); g.addEventListener('mouseleave', () => set(pinned)); });
+  document.addEventListener('keydown', e => {
+    const i = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = i < 0 ? 0 : (i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length; items[n].focus(); }
+    if (e.key === 'Escape' || e.key === 'Backspace') { pinned = null; document.activeElement.blur(); set(null); }
+  });
+  const pre = K.q.get('sys');
+  if (pre) { const it = items.find(i => i.dataset.sys === pre); if (it) { it.classList.add('remote'); set(pre); } }
+};
+</script>
+<script>
+const INK='#1d3f72',sc={built:'#1f8a4c',now:'#b7791f',paper:'#5b6f8f'};
+document.getElementById('scope').innerHTML=`<div class="mono" style="font-size:15px;font-weight:600;padding:7px 8px;border-bottom:2px solid ${INK};display:flex;justify-content:space-between"><span>SCOPE OF WORK · WHAT THE OWNER WANTS</span><span>${K.money(K.total)}</span></div>`+
+ K.scope.map((x,i)=>`<div class="ln" data-sys="${x.id}" style="--c:${x.c}"><div class="no">0${i+1}</div><div><b><i style="background:${x.c}"></i>${x.icon} ${x.trade}</b><span>${x.text}</span></div><div class="stamp" style="color:${sc[x.status]};border-color:${sc[x.status]}">${K.statusWord[x.status].toUpperCase()}<em>${K.money(x.cost)}</em></div></div>`).join('');
+// ---- flat section (round 2, look B)
+const TF={s:23,ox:160,oy:715,ink:INK,lw:2,earth:'#ece4d2',cellar:'#f8f6f0',road:'#d9dde4',walk:'#ece8de',yard:'#e1ecd6',rooms:['#ffffff','#fbfcfe'],part:'#9fb0c8',glass:'#d6e8f7',cut:'#c3cedd',door:'#9fb0c8',fixture:'#ffffff',leaf:'#a8d08d',tagFs:17,tagR:6,dash:'8 6',paperFill:.1,tagLeft:-6.6,
+  furn:(X,Y,s,b,f)=>`<text x="${X(.8)}" y="${Y(b+2.25)}" font-family="IBM Plex Mono" font-size="11" font-weight="600" fill="${INK}" opacity=".6">FLOOR ${f}</text>`};
+document.getElementById('flat').innerHTML=`<defs>${K.hlFilter('#fff')}</defs><style>${K.cutCSS}</style>`+K.cutaway(TF);
+
+// ---- angled 3D cut (axonometric): the near side wall and the street wall are taken off; pipes and wires drawn on top
+function axo(){
+  const s=20,ox=372,oy=432,lw=2;
+  const P=(x,y,z)=>[+(ox+(x-y-6)*.866*s).toFixed(1),+(oy+(22-x-y)*.5*s-z*s).toFixed(1)];
+  const poly=(pts,a)=>`<polygon points="${pts.map(p=>P(...p).join(',')).join(' ')}" ${a}/>`;
+  const line=(pts,a)=>`<polyline points="${pts.map(p=>P(...p).join(',')).join(' ')}" fill="none" stroke-linecap="round" stroke-linejoin="round" ${a}/>`;
+  const box=(x0,x1,y0,y1,z0,z1,fill,a='')=>poly([[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]],`fill="${fill}" ${a}`)+poly([[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1]],`fill="${fill}" ${a}`)+poly([[x0,y0,z0],[x0,y1,z0],[x0,y1,z1],[x0,y0,z1]],`fill="${fill}" ${a}`);
+  const sys=Object.fromEntries(K.scope.map(x=>[x.id,x]));
+  const solid=(id,f)=>sys[id].status==='built'||(sys[id].status==='now'&&f<=3);
+  const G=(id,f,inner)=>`<g class="sys" data-sys="${id}"${solid(id,f)?'':' stroke-dasharray="7 6" fill-opacity=".2" opacity=".85"'}>${inner}</g>`;
+  const sk=(id,w)=>`stroke="${sys[id].c}" stroke-width="${w}"`;
+  const e=`stroke="${INK}" stroke-width="${lw*.6}" stroke-linejoin="round"`;
+  let b='';
+  // ground block, street and the dug-out cellar
+  b+=poly([[-5,0,0],[16,0,0],[16,8.6,0],[-5,8.6,0]],`fill="#ece4d2" ${e}`)+poly([[-5,0,-4],[16,0,-4],[16,0,0],[-5,0,0]],`fill="#e3d8c0" ${e}`)+poly([[-5,0,-4],[-5,8.6,-4],[-5,8.6,0],[-5,0,0]],`fill="#d9cdb2" ${e}`);
+  b+=poly([[-5,0,.02],[-4.1,0,.02],[-4.1,8.6,.02],[-5,8.6,.02]],`fill="#c9ced8"`)+poly([[-4.1,0,.05],[0,0,.05],[0,8.6,.05],[-4.1,8.6,.05]],`fill="#f1ede3" ${e}`);
+  b+=poly([[0,0,-3],[14,0,-3],[14,0,0],[0,0,0]],`fill="#f8f6f0" ${e}`);
+  // far walls (seen from inside), with windows
+  b+=poly([[14,0,-3],[14,8,-3],[14,8,19.2],[14,0,19.2]],`fill="#eef2f8" ${e}`)+poly([[0,8,-3],[14,8,-3],[14,8,19.2],[0,8,19.2]],`fill="#f4f6fa" ${e}`);
+  for(let f=1;f<=6;f++){const z=3*(f-1);[[2,4],[5.5,7.3],[11,12.8]].forEach(([a,c])=>b+=poly([[a,8,z+.9],[c,8,z+.9],[c,8,z+2.3],[a,8,z+2.3]],`fill="#d6e8f7" ${e}`));[[1,3],[5,7]].forEach(([a,c])=>b+=poly([[14,a,z+.9],[14,c,z+.9],[14,c,z+2.3],[14,a,z+2.3]],`fill="#d6e8f7" ${e}`));
+    b+=`<text x="${P(.6,8,z+2.1)[0]}" y="${P(.6,8,z+2.1)[1]}" font-family="IBM Plex Mono" font-size="11" font-weight="600" fill="${INK}" opacity=".55">FLOOR ${f}</text>`}
+  // floors as thin trays, partitions as light screens
+  for(let k=0;k<=6;k++){const z=3*k;b+=poly([[0,0,z],[14,0,z],[14,8,z],[0,8,z]],`fill="#ffffff" fill-opacity=".72" ${e}`)+poly([[0,0,z-.35],[14,0,z-.35],[14,0,z],[0,0,z]],`fill="#c3cedd" ${e}`)+poly([[0,0,z-.35],[0,8,z-.35],[0,8,z],[0,0,z]],`fill="#b3c0d2" ${e}`);
+    if(k<6)[5.2,10.7].forEach(px=>b+=poly([[px,0,z],[px,8,z],[px,8,z+2.65],[px,0,z+2.65]],`fill="#c9d3e2" fill-opacity=".22" stroke="${INK}" stroke-width=".8" stroke-opacity=".5"`))}
+  b+=poly([[0,0,-3.35],[14,0,-3.35],[14,8,-3.35],[0,8,-3.35]],`fill="#c3cedd" fill-opacity=".5"`);
+  // street wall drawn as a ghost so you can see through it
+  b+=poly([[0,0,-.1],[0,8,-.1],[0,8,19.2],[0,0,19.2]],`fill="#d6e8f7" fill-opacity=".1" stroke="${INK}" stroke-width="1.2" stroke-dasharray="6 5"`);
+  for(let f=1;f<=6;f++){const z=3*(f-1);[[1.2,3],[5,6.8]].forEach(([a,c])=>b+=poly([[0,a,z+.9],[0,c,z+.9],[0,c,z+2.3],[0,a,z+2.3]],`fill="none" stroke="${INK}" stroke-width=".9" stroke-opacity=".45"`))}
+  let o=`<g class="base">${b}</g>`;
+  // 1 sidewalk shed
+  o+=G('shed',1,[[-3.7,.4],[-3.7,7.6],[-.45,.4],[-.45,7.6]].map(([x,y])=>line([[x,y,0],[x,y,3.2]],sk('shed',3))).join('')+box(-4.15,0,0,8.4,3.2,3.7,sys.shed.c,e)+box(-4.15,-3.95,0,8.4,3.7,4.6,sys.shed.c,e));
+  // 2 structural: three new roof beams and posts
+  o+=G('struct',6,[1.2,4,6.8].map(y=>line([[.45,y,17.4],[13.55,y,17.4]],sk('struct',6))).join('')+[[4.7,1.2],[4.7,6.8],[10.95,1.2],[10.95,6.8]].map(([x,y])=>line([[x,y,15],[x,y,17.1]],sk('struct',5))).join(''));
+  // 3 plumbing stack, branches, house drain
+  for(let f=0;f<=6;f++){const bz=3*(f-1),z0=f===0?-2.45:bz,z1=f===6?19.9:3*f;let g=line([[10.35,6.8,z0],[10.35,6.8,z1]],sk('plumb',5));
+    if(f===0)g+=line([[10.35,6.8,-2.45],[-4.7,6.8,-2.75]],sk('plumb',5));else g+=line([[8.7,5.4,bz+.6],[8.7,5.4,bz+.3],[10.35,6.8,bz+.2]],sk('plumb',3))+line([[9.6,6.3,bz+.35],[10.35,6.8,bz+.3]],sk('plumb',3))+box(8.4,9,5.1,5.7,bz+.6,bz+.8,'#ffffff',e);
+    o+=G('plumb',Math.max(f,1),g)}
+  // 4 sprinklers: riser, main and branch lines with heads on every ceiling
+  for(let f=0;f<=6;f++){const top=f===0?-.4:3*f-.7,bz=f===0?-2.6:3*(f-1);let g=line([[.95,7.2,bz],[.95,7.2,Math.min(top,17.3)]],sk('spk',4));
+    if(f>=1){g+=line([[.95,7.2,top],[.95,4,top],[13.3,4,top]],sk('spk',2.6))+[3,11].map(x=>line([[x,1,top],[x,7,top]],sk('spk',2.2))).join('');
+      [[3,1.6],[3,4],[3,6.4],[11,1.6],[11,4],[11,6.4],[13,4]].forEach(([x,y])=>g+=line([[x,y,top],[x,y,top-.35]],sk('spk',2))+`<circle cx="${P(x,y,top-.4)[0]}" cy="${P(x,y,top-.4)[1]}" r="3" fill="${sys.spk.c}"/>`)}
+    o+=G('spk',Math.max(f,1),g)}
+  // 5 mechanical: roof unit, riser duct, ceiling ducts
+  for(let f=1;f<=6;f++){const c=3*f-.35;let g=line([[13.05,1.6,3*(f-1)+.6],[13.05,1.6,3*f]],sk('mech',8))+line([[8.15,1.6,c-.6],[13.05,1.6,c-.6]],sk('mech',6));
+    [9.1,11.9].forEach(x=>g+=line([[x,1.6,c-.6],[x,1.6,c-.95]],sk('mech',4)));
+    if(f===6)g+=box(10.7,13.4,1,5,18.05,19.7,sys.mech.c,e)+`<circle cx="${P(10.7,3,18.9)[0]}" cy="${P(10.7,3,18.9)[1]}" r="9" fill="none" stroke="#fff" stroke-width="2"/>`;
+    o+=G('mech',f,g)}
+  // 6 elevator: shaft frame, cab on floor 3, machine box on the roof
+  for(let f=0;f<=6;f++){const z0=f===0?-3:3*(f-1),z1=f===6?18:3*f;let g=[[5.4,4.6],[7.9,4.6],[5.4,7.8],[7.9,7.8]].map(([x,y])=>line([[x,y,z0],[x,y,z1]],sk('elev',2.4))).join('')+poly([[5.4,4.6,z1],[7.9,4.6,z1],[7.9,7.8,z1],[5.4,7.8,z1]],`fill="${sys.elev.c}" fill-opacity=".12" ${sk('elev',1.6)}`);
+    if(f===3)g+=box(5.75,7.55,4.9,7.5,6.1,8.45,sys.elev.c,e)+line([[6.65,6.2,8.45],[6.65,6.2,20.3]],sk('elev',1.5));
+    if(f===6)g+=box(5.3,8,4.5,7.9,18,20.6,sys.elev.c,`fill-opacity=".45" ${sk('elev',2)}`);
+    o+=G('elev',Math.max(f,1),g)}
+  // 7 general construction: roof deck, rail, pergola, planters
+  {let g=poly([[.6,.5,18.28],[5.25,.5,18.28],[5.25,7.5,18.28],[.6,7.5,18.28]],`fill="${sys.roof.c}" ${e}`)+line([[.75,.5,19.5],[.75,7.5,19.5]],sk('roof',3))+[.5,2.8,5.2,7.5].map(y=>line([[.75,y,18.28],[.75,y,19.5]],sk('roof',2))).join('');
+   [[1.4,1],[1.4,7],[4.6,1],[4.6,7]].forEach(([x,y])=>g+=line([[x,y,18.28],[x,y,20.8]],sk('roof',3.5)));g+=line([[1.4,1,20.8],[4.6,1,20.8]],sk('roof',3.5))+line([[1.4,7,20.8],[4.6,7,20.8]],sk('roof',3.5));
+   [1.9,2.5,3.1,3.7,4.3].forEach(x=>g+=line([[x,1,20.85],[x,7,20.85]],sk('roof',2)));
+   g+=box(8.1,10.6,.5,3,18,18.85,sys.roof.c,e);[[8.6,1.2],[9.4,2.2],[10.1,1.2]].forEach(([x,y])=>g+=`<circle cx="${P(x,y,19.3)[0]}" cy="${P(x,y,19.3)[1]}" r="9" fill="#a8d08d" ${e}/>`);
+   o+=G('roof',6,g)}
+  // tags
+  const an={shed:[-2,4,3.7],struct:[7,4,17.4],plumb:[10.35,6.8,9],spk:[3,4,11.3],mech:[12,3,19.7],elev:[6.65,6.2,7.3],roof:[3,4,20.8]};
+  K.scope.forEach(x=>{const [ax,ay]=P(...an[x.id]),fs=17,w=(x.trade.length*fs*.62+50)|0,right=ax+60+w<630,bx=right?ax+60:Math.max(8,ax-60-w),by=ay-50;
+    o+=`<g class="tag" data-sys="${x.id}"><line x1="${ax}" y1="${ay}" x2="${right?bx:bx+w}" y2="${by+fs}" stroke="${x.c}" stroke-width="2" stroke-dasharray="4 4"/><circle cx="${ax}" cy="${ay}" r="12" fill="none" stroke="${x.c}" stroke-width="2.5" class="pulse"/><rect x="${bx}" y="${by}" width="${w}" height="${fs*2}" rx="6" fill="${x.c}" ${e}/><text x="${bx+w/2}" y="${by+fs*1.36}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="#fff" font-family="Poppins">${x.icon} ${x.trade}</text></g>`});
+  return o;
+}
+document.getElementById('axo').innerHTML=`<defs>${K.hlFilter('#fff')}</defs>`+axo();
+K.wire(document.getElementById('root'));
+</script>
+</body></html>

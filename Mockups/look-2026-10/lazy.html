@@ -1,0 +1,116 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Turning town</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:OpenDyslexic;src:url(fonts/OpenDyslexic-Regular.woff2) format('woff2')}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden}
+body{font-family:Poppins,sans-serif;color:#2b2d42;background:linear-gradient(180deg,#bfe9f7 0%,#e7f6f1 55%,#fff3dc 100%);position:relative}
+/* the turning table: one 3D scene, moved only with transforms (cheap on a TV stick) */
+.world{position:absolute;left:960px;top:610px;width:0;height:0;transform-style:preserve-3d;transform:rotateX(58deg);transform-origin:0 0}
+.table,.inner{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d;transform-origin:0 0}
+.bb{position:absolute;width:0;height:0;transform-origin:0 0;will-change:transform}
+.bb svg{position:absolute;overflow:visible}
+.rot{transition:transform 1.5s cubic-bezier(.5,0,.25,1)}
+body.instant .rot,body.instant .pawn,body.instant .say{transition:none!important}
+@media (prefers-reduced-motion:reduce){.rot,.pawn,.say{transition:none!important}}
+.pawn{transition:opacity .35s,transform .45s cubic-bezier(.3,1.6,.5,1)}
+.pawn.off{opacity:0;transform:translateY(-70px)}
+.say{transition:opacity .4s}.say.off{opacity:0}
+.pan{background:#fff;border-radius:24px;box-shadow:0 8px 0 rgba(43,45,66,.14),0 16px 34px rgba(43,45,66,.12)}
+.key{display:inline-grid;place-items:center;min-width:44px;height:40px;padding:0 10px;border-radius:12px;background:#2b2d42;color:#fff;font-weight:800;margin-right:6px;box-shadow:0 4px 0 #11121d}
+#demo{position:absolute;right:28px;bottom:24px;width:520px;padding:14px 16px;font-size:17px}
+#demo button{font:700 16px Poppins;border:0;border-radius:12px;padding:8px 12px;margin:3px 2px;background:#eef1f8;color:#2b2d42;cursor:pointer;box-shadow:0 3px 0 #c3c8da}
+#demo button.big{background:#ffcf33;font-size:19px;box-shadow:0 4px 0 #c99a00}
+body.still #demo{display:none}
+</style></head>
+<body>
+<svg id="rim" width="1920" height="1080" style="position:absolute;inset:0"></svg>
+<div class="world"><div class="table rot" id="table"><svg id="ground" style="position:absolute"></svg><div class="inner rot" id="inner"><svg id="plaza" style="position:absolute"></svg></div></div></div>
+<!-- the cut-outs live in a second copy of the table that turns in step, so the flat ground never hides them -->
+<div class="world"><div class="table rot" id="table2"><div class="inner rot" id="inner2"></div></div></div>
+<svg id="front" width="1920" height="1080" style="position:absolute;inset:0;pointer-events:none"></svg>
+<div id="hud"></div>
+<div class="pan" id="demo">
+ <div style="font-weight:800;font-size:15px;color:#6b6f8a;margin-bottom:4px">TRY IT (demo buttons, not part of the game)</div>
+ <button class="big" onclick="next()">Next player ▶</button> <button onclick="toggleMotion()" id="mot">Motion: smooth</button>
+ <div style="margin-top:6px" id="go"></div>
+ <div style="font-size:13.5px;color:#6b6f8a;margin-top:6px">Keys: N next player · 1 to 7 go to a building · H go home · M motion</div>
+</div>
+<script src="kit.js"></script>
+<script src="iso.js"></script>
+<script>
+const TILT=58,R=720,LIFT=70,COS=Math.cos(TILT*Math.PI/180);
+const L=K.layout({cx:0,cy:0,R,sq:1,inner:.42});
+const order=['maya','dev','rosa','theo']; // turn order = seats going round the table, a quarter turn each
+let th=0,ph=0,cur=0;const where={maya:'home',dev:'dob',rosa:'bank',theo:'arch'};
+const table=document.getElementById('table'),inner=document.getElementById('inner'),table2=document.getElementById('table2'),inner2=document.getElementById('inner2'),bbs=[];
+function bb(parent,x,y,w,h,foot,svg,ring,lift=LIFT,cls=''){const a=document.createElement('div');a.className='bb rot';a.style.left=x+'px';a.style.top=y+'px';a.dataset.lift=lift;
+  a.innerHTML=`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="left:${-w/2}px;top:${-foot}px" class="${cls}">${svg}</svg>`;parent.appendChild(a);bbs.push({el:a,ring});return a}
+function apply(){table.style.transform=table2.style.transform=`rotateZ(${th}deg)`;inner.style.transform=inner2.style.transform=`rotateZ(${ph}deg)`;
+  bbs.forEach(b=>b.el.style.transform=`rotateZ(${-(th+(b.ring==='inner'?ph:0))}deg) rotateX(${-TILT}deg) translateZ(${b.el.dataset.lift}px)`)}
+
+// ---- ground (drawn flat, seen from above; the tilt turns the circle into an oval)
+function arcP(a0,a1,r0,r1){const p=[],P=(a,r)=>[R*r*Math.cos(a*Math.PI/180),R*r*Math.sin(a*Math.PI/180)];for(let a=a0;a<=a1;a+=3)p.push(P(a,r1));for(let a=a1;a>=a0;a-=3)p.push(P(a,r0));return 'M'+p.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join('L')+'Z'}
+(function ground(){const g=document.getElementById('ground');g.setAttribute('width',2*R);g.setAttribute('height',2*R);g.setAttribute('viewBox',`${-R} ${-R} ${2*R} ${2*R}`);g.style.left=-R+'px';g.style.top=-R+'px';
+  let o=`<circle r="${R}" fill="#f6efe2"/><circle r="${R*.97}" fill="#8fd36f"/>`;
+  K.players.forEach(p=>{const a=K.quarters[p.id];o+=`<path d="${arcP(a-42,a+42,.68,.955)}" fill="${p.c}" opacity=".28"/>`});
+  [45,135,225,315].forEach(a=>{const c=Math.cos(a*Math.PI/180),s=Math.sin(a*Math.PI/180);o+=`<path d="M${c*R*.62} ${s*R*.62}L${c*R*.985} ${s*R*.985}" stroke="#6f7390" stroke-width="64"/>`});
+  o+=`<circle r="${R*.66}" fill="#6f7390"/><circle r="${R*.623}" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="30 26"/>`;
+  L.lots.forEach(l=>o+=`<rect x="${l.x-62}" y="${l.y-58}" width="124" height="116" rx="14" fill="#fff" opacity=".35"/>`);
+  g.innerHTML=o;
+  const pz=document.getElementById('plaza'),r=R*.585;pz.setAttribute('width',2*r);pz.setAttribute('height',2*r);pz.setAttribute('viewBox',`${-r} ${-r} ${2*r} ${2*r}`);pz.style.left=-r+'px';pz.style.top=-r+'px';
+  let q=`<circle r="${r}" fill="#f6efe2"/><circle r="${r*.955}" fill="#b6e59a"/>`;
+  L.shared.forEach(b=>q+=`<path d="M0 0L${b.x} ${b.y}" stroke="#f6efe2" stroke-width="26" stroke-linecap="round"/><rect x="${b.x-70}" y="${b.y-62}" width="140" height="124" rx="16" fill="#f6efe2"/>`);
+  q+=`<circle r="44" fill="#f6efe2"/><circle r="34" fill="#9ad8f0" stroke="#fff" stroke-width="6"/>`+[0,90,180,270].map(a=>`<path d="M0 -26L6 0L0 26L-6 0Z" fill="#fff" transform="rotate(${a})" opacity=".8"/>`).join('');
+  pz.innerHTML=q;
+})();
+// ---- the rim (wood edge) does not turn: a circle looks the same at any angle
+(function rim(){const cx=960,cy=610,rx=R,ry=R*COS;
+  document.getElementById('rim').innerHTML=`<ellipse cx="${cx}" cy="${cy+60}" rx="${rx*1.02}" ry="${ry*1.02}" fill="rgba(43,45,66,.18)"/><ellipse cx="${cx}" cy="${cy+36}" rx="${rx}" ry="${ry}" fill="#b97d48"/><rect x="${cx-rx}" y="${cy}" width="${2*rx}" height="36" fill="#c48a55"/><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#c48a55"/>`;
+})();
+// ---- buildings stand up like cut-out models and always face you while the table turns
+const W=230,H=300,F=250;
+// name signs sit on a higher layer than any building, so they are never covered
+L.shared.forEach(b=>{const r=building(b.id,W/2,F,COL[b.id]);bb(inner2,b.x,b.y,W,H,F,r.svg,'inner');bb(inner2,b.x,b.y,W,H,F,tag(W/2,F-r.top-8,b.name,COL[b.id]),'inner',260);b.top=r.top});
+L.lots.forEach(l=>{const s=K.sites[l.p.id];let svg;
+  if(l.kind==='owner')svg=owner(W/2,F,l.p.c).svg;else if(l.kind==='office')svg=office(W/2,F,l.p.c).svg;
+  else{const mine=(l.kind==='site'&&s.kind==='reno')||(l.kind==='site_new'&&s.kind==='new');
+    svg=mine?site(s.kind,s.stage,l.p.c,W/2,F).svg+`<g transform="translate(${W/2},${F+42})"><rect x="-58" y="-13" width="116" height="26" rx="13" fill="#fff"/>${[...Array(6)].map((_,i)=>`<rect x="${-48+i*16.5}" y="-6" width="13" height="12" rx="4" fill="${i<s.stage?l.p.c:'#dfe3ee'}"/>`).join('')}</g>`:tree(W/2-22,F)+tree(W/2+20,F-6,'#7fdc8f')+tree(W/2,F+16,'#ffcf5a');}
+  bb(table2,l.x,l.y,W,H,F,svg,'outer')});
+[22,68,112,158,202,248,292,338].forEach(a=>{const q=L.pt(a,.915);bb(table2,q.x,q.y,60,80,60,tree(30,60,a%3?'#5ccf7a':'#ffcf5a'),'outer',40)});
+// ---- calendars ride on the rim, in each player's colour, and turn with their side
+K.players.forEach(p=>{const q=L.pt(K.quarters[p.id],1.0);
+  bb(table2,q.x,q.y,170,120,60,`<rect x="8" y="10" width="154" height="104" rx="18" fill="rgba(43,45,66,.25)"/><rect x="8" y="4" width="154" height="104" rx="18" fill="#fff"/><path d="M8 22a18 18 0 0 1 18 -18h118a18 18 0 0 1 18 18v14H8z" fill="${p.c}"/><text x="85" y="30" text-anchor="middle" font-size="22" font-weight="800" fill="#fff">${p.name}</text><text x="85" y="78" text-anchor="middle" font-size="40" font-weight="900" fill="#2b2d42">${p.day}</text><text x="85" y="100" text-anchor="middle" font-size="15" font-weight="800" letter-spacing="2" fill="#6b6f8a">OCT 2026</text>`,'outer',700)});
+// ---- pawns and who is talking
+const pawns={};
+function pawnAt(pid,loc){const p=K.players.find(x=>x.id===pid);if(pawns[pid])pawns[pid].el.querySelector('svg').classList.add('off');
+  let el;if(loc==='home'){const l=L.lots.find(x=>x.p.id===pid&&x.kind===(K.sites[pid].kind==='reno'?'site':'site_new'));el=bb(table2,l.x,l.y,80,90,80+84,pawn(40,80,p.c,1.2),'outer',300,'pawn off')}
+  else{const b=L.shared.find(x=>x.id===loc),n=Object.values(where).filter(w=>w===loc).length;el=bb(inner2,b.x,b.y,80,90,80+b.top+14,pawn(40,80,p.c,1.1),'inner',300,'pawn off');el.querySelector('svg').style.left=(-40+(b.name.length>14?118:96)+(n-1)*40)+'px'}
+  apply();pawns[pid]={el};requestAnimationFrame(()=>requestAnimationFrame(()=>el.querySelector('svg').classList.remove('off')));}
+function bubble(ring,x,y,foot,who,col,title,text){const w=600,h=230;
+  return bb(ring==='inner'?inner2:table2,x,y,w,h,foot,`<path d="M30 12h540a24 24 0 0 1 24 24v120a24 24 0 0 1 -24 24H330l-30 40l-30 -40H30a24 24 0 0 1 -24 -24V36a24 24 0 0 1 24 -24z" fill="#fff" stroke="#2b2d42" stroke-width="4"/><rect x="26" y="0" width="${who.length*12.5+30}" height="34" rx="12" fill="${col}"/><text x="40" y="24" font-size="19" font-weight="900" fill="#fff">${who}</text><text x="32" y="70" font-size="27" font-weight="800" fill="#2b2d42">${title}</text><foreignObject x="30" y="82" width="545" height="96"><div xmlns="http://www.w3.org/1999/xhtml" style="font:500 22px/1.45 Poppins;color:#2b2d42">${text}</div></foreignObject>`,ring==='inner'?'inner':'outer',900,'say off')}
+const mSite=L.lots.find(l=>l.p.id==='maya'&&l.kind==='site'),dob=L.shared.find(b=>b.id==='dob');
+const talk={home:bubble('outer',mSite.x,mSite.y,F+150,'FRANK · YOUR CONTRACTOR','#2fae5e',K.npc.title,'Boss — inspector just walked onto the site. We fix it before they see it, or I steer them somewhere else.'),
+  dob:bubble('inner',dob.x,dob.y,F+dob.top+60,'PLAN EXAMINER · BUILDINGS DEPT','#ff6b4a','I’m reading your plans','I’m working through your plans page by page — every elevation, every section. Checking against code.')};
+function say(k){Object.entries(talk).forEach(([n,el])=>el.querySelector('svg').classList.toggle('off',n!==k))}
+// ---- HUD
+const NAMES=Object.fromEntries(K.shared);
+function hud(msg){const p=K.players.find(x=>x.id===order[cur]);
+  document.getElementById('hud').innerHTML=`<div style="position:absolute;left:34px;top:22px;font-weight:900;font-size:50px;color:#fff;line-height:1;-webkit-text-stroke:3px #2b2d42;paint-order:stroke fill;text-shadow:0 6px 0 #2b2d42">Unravel Codes</div>
+  <div class="pan" style="position:absolute;left:50%;transform:translateX(-50%);top:22px;padding:10px 28px 10px 12px;display:flex;align-items:center;gap:14px"><div style="width:54px;height:54px;border-radius:16px;background:${p.c};box-shadow:inset 0 -6px 0 rgba(0,0,0,.22);display:grid;place-items:center;color:#fff;font-weight:900;font-size:28px">${p.name[0]}</div><div style="font-size:31px;font-weight:800;line-height:1.1">${p.name}'s turn<div style="font-weight:600;font-size:23px;color:#4b4f6b">${msg}</div></div></div>
+  <div class="pan" style="position:absolute;left:28px;bottom:24px;padding:12px 18px;font-size:20px;font-weight:700;line-height:1.5;max-width:520px">The table turns so the player whose turn it is sits at the front. Calendars ride on the edge with their side.</div>`;
+}
+function msgFor(pid){const w=where[pid];return w==='home'?(pid==='maya'?'at her building: an inspector just walked in':'at their own building'):'at the '+NAMES[w]}
+function next(){cur=(cur+1)%4;th-=90;say(null);apply();hud(msgFor(order[cur]))}
+function goTo(id){const pid=order[cur];where[pid]=id;
+  if(id!=='home'){const b=L.shared.find(x=>x.id===id),a=Math.atan2(b.y,b.x)*180/Math.PI;let t=90-a-th;ph=ph+(((t-ph)%360+540)%360-180)}  // shortest way round to the front
+  apply();pawnAt(pid,id);say(pid==='maya'&&(id==='dob'||id==='home')?id:null);hud(id==='home'?msgFor(pid):'goes to the '+NAMES[id])}
+function toggleMotion(){document.body.classList.toggle('instant');document.getElementById('mot').textContent='Motion: '+(document.body.classList.contains('instant')?'instant':'smooth')}
+document.getElementById('go').innerHTML='Go to: '+K.shared.map(([id,n],i)=>`<button onclick="goTo('${id}')">${i+1} ${n}</button>`).join('')+`<button onclick="goTo('home')">H Home</button>`;
+document.addEventListener('keydown',e=>{if(e.key==='n'||e.key==='N')next();if(e.key>='1'&&e.key<='7')goTo(K.shared[+e.key-1][0]);if(e.key==='h'||e.key==='H')goTo('home');if(e.key==='m'||e.key==='M')toggleMotion()});
+if(K.q.get('still'))document.body.classList.add('still');
+['dev','rosa','theo'].forEach(p=>pawnAt(p,where[p]));pawnAt('maya','home');say('home');apply();hud(msgFor('maya'));
+</script>
+</body></html>
