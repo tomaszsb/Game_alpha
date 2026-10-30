@@ -323,7 +323,6 @@ export const LOOKS: Record<string, Look> = {
     // on its far (right) wall, so it never runs over the sign of the lot it stands on
     sign: f => ({ c: f.c1, r: rm(f), z: f.h * 1.6 * 0.62, span: f.r1 - f.r0, side: true }),
     signStyle: 'board',
-    signSize: 0.75,
     stand: f => ({ c: cm(f), r: rm(f), z: f.h * 1.6 }),
     draw: (P, f) => {
       const T = f.h * 1.6;
@@ -394,4 +393,140 @@ export const LOOKS: Record<string, Look> = {
 /** The look for a name from the data; anything unknown is a plain block. */
 export function lookFor(name: string | undefined): Look {
   return (name && LOOKS[name]) || LOOKS.box;
+}
+
+// -------------------------------------------------------------------------------------------------
+// The name sign's size and place, worked out here (not left to the browser) so the board draws every sign at this
+// width and a test can check that no two signs ever overlap, at any pose of the turning table.
+// -------------------------------------------------------------------------------------------------
+
+/** The sign's letter size before the town's sign scale (`round_sign_scale`). */
+export const SIGN_FONT = 22;
+/** How wide one letter of a sign's bold type is, against its size (a little over the real 0.58, to be safe). */
+const LETTER = 0.62;
+/** The front walls slope at this angle on screen (the town is drawn at 2:1). */
+export const FACE_SLOPE = (Math.atan(0.5) * 180) / Math.PI;
+
+export interface SignBox {
+  /** The middle of the sign, board px. */
+  x: number;
+  y: number;
+  /** Width and height before it is slanted along its wall. */
+  w: number;
+  h: number;
+  font: number;
+  /** +1: along the front wall, -1: along a side wall. */
+  slant: 1 | -1;
+}
+
+/**
+ * A sign's box: at least as wide as its wall, stretching up to a third past it (and to the longest word) so the name
+ * takes two lines at most; `extraLines` leaves room for a row of room choices under the name.
+ */
+export function signBox(look: Look, f: Foot, name: string, scale: number, tile: number, iso: (c: number, r: number, z: number, t: number) => { x: number; y: number }, extraLines = 0): SignBox {
+  const s = look.sign(f);
+  const font = SIGN_FONT * scale * (look.signSize ?? 1);
+  const pad = 7 * scale;
+  const wall = (s.span ?? (f.c1 - f.c0)) * tile * Math.hypot(1, 0.5);
+  const words = name.split(/\s+/).filter(Boolean);
+  const wordW = (w: string) => w.length * font * LETTER;
+  const longest = Math.max(0, ...words.map(wordW));
+  const w = Math.max(wall, Math.min(Math.max(wall * 1.34, longest + 2 * pad), wordW(name) + 2 * pad));
+  let lines = 0, line = 0;
+  for (const word of words) {
+    const add = (line ? font * LETTER : 0) + wordW(word);
+    if (line && line + add > w - 2 * pad) { lines++; line = wordW(word); } else line += add;
+  }
+  if (line || lines === 0) lines++;
+  const h = (lines + extraLines * 0.75) * font * 1.05 + 6 * scale + 4 * scale;
+  const p = iso(s.c, s.r, s.z, tile);
+  return { x: p.x, y: p.y, w, h, font, slant: s.side ? -1 : 1 };
+}
+
+/** The sign's four corners on screen, slanted along its wall. */
+export function signCorners(b: SignBox): Array<[number, number]> {
+  const t = Math.tan((FACE_SLOPE * Math.PI) / 180) * b.slant;
+  return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sy]) => {
+    const dx = (sx * b.w) / 2, dy = (sy * b.h) / 2;
+    return [b.x + dx, b.y + dy + dx * t] as [number, number];
+  });
+}
+
+/** Whether two convex shapes (corner lists) overlap, by the separating-axis test; `gap` px of air counts as touching. */
+export function shapesOverlap(a: Array<[number, number]>, b: Array<[number, number]>, gap = 0): boolean {
+  for (const poly of [a, b]) {
+    for (let i = 0; i < poly.length; i++) {
+      const [x1, y1] = poly[i], [x2, y2] = poly[(i + 1) % poly.length];
+      const nx = y1 - y2, ny = x2 - x1, len = Math.hypot(nx, ny) || 1;
+      const proj = (q: Array<[number, number]>) => q.map(([x, y]) => (x * nx + y * ny) / len);
+      const pa = proj(a), pb = proj(b);
+      if (Math.max(...pa) + gap <= Math.min(...pb) || Math.max(...pb) + gap <= Math.min(...pa)) return false;
+    }
+  }
+  return true;
+}
+
+type Spot = { c: number; r: number; z: number; span?: number; side?: boolean };
+
+/** A sign's second spot, used when its first would cross a sign already placed: the other wall it can hang on. */
+export function altSign(look: Look, f: Foot): Spot {
+  const s = look.sign(f);
+  return s.side
+    ? { c: f.c0 + (f.c1 - f.c0) * 0.35, r: f.r1, z: s.z, span: (f.c1 - f.c0) * 0.6 }
+    : { c: f.c1, r: (f.r0 + f.r1) / 2, z: s.z, span: f.r1 - f.r0, side: true };
+}
+
+/** The spots a sign may take, best first: its own, its other wall, then each of those raised up the building. */
+export const SIGN_SPOTS = 4;
+export function signSpot(look: Look, f: Foot, spot: number): Spot {
+  const base = spot % 2 === 0 ? look.sign(f) : altSign(look, f);
+  if (spot < 2) return base;
+  const top = look.top(f);
+  return { ...base, z: Math.min(top + 30, base.z + Math.max(50, top * 0.4)) };
+}
+
+export interface SignItem {
+  id: string;
+  look: Look;
+  foot: Foot;
+  name: string;
+  /** Room for a row of room choices under the name (when the building is a move choice). */
+  extraLines: number;
+  /** Placed first (the shared ring); the rest go by width, widest first. */
+  first?: boolean;
+}
+
+/**
+ * Where each sign goes at one pose of the town: every sign takes its own spot unless that crosses a sign placed before
+ * it, then its other wall. Returns the spot (0 = own, 1 = other wall) and the box of every sign.
+ */
+export function placeSigns(items: SignItem[], scale: number, tile: number, iso: (c: number, r: number, z: number, t: number) => { x: number; y: number }): Map<string, { spot: number; box: SignBox }> {
+  const boxOf = (it: SignItem, spot: number) => signBox({ ...it.look, sign: (f: Foot) => signSpot(it.look, f, spot) }, it.foot, it.name, scale, tile, iso, it.extraLines);
+  const order = [...items].sort((a, b) => Number(!!b.first) - Number(!!a.first) || boxOf(b, 0).w - boxOf(a, 0).w);
+  const out = new Map<string, { spot: number; box: SignBox }>();
+  const placedIds: string[] = [];
+  const hits = (box: SignBox, skip?: string) => placedIds.filter(id => id !== skip && shapesOverlap(signCorners(out.get(id)!.box), signCorners(box), 4));
+  for (const it of order) {
+    const cands = Array.from({ length: SIGN_SPOTS }, (_, spot) => ({ spot, box: boxOf(it, spot) }));
+    let pick = cands.find(c => hits(c.box).length === 0) ?? cands[0];
+    if (hits(pick.box).length > 0) {
+      // No free spot: if one sign is in the way of a spot, move that sign to another of its spots when that clears both.
+      search: for (const cand of cands) {
+        const block = hits(cand.box);
+        if (block.length !== 1) continue;
+        const was = out.get(block[0])!;
+        const blocker = order.find(x => x.id === block[0])!;
+        for (let spot = 0; spot < SIGN_SPOTS; spot++) {
+          if (spot === was.spot) continue;
+          const moved = { spot, box: boxOf(blocker, spot) };
+          out.set(block[0], moved);
+          if (hits(moved.box, block[0]).length === 0 && !shapesOverlap(signCorners(moved.box), signCorners(cand.box), 4)) { pick = cand; break search; }
+        }
+        out.set(block[0], was);
+      }
+    }
+    placedIds.push(it.id);
+    out.set(it.id, pick);
+  }
+  return out;
 }

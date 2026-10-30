@@ -43,8 +43,10 @@ import { TownClocks, rowHeightPx, FlipClock, CLOCK_W, CLOCK_H, type ClockPlayer 
 import { clockMonth, clockStartIso, clockDate } from '../../utils/gameClock';
 import { areaSegments, hasLeftBoard, ownerOfRow, type AreaSegment } from '../../utils/townAreas';
 import { treePicture, treeScale } from '../../utils/townTrees';
-import { TownWeatherNode, buildWeatherBands, type WeatherData } from './TownWeather';
+import { TownWeatherNode, buildWeatherBands, type WeatherData, type WeatherBand } from './TownWeather';
 import { TownPropsNode, buildTownProps, propPoint, type PropsData } from './TownProps';
+import { weatherFor, weatherPlan } from '../../utils/townWeather';
+import { bandProps, propBudget } from '../../utils/townProps';
 import { freeSpots, makeFreeTest } from '../../utils/townProps';
 import { useScene } from '../../utils/sceneSetting';
 import { seasonLook, mixHex, type SeasonLook } from '../../utils/townSeasons';
@@ -52,9 +54,9 @@ import { racePlaces } from '../../utils/liveTrophies';
 import { getTrophyRules, type TrophyId } from '../../utils/trophyRules';
 import { playResultChime, isAudioReady, primeAudio } from '../../utils/haptics';
 import { pulseAnimation, pulseLookOf, type PulseLook } from '../../utils/pulseLook';
-import { lookFor, tone, type Pt, type SignStyle } from './townLooks';
+import { lookFor, tone, placeSigns, signSpot, type Pt, type SignStyle } from './townLooks';
 import {
-  nextPose, poseRoundTown, roundPoint, roundWedges, ownerOfAngle, roundWalkPath, seatAngle,
+  nextPose, poseRoundTown, roundPoint, roundAngle, roundWedges, ownerOfAngle, roundWalkPath, seatAngle, roundFreeTest, roundSpots, turnPoint,
   type RoundPose, type RoundTown, type RoundWedge,
 } from '../../utils/townRound';
 import {
@@ -394,6 +396,9 @@ interface BuildingData extends Record<string, unknown> {
   signScale?: number;
   /** A round town: the look it is drawn with (townLooks.tsx); the name is then a sign on its front wall. */
   look?: string;
+  /** Which of its walls the sign takes at this pose (placeSigns: never across another sign), and its width. */
+  signSpot?: number;
+  signW?: number;
 }
 
 function Block({ b, ox, oy }: { b: TownBuilding; ox: number; oy: number }) {
@@ -456,7 +461,7 @@ function FacadeBuilding({ data }: NodeProps<Node<BuildingData>>) {
   const foot = { c0: b.col, r0: b.row, c1: b.col + b.width, r1: b.row + b.depth, h: b.height, color: b.color };
   const P: Pt = (c, r, z) => { const p = isoPoint(c, r, z, TOWN_TILE); return `${(p.x - ox).toFixed(1)},${(p.y - oy).toFixed(1)}`; };
   const at = (q: { c: number; r: number; z: number }) => { const p = isoPoint(q.c, q.r, q.z, TOWN_TILE); return { x: p.x - ox, y: p.y - oy }; };
-  const signAt = look.sign(foot);
+  const signAt = signSpot(look, foot, data.signSpot ?? 0);
   const sign = at(signAt);
   const stand = at(look.stand(foot));
   const isDest = view.destinationRooms.length > 0;
@@ -488,7 +493,7 @@ function FacadeBuilding({ data }: NodeProps<Node<BuildingData>>) {
         style={{
           position: 'absolute', left: sign.x, top: sign.y, transform: `translate(-50%, -50%) skewY(${signAt.side ? -FACE_SLOPE : FACE_SLOPE}deg)`,
           // as wide as its wall at least, stretching up to a third past it (and to the longest word) so a name takes two lines at most
-          pointerEvents: 'auto', width: 'max-content', minWidth: wall, maxWidth: Math.max(wall * 1.34, longestWord(b.name) * 22 * signScale * 0.62 + 20 * signScale), boxSizing: 'border-box', textAlign: 'center',
+          pointerEvents: 'auto', width: data.signW ?? Math.max(wall, longestWord(b.name) * 22 * signScale * 0.62 + 20 * signScale), boxSizing: 'border-box', textAlign: 'center',
           fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800, fontSize: 22 * signScale * (look.signSize ?? 1), lineHeight: 1.05,
           padding: `${3 * signScale}px ${7 * signScale}px`, borderRadius: 5 * signScale, opacity: named ? 1 : 0.85,
           ...signLook(look.signStyle, b.color, signScale),
@@ -695,7 +700,20 @@ function TownRimClockNode({ data }: NodeProps) {
   );
 }
 
-const nodeTypes = { townGround: TownGround, townBuilding: TownBuildingNode, townTree: TownTreeNode, townWeather: TownWeatherNode, townProps: TownPropsNode, townRimClock: TownRimClockNode };
+/** A layer that turns with the table as a whole (a round town's weather and scenery). */
+function spinning(Inner: React.ComponentType<NodeProps<Node<Record<string, unknown>>>>) {
+  return function Spinning(props: NodeProps<Node<Record<string, unknown>>>) {
+    const ref = useRef<HTMLDivElement>(null);
+    useTurn(ref, (props.data as { turn?: TurnAnim }).turn);
+    return <div ref={ref} style={{ transformOrigin: '0 0' }}><Inner {...props} /></div>;
+  };
+}
+
+const nodeTypes = {
+  townGround: TownGround, townBuilding: TownBuildingNode, townTree: TownTreeNode, townWeather: TownWeatherNode, townProps: TownPropsNode, townRimClock: TownRimClockNode,
+  townWeatherTurning: spinning(TownWeatherNode as unknown as React.ComponentType<NodeProps<Node<Record<string, unknown>>>>),
+  townPropsTurning: spinning(TownPropsNode as unknown as React.ComponentType<NodeProps<Node<Record<string, unknown>>>>),
+};
 
 /** The pulse a move choice breathes with (pulseLook.ts): dim, bright, dim. Its peak comes from the element. */
 const PULSE_CSS = `@keyframes uc-town-pulse { 0%, 100% { opacity: calc(var(--uc-pulse-peak) * 0.2); transform: scale(1); } 50% { opacity: var(--uc-pulse-peak); transform: scale(1.05); } }`;
@@ -1124,8 +1142,8 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaKey, layout]);
   // Scenery spots are worked out once per town (a round town turns, and draws no small scenery yet).
-  const freeTest = useMemo(() => makeFreeTest(baseLayout), [baseLayout]);
-  const spots = useMemo(() => freeSpots(baseLayout), [baseLayout]);
+  const freeTest = useMemo(() => (baseLayout.round ? roundFreeTest(baseLayout as RoundLayout) : makeFreeTest(baseLayout)), [baseLayout]);
+  const spots = useMemo(() => (baseLayout.round ? roundSpots(baseLayout as RoundLayout) : freeSpots(baseLayout)), [baseLayout]);
   const waterColor = (areas.looks[round ? currentSeat : areas.segments[0]?.seat ?? 0] ?? seasonLook(1, mode)).water;
   const pulseLook = useMemo(() => (round ? { ...pulseLookOf(layout.settings), still: !moving } : undefined), [round, layout.settings, moving]);
 
@@ -1180,10 +1198,58 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
       draggable: false, selectable: false, focusable: false,
       data: { w: gw, h: gh, fade: scene === 'full' && !prefersReducedMotion(), items: scenery.map(p => ({ prop: p, ...propPoint(p, TOWN_TILE, gx, gy) })) } satisfies PropsData,
     });
+    } else {
+      // A round town: each player's wedge of ground has its own weather and scenery (their own season), turning with
+      // the table; the shared middle keeps none (it turns on its own). Same plans and budgets as the striped town.
+      const days = (seat: number) => (players[seat] ?? players[0])?.timeSpent ?? 0;
+      const activeSeat = currentIdx >= 0 && !hasLeftBoard(players[currentIdx]) ? currentSeat : -1;
+      const wedges = areas.wedges ?? [];
+      const inner = round.roadRadius + 0.9, outer = round.islandRadius;
+      const bands: WeatherBand[] = wedges.map(wd => {
+        const steps = Math.max(2, Math.ceil((wd.to - wd.from) / 6));
+        const at = (a: number, r: number) => { const q = roundPoint(round, a + pose.now.table, r); const p = isoPoint(q.col, q.row, 0, TOWN_TILE); return { x: p.x - gx, y: p.y - gy }; };
+        const pts = [
+          ...Array.from({ length: steps + 1 }, (_, i) => at(wd.from + ((wd.to - wd.from) * i) / steps, outer)),
+          ...Array.from({ length: steps + 1 }, (_, i) => at(wd.to - ((wd.to - wd.from) * i) / steps, inner)),
+        ];
+        const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+        const look = areas.looks[wd.seat];
+        const kind = weatherFor(startIso, wd.seat, days(wd.seat), look?.weather ?? { sun: 100, cloud: 0, rain: 0, snow: 0 });
+        return {
+          seat: wd.seat, kind, plan: weatherPlan(kind, { active: wd.seat === activeSeat, level: scene, light: screen !== 'pc', reducedMotion: prefersReducedMotion() }),
+          points: pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '),
+          box: { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) },
+          seed: `${startIso}|${wd.seat}`,
+        };
+      });
+      out.push({
+        id: 'town-weather', type: 'townWeatherTurning', position: { x: gx, y: gy }, zIndex: 5, style: { pointerEvents: 'none' },
+        draggable: false, selectable: false, focusable: false,
+        data: { w: gw, h: gh, mode, bands, turn: turnOf(false, gx, gy, true) } satisfies WeatherData & { turn?: TurnAnim },
+      });
+      const scenery = scene === 'off' ? [] : wedges.flatMap(wd => bandProps({
+        spots: spots.filter(p => ownerOfAngle(wedges, roundAngle(round, p)) === wd.seat), free: freeTest,
+        trees: round.trees.filter(t => !t.park && ownerOfAngle(wedges, t.angle) === wd.seat).map(t => roundPoint(round, t.angle, t.radius)),
+        days: days(wd.seat), look: areas.looks[wd.seat], seed: startIso, seat: wd.seat, budget: propBudget(wedges.length, screen !== 'pc'), light: screen !== 'pc',
+      })).map(p => ({ ...p, ...turnPoint(round, p, pose.now.table) })).sort((a, b) => (a.col + a.row) - (b.col + b.row));
+      out.push({
+        id: 'town-props', type: 'townPropsTurning', position: { x: gx, y: gy }, zIndex: 6, style: { pointerEvents: 'none' },
+        draggable: false, selectable: false, focusable: false,
+        data: { w: gw, h: gh, fade: scene === 'full' && !prefersReducedMotion(), items: scenery.map(p => ({ prop: p, ...propPoint(p, TOWN_TILE, gx, gy) })), turn: turnOf(false, gx, gy, true) } satisfies PropsData & { turn?: TurnAnim },
+      });
     }
     // A round town's move choices pulse; the one picked stays lit and the others dim (pulseLook.ts).
     const intent = currentIdx >= 0 ? players[currentIdx].moveIntent : undefined;
     const chosen = round && intent && validMoves.includes(intent) ? buildingOfRoom(layout, intent, currentWho) : undefined;
+    // Each sign takes a wall where it crosses no other sign at this pose (townLooks.tsx placeSigns).
+    const signs = round ? placeSigns(layout.buildings.map(b => {
+      const v = views.get(b.id)!;
+      return {
+        id: b.id, look: lookFor(round.looks.get(b.id.split('@')[0]) ?? 'box'),
+        foot: { c0: b.col, r0: b.row, c1: b.col + b.width, r1: b.row + b.depth, h: b.height, color: b.color },
+        name: named.has(b.id) ? b.name : '?', extraLines: named.has(b.id) && v.destinationRooms.length > 0 ? 1 : 0, first: !!round.places.get(b.id)?.ring,
+      };
+    }), round.signScale, TOWN_TILE, isoPoint) : undefined;
     for (const b of layout.buildings) {
       // The buildings the data paints in their player's colour (a round town's owner's house and office).
       const painted = round && b.seat !== undefined && round.playerColor.has(b.id.split('@')[0]) ? { ...b, color: players[b.seat]?.color ?? b.color } : b;
@@ -1215,6 +1281,7 @@ function TownBoardInner({ currentPlayerId, players, centerOnCurrent = false, mod
         style: { pointerEvents: 'none' },
         data: {
           building: painted, view, open, ox, oy, w: box.w, h: box.y + box.h - oy, signScale, look: lookName,
+          signSpot: signs?.get(b.id)?.spot, signW: signs?.get(b.id)?.box.w,
           turn: turnOf(inRing, anchor.x, anchor.y), pulseLook,
           pulse: round && view.destinationRooms.length > 0 ? (chosen ? (chosen === b.id ? 'chosen' : 'rest') : 'choose') : undefined,
           roofX: box.roofX, roofY: box.roofY, labels, portrait: portraitFor(b.icon), named: named.has(b.id), faded: faded.has(b.id), seatColor: layout.seats > 1 && b.seat !== undefined ? players[b.seat]?.color : undefined, mode,

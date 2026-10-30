@@ -197,3 +197,50 @@ describe('the round town looks (stage 1b): which drawing each building gets is d
     }
   });
 });
+
+describe('the round town signs never cross (Manager review 10-30)', () => {
+  it.each([1, 2, 3, 4])('%i player(s): at every pose the table and ring can rest at, no two name signs overlap, even with a row of room choices on each', async (n) => {
+    const { lookFor, placeSigns, signCorners, shapesOverlap } = await import('../../src/components/board/townLooks');
+    const { isoPoint } = await import('../../src/utils/townLayout');
+    const t = round(n);
+    const bad: string[] = [];
+    // The table rests with a player at the front; the ring rests with a shared building at the front, or rides with the table.
+    for (let seat = 0; seat < n; seat++) for (let i = 0; i < t.round.ring.length; i++) for (let j = 0; j < n; j++) {
+      const L = poseRoundTown(t, { table: -seat * 360 / n, ring: -i * 360 / t.round.ring.length + j * 360 / n });
+      const items = L.buildings.map(b => ({
+        id: b.id, look: lookFor(t.round.looks.get(b.id.split('@')[0])), name: b.name, extraLines: 1, first: !!t.round.places.get(b.id)?.ring,
+        foot: { c0: b.col, r0: b.row, c1: b.col + b.width, r1: b.row + b.depth, h: b.height, color: b.color },
+      }));
+      const placed = [...placeSigns(items, t.round.signScale, 50, isoPoint).entries()];
+      for (let a = 0; a < placed.length; a++) for (let b = a + 1; b < placed.length; b++) {
+        if (shapesOverlap(signCorners(placed[a][1].box), signCorners(placed[b][1].box), 2)) bad.push(`${placed[a][0]} x ${placed[b][0]} (seat ${seat}, ring ${i}, ${j})`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it('every sign keeps the full letter size (the trailer too): at least 14 px on a 4-player TV', async () => {
+    const { lookFor, SIGN_FONT } = await import('../../src/components/board/townLooks');
+    const t = round(4);
+    for (const look of new Set(t.round.looks.values())) expect(SIGN_FONT * t.round.signScale * (lookFor(look).signSize ?? 1)).toBeGreaterThanOrEqual(14 / 0.37);
+  });
+});
+
+describe('round town scenery (weather and props, v3.9.9)', () => {
+  it("small scenery stands only on the players' own ground, clear of their buildings, and turns with the table", async () => {
+    const { roundSpots, roundFreeTest, turnPoint } = await import('../../src/utils/townRound');
+    const t = round(2);
+    const spots = roundSpots(t);
+    expect(spots.length).toBeGreaterThan(50);
+    for (const p of spots) {
+      const d = Math.hypot(p.col - t.round.cc, p.row - t.round.cr);
+      expect(d).toBeGreaterThan(t.round.roadRadius);
+      expect(d).toBeLessThan(t.round.islandRadius);
+    }
+    const owner = t.buildings.find(b => b.id === 'owner')!;
+    expect(roundFreeTest(t)(owner.col + owner.width / 2, owner.row + owner.depth / 2)).toBe(false);
+    const p = spots[0], q = turnPoint(t.round, p, 90);
+    expect(Math.hypot(q.col - t.round.cc, q.row - t.round.cr)).toBeCloseTo(Math.hypot(p.col - t.round.cc, p.row - t.round.cr), 6);
+    expect(shortTurn(roundAngle(t.round, q) - roundAngle(t.round, p))).toBeCloseTo(90, 6);
+  });
+});

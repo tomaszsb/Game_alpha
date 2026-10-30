@@ -157,7 +157,7 @@ export function makeRoundTown(layout: TownLayout): RoundTown | null {
   const ringB = ring.map(id => byId.get(id)!);
   const step = 360 / ring.length;
   const widest = ringB.reduce((m, b, i) => Math.max(m, apart(b, ringB[(i + 1) % ringB.length], gap)), 0);
-  const ringRadius = Math.max(num(s.round_ring_radius, 7.6), ring.length > 1 ? widest / (2 * Math.sin(Math.PI / ring.length)) : 0);
+  const ringRadius = Math.max(num(s.round_ring_radius, 10), ring.length > 1 ? widest / (2 * Math.sin(Math.PI / ring.length)) : 0);
   const ringReach = Math.max(...ringB.map(reach));
 
   // A player's side: its lots left to right as seen from the front, each pair far enough apart at any angle.
@@ -236,7 +236,7 @@ export function makeRoundTown(layout: TownLayout): RoundTown | null {
     cc, cr, ring, ringRadius, roadRadius, sideRadius, parkRadius, islandRadius, fountain,
     clockRadius: islandRadius + num(s.round_clock_out, 1.2),
     clockScale: Math.max(0.5, num(s.round_clock_scale, 2.6)),
-    signScale: Math.min(3, Math.max(0.5, num(s.round_sign_scale, 1.7))),
+    signScale: Math.min(3, Math.max(0.5, num(s.round_sign_scale, 1.75))),
     turnMs: Math.max(0, num(s.round_turn_ms, 1500)),
     places, rides, sides, trees,
     playerColor: new Set(words(s.round_player_color)),
@@ -307,6 +307,39 @@ export function nextPose(prev: RoundPose | null, currentSeat: number, ringIndex:
   const table = prev.table + shortTurn(tableTarget - prev.table);
   const ring = ringIndex >= 0 ? prev.ring + shortTurn(ringTarget(ringIndex) - prev.ring) : prev.ring + (table - prev.table);
   return { table, ring };
+}
+
+/**
+ * Where small scenery (flowers, leaves, drifts) may stand on a round town, before the table turns: the players' own
+ * ground between the ring road and the shore, clear of their buildings and trees (the shared middle turns on its own,
+ * so it keeps none).
+ */
+export function roundFreeTest(layout: TownLayout & { round: RoundTown }): (col: number, row: number) => boolean {
+  const rt = layout.round;
+  return (col, row) => {
+    const d = Math.hypot(col - rt.cc, row - rt.cr);
+    if (d < rt.roadRadius + 1.6 || d > rt.islandRadius - 0.7) return false;
+    for (const b of layout.buildings) {
+      if (rt.places.get(b.id)?.ring) continue;
+      if (col > b.col - 0.5 && col < b.col + b.width + 0.5 && row > b.row - 0.5 && row < b.row + b.depth + 0.5) return false;
+    }
+    for (const t of layout.trees) if (Math.abs(t.col - col) < 0.5 && Math.abs(t.row - row) < 0.5) return false;
+    return true;
+  };
+}
+
+/** Every free spot of a round town on a half-tile grid (see roundFreeTest). */
+export function roundSpots(layout: TownLayout & { round: RoundTown }): GridPoint[] {
+  const free = roundFreeTest(layout), rt = layout.round, out: GridPoint[] = [];
+  for (let row = rt.cr - rt.islandRadius; row <= rt.cr + rt.islandRadius; row += 0.5) {
+    for (let col = rt.cc - rt.islandRadius; col <= rt.cc + rt.islandRadius; col += 0.5) if (free(col, row)) out.push({ col, row });
+  }
+  return out;
+}
+
+/** A point of the town turned with the table (scenery is placed before the table turns). */
+export function turnPoint(rt: Pick<RoundTown, 'cc' | 'cr'>, p: GridPoint, table: number): GridPoint {
+  return roundPoint(rt, roundAngle(rt, p) + table, Math.hypot(p.col - rt.cc, p.row - rt.cr));
 }
 
 /** The angle ranges each player owns (before the table turns): halfway to the nearest player still playing on each side. */

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.9.9] - 2026-10-30
+
+**Round town loose ends (Manager, Tom: "you can kill off the ends while i run a tv test"): signs never cross at rest, the trailer's sign is full size, and the round town has weather and scenery.** Round town only; the default board is unchanged. Done by the Game session in `D:\Unravel\Current_Game\Game_Alpha`.
+- **No two name signs cross at any pose the table and ring can rest at, for 1 to 4 players,** even with a row of room choices on every sign. The size and place of each sign are now worked out in `townLooks.tsx` (`signBox`), and the board draws every sign at that width. At each pose `placeSigns` gives every sign a spot where it crosses no other: its own wall, its other wall, or either one raised up the building; if none is free, the sign in the way moves to another of its spots. The ring is a little wider (`round_ring_radius` 10, was 7.6) so the shared buildings' signs clear each other. Test: every resting pose for 1-4 players (`tests/utils/townRound.test.ts`). While the table is turning, two signs can still pass over each other for a moment.
+- **The trailer's sign is full size** (it was three quarters): letters 38.5 board px (`round_sign_scale` 1.75, was 1.7), about 14.8 px on a 4-player TV like every other sign; tested at the most zoomed-out 4-player view.
+- **Weather and scenery on the round town,** as on the striped town: each player's wedge of ground shows its own weather (from that player's month: snow, rain, sun, cloud) and small scenery (flowers, leaves, drifts) on their own ground, clear of their buildings and trees; the shared middle keeps none (it turns on its own). Both layers turn with the table (transform only, no filters) and keep the same Scene rule (Calm: still, Off: none) and budgets as the striped town. `roundFreeTest`, `roundSpots`, `turnPoint` in `townRound.ts`.
+- **Still open:** a sign can be partly hidden behind a nearer building or a pawn on the left and right sides of the table; nobody has tried the round town on a real Fire Stick; the teacher Town settings strip has not been clicked in a browser.
+- Tests: 347 files / 4,434 passing; typecheck shows only the 9 old errors in tests/; ghost gate not rerun (no engine change).
+
 ## [3.9.8] - 2026-10-30
 
 **"Round town" is a third board choice, next to Street view and Classic (Tom 10-30: "there is already a switch to go from classic to town why not just add roundtown?").** No link trick needed any more. Done by the Game session in `D:\Unravel\Current_Game\Game_Alpha`.
