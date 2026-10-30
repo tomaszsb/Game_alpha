@@ -5,18 +5,18 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** October 30, 2026 (v3.9.8 committed + pushed, NOT deployed)
+**Last Updated:** October 30, 2026 (v3.9.12 committed + pushed, NOT deployed)
 **Current Phase:** Beta — live in production
-**Current Version:** **v3.9.8** pushed; live is v3.9.5 (`/health` `7efdf156`). Check `/health` against `git rev-parse --short HEAD` before saying what is live.
+**Current Version:** **v3.9.12** pushed; live is v3.9.11 (`/health` `f18d07cd`). Check `/health` against `git rev-parse --short HEAD` before saying what is live.
 
 ## Current sprint
-The round town (fb:fefe42f8), opt-in: the shared buildings in a ring round a park with a fountain, a side per player, a table that turns to the player whose turn it is, clocks on the rim, pulsing move choices (3.9.6); buildings drawn by their job with the name on a sign on the front wall (3.9.7); "Round town" as a third board choice on the setup screen and in the Menu (3.9.8). Default board unchanged.
+TV and round-town polish from Tom's first real TV test: a visible move-choice glow, a lighter table turn, a "turn" banner, the waiting word filling the phone, the shared menu (3.9.10), and an honest iPhone promise plus a sturdier turn chime (3.9.11). 3.9.12 is one wording cell (W053 "NFPA 13"). Alongside, a scope-drawings MOCK-UP (a blueprint sheet per kind of work, opened by a "Drawing" button on a scope line) sits in `.tmp/scope-mockup/`; nothing is built until Tom reacts to it.
 
 ## Health
-- **Tests (v3.9.8):** `npm test` 347 files / 4,427 pass; build OK. Typecheck: only the 9 old test-file errors (`dataGate`, `finalStretch`). `test:ghost` not rerun (no engine change since 3.9.5).
+- **Tests (v3.9.12):** `npm test` 351 files / 4,451 pass; build OK. Typecheck: only the 9 old test-file errors (`dataGate`, `finalStretch`). `test:ghost`: 16 files passed / 4 skipped (60 tests).
 - **Deploy:** `deploy.sh` runs `npm ci` + `npm test` first; Tom deploys himself.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Deploy v3.9.8** and play one round-town game on the TV (never tried on a real Fire Stick).
-2. **Round town loose ends:** no test yet that no two signs overlap at every pose; the trailer's sign is ~11 px on a 4-player TV; weather and small props not drawn on it; the teacher Town settings strip never clicked in a browser.
-3. **Stage 2** (talk bubbles, panel split, glossary viewer) waits for Tom's TV test.
+1. **Deploy, then play one round-town game on the real Hisense TV** and read `PLAYTEST_TV_TURN` / `PLAYTEST_TV_KEYS` from `GET /api/logs`; the iPhone chime has not been heard on a real iPhone.
+2. **Tom's reaction to the scope-drawings mock-up** before any sheet is built (about 3-4% of a week for the 13 common kinds).
+3. **Stage 2** (talk bubbles, panel split, glossary viewer) waits for the TV test.

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.9.12] - 2026-10-30
+
+**W053 reads "NFPA 13", not "NFPA 13R" (scope-drawings side session; Tom: "r13 question can go either way - see which one we have fewer examples of and go in that direction by correcting the appropriate portion", then "Yes, edit it").** NFPA 13R is the residential-only sprinkler standard, but the W053 card ("Retrofit of the {project} with a new ... sprinkler system") pairs with any project type, and a hospital or terminal needs full NFPA 13. It was also the only card that said 13R, so the card was the minority and the thing to correct, not the project pairing. One cell: `SCOPE_WORDING.csv` line 60 (`card_template,W053`). The card's raw name and description in `CARDS_EXPANDED.csv` (line 202, "Retrofit of residential high-rise with new NFPA 13R sprinkler system") were left alone: every player-facing line goes through the scope wording, and Tom approved the one cell. They still say 13R and "residential"; change them too if the raw card record ever shows (editor, card library). dist, `server/data` and the classroom `resolved/` copies are deploy copies and re-bake from `public/data`.
+- **Scope drawings are a mock-up only, nothing in the game.** Three blueprint sheets and a phone page showing a "Drawing" button on a scope line live in `.tmp/scope-mockup/` (git-ignored). Tom's decisions are in TODO (the "drawings with each scope" item).
+- Tests: 351 files / 4,451 passing (no change; one data cell); `test:ghost` 16 files passed / 4 skipped.
+
 ## [3.9.11] - 2026-10-30
 
 **iPhones never buzz, so the game stops promising it (Tom: "the buzz does not work on i phones").** Apple gives web pages no way to vibrate an iPhone or iPad, so there is no fix for the buzz itself. Done by the Game session in `D:\Unravel\Current_Game\Game_Alpha`.
