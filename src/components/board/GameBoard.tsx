@@ -8,8 +8,8 @@ import { BoardCanvas, type BoardCanvasProps } from './BoardCanvas';
 import { TownBoard, useTownLayout } from './TownBoard';
 import { useBoardStyle } from '../../utils/boardStyle';
 
-function TownOrClassic(props: BoardCanvasProps) {
-  const layout = useTownLayout(props.players.length);
+function TownOrClassic(props: BoardCanvasProps & { shape?: 'round' }) {
+  const layout = useTownLayout(props.players.length, props.shape);
   if (!layout) return <BoardCanvas {...props} />;
   return (
     <TownBoard
@@ -26,6 +26,6 @@ function TownOrClassic(props: BoardCanvasProps) {
 
 export function GameBoard(props: BoardCanvasProps) {
   const [style] = useBoardStyle();
-  if (style !== 'town' || props.isAdmin) return <BoardCanvas {...props} />;
-  return <TownOrClassic {...props} />;
+  if (style === 'classic' || props.isAdmin) return <BoardCanvas {...props} />;
+  return <TownOrClassic {...props} shape={style === 'round' ? 'round' : undefined} />;
 }

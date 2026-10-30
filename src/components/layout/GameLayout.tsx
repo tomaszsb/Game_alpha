@@ -1557,9 +1557,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             // Actually start the game through StateService
             stateService.startGame(gameModeSettings);
             // The host's board pick (Town = street view by default) goes on the game for every screen.
-            stateService.updateGameState({ boardStyle: isTownAvailable() ? (settings.boardStyle ?? 'town') : 'classic' });
+            stateService.updateGameState({ boardStyle: isTownAvailable() ? (settings.boardStyle === 'classic' ? 'classic' : 'town') : 'classic' });
             // The town's shape is fixed for the whole game when it starts: round only when the data or the host's link asks (townRound.ts).
-            if (newGameTownShape(dataService.getTownRows?.() ?? [], window.location.search) === 'round') stateService.updateGameState({ townShape: 'round' });
+            // The host's "Round town" pick, the class's town setting or a `?town=round` link.
+            if (isTownAvailable() && (settings.boardStyle === 'round' || newGameTownShape(dataService.getTownRows?.() ?? [], window.location.search) === 'round')) stateService.updateGameState({ townShape: 'round' });
 
             // Place players on starting spaces (no effects processing)
             try {

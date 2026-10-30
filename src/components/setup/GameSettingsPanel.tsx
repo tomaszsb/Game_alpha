@@ -57,12 +57,13 @@ export function GameSettingsPanel({
               value={gameSettings.boardStyle ?? 'town'}
               onChange={(e) => onChangeGameSettings({
                 ...gameSettings,
-                boardStyle: e.target.value === 'classic' ? 'classic' : 'town'
+                boardStyle: e.target.value === 'classic' ? 'classic' : e.target.value === 'round' ? 'round' : 'town'
               })}
               style={styles.select}
               aria-label="Board every screen starts on"
             >
               <option value="town">Street view (town)</option>
+              <option value="round">Round town</option>
               <option value="classic">Classic</option>
             </select>
           </div>

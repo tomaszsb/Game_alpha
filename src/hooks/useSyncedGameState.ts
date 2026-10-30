@@ -46,7 +46,8 @@ export function useSyncedGameState(stateService: IStateService): GameState {
   const state = useSyncExternalStore(subscribe, getSnapshot);
   // The host's board pick (Town / Classic) rides on the game state to every screen that reads it,
   // the PC layout and the TV alike (utils/boardStyle.ts keeps it as the screen's starting board).
-  const hostBoardStyle = state.boardStyle;
+  // A game started as a round town (townShape) starts every screen on the round town.
+  const hostBoardStyle = state.boardStyle !== 'classic' && state.townShape === 'round' ? 'round' : state.boardStyle;
   useEffect(() => { setGameBoardStyle(hostBoardStyle); }, [hostBoardStyle]);
   return state;
 }

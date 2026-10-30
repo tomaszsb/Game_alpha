@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.9.8] - 2026-10-30
+
+**"Round town" is a third board choice, next to Street view and Classic (Tom 10-30: "there is already a switch to go from classic to town why not just add roundtown?").** No link trick needed any more. Done by the Game session in `D:\Unravel\Current_Game\Game_Alpha`.
+- **Setup screen:** Game Settings, "Board": Street view (town) / **Round town** / Classic. Round town starts the game with the round town (`townShape: 'round'`) on every screen. The default stays Street view, so nothing changes for the class or the robot.
+- **In-game Menu:** the Board item now goes Town, Round town, Classic, Town (this screen only, as before; `board-style-toggle` unchanged). `boardStyle.ts` `BoardStyle` gains `'round'`; the screen's board decides the town's shape (`useTownLayout(seats, shape)`), and a round game starts each screen on Round town.
+- **Kept:** the `?town=round` link and the class's `round_town` town setting still work (they cost nothing).
+- Tests: 347 files / 4,427 passing; typecheck shows only the 9 old errors in tests/. New: the Menu goes Town, Round town, Classic; a round game starts a screen on Round town; the Menu label says "Board: Round town".
+
 ## [3.9.7] - 2026-10-30
 
 **Round town stage 1b: the buildings look like what they do, and each name is a sign built into the front wall (fb:fefe42f8; Tom 10-30: "i want them to be even more expressive of their function. currently you proposed names of the buildings in a bubble. I would prefer that the sign be incorporated into the facade signage").** Round town only (still behind the 3.9.6 switch, off by default); the striped town and the Classic board are unchanged. Done by the Game session in `D:\Unravel\Current_Game\Game_Alpha` on the Manager's brief.

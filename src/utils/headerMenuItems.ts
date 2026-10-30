@@ -20,7 +20,7 @@ export interface HeaderMenuOptions {
   /** The game code, with a share / copy link for a friend (it used to sit in the top bar). */
   invite?: { code: string; copied: boolean; onInvite: () => void };
   /** Classic board / town for this device; only when the board has a town (TOWN.csv). */
-  boardStyle?: { town: boolean; toggle: () => void };
+  boardStyle?: { town: boolean; round?: boolean; toggle: () => void };
   /** The town's result chimes, on / off for this device; only when the board has a town (TOWN.csv). */
   sound?: { on: boolean; toggle: () => void };
   /** The town weather: full, calm or off for this device; only when the board has a town. */
@@ -51,7 +51,7 @@ export function buildHeaderMenuItems(o: HeaderMenuOptions): HeaderMenuItem[] {
   });
   if (o.boardStyle) {
     items.push({
-      id: 'board-style', icon: o.boardStyle.town ? '🏘️' : '🗺️', label: `Board: ${o.boardStyle.town ? 'Town' : 'Classic'}`,
+      id: 'board-style', icon: o.boardStyle.town || o.boardStyle.round ? '🏘️' : '🗺️', label: `Board: ${o.boardStyle.round ? 'Round town' : o.boardStyle.town ? 'Town' : 'Classic'}`,
       onSelect: o.boardStyle.toggle, stayOpen: true, testId: 'board-style-toggle',
       title: 'Draw the board as a town or as the classic squares, on this screen only',
     });

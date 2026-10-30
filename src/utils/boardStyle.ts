@@ -7,7 +7,8 @@ import { getCurrentGameId } from './networkDetection';
 
 import { useSyncExternalStore } from 'react';
 
-export type BoardStyle = 'classic' | 'town';
+/** 'round' = the round town (townRound.ts), Tom 10-30: "there is already a switch to go from classic to town why not just add roundtown?" */
+export type BoardStyle = 'classic' | 'town' | 'round';
 
 const KEY = 'uc-board-style';
 const storageKey = (): string => `${KEY}:${getCurrentGameId() ?? ''}`;
@@ -40,7 +41,7 @@ export function setGameBoardStyle(style: BoardStyle | undefined): void {
 export function getBoardStyle(): BoardStyle {
   try {
     const own = localStorage.getItem(storageKey());
-    if (own === 'town' || own === 'classic') return own;
+    if (own === 'town' || own === 'classic' || own === 'round') return own;
   } catch { /* fall through to the host's pick */ }
   return gameBoardStyle ?? 'classic';
 }
@@ -70,8 +71,11 @@ export function useTownAvailable(): boolean {
   );
 }
 
-/** The menu's Town / Classic item, or undefined when this board has no town. */
-export function useBoardStyleMenu(): { town: boolean; toggle: () => void } | undefined {
+/** The next board in the menu's round: Town, Round town, Classic, Town again. */
+export const NEXT_BOARD: Record<BoardStyle, BoardStyle> = { town: 'round', round: 'classic', classic: 'town' };
+
+/** The menu's Town / Round town / Classic item, or undefined when this board has no town. */
+export function useBoardStyleMenu(): { town: boolean; round: boolean; toggle: () => void } | undefined {
   const [style, setStyle] = useBoardStyle();
   const available = useSyncExternalStore(
     cb => { listeners.add(cb); return () => { listeners.delete(cb); }; },
@@ -79,7 +83,7 @@ export function useBoardStyleMenu(): { town: boolean; toggle: () => void } | und
     () => false,
   );
   if (!available) return undefined;
-  return { town: style === 'town', toggle: () => setStyle(style === 'town' ? 'classic' : 'town') };
+  return { town: style === 'town', round: style === 'round', toggle: () => setStyle(NEXT_BOARD[style]) };
 }
 
 // Whether a town walk is playing on this screen right now (TownBoard sets it). Pop-ups that arrive

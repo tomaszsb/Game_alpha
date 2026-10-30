@@ -11,7 +11,7 @@
 // The layout comes from TOWN.csv (townLayout.ts); the building signs never tilt, so names keep their
 // size. No walking yet (step A2): a piece jumps, as on the classic board.
 
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -875,21 +875,11 @@ export function useTownLabels(): Record<string, string> {
   }, [dataService]);
 }
 
-/** The town's shape for this game: fixed on the game when it started (townRound.ts newGameTownShape), the same on every screen. */
-export function useTownShape(): 'round' | undefined {
-  const { stateService } = useGameContext();
-  return useSyncExternalStore(
-    cb => stateService.subscribe(cb),
-    () => stateService.getGameState().townShape,
-    () => undefined,
-  );
-}
-
-/** The town for this board, or null when TOWN.csv has no buildings. */
-export function useTownLayout(seats = 1): TownLayout | null {
+/** The town for this board, or null when TOWN.csv has no buildings. `shape` 'round': the round town (the board
+ *  switch, boardStyle.ts: the host's pick for the game, or this screen's own Menu pick). */
+export function useTownLayout(seats = 1, shape?: 'round'): TownLayout | null {
   const { dataService } = useGameContext();
   const labels = useTownLabels();
-  const shape = useTownShape();
   return useMemo(() => {
     const rows = dataService.getTownRows?.() ?? [];
     if (rows.length === 0) return null;
