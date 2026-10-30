@@ -11,12 +11,13 @@
 - Setup screen > Game Settings > **Board: Round town** (every screen of that game). In a running game: **Menu > Board** goes Town, Round town, Classic (that screen only). Also still works: a `?town=round` link, or a class's Town settings strip `round_town` = on. Default stays Street view, so the class and the robot see no change.
 
 ## Top 3 open items
-1. **Tom deploys 3.9.11 and plays again on the Hisense; read `PLAYTEST_TV_TURN` and `PLAYTEST_TV_KEYS` from `GET /api/logs` for the real numbers. The iPhone chime (3.9.11) has not been heard on a real iPhone.** Stage 2 (talk bubbles, panel split, glossary viewer) waits for that test; the Manager sequences it.
+1. **Tom plays a real game on the Hisense (3.9.11 is live; 3.9.12 is one card's wording and can wait for the next deploy); read `PLAYTEST_TV_TURN` and `PLAYTEST_TV_KEYS` from `GET /api/logs` for the real numbers. The iPhone chime (3.9.11) has not been heard on a real iPhone.** Stage 2 (talk bubbles, panel split, glossary viewer) waits for that test; the Manager sequences it.
 2. **Round town NOT done:** the table turn is lighter but not proven smooth on a real TV (numbers in CHANGELOG 3.9.10); signs can cross for a moment WHILE the table turns (tested clean at every resting pose, 1-4 players, v3.9.9); a sign can be partly hidden behind a nearer building or a pawn on the left/right sides; **never tried on a real Fire Stick**; the teacher Town settings strip was never clicked in a browser (component + server tests only). Done in 3.9.9: the sign-overlap test, the trailer's sign at full size, weather and scenery on the round town.
 3. **fb:5618257f blank board:** v3.9.1 records `nodesHidden`; the next blank-board report answers the hypothesis (unverified).
 
 ## Decisions waiting on the user
 - Round town: keep, change, or go on to stage 2 (after the TV test).
+- Scope drawings: Tom's reaction to the mock-up in `.tmp/scope-mockup/` before any sheet is built (details in TODO and the memory note `project_scope_drawings.md`).
 - From the mock-ups, worth taking later (stage 5 for fonts/palette): a soft shadow under each building, darker ink outlines, roof details (water tower, drafting triangle), white room chips with a coloured edge, heavy rounded sign letters, the paler sky-to-sand backdrop.
 - Design items, not bugs: newspaper pop-up (fb:1b7607e9), site picture by scope (fb:cd4d445e), expediter rework (fb:f22035af, cd598be9, db1d1104), phone "show my board" button (fb:167f2d0f), async turns (fb:1df093dd), Money/Scope diagonal (fb:c0d3bfb8); Tom's two 10-29 ideas are in TODO, not designed. fb:75a8bfa3 is tracked nowhere yet. Needs Tom's TV: fb:5d7e02d9, fb:7fbea636.
 
