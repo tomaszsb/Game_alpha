@@ -51,6 +51,11 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 - [ ] **Expeditors teach the wrong lesson ("accelerants"); real ones prevent lost time.** PLAYTEST.md Part 2b "What a real NYC expeditor does".
 - [ ] **Swap dice for decisions where work quality decides (e.g. the audit), one space at a time, after the questions exist.** RESEARCH.md §6 #7 (CHECK §3: weak for now).
 
+### Dialogue stage 3 (after Tom reviews `Mockups/dialogue-2026-10/conversation-merged.csv`)
+- [ ] **Make the PM-voiced list per visit (code).** `PM_VOICED_SPACES` in `characters.ts` is per space; Find an Architect / Find an Engineer need the vendor on the return visit (badge, portrait, voice, result summary). Session; trigger: Tom approves the sheet. `Mockups/dialogue-2026-10/merge-notes.md` section 5.
+- [ ] **Live hire effects that break "hire only at an office" (data, Tom 10-30; a city borough office is NOT an office):** Investor first visit (swap), DOB filing counter first visit (take on two) and coming back (swap) become fire-only or the hire is dropped; Trouble On Site first visit (swap) is borderline and unruled (is a site trailer the contractor's office?). Session; Tom rules on the last one.
+- [ ] **Cut the stale expeditor pop-ups and the Frank-joins-the-walk sentence from the Pass 2 list** (`docs/core/AUTHORED_COPY_REVIEW.md`: Lender and Bank first visit, Final Approval, Contractor hire, Site Inspection coming back). Session, when Pass 2 is applied.
+
 ### Teacher end
 - [ ] **Teachers can't edit the "why" help yet** (the cause rows `why,<SPACE>` and `why,VIOLATION` in `ACTION_TOOLTIPS.csv`, v3.8.17 / 3.8.26; the odds come from data and follow a teacher's edits). The backroom edits Spaces.csv / DiceRoll Info only. Next: show a space's `why` text in the teacher's space editor (one more text box in the Story section, saved as part of the card, length-capped like the story). Tom's standing rule: teacher-editable.
 - [ ] **Teacher risk numbers BUILT v3.8.25 ("What it can cost"); look at it in a real browser once** (only component- and server-tested). Still admin-only on purpose: `try_again_e_cost`, `e_card`, `Next Step`. Tom 10-18 "Close the gap".
