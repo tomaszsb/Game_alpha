@@ -2,6 +2,14 @@
 
 ---
 
+## v3.9.8 — The round town, to try (October 30, 2026)
+
+- **A new board to try: "Round town".** On the setup screen, open Game Settings and pick Board: Round town (or, in a game, Menu > Board, which changes only that screen). The shared buildings stand in a ring round a park with a fountain, and every player has their own side round the outside, with their Owner's house and office in their colour.
+- **The table turns.** Each turn the town turns so the player whose turn it is sits at the front, and the ring brings forward the shared building they are in. Each player's date rides on the edge of the town with their side.
+- **Buildings look like what they do** (a bank with columns, a firehouse with big doors, a tall glass tower for the investor, a crane on the building site), and each name is on a sign on the building's front.
+- **The places you can move to glow and pulse;** once you pick one, it stays lit and the others go dim. To stop the movement, set Menu > Scene to Calm.
+- Street view stays the normal board; nothing changes unless you pick Round town (3.9.6 to 3.9.8).
+
 ## v3.9.5 — Glossary words fit on a phone (October 27, 2026)
 
 - **A glossary word now opens inside the game itself,** so long words like "Foundation" fit on a phone instead of being cut off. Every word shows its meaning, even the ones that have no short summary yet.
