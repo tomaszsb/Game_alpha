@@ -223,6 +223,19 @@ export function tvKeysLogFields(body) {
   };
 }
 
+// crash_screen - the "Something went wrong" screen appeared (src/utils/crashReport.ts). The client already takes out
+// anything that looks like a link's secret; the same again here, because anyone can post to this route.
+export function crashScreenLogFields(body) {
+  const b = body || {};
+  const clean = (v, max) => (typeof v === 'string' ? v.replace(/\b(token|key|password|secret|auth)=[^&\s"')]+/gi, '$1=[removed]').slice(0, max) : null);
+  return {
+    message: clean(b.message, 300),
+    stack: clean(b.stack, 1500),
+    version: clean(b.version, 30),
+    browser: clean(b.browser, 160),
+  };
+}
+
 // tv_size_kept — a "Keep this size" tap in the TV's Adjust-screen-size panel (TODO 2026-10-14: log each one so the
 // recommended default can be averaged after ~20 TV sessions). layoutWidth 0 = "Biggest text" (the device's own width).
 export function tvSizeKeptLogFields(body) {

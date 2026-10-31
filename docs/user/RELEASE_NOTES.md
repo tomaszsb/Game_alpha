@@ -2,6 +2,11 @@
 
 ---
 
+## v3.9.13 — Older screens can play (October 31, 2026)
+
+- **The game now opens on older built-in browsers,** such as a classroom touch board that cannot be updated. Before, these screens went straight to "Something went wrong".
+- **If that screen ever does appear, we hear about it,** with no names attached, so a problem on a screen we can't reach can still be fixed.
+
 ## v3.9.11 — A clearer TV, and a straight answer about iPhones (October 30, 2026)
 
 - **The places you can move to are easy to see on a TV now.** The glow was there before, but too thin to see from across the room. It is wider, has a white line round the sign, and the whole lot lights up.

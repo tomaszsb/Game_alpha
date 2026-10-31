@@ -53,7 +53,7 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 
 ### Dialogue stage 3 (after Tom reviews `Mockups/dialogue-2026-10/conversation-merged.csv`)
 - [ ] **Make the PM-voiced list per visit (code).** `PM_VOICED_SPACES` in `characters.ts` is per space; Find an Architect / Find an Engineer need the vendor on the return visit (badge, portrait, voice, result summary). Session; trigger: Tom approves the sheet. `Mockups/dialogue-2026-10/merge-notes.md` section 5.
-- [ ] **Live hire effects that break "hire only at an office" (data, Tom 10-30; a city borough office is NOT an office):** Investor first visit (swap), DOB filing counter first visit (take on two) and coming back (swap) become fire-only or the hire is dropped; Trouble On Site first visit (swap) is borderline and unruled (is a site trailer the contractor's office?). Session; Tom rules on the last one.
+- [ ] **Live hire effects that break "hire only at an office" (data, Tom 10-30; a city borough office is NOT an office):** Investor first visit (swap), DOB filing counter first visit (take on two) and coming back (swap) become fire-only or the hire is dropped. **Tom's ruling 2026-10-31: the site trailer counts as an office, so Trouble On Site's first-visit hire stays.** Session.
 - [ ] **Cut the stale expeditor pop-ups and the Frank-joins-the-walk sentence from the Pass 2 list** (`docs/core/AUTHORED_COPY_REVIEW.md`: Lender and Bank first visit, Final Approval, Contractor hire, Site Inspection coming back). Session, when Pass 2 is applied.
 
 ### Teacher end
@@ -103,6 +103,9 @@ Sources live in `D:\Unravel\Independent_Review\` (REVIEW.md = code review, RESEA
 ---
 
 ## 🔎 Active — bugs & investigations
+
+- [ ] **Classroom touch board (JAV 65 in, 3840x2160, Chrome 95), after v3.9.13:** Tom tries it on the real board. Read any crash with `GET /api/logs` (`PLAYTEST_CRASH_SCREEN`). Seen at 3840x2160 on Chromium 95, not changed: a PC game stays at normal pixel sizes, so the panel's text (median 12.8 px, smallest 8.8) is tiny on a 65-inch screen and the setup page fills only the top third; TV mode scales the board and signs well (median 23 px), but its top bar and footer stay small. The answer is probably the TV's "Adjust screen size" on PC mode too, or the board reporting half its pixels. Decide after Tom has seen it. Not tested anywhere yet: real touch on that board, its Android WebView, its speed.
+- [ ] **`Reps.test.ts` "End Turn takes the pay" (v3.9.13) got a test pin only.** It hung about 1 run in 6 because End Turn's arrival could raise a question nobody in the test answers. That unanswered question was NOT looked at as a possible real-game problem: could a real player or robot end up waiting on a question at End Turn with nothing on screen to answer it? Session; 10 minutes to check.
 
 ### Newly arrived (2026-10-19 to 10-21, Farmingdale class and Tom's own tests)
 - [ ] **Pop-ups freeze (v3.8.34 snaps a tilted one flat after 1.2 s; the cause, a ResizeObserver loop on a busy page, is not found), and blurry side text (Peter Volpe, class, 10-20):** "it froze" (83fcc4c4, 10-19), "See what he's asking" pop-up floats at an angle (b5689dfa), side text "incredibly blurry" and the speech voice annoying (92e01028). Likely one cause in the dialog animation; ResizeObserver errors in the logs. The screenshots failed (fixed v3.8.30); ask for a fresh one. Needs Claude in Chrome connected before anyone can reproduce it (a session without it skipped it 10-23). <!-- fb:83fcc4c4 --> <!-- fb:b5689dfa --> <!-- fb:92e01028 -->

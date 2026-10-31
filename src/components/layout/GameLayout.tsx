@@ -915,6 +915,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             grid-template-rows: auto 1fr auto !important;
             column-gap: 0;
             padding: 0;
+            height: 100vh;
             height: 100dvh;
             min-height: -webkit-fill-available;
           }

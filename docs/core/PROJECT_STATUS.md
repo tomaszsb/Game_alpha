@@ -5,9 +5,9 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** October 30, 2026 (v3.9.12 committed + pushed, NOT deployed)
+**Last Updated:** October 31, 2026 (v3.9.12 live, confirmed by `/health`)
 **Current Phase:** Beta — live in production
-**Current Version:** **v3.9.12** pushed; live is v3.9.11 (`/health` `f18d07cd`). Check `/health` against `git rev-parse --short HEAD` before saying what is live.
+**Current Version:** **v3.9.12** live (`/health` `ade31694` = HEAD, 10-31). Check `/health` against `git rev-parse --short HEAD` before saying what is live.
 
 ## Current sprint
 TV and round-town polish from Tom's first real TV test: a visible move-choice glow, a lighter table turn, a "turn" banner, the waiting word filling the phone, the shared menu (3.9.10), and an honest iPhone promise plus a sturdier turn chime (3.9.11). 3.9.12 is one wording cell (W053 "NFPA 13"). Alongside, a scope-drawings MOCK-UP (a blueprint sheet per kind of work, opened by a "Drawing" button on a scope line) sits in `.tmp/scope-mockup/`; nothing is built until Tom reacts to it.

@@ -39,7 +39,9 @@ export type PlaytestEvent =
   | 'commit_tap'
   // The TV screen's own numbers (tvMeter.ts): frames in each turn of the table, and remote buttons by key name only.
   | 'tv_turn'
-  | 'tv_keys';
+  | 'tv_keys'
+  // The "Something went wrong" screen appeared (crashReport.ts): what broke, on which version and browser.
+  | 'crash_screen';
 
 /** Optional fields the in-game engagement events attach. Always pseudonymous
  *  (gameId/playerId), never the player's display name. */
@@ -83,6 +85,10 @@ export interface EngagementTrackingDetails {
   browser?: string;
   // tv_keys only: key names, separated by spaces.
   keys?: string;
+  // crash_screen only (browser too).
+  message?: string;
+  stack?: string;
+  version?: string;
 }
 
 function resolveCampaignSource(): string | null {

@@ -20,7 +20,7 @@ import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
 import { isHomeIP as isHomeIPPure, ipv6Prefix64 } from './homeIP.js';
 import { parseLogLine, aggregateVisitorStats, newYorkDay } from './visitorStats.js';
-import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields, tvSizeKeptLogFields, tvTurnLogFields, tvKeysLogFields } from './engagementStats.js';
+import { aggregateEngagementStats, pushBackLogFields, gameLostLogFields, tvSizeKeptLogFields, tvTurnLogFields, tvKeysLogFields, crashScreenLogFields } from './engagementStats.js';
 import geoip from 'geoip-lite';
 import {
   DEFAULT_INSTANCE_ID,
@@ -3407,7 +3407,26 @@ const PLAYTEST_EVENTS = new Set([
   // The TV screen's own numbers: frames per turn of the table, and remote buttons by key name only.
   'tv_turn',
   'tv_keys',
+  // The "Something went wrong" screen appeared: what broke, on which version and browser.
+  'crash_screen',
 ]);
+
+// A broken page reloading in a loop must not fill the log; the client limits itself too, but anyone can post here.
+const crashScreenSeen = new Map(); // IP -> { count, resetAt }
+const CRASH_SCREEN_LIMIT = { maxPerWindow: 20, windowMs: 60 * 60 * 1000 };
+
+function crashScreenAllowed(req) {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = crashScreenSeen.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    if (crashScreenSeen.size > 1000) crashScreenSeen.clear();
+    crashScreenSeen.set(ip, { count: 1, resetAt: now + CRASH_SCREEN_LIMIT.windowMs });
+    return true;
+  }
+  entry.count += 1;
+  return entry.count <= CRASH_SCREEN_LIMIT.maxPerWindow;
+}
 
 function sanitizeTrackField(value) {
   return typeof value === 'string' ? value.slice(0, 60) : null;
@@ -3417,6 +3436,9 @@ app.post('/api/playtest/track', (req, res) => {
   const { event, campaignSource, gameId, playerId, spaceId, panel } = req.body || {};
   if (typeof event !== 'string' || !PLAYTEST_EVENTS.has(event)) {
     return res.status(400).json({ error: 'Unknown or missing event' });
+  }
+  if (event === 'crash_screen' && !crashScreenAllowed(req)) {
+    return res.json({ success: true });
   }
   logVisitor(req, `PLAYTEST_${event.toUpperCase()}`, {
     campaignSource: sanitizeTrackField(campaignSource),
@@ -3431,6 +3453,7 @@ app.post('/api/playtest/track', (req, res) => {
     ...(event === 'tv_size_kept' ? tvSizeKeptLogFields(req.body) : {}),
     ...(event === 'tv_turn' ? tvTurnLogFields(req.body) : {}),
     ...(event === 'tv_keys' ? tvKeysLogFields(req.body) : {}),
+    ...(event === 'crash_screen' ? crashScreenLogFields(req.body) : {}),
   });
   res.json({ success: true });
 });

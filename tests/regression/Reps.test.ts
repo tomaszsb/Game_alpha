@@ -155,6 +155,8 @@ describe('the salary at End Turn', () => {
     s.stateService.updateTempState(pid, { timeSpent: 121 });
     const spy = vi.spyOn(s.repService, 'settleAtEndTurn');
     s.stateService.setPlayerMoveIntent(pid, 'ARCH-INITIATION');
+    // End Turn arrives at the next space, where a random roll could raise a question nobody here answers (a hang, 1 run in 6).
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
     await s.turnService.endTurnWithMovement(true);
     expect(spy).toHaveBeenCalledWith(pid);
     expect(s.stateService.getPlayer(pid)!.expenditures?.team).toBe(1500);

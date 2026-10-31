@@ -36,8 +36,26 @@ const PAPER = { light: '#fffdf6', dark: '#2a2822' } as const;
 const RULE = { light: '#c9d3e3', dark: '#454a55' } as const;
 
 /** The clipboard's board in the player's colour: the wood with a good share of their colour mixed in, so the players can be told apart at a glance. */
-const tinted = (wood: string, playerColor: string | undefined): string =>
-  playerColor ? `color-mix(in srgb, ${playerColor} 55%, ${wood})` : wood;
+const tinted = (wood: string, playerColor: string | undefined): string => {
+  if (!playerColor) return wood;
+  if (typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && !CSS.supports('color', 'color-mix(in srgb, red, blue)')) {
+    return mixHex(playerColor, wood, 0.55);
+  }
+  return `color-mix(in srgb, ${playerColor} 55%, ${wood})`;
+};
+
+/** color-mix worked out by hand, for a browser too old to have it (Chrome before 111 drops the whole background). A colour that is not hex: the wood. */
+export function mixHex(a: string, b: string, shareOfA: number): string {
+  const rgb = (hex: string): number[] | null => {
+    const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
+    if (!m) return null;
+    const full = m[1].length === 3 ? m[1].replace(/./g, c => c + c) : m[1];
+    return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16));
+  };
+  const [from, to] = [rgb(a), rgb(b)];
+  if (!from || !to) return b;
+  return `rgb(${from.map((v, i) => Math.round(v * shareOfA + to[i] * (1 - shareOfA))).join(', ')})`;
+}
 
 export function panelFrameStyles(name: PanelFrameName, p: PanelPalette, mode: PanelMode, playerColor?: string): PanelFrameStyles {
   if (name === 'plain') {

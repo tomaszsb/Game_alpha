@@ -2,6 +2,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { colors } from '../../styles/theme';
+import { reportCrash } from '../../utils/crashReport';
 
 interface Props {
   children: ReactNode;
@@ -64,7 +65,8 @@ export class ErrorBoundary extends Component<Props, State> {
       this.props.onError(error, errorInfo);
     }
 
-    // TODO: Send to error reporting service (Sentry, LogRocket, etc.) when implemented
+    // Leave a trace on the server: a player on a screen we can't reach has no other way to tell us.
+    reportCrash(error);
   }
 
   handleReload = () => {
